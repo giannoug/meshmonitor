@@ -35,10 +35,12 @@ export function useLayout(): { layout: Layout; ready: boolean; preview: boolean;
     staleTime: 5 * 60_000,
     enabled: preview,
   });
-  const { prefs, isSuccess: prefsOk, setPref } = useUserPreferences({ enabled: preview });
+  const { prefs, isSuccess: prefsOk, isError: prefsFailed, setPref } = useUserPreferences({ enabled: preview });
 
   // Only a full successful answer replaces the mirror: a transient error must not.
   const resolvedOk = config.isSuccess && (!preview || (settings.isSuccess && prefsOk));
+  // A failed fetch settles on the mirror or Classic, so nothing waits on it forever.
+  const failed = config.isError || settings.isError || prefsFailed;
   const resolved = resolveLayout({
     preview,
     userLayout: asLayout(prefs.layout),
@@ -58,7 +60,7 @@ export function useLayout(): { layout: Layout; ready: boolean; preview: boolean;
 
   return {
     layout: resolvedOk ? resolved : (mirror ?? 'classic'),
-    ready: resolvedOk || mirror !== null,
+    ready: resolvedOk || mirror !== null || failed,
     preview,
     setLayout,
   };

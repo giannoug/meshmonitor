@@ -34,15 +34,14 @@ import RouteLoading from './components/RouteLoading/RouteLoading.tsx';
 import ErrorBoundary from './components/common/ErrorBoundary.tsx';
 import { AppErrorScreen } from './components/common/AppErrorScreen.tsx';
 import { useDashboardSources } from './hooks/useDashboardData';
-import { preloadAppTabForPath } from './appTabs';
 import './index.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { CsrfProvider } from './contexts/CsrfContext';
 import { WebSocketProvider } from './contexts/WebSocketContext';
-import { SourceProvider } from './contexts/SourceContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { installKeyboardInsetsObserver } from './utils/keyboardInsets';
 import LayoutGate from './workspace/LayoutGate';
+import { renderSourceApp, type SourcePages } from './sourceDispatch';
 
 // Every page is its own lazy chunk, so a visit loads only the page it lands
 // on rather than the whole app in one ~4 MB `main` bundle. Chunks reference
@@ -98,6 +97,10 @@ export function SourceApp() {
   );
 }
 
+// The per-source pages. They stay declared here, in this order: the eager-CSS
+// plugin (vite.config.ts) walks this file's lazy() imports to fix the cascade.
+const SOURCE_PAGES: SourcePages = { App, MeshCoreSourcePage, MeshCoreIngestSourcePage, ReticulumSourcePage };
+
 function SourceAppDispatch() {
   const { sourceId, '*': splat } = useParams<{ sourceId: string; '*': string }>();
   const { data: sources, isLoading } = useDashboardSources();
@@ -114,53 +117,8 @@ function SourceAppDispatch() {
     return <RouteLoading />;
   }
 
-  if (source?.type === 'meshcore') {
-    return (
-      <SourceProvider sourceId={sourceId} sourceName={source.name} sourceType={source.type}>
-        <WebSocketProvider>
-          <MeshCoreSourcePage key={sourceId} />
-        </WebSocketProvider>
-      </SourceProvider>
-    );
-  }
-
-  // A meshcore_mqtt ingest source is MeshCore, but has no device — it gets its
-  // own read-only page rather than MeshCorePage (whose useMeshCore hook polls
-  // ~20 device endpoints the route guard refuses for it) and rather than
-  // falling through to the Meshtastic <App /> shell below, which is what it did
-  // before #5096 and why it showed Meshtastic tabs for a MeshCore source.
-  if (source?.type === 'meshcore_mqtt') {
-    return (
-      <SourceProvider sourceId={sourceId} sourceName={source.name} sourceType={source.type}>
-        <WebSocketProvider>
-          <MeshCoreIngestSourcePage key={sourceId} />
-        </WebSocketProvider>
-      </SourceProvider>
-    );
-  }
-
-  if (source?.type === 'reticulum') {
-    return (
-      <SourceProvider sourceId={sourceId} sourceName={source.name} sourceType={source.type}>
-        <WebSocketProvider>
-          <ReticulumSourcePage key={sourceId} />
-        </WebSocketProvider>
-      </SourceProvider>
-    );
-  }
-
-  // Fetch the landing tab's chunk alongside App's own, rather than after App
-  // has loaded and rendered its (lazy) tab. Idempotent, so a re-render is free.
-  preloadAppTabForPath(splat);
-
-  return (
-    <SourceProvider sourceId={sourceId} sourceName={source?.name ?? null} sourceType={source?.type ?? null}>
-      <WebSocketProvider>
-        {/* key={sourceId} forces full remount when switching sources, resetting all DataContext/MessagingContext state */}
-        <App key={sourceId} />
-      </WebSocketProvider>
-    </SourceProvider>
-  );
+  // The type dispatch is shared with the Workspace (#6365): sourceDispatch.tsx.
+  return renderSourceApp(SOURCE_PAGES, sourceId, source, splat);
 }
 
 const sharedProviders = (children: React.ReactNode) => (

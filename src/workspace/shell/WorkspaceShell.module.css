@@ -1,0 +1,32 @@
+/*
+ * Workspace shell frame (#6365). Task 1.6 adds the rail and sidebar; for now
+ * the shell is the frame that re-hosted Classic pages render in.
+ */
+
+/* Inter only here, so Classic never loads it (D16). */
+.shell {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  min-height: 100dvh;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/*
+ * Re-hosted pages hide their header and sidebar (ShellContext), but Classic's
+ * layout still reserves room for them. Zero those offsets for everything in
+ * the shell instead of editing the global sheets: the app header and nav bar
+ * (`.app-main`'s padding and margin, read from variables that Sidebar and the
+ * header hook also write on <html>), and the dashboard topbar, whose height
+ * `.dashboard-page` declares on itself.
+ */
+.main {
+  --app-header-height: 0px;
+  --sidebar-width: 0px;
+  --app-nav-bar-height: 0px;
+  min-width: 0;
+}
+
+.main :global(.dashboard-page) {
+  --dashboard-topbar-height: 0px;
+}

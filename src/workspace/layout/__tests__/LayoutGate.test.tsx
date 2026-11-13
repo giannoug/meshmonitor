@@ -118,6 +118,17 @@ describe('LayoutGate', () => {
     expect(urls.some((u) => u.includes('/api/user/preferences') || u.includes('/api/settings'))).toBe(false);
   });
 
+  it('holds a Workspace-only URL while the layout is unknown, so the deep link survives', async () => {
+    renderGate({}, { route: '/overview/reports', hang: true });
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.queryByTestId('classic')).toBeNull();
+  });
+
+  it('sends a Workspace-only URL to Classic when the layout cannot be fetched', async () => {
+    renderGate({ 'GET /api/config': () => new Response('{}', { status: 500 }) }, { route: '/overview/reports' });
+    await waitFor(() => expect(screen.getByTestId('classic').textContent).toBe('/reports'));
+  });
+
   it.each([
     ['/privacy/terms', undefined],
     ['/packet-monitor', undefined],

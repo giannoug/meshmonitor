@@ -28,12 +28,19 @@ import UserMenu from '../components/UserMenu';
 import { appBasename } from '../init';
 import { MeshCorePage } from '../components/MeshCore/MeshCorePage';
 import type { ConnectionStatus } from '../components/MeshCore/hooks/useMeshCore';
+import type { MeshCoreView } from '../components/MeshCore/meshCoreViewAccess';
 import '../components/MeshCore/MeshCoreTab.css';
 import '../components/AppHeader/AppHeader.css';
 import { UiIcon } from '../components/icons';
 import pageStyles from './SourcePageTopbar.module.css';
 
-function MeshCoreSourceInner() {
+/** Optional controlled view, passed through to MeshCorePage (the Workspace drives it from the URL, #6365). */
+interface MeshCoreSourcePageProps {
+  view?: MeshCoreView;
+  onViewChange?: (view: MeshCoreView) => void;
+}
+
+function MeshCoreSourceInner({ view, onViewChange }: MeshCoreSourcePageProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { sourceId, sourceName } = useSource();
@@ -128,7 +135,7 @@ function MeshCoreSourceInner() {
       )}
 
       {canReadConnection ? (
-        <MeshCorePage baseUrl={appBasename} sourceId={sourceId} onStatusChange={handleStatusChange} />
+        <MeshCorePage baseUrl={appBasename} sourceId={sourceId} onStatusChange={handleStatusChange} view={view} onViewChange={onViewChange} />
       ) : (
         <div className="meshcore-tab">
           <h2>{t('meshcore.title')}</h2>
@@ -141,12 +148,12 @@ function MeshCoreSourceInner() {
   );
 }
 
-export default function MeshCoreSourcePage() {
+export default function MeshCoreSourcePage(props: MeshCoreSourcePageProps) {
   return (
     <SettingsProvider>
       <ToastProvider>
         <MapProvider>
-          <MeshCoreSourceInner />
+          <MeshCoreSourceInner {...props} />
         </MapProvider>
       </ToastProvider>
     </SettingsProvider>

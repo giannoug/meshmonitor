@@ -14,11 +14,12 @@ export function useUserPreferences({ enabled = true }: { enabled?: boolean } = {
   prefs: Prefs;
   isLoading: boolean;
   isSuccess: boolean;
+  isError: boolean;
   setPref(key: string, value: unknown): Promise<void>;
   deletePref(key: string): Promise<void>;
 } {
   const queryClient = useQueryClient();
-  const { data, isPending, isSuccess } = useQuery({
+  const { data, isPending, isSuccess, isError } = useQuery({
     queryKey: KEY,
     enabled,
     queryFn: async () =>
@@ -57,7 +58,7 @@ export function useUserPreferences({ enabled = true }: { enabled?: boolean } = {
     [mutate],
   );
 
-  return { prefs: data ?? {}, isLoading: isPending, isSuccess, setPref, deletePref };
+  return { prefs: data ?? {}, isLoading: isPending, isSuccess, isError, setPref, deletePref };
 }
 
 export function useUserPreference<T>(key: string, fallback: T): [T, (v: T) => Promise<void>] {

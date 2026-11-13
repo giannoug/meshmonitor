@@ -29,8 +29,11 @@ export default function LayoutGate({ classic }: { classic: ReactNode }) {
       </Suspense>
     );
   }
-  // Hold the redirect until the layout is known, so a Workspace user on a new
-  // browser keeps the Workspace deep link they opened.
-  const to = ready ? classicFallback(pathname) : null;
-  return to ? <Navigate replace to={to} /> : <>{classic}</>;
+  // A Workspace-only URL waits until the layout is known, so a Workspace user
+  // on a new browser keeps the deep link they opened (Classic's catch-all
+  // would otherwise mount and could jump to the default landing page).
+  // Classic URLs still render at once.
+  const to = classicFallback(pathname);
+  if (!to) return <>{classic}</>;
+  return ready ? <Navigate replace to={to} /> : <RouteLoading />;
 }

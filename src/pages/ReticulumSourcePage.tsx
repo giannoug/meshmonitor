@@ -30,13 +30,19 @@ import { appBasename } from '../init';
 import { ReticulumPage } from '../components/Reticulum/ReticulumPage';
 import { CyclingConnectionStatus } from '../components/AppHeader/CyclingConnectionStatus';
 import { reticulumHeaderMetrics } from '../components/Reticulum/reticulumHeaderMetrics';
-import type { ReticulumStatus, ReticulumInterfaceRow } from '../types/reticulum';
+import type { ReticulumStatus, ReticulumInterfaceRow, ReticulumView } from '../types/reticulum';
 import '../components/AppHeader/AppHeader.css';
 import { UiIcon } from '../components/icons';
 import styles from './ReticulumSourcePage.module.css';
 import topbarStyles from './SourcePageTopbar.module.css';
 
-function ReticulumSourceInner() {
+/** Optional controlled view, passed through to ReticulumPage (the Workspace drives it from the URL, #6365). */
+interface ReticulumSourcePageProps {
+  view?: ReticulumView;
+  onViewChange?: (view: ReticulumView) => void;
+}
+
+function ReticulumSourceInner({ view, onViewChange }: ReticulumSourcePageProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { sourceId, sourceName } = useSource();
@@ -130,6 +136,8 @@ function ReticulumSourceInner() {
           sourceId={sourceId}
           onStatusChange={setRnsStatus}
           onInterfacesChange={setRnsInterfaces}
+          view={view}
+          onViewChange={onViewChange}
         />
       ) : (
         <div className={styles.gate}>
@@ -143,12 +151,12 @@ function ReticulumSourceInner() {
   );
 }
 
-export default function ReticulumSourcePage() {
+export default function ReticulumSourcePage(props: ReticulumSourcePageProps) {
   return (
     <SettingsProvider>
       <ToastProvider>
         <MapProvider>
-          <ReticulumSourceInner />
+          <ReticulumSourceInner {...props} />
         </MapProvider>
       </ToastProvider>
     </SettingsProvider>
