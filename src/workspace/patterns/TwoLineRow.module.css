@@ -1,0 +1,88 @@
+/* TwoLineRow (spec §5.7): rows of the switcher, the You list and later lists. */
+.row {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 20px;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+}
+
+a.row,
+button.row {
+  cursor: pointer;
+}
+
+a.row:hover,
+button.row:hover {
+  background: var(--color-surface-hover);
+}
+
+a.row:focus-visible,
+button.row:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.active {
+  background: var(--color-surface);
+}
+
+.leading {
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Long names truncate (Review Focus 1). */
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+  overflow-wrap: anywhere;
+}
+
+.trailing {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+@media (min-width: 768px) {
+  .row {
+    min-height: 44px;
+  }
+}

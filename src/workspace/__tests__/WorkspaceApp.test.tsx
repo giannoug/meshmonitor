@@ -99,7 +99,6 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     ['/users', 'users'],
     ['/preferences/units', 'global-settings'],
     ['/server/general', 'global-settings'],
-    ['/you', 'dashboard'],
     ['/you/layout', 'dashboard'],
     [`${g2}/nodes`, 'app'],
     [`${g2}/settings`, 'app'],
@@ -123,7 +122,13 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     expect(await expectPage('dashboard')).toHaveAttribute('data-show-list', 'false');
   });
 
-  it.each(['/overview', '/overview/map', '/you'])('%s shows the overview without the landing jump', async (route) => {
+  it('/you shows the You page (Task 1.7)', async () => {
+    renderAt('/you');
+    expect(await screen.findByText('Athens Ops')).toBeInTheDocument();
+    expect(screen.queryByTestId('page-dashboard')).toBeNull();
+  });
+
+  it.each(['/overview', '/overview/map'])('%s shows the overview without the landing jump', async (route) => {
     renderAt(route);
     await waitFor(() => expect(screen.getByTestId('page-dashboard')).toHaveAttribute('data-show-list', 'true'));
     expect(realUrl()).toBe(route);

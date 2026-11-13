@@ -1,0 +1,65 @@
+/* Phone tab bar (boards a-chat-D-phone, s1-you): four 44 px+ targets above the home indicator. */
+.bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  box-sizing: border-box;
+  height: calc(var(--ws-tabbar-height) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  display: flex;
+  background: var(--color-bg-raised);
+  border-top: 1px solid var(--color-surface);
+}
+
+.tab {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-subtle);
+  text-decoration: none;
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -4px;
+}
+
+.on {
+  color: var(--color-accent);
+}
+
+.tab[aria-disabled='true'] {
+  color: var(--color-text-disabled);
+}
+
+.icon {
+  position: relative;
+  display: flex;
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  left: 14px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  border: 2px solid var(--color-bg-raised);
+  background: var(--color-error);
+  color: var(--color-bg-sunken);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

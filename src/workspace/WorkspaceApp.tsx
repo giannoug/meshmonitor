@@ -19,6 +19,7 @@ import { SettingsProvider } from '../contexts/SettingsContext';
 import { WebSocketProvider } from '../contexts/WebSocketContext';
 import WorkspaceShell from './shell/WorkspaceShell';
 import WorkspaceSource from './source/WorkspaceSource';
+import YouHome from './you/YouHome';
 import { workspaceRedirect } from './routes';
 import {
   AnalysisRehost,
@@ -73,7 +74,9 @@ function WorkspaceRoutes() {
 
           <Route path="preferences/*" element={<GlobalSettingsRehost />} />
           <Route path="server/*" element={<GlobalSettingsRehost />} />
-          {/* The You frame lands in Task 1.7. */}
+          <Route path="you" element={<YouHome />} />
+          {/* Task 1.8 swaps in the Layout page; other You categories are Phase 6's. */}
+          <Route path="you/layout" element={<OverviewRehost />} />
           <Route path="you/*" element={<OverviewRehost />} />
 
           <Route path="*" element={<OverviewRehost />} />

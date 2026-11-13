@@ -26,6 +26,7 @@ import {
 } from '../../components/search/configSections';
 import { PREFERENCE_CATEGORIES } from '../routes';
 import SidebarSection from './SidebarSection';
+import { familyOf, statusLabel, TOOL_TABS } from './deviceTabs';
 import type { WorkspaceSource } from './useWorkspaceSources';
 import styles from './DeviceSidebar.module.css';
 
@@ -46,24 +47,11 @@ interface DeviceSidebarProps {
   onNavigate?: () => void;
 }
 
-/** Tab per tool row, by source type; null: the type has no such tab. */
-const TOOL_TABS: Record<'meshtastic' | 'meshcore' | 'reticulum', Record<string, string | null>> = {
-  meshtastic: { map: 'nodes', nodes: 'nodes', dashboard: 'dashboard', automation: 'automation', config: 'settings', tools: 'info', channels: 'channels', dms: 'messages' },
-  meshcore: { map: 'nodes', nodes: 'nodes', dashboard: 'telemetry', automation: 'automations', config: 'configuration', tools: 'info', channels: 'channels', dms: 'dms' },
-  reticulum: { map: 'map', nodes: 'destinations', dashboard: null, automation: null, config: 'configuration', tools: 'info', channels: null, dms: 'dms' },
-};
-
 /** The view gate each row shares with MeshCore's tabs. */
 const GATE: Record<string, MeshCoreView> = {
   map: 'nodes', nodes: 'nodes', dashboard: 'telemetry', automation: 'automations', config: 'configuration',
   tools: 'info', channels: 'channels', dms: 'dms',
 };
-
-function familyOf(type: string): 'meshtastic' | 'meshcore' | 'reticulum' {
-  if (type === 'meshcore') return 'meshcore';
-  if (type === 'reticulum') return 'reticulum';
-  return 'meshtastic';
-}
 
 export default function DeviceSidebar({ mode, sourceId, source, onNavigate }: DeviceSidebarProps) {
   const { t } = useTranslation();
@@ -193,12 +181,7 @@ function Frame({ title, header, children }: { title: string; header?: ReactNode;
 /** Name and status line: "Connected · !a1b2c3d4". */
 function DeviceHeader({ source }: { source: WorkspaceSource }) {
   const { t } = useTranslation();
-  const label = {
-    connected: t('source.status_connected'),
-    connecting: t('source.status_connecting'),
-    offline: t('source.status_disconnected'),
-    disabled: t('source.status_disabled'),
-  }[source.status];
+  const label = statusLabel(t, source.status);
   const nodeNum = source.live?.nodeNum;
   const line = nodeNum !== undefined && source.status === 'connected' ? `${label} · !${nodeNum.toString(16).padStart(8, '0')}` : label;
   return (

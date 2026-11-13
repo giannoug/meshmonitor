@@ -25,6 +25,8 @@ export type WorkspaceSourceStatus = 'connected' | 'connecting' | 'offline' | 'di
 export type WorkspaceSource = DashboardSource & {
   status: WorkspaceSourceStatus;
   unread: number;
+  /** DMs only (`/unread-by-source`): the phone's DMs tab badge. */
+  dmUnread: number;
   abbrev: string;
   colorToken: string;
   /** The source's own status reply, when it has one (node number, counts). */
@@ -67,11 +69,13 @@ export function useWorkspaceSources(): { sources: WorkspaceSource[]; isLoading: 
       const live = statuses.get(s.id) ?? null;
       const channelUnread =
         s.id === openId && openCounts ? Object.values(openCounts.channels).reduce((a, n) => a + n, 0) : 0;
+      const dmUnread = dms?.sources[s.id]?.directMessages ?? 0;
       return {
         ...s,
         live,
         status: statusOf(s, live),
-        unread: (dms?.sources[s.id]?.directMessages ?? 0) + channelUnread,
+        unread: dmUnread + channelUnread,
+        dmUnread,
         abbrev: abbrevOf(s.name),
         // By position in the full list, so a colour does not move when another device is hidden.
         colorToken: `var(--device-${((data ?? []).indexOf(s) % 8) + 1})`,

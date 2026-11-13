@@ -1,0 +1,111 @@
+/* You (board s1-you): account head, then grouped cards of rows. */
+.page {
+  box-sizing: border-box;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 16px calc(var(--app-nav-bar-height) + env(safe-area-inset-bottom, 0px) + 24px);
+  font-family: inherit;
+  color: var(--color-text);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0 -16px;
+  padding: 20px 16px;
+  border-bottom: 1px solid var(--color-surface);
+  background: var(--color-bg-sunken);
+}
+
+.avatar {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-hover);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.who {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.name {
+  font-size: 20px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sub {
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.group {
+  margin-top: 16px;
+}
+
+.groupTitle {
+  margin: 20px 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.card {
+  overflow: hidden;
+  border: 1px solid var(--color-surface);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+}
+
+.card > * + * {
+  border-top: 1px solid var(--color-surface);
+}
+
+/* Icon tiles take the categorical hues, as the device squares do. */
+.icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-bg);
+}
+
+.icon[data-tone='account'] {
+  background: var(--device-1);
+}
+
+.icon[data-tone='prefs'] {
+  background: var(--device-4);
+}
+
+.icon[data-tone='notify'] {
+  background: var(--device-2);
+}
+
+.icon[data-tone='server'] {
+  background: var(--device-6);
+}
+
+.icon[data-tone='plain'] {
+  background: var(--color-surface);
+  color: var(--color-text-subtle);
+}
+
+.sheetBody {
+  padding: 0 20px;
+}
