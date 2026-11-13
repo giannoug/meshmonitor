@@ -23,12 +23,13 @@ let prevFetch: typeof fetch;
 
 function renderGate(
   fixtures: Parameters<typeof fixtureApi>[0],
-  opts: { route?: string; basename?: string; hang?: boolean } = {},
+  opts: { route?: string; basename?: string; hang?: boolean | string } = {},
 ) {
   const api = fixtureApi(fixtures);
   globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    if (opts.hang) return new Promise<Response>(() => {});
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    // `hang: true` stalls every request; a string stalls the requests whose URL contains it.
+    if (opts.hang === true || (opts.hang && url.includes(opts.hang))) return new Promise<Response>(() => {});
     return api(url, { ...init, method: init?.method ?? 'GET' }) ?? new Response('{}', { status: 404 });
   }) as typeof fetch;
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -70,8 +71,7 @@ describe('LayoutGate', () => {
       { 'GET /api/config': config(true), 'GET /api/user/preferences': prefs('classic') },
       { route: '/overview/reports' },
     );
-    await waitFor(() => expect(screen.getByTestId('classic')).toHaveTextContent('/reports'));
-    expect(screen.getByTestId('classic').textContent).toBe('/reports');
+    await waitFor(() => expect(screen.getByTestId('classic').textContent).toBe('/reports'));
   });
 
   it('keeps the basename when it redirects', async () => {
@@ -89,9 +89,47 @@ describe('LayoutGate', () => {
     expect(await screen.findByTestId('workspace-app')).toBeInTheDocument();
   });
 
-  it('shows the loading placeholder, not Classic, with no mirror and nothing fetched yet', () => {
+  it('renders Classic synchronously when there is no mirror', () => {
     renderGate({}, { hang: true });
-    expect(screen.getByRole('status')).toBeInTheDocument();
-    expect(screen.queryByTestId('classic')).toBeNull();
+    expect(screen.getByTestId('classic')).toHaveTextContent('/');
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('never blocks Classic on a stalled /api/settings', async () => {
+    renderGate({ 'GET /api/config': config(true) }, { hang: '/api/settings' });
+    expect(screen.getByTestId('classic')).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getByTestId('classic')).toBeInTheDocument();
+    expect(screen.queryByTestId('workspace-app')).toBeNull();
+  });
+
+  it('keeps a workspace mirror when /api/config fails', async () => {
+    localStorage.setItem('mm.layout', 'workspace');
+    renderGate({ 'GET /api/config': () => new Response('{}', { status: 500 }) });
+    expect(await screen.findByTestId('workspace-app')).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(localStorage.getItem('mm.layout')).toBe('workspace');
+  });
+
+  it('fetches neither preferences nor settings when the preview flag is off', async () => {
+    renderGate({ 'GET /api/config': config(false) });
+    await new Promise((r) => setTimeout(r, 50));
+    const urls = vi.mocked(globalThis.fetch).mock.calls.map(([u]) => String(u));
+    expect(urls.some((u) => u.includes('/api/user/preferences') || u.includes('/api/settings'))).toBe(false);
+  });
+
+  it.each([
+    ['/privacy/terms', undefined],
+    ['/packet-monitor', undefined],
+    ['/meshmonitor/privacy/terms', '/meshmonitor'],
+    ['/meshmonitor/packet-monitor', '/meshmonitor'],
+  ])('renders Classic for public page %s even for a Workspace user', async (route, basename) => {
+    renderGate(
+      { 'GET /api/config': config(true), 'GET /api/user/preferences': prefs('workspace') },
+      { route, basename },
+    );
+    await waitFor(() => expect(localStorage.getItem('mm.layout')).toBe('workspace'));
+    expect(screen.getByTestId('classic').textContent).toBe(route.replace('/meshmonitor', ''));
+    expect(screen.queryByTestId('workspace-app')).toBeNull();
   });
 });

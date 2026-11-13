@@ -10,15 +10,17 @@ type Prefs = Record<string, unknown>;
 const KEY = ['user', 'preferences'];
 const path = (key: string) => `/api/user/preferences/${encodeURIComponent(key)}`;
 
-export function useUserPreferences(): {
+export function useUserPreferences({ enabled = true }: { enabled?: boolean } = {}): {
   prefs: Prefs;
   isLoading: boolean;
+  isSuccess: boolean;
   setPref(key: string, value: unknown): Promise<void>;
   deletePref(key: string): Promise<void>;
 } {
   const queryClient = useQueryClient();
-  const { data, isPending } = useQuery({
+  const { data, isPending, isSuccess } = useQuery({
     queryKey: KEY,
+    enabled,
     queryFn: async () =>
       (await apiService.get<{ data?: { preferences?: Prefs } }>('/api/user/preferences')).data?.preferences ?? {},
     staleTime: 5 * 60_000,
@@ -36,6 +38,8 @@ export function useUserPreferences(): {
         queryClient.setQueryData<Prefs>(KEY, prev);
         throw err;
       }
+      // A write before the first load landed leaves only that key in the cache.
+      void queryClient.invalidateQueries({ queryKey: KEY });
     },
     [queryClient],
   );
@@ -53,7 +57,7 @@ export function useUserPreferences(): {
     [mutate],
   );
 
-  return { prefs: data ?? {}, isLoading: isPending, setPref, deletePref };
+  return { prefs: data ?? {}, isLoading: isPending, isSuccess, setPref, deletePref };
 }
 
 export function useUserPreference<T>(key: string, fallback: T): [T, (v: T) => Promise<void>] {
