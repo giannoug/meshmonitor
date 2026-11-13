@@ -205,12 +205,13 @@ export default defineConfig({
     // the root-absolute `base`. The server rewrites `/assets/` only inside HTML
     // (src/server/utils/htmlRewriter.ts), so with `base: '/'` a lazy route's
     // CSS/JS preload would request `/assets/...` and 404 under a BASE_URL
-    // subpath such as `/meshmonitor`. HTML and CSS keep the default.
-    // `experimental` API, verified on Vite 8.3. After a Vite upgrade, check
-    // that no JS chunk in dist/assets holds a quoted root-absolute `/assets/`
-    // string (`/api/assets/...` API paths are fine).
+    // subpath such as `/meshmonitor`. CSS `url()` assets (the Workspace Inter
+    // fonts) resolve against their stylesheet in /assets/ for the same reason.
+    // HTML keeps the default. `experimental` API, verified on Vite 8.3. After
+    // a Vite upgrade, check that no JS chunk or stylesheet in dist/assets holds
+    // a root-absolute `/assets/` URL (`/api/assets/...` API paths are fine).
     renderBuiltUrl(_filename, { hostType }) {
-      return hostType === 'js' ? { relative: true } : undefined
+      return hostType === 'js' || hostType === 'css' ? { relative: true } : undefined
     },
   },
   // MapLibre v6 loads its bundled worker with `{ type: 'module' }`, so Vite must
