@@ -16,10 +16,11 @@ afterAll(() => waitForBackgroundTasks());
 
 // Mock react-i18next for tests. `t` returns the key (with {{var}} filled from
 // an options object). It keeps one identity across renders, as the real hook
-// does; see src/test/mockI18n.ts for why that matters.
-vi.mock('react-i18next', async () => {
-  const { createReactI18nextMock, keyT } = await import('./mockI18n');
-  return createReactI18nextMock(keyT);
+// does; see src/test/mockI18n.ts for why that matters. Inside a real
+// <I18nextProvider> (renderWorkspace) the real hook and <Trans> take over.
+vi.mock('react-i18next', async (importOriginal) => {
+  const { createReactI18nextMock, keyT, withRealProvider } = await import('./mockI18n');
+  return withRealProvider(createReactI18nextMock(keyT), await importOriginal<typeof import('react-i18next')>());
 });
 
 // jsdom has no WebGL, so the real probe in `vectorSupport.ts` would report

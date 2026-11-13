@@ -34,7 +34,7 @@
  * rejects a `react-i18next` mock that builds `t` inline inside `useTranslation`.
  */
 import { vi } from 'vitest';
-import type { ReactNode } from 'react';
+import { createElement, useContext, type ReactNode } from 'react';
 
 type Vars = Record<string, unknown>;
 
@@ -102,5 +102,27 @@ export function createReactI18nextMock(
     Trans: ({ children }: { children?: ReactNode }) => children,
     initReactI18next: { type: '3rdParty', init: vi.fn() },
     ...extra,
+  };
+}
+
+type ReactI18next = typeof import('react-i18next');
+type MockModule = ReturnType<typeof createReactI18nextMock>;
+
+/**
+ * Wrap a mock so that inside a real `<I18nextProvider>` (as `renderWorkspace`
+ * renders) `useTranslation` and `Trans` are the real ones, and everywhere else
+ * the mock's. The provider is fixed for a component's lifetime, so each
+ * component always takes the same branch and hook order stays stable.
+ */
+export function withRealProvider(mock: MockModule, actual: ReactI18next) {
+  const MockTrans = mock.Trans;
+  return {
+    ...mock,
+    I18nextProvider: actual.I18nextProvider,
+    I18nContext: actual.I18nContext,
+    useTranslation: (...args: Parameters<ReactI18next['useTranslation']>) =>
+      useContext(actual.I18nContext)?.i18n ? actual.useTranslation(...args) : mock.useTranslation(),
+    Trans: (props: Parameters<ReactI18next['Trans']>[0]) =>
+      useContext(actual.I18nContext)?.i18n ? createElement(actual.Trans, props) : MockTrans({ children: props.children as ReactNode }),
   };
 }

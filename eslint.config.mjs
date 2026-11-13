@@ -143,7 +143,7 @@ export default [
     files: [
       'scripts/**/*.{js,mjs,cjs,ts}',
       '*.{js,mjs,cjs}',
-      'tests/**/*.{js,mjs,cjs}',
+      'tests/**/*.{js,mjs,cjs,ts}',
     ],
     languageOptions: { parserOptions: { project: false } },
   },

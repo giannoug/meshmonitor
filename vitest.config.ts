@@ -37,6 +37,8 @@ const COMMON_EXCLUDE = [
   // tests, and phantom failures from the worktree's own stale deps). Same class
   // of gotcha as the lint ratchet's `.claude/worktrees` caveat in CLAUDE.md.
   '**/.claude/worktrees/**',
+  // Playwright specs (`npm run test:workspace-e2e`), not Vitest suites.
+  'tests/workspace-e2e/**',
 ];
 
 /** Settings shared by both projects. */

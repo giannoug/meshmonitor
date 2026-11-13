@@ -48,6 +48,7 @@ include/
 
 # Test results
 test-results.md
+/test-results/
 
 # Database files
 *.db
