@@ -1,10 +1,12 @@
 /*
- * Workspace shell frame (#6365). Task 1.6 adds the rail and sidebar; for now
- * the shell is the frame that re-hosted Classic pages render in.
+ * Workspace shell frame (#6365): the rail and sidebar are fixed on the left
+ * (DeviceRail, DeviceSidebar); the page column starts after them.
  */
 
 /* Inter only here, so Classic never loads it (D16). */
 .shell {
+  --ws-rail-width: 72px;
+  --ws-sidebar-width: 270px;
   font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   min-height: 100dvh;
@@ -14,10 +16,10 @@
 
 /*
  * Re-hosted pages hide their header and sidebar (ShellContext), but Classic's
- * layout still reserves room for them. Zero those offsets for everything in
- * the shell instead of editing the global sheets: the app header and nav bar
- * (`.app-main`'s padding and margin, read from variables that Sidebar and the
- * header hook also write on <html>), and the dashboard topbar, whose height
+ * layout still reserves room for them. Override those offsets for everything
+ * in the shell instead of editing the global sheets: the app header and nav
+ * bar heights (`.app-main`'s padding, read from variables that the header hook
+ * also writes on <html>), and the dashboard topbar, whose height
  * `.dashboard-page` declares on itself.
  */
 .main {
@@ -29,4 +31,60 @@
 
 .main :global(.dashboard-page) {
   --dashboard-topbar-height: 0px;
+}
+
+/*
+ * Beside the rail (and sidebar). Classic's fixed panes (map, save bar, header
+ * popups) start at `--sidebar-width`, so it carries the frame's width; the
+ * page column is already that far in, so `.app-main` drops its own margin.
+ */
+.framed {
+  --sidebar-width: var(--ws-frame-width);
+  margin-left: var(--ws-frame-width);
+}
+
+.framed :global(.app-main) {
+  margin-left: 0;
+  width: 100%;
+}
+
+/* 768–1023 px: the sidebar floats over the page, above this backdrop. */
+.backdrop {
+  position: fixed;
+  inset: 0 0 0 var(--ws-rail-width);
+  background: color-mix(in srgb, var(--color-bg-sunken) 60%, transparent);
+  z-index: 19;
+}
+
+.drawerButton {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.drawerButton:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.drawerButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

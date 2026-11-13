@@ -12,4 +12,7 @@ export interface Board {
   setup?: (page: Page) => Promise<void>;
 }
 
-export const BOARDS: Board[] = [];
+export const BOARDS: Board[] = [
+  // Task 1.6 builds the frame (rail + sidebar); the chat pane is Phase 2's.
+  { id: 'a-chat-D-desktop', size: 'desktop', path: '/source/src-g2/channels' },
+];

@@ -4,7 +4,7 @@ import { MOBILE_BREAKPOINT_PX, MOBILE_LAYOUT_MEDIA_QUERY } from '../utils/sideba
 const QUERY = `(max-width: ${MOBILE_BREAKPOINT_PX}px)`;
 
 /** Shared plumbing: track one media query and re-render when it flips. */
-function useMediaQuery(query: string): boolean {
+export function useMediaQuery(query: string): boolean {
   const get = () => (typeof window === 'undefined' ? false : window.matchMedia(query).matches);
   const [matches, setMatches] = useState<boolean>(get);
 

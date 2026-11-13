@@ -8466,5 +8466,20 @@
   "mqtt_root_finder.validation.TOO_LONG": "A root can be at most 31 bytes.",
   "mqtt_root_finder.validation.NOT_STRING": "A root must be text.",
   "mqtt_root_finder.validation.EMPTY": "A root cannot be empty.",
-  "workspace.source.not_found": "This device was not found."
+  "workspace.source.not_found": "This device was not found.",
+  "workspace.shell.devices": "Devices",
+  "workspace.shell.overview": "Overview",
+  "workspace.shell.overview_label": "Overview: all devices",
+  "workspace.shell.device_unread": "{{name}}, {{count}} unread",
+  "workspace.shell.add_device": "Add device",
+  "workspace.shell.your_account": "Your account",
+  "workspace.shell.preferences": "Preferences",
+  "workspace.shell.online_count": "{{count}} online",
+  "workspace.shell.more_tools": "More tools…",
+  "workspace.shell.open_channels": "Open channels",
+  "workspace.shell.direct_messages": "Direct messages",
+  "workspace.shell.message_a_node": "Message a node",
+  "workspace.shell.show_sidebar": "Show sidebar",
+  "workspace.shell.hide_sidebar": "Hide sidebar",
+  "workspace.shell.device_removed": "This device is no longer available."
 }

@@ -1,0 +1,129 @@
+/* Layout D sidebar (board a-chat-D-desktop): 270 px, beside the rail. */
+.sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: var(--ws-rail-width);
+  width: var(--ws-sidebar-width);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-raised);
+  border-right: 1px solid var(--color-surface);
+  z-index: 20;
+}
+
+.head {
+  flex: none;
+  height: 56px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 18px;
+  border-bottom: 1px solid var(--color-surface);
+}
+
+.headText {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Long device names truncate (Review Focus 1). */
+.title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-subtle);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-text-faint);
+}
+
+.dot[data-status='connected'] {
+  background: var(--color-success);
+}
+
+.dot[data-status='connecting'] {
+  background: var(--color-warning);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.row:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.on,
+.on:hover {
+  background: var(--color-accent);
+  color: var(--color-bg-sunken);
+  font-weight: 600;
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.count {
+  margin-left: auto;
+  flex: none;
+  font-size: 12px;
+  color: var(--color-text-subtle);
+}
+
+.on .count {
+  color: inherit;
+}

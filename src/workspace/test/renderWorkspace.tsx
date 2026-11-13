@@ -9,8 +9,8 @@
  * - `global.fetch` is a `vi.fn` over `fixtureApi(fixtures)`; an unmatched
  *   request gets a 404. `/api/auth/status` follows `anonymous`, `isAdmin` and
  *   `permissions`; a test's own `fixtures` win over both.
- * - `window.matchMedia` answers min/max-width queries for a 390 px (`phone`)
- *   or 1280 px viewport.
+ * - `window.matchMedia` answers min/max-width queries for a 390 px (`phone`),
+ *   1280 px, or `width` px viewport.
  * fetch and matchMedia are restored when the test finishes.
  */
 import { readFileSync } from 'node:fs';
@@ -48,6 +48,8 @@ void i18n.init({
 export interface RenderWorkspaceOptions {
   route?: string;
   phone?: boolean;
+  /** Viewport width for `matchMedia`; overrides `phone`. */
+  width?: number;
   /** Non-admin grants. Passing them makes the user a non-admin unless `isAdmin` says otherwise. */
   permissions?: Partial<SourcedPermissionSet>;
   /** Default: true, or false when `permissions` is given. */
@@ -92,7 +94,7 @@ export function renderWorkspace(ui: ReactElement, opts: RenderWorkspaceOptions =
       })
     );
   }) as typeof fetch;
-  const width = opts.phone ? 390 : 1280;
+  const width = opts.width ?? (opts.phone ? 390 : 1280);
   window.matchMedia = vi.fn((query: string) => ({
     matches: mediaMatches(query, width),
     media: query,

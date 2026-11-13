@@ -1,0 +1,115 @@
+/* Device rail (board a-chat-D-desktop): 72 px strip of 44 px squares. */
+.rail {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--ws-rail-width);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  background: var(--color-bg-sunken);
+  /* Many devices (Review Focus 1): the strip scrolls, never the page sideways. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+  z-index: 20;
+}
+
+.square {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  /* Device colours are the chart hues, which every theme sets against --color-bg. */
+  color: var(--color-bg);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.square:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.on {
+  outline: 2px solid var(--color-text);
+  outline-offset: 3px;
+}
+
+/* Offline devices stay, greyed (note ds6). */
+.square[data-status='offline'] {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.plain {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.ghost {
+  background: none;
+  color: var(--color-text-subtle);
+}
+
+.ghost:hover,
+.plain:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+
+.avatar {
+  border-radius: 22px;
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  border: 2px solid var(--color-bg-sunken);
+  background: var(--color-error);
+  color: var(--color-bg-sunken);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rule {
+  flex: none;
+  width: 32px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-surface);
+}
+
+.spacer {
+  flex: 1 0 0;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

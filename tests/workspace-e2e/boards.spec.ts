@@ -12,7 +12,8 @@ const SHOTS = fileURLToPath(new URL('../../test-results/workspace-boards/', impo
 
 for (const board of BOARDS) {
   test.describe(board.id, () => {
-    test.use({ viewport: VIEWPORTS[board.size] });
+    // The boards are drawn in Mocha, the dark default (Latte follows a light OS scheme).
+    test.use({ viewport: VIEWPORTS[board.size], colorScheme: 'dark' });
 
     test(board.id, async ({ page }) => {
       await routeFixtures(page);

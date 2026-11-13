@@ -206,6 +206,19 @@
   --chart-6: #74c7ec;
   --chart-7: #eba0ac;
   --chart-8: #f5e0dc;
+
+  /* Workspace device squares (#6365): categorical, like --chart-N, so not
+     `--color-*` roles (those are per-theme schema keys, #4567). Aliases in the
+     order the boards use (blue, green, yellow, mauve, sapphire, …), so every
+     theme, custom ones included, gets them from its own --chart-N. */
+  --device-1: var(--chart-1);
+  --device-2: var(--chart-3);
+  --device-3: var(--chart-5);
+  --device-4: var(--chart-2);
+  --device-5: var(--chart-6);
+  --device-6: var(--chart-4);
+  --device-7: var(--chart-7);
+  --device-8: var(--chart-8);
 }
 
 /* See `--status-bar-blur-gap` above (#5286). */
