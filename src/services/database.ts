@@ -103,6 +103,7 @@ import {
   TimeSyncRepository,
   DistanceDeleteLogRepository,
   MapPreferencesRepository,
+  UserPreferencesRepository,
   ThemesRepository,
   ALL_SOURCES,
 } from '../db/repositories/index.js';
@@ -685,6 +686,7 @@ class DatabaseService {
   public timeSyncRepo: TimeSyncRepository | null = null;
   public distanceDeleteLogRepo: DistanceDeleteLogRepository | null = null;
   public mapPreferencesRepo: MapPreferencesRepository | null = null;
+  public userPreferencesRepo: UserPreferencesRepository | null = null;
   public themesRepo: ThemesRepository | null = null;
 
   /**
@@ -923,6 +925,11 @@ class DatabaseService {
   get distanceDeleteLog(): DistanceDeleteLogRepository {
     if (!this.distanceDeleteLogRepo) throw new Error('Database not initialized');
     return this.distanceDeleteLogRepo;
+  }
+
+  get userPreferences(): UserPreferencesRepository {
+    if (!this.userPreferencesRepo) throw new Error('Database not initialized');
+    return this.userPreferencesRepo;
   }
 
   get mapPreferences(): MapPreferencesRepository {
@@ -1326,6 +1333,7 @@ class DatabaseService {
       this.timeSyncRepo = new TimeSyncRepository(drizzleDb, this.drizzleDbType);
       this.distanceDeleteLogRepo = new DistanceDeleteLogRepository(drizzleDb, this.drizzleDbType);
       this.mapPreferencesRepo = new MapPreferencesRepository(drizzleDb, this.drizzleDbType);
+      this.userPreferencesRepo = new UserPreferencesRepository(drizzleDb, this.drizzleDbType);
       this.themesRepo = new ThemesRepository(drizzleDb, this.drizzleDbType);
 
       logger.info('[DatabaseService] Drizzle repositories initialized successfully');
@@ -5862,6 +5870,26 @@ class DatabaseService {
       sourceId
     );
     return node as DbNode | null;
+  }
+
+  async getUserPreferencesAsync(userId: number): Promise<Record<string, unknown>> {
+    return this.userPreferences.getAll(userId);
+  }
+
+  async getUserPreferenceAsync(userId: number, key: string): Promise<unknown | undefined> {
+    return this.userPreferences.get(userId, key);
+  }
+
+  async setUserPreferenceAsync(userId: number, key: string, value: unknown): Promise<void> {
+    return this.userPreferences.set(userId, key, value);
+  }
+
+  async deleteUserPreferenceAsync(userId: number, key: string): Promise<void> {
+    return this.userPreferences.delete(userId, key);
+  }
+
+  async countUserPreferenceValuesAsync(key: string, userIds: number[]): Promise<Record<string, number>> {
+    return this.userPreferences.countByValue(key, userIds);
   }
 
   /**

@@ -249,6 +249,7 @@ import { migration as meshcoreNodeSecurityFlagsMigration, runMigration227Postgre
 import { migration as addNotificationTextMaxMigration, runMigration229Postgres, runMigration229Mysql } from '../server/migrations/229_add_notification_text_max.js';
 import { migration as addMeshcoreMessageSenderNameOverrideMigration, runMigration231Postgres, runMigration231Mysql } from '../server/migrations/231_add_meshcore_message_sender_name_override.js';
 import { migration as addNotifyOnAutoTraceMigration, runMigration232Postgres, runMigration232Mysql } from '../server/migrations/232_add_notify_on_auto_trace.js';
+import { migration as addUserPreferencesMigration, runMigration233Postgres, runMigration233Mysql } from '../server/migrations/233_add_user_preferences.js';
 import { migration as refileMeshcoreMqttSlotChannelsMigration, runMigration228Postgres, runMigration228Mysql } from '../server/migrations/228_refile_meshcore_mqtt_slot_channels.js';
 import { migration as meshcoreNeighborWatchMigration, runMigration230Postgres, runMigration230Mysql } from '../server/migrations/230_add_meshcore_neighbor_watch.js';
 
@@ -3740,4 +3741,18 @@ registry.register({
   sqlite: (db) => addNotifyOnAutoTraceMigration.up(db),
   postgres: (client) => runMigration232Postgres(client),
   mysql: (pool) => runMigration232Mysql(pool),
+});
+
+// ---------------------------------------------------------------------------
+// Migration 233: user_preferences (#6365). Per-user key/value store for the
+// Workspace layout. GLOBAL per user (no sourceId); cascades with the user.
+// ---------------------------------------------------------------------------
+
+registry.register({
+  number: 233,
+  name: 'add_user_preferences',
+  settingsKey: 'migration_233_add_user_preferences',
+  sqlite: (db) => addUserPreferencesMigration.up(db),
+  postgres: (client) => runMigration233Postgres(client),
+  mysql: (pool) => runMigration233Mysql(pool),
 });

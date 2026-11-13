@@ -39,6 +39,7 @@ export const BACKUP_TABLES: string[] = [
   // ── Roots: every foreign key in the schema leads here ────────────────────
   'sources',
   'users',
+  'user_preferences',
 
   // ── Core mesh data and settings (backed up since the first version) ──────
   'settings',

@@ -657,3 +657,30 @@ export type MeshcorePathfindingTargetPostgres = typeof meshcorePathfindingTarget
 export type NewMeshcorePathfindingTargetPostgres = typeof meshcorePathfindingTargetsPostgres.$inferInsert;
 export type MeshcorePathfindingTargetMysql = typeof meshcorePathfindingTargetsMysql.$inferSelect;
 export type NewMeshcorePathfindingTargetMysql = typeof meshcorePathfindingTargetsMysql.$inferInsert;
+
+// ============ USER PREFERENCES (#6365) ============
+// Per-user key/value store; `value` is JSON text. Unique (userId, key).
+
+export const userPreferencesSqlite = sqliteTable('user_preferences', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull().references(() => usersSqlite.id, { onDelete: 'cascade' }),
+  key: text('key').notNull(),
+  value: text('value').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
+export const userPreferencesPostgres = pgTable('user_preferences', {
+  id: pgSerial('id').primaryKey(),
+  userId: pgInteger('userId').notNull().references(() => usersPostgres.id, { onDelete: 'cascade' }),
+  key: pgText('key').notNull(),
+  value: pgText('value').notNull(),
+  updatedAt: pgBigint('updatedAt', { mode: 'number' }).notNull(),
+});
+
+export const userPreferencesMysql = mysqlTable('user_preferences', {
+  id: mySerial('id').primaryKey(),
+  userId: myInt('userId').notNull().references(() => usersMysql.id, { onDelete: 'cascade' }),
+  key: myVarchar('key', { length: 191 }).notNull(),
+  value: myText('value').notNull(),
+  updatedAt: myBigint('updatedAt', { mode: 'number' }).notNull(),
+});

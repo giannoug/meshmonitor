@@ -39,6 +39,7 @@ export { MeshcorePathfindingTargetsRepository } from './meshcorePathfindingTarge
 export { TimeSyncRepository } from './timeSync.js';
 export { DistanceDeleteLogRepository } from './distanceDeleteLog.js';
 export { MapPreferencesRepository } from './mapPreferences.js';
+export { UserPreferencesRepository } from './userPreferences.js';
 export { ThemesRepository } from './themes.js';
 export { SolarEstimatesRepository } from './solarEstimates.js';
 export type { SolarEstimate } from './solarEstimates.js';

@@ -51,6 +51,7 @@ export const TABLE_ORDER = [
   // FKs to users for createdBy and channel_database_permissions FKs to users
   // for userId/grantedBy).
   'users',
+  'user_preferences',
   'permissions',
   'sessions',
   'audit_log',
