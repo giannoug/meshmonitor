@@ -8528,8 +8528,6 @@
   "workspace.server.usage_hint": "Signed-in users, last {{days}} days",
   "workspace.server.usage_value": "Classic {{classic}} · Workspace {{workspace}}",
   "workspace.server.sources": "Sources",
-  "workspace.server.guest_device": "Default device for guests",
-  "workspace.server.guest_device_hint": "What someone who isn’t signed in sees first",
   "workspace.entry.title": "Try the Workspace layout.",
   "workspace.entry.body": "Devices down the left, channels and DMs in one sidebar, and a proper phone layout. Your data and settings stay the same, and you can switch back from You › Layout.",
   "workspace.entry.try": "Try it",

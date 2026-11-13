@@ -14,6 +14,8 @@ import { renderWorkspace, type RenderWorkspaceOptions } from '../../test/renderW
 import { athensFixture, SOURCE_IDS } from '../../__fixtures__/athens';
 import type { FixtureHandler } from '../../__fixtures__/fixtureApi';
 import { ToastProvider } from '../../../components/ToastContainer';
+import { useLayout } from '../../layout/useLayout';
+import { prefsFixture } from '../../__fixtures__/prefsFixture';
 import GeneralLayoutCard from '../GeneralLayoutCard';
 
 const check = JSON.parse(
@@ -27,12 +29,11 @@ const CARD_MUST = [
   'People who already picked one keep their choice.',
   'Offer Workspace to Classic users',
   'Who uses which',
-  'Default device for guests',
 ];
 
 /** `/api/settings` that keeps what is posted. */
-function settingsFixture() {
-  const settings: Record<string, string> = { ...athensFixture.settings };
+function settingsFixture(initial: Record<string, string> = {}) {
+  const settings: Record<string, string> = { ...athensFixture.settings, ...initial };
   const posts: Array<Record<string, string>> = [];
   const fixtures: Record<string, FixtureHandler> = {
     'GET /api/settings': () => ({ ...settings }),
@@ -46,9 +47,15 @@ function settingsFixture() {
   return { posts, fixtures };
 }
 
+/** What LayoutGate would decide right now, from the same queries. */
+function GateProbe() {
+  return <span data-testid="gate">{useLayout().layout}</span>;
+}
+
 function renderCard(opts: RenderWorkspaceOptions = {}) {
   return renderWorkspace(
     <ToastProvider>
+      <GateProbe />
       <GeneralLayoutCard />
     </ToastProvider>,
     { route: '/server/general', ...opts },
@@ -67,16 +74,16 @@ describe('r4-server-general (Layout and Sources cards)', () => {
     for (const s of check.absent) expect(text).not.toContain(s);
   });
 
-  it('shows the stored values: default layout, banner offer, usage and the guests device', async () => {
+  it('shows the stored values: default layout, banner offer, usage and the default source', async () => {
     renderCard();
     expect(await screen.findByRole('combobox', { name: 'Default layout for new users' })).toHaveDisplayValue('Classic');
     await waitFor(() => expect(screen.getByRole('switch', { name: 'Offer Workspace to Classic users' })).toBeChecked());
     expect(within(row('Who uses which')).getByText('Signed-in users, last 30 days')).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.getByRole('combobox', { name: 'Default device for guests' })).toHaveDisplayValue('Station G2'),
+      expect(screen.getByRole('combobox', { name: 'Default Meshtastic source' })).toHaveDisplayValue('Station G2'),
     );
     // Today's options: Automatic, then the Meshtastic TCP sources only.
-    const options = within(screen.getByRole('combobox', { name: 'Default device for guests' }))
+    const options = within(screen.getByRole('combobox', { name: 'Default Meshtastic source' }))
       .getAllByRole('option')
       .map((o) => o.textContent);
     expect(options).toEqual(['Automatic (first started)', 'Station G2', 'Rooftop RAK']);
@@ -86,6 +93,7 @@ describe('r4-server-general (Layout and Sources cards)', () => {
     const s = settingsFixture();
     renderCard({ fixtures: s.fixtures });
     const layout = await screen.findByRole('combobox', { name: 'Default layout for new users' });
+    await waitFor(() => expect(layout).toBeEnabled());
     fireEvent.change(layout, { target: { value: 'workspace' } });
     await waitFor(() => expect(within(row('Default layout for new users')).getByText('Saved')).toBeInTheDocument());
 
@@ -94,10 +102,10 @@ describe('r4-server-general (Layout and Sources cards)', () => {
     fireEvent.click(offer);
     await waitFor(() => expect(within(row('Offer Workspace to Classic users')).getByText('Saved')).toBeInTheDocument());
 
-    const guests = screen.getByRole('combobox', { name: 'Default device for guests' });
-    await waitFor(() => expect(guests).toHaveDisplayValue('Station G2'));
-    fireEvent.change(guests, { target: { value: SOURCE_IDS.rak } });
-    await waitFor(() => expect(within(row('Default device for guests')).getByText('Saved')).toBeInTheDocument());
+    const source = screen.getByRole('combobox', { name: 'Default Meshtastic source' });
+    await waitFor(() => expect(source).toHaveDisplayValue('Station G2'));
+    fireEvent.change(source, { target: { value: SOURCE_IDS.rak } });
+    await waitFor(() => expect(within(row('Default Meshtastic source')).getByText('Saved')).toBeInTheDocument());
 
     expect(s.posts).toEqual([
       { defaultLayout: 'workspace' },
@@ -106,17 +114,96 @@ describe('r4-server-general (Layout and Sources cards)', () => {
     ]);
   });
 
-  it('a failed save puts the old value back and says so', async () => {
+  it('the default layout waits for the admin\'s own choice to load', async () => {
+    renderCard({ fixtures: { 'GET /api/user/preferences': () => new Response('{}', { status: 500 }) } });
+    // The other controls work; this one stays off while the preference is unknown.
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Default Meshtastic source' })).toHaveDisplayValue('Station G2'));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getByRole('combobox', { name: 'Default layout for new users' })).toBeDisabled();
+  });
+
+  it('a failed save keeps the old value and says so', async () => {
     renderCard({
       fixtures: {
         'POST /api/settings': () => new Response(JSON.stringify({ success: false, error: 'nope' }), { status: 500 }),
       },
     });
     const layout = await screen.findByRole('combobox', { name: 'Default layout for new users' });
+    await waitFor(() => expect(layout).toBeEnabled());
     fireEvent.change(layout, { target: { value: 'workspace' } });
     expect(await screen.findByText('Failed to save settings')).toBeInTheDocument();
     expect(layout).toHaveDisplayValue('Classic');
     expect(screen.queryByText('Saved')).toBeNull();
+  });
+
+  describe('changing the default never moves the admin (Ruling W)', () => {
+    /** An admin with no layout of their own, in the Workspace through the install default. */
+    function renderOnDefault(post?: FixtureHandler) {
+      const s = settingsFixture({ defaultLayout: 'workspace' });
+      const p = prefsFixture({});
+      const order: string[] = [];
+      const fixtures: Record<string, FixtureHandler> = {
+        ...s.fixtures,
+        ...p.fixtures,
+        'PUT /api/user/preferences/:key': (url, init) => {
+          order.push('pref');
+          return p.fixtures['PUT /api/user/preferences/:key'](url, init);
+        },
+        'POST /api/settings': (url, init) => {
+          order.push('setting');
+          return (post ?? s.fixtures['POST /api/settings'])(url, init);
+        },
+      };
+      renderCard({ fixtures });
+      return { posts: s.posts, puts: p.puts, order };
+    }
+
+    it('keeps the admin in the Workspace: their layout is saved first, then the setting', async () => {
+      const w = renderOnDefault();
+      await waitFor(() => expect(screen.getByTestId('gate')).toHaveTextContent('workspace'));
+      const layout = screen.getByRole('combobox', { name: 'Default layout for new users' });
+      await waitFor(() => expect(layout).toHaveDisplayValue('Workspace'));
+      await waitFor(() => expect(layout).toBeEnabled());
+      fireEvent.change(layout, { target: { value: 'classic' } });
+      await waitFor(() => expect(within(row('Default layout for new users')).getByText('Saved')).toBeInTheDocument());
+      expect(w.order).toEqual(['pref', 'setting']);
+      expect(w.puts).toEqual([['layout', 'workspace']]);
+      expect(w.posts).toEqual([{ defaultLayout: 'classic' }]);
+      expect(layout).toHaveDisplayValue('Classic');
+      // Give the gate's refetches time to land: it still says Workspace.
+      await new Promise((r) => setTimeout(r, 50));
+      expect(screen.getByTestId('gate')).toHaveTextContent('workspace');
+    });
+
+    it('a failed default save leaves the layout unchanged and shows the error', async () => {
+      renderOnDefault(() => new Response(JSON.stringify({ success: false, error: 'nope' }), { status: 500 }));
+      await waitFor(() => expect(screen.getByTestId('gate')).toHaveTextContent('workspace'));
+      const layout = screen.getByRole('combobox', { name: 'Default layout for new users' });
+      await waitFor(() => expect(layout).toHaveDisplayValue('Workspace'));
+      await waitFor(() => expect(layout).toBeEnabled());
+      fireEvent.change(layout, { target: { value: 'classic' } });
+      expect(await screen.findByText('Failed to save settings')).toBeInTheDocument();
+      expect(layout).toHaveDisplayValue('Workspace');
+      expect(screen.getByTestId('gate')).toHaveTextContent('workspace');
+    });
+
+    it('a failed layout save leaves the default alone and shows the error', async () => {
+      const s = settingsFixture({ defaultLayout: 'workspace' });
+      renderCard({
+        fixtures: {
+          ...s.fixtures,
+          'GET /api/user/preferences': () => ({ success: true, data: { preferences: {} } }),
+          'PUT /api/user/preferences/:key': () => new Response(JSON.stringify({ success: false }), { status: 500 }),
+        },
+      });
+      const layout = await screen.findByRole('combobox', { name: 'Default layout for new users' });
+      await waitFor(() => expect(layout).toHaveDisplayValue('Workspace'));
+      await waitFor(() => expect(layout).toBeEnabled());
+      fireEvent.change(layout, { target: { value: 'classic' } });
+      expect(await screen.findByText('Failed to save settings')).toBeInTheDocument();
+      expect(s.posts).toEqual([]);
+      expect(layout).toHaveDisplayValue('Workspace');
+    });
   });
 
   it('a non-admin does not see the card', async () => {

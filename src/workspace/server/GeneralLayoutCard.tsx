@@ -6,11 +6,12 @@
  *   preference still wins).
  * - Offer Workspace to Classic users: `offerWorkspaceBanner` (the r3 banner).
  * - Who uses which: `GET /api/admin/layout-usage`.
- * - Default device for guests: today's default Meshtastic source
- *   (`defaultMeshtasticSourceId`), with today's options.
+ * - Default Meshtastic source: today's `defaultMeshtasticSourceId`, with
+ *   today's label and options (the board's "Default device for guests"
+ *   describes a different setting; D9b, Ruling V).
  *
  * Each control saves as it changes (`POST /api/settings`) and shows a Saved
- * tick; a failed save puts the old value back. The rest of General stays
+ * tick once the server has it; a failed save leaves the old value and says so. The rest of General stays
  * re-hosted below until Task 6.4.
  */
 import { useState } from 'react';
@@ -23,7 +24,9 @@ import { UiIcon } from '../../components/icons';
 import { useDashboardSources } from '../../hooks/useDashboardData';
 import { logger } from '../../utils/logger';
 import TwoLineRow from '../patterns/TwoLineRow';
-import { installSettingsQuery } from '../layout/useLayout';
+import { asLayout } from '../layout/resolveLayout';
+import { installSettingsQuery, useLayout } from '../layout/useLayout';
+import { useUserPreferences } from '../prefs/useUserPreferences';
 import styles from './GeneralLayoutCard.module.css';
 
 type Settings = Record<string, string | undefined>;
@@ -46,20 +49,26 @@ function Cards() {
       (await apiService.get<{ data?: { windowDays: number; classic: number; workspace: number } }>('/api/admin/layout-usage')).data,
   });
   const { data: sources = [] } = useDashboardSources();
+  const { prefs, isSuccess: prefsLoaded } = useUserPreferences();
+  const { layout, setLayout } = useLayout();
   const [saved, setSaved] = useState<Record<string, boolean>>({});
 
+  // Saved first, then cached: the layout gate reads this same settings entry,
+  // so an optimistic `defaultLayout` would move the admin before the server answered.
   const save = async (key: string, value: string) => {
     setSaved((s) => ({ ...s, [key]: false }));
-    const prev = queryClient.getQueryData<Settings>(installSettingsQuery.queryKey);
-    queryClient.setQueryData<Settings>(installSettingsQuery.queryKey, { ...prev, [key]: value });
     try {
+      // Changing the default never moves the admin making it: one without a
+      // choice of their own first keeps the layout they are in (Ruling W).
+      if (key === 'defaultLayout' && asLayout(prefs.layout) === null) await setLayout(layout);
       await apiService.post('/api/settings', { [key]: value });
-      setSaved((s) => ({ ...s, [key]: true }));
     } catch (error) {
-      queryClient.setQueryData<Settings>(installSettingsQuery.queryKey, prev);
       logger.error(`Failed to save ${key}:`, error);
       showToast(t('common.save_failed'), 'error');
+      return;
     }
+    queryClient.setQueryData<Settings>(installSettingsQuery.queryKey, (prev) => ({ ...prev, [key]: value }));
+    setSaved((s) => ({ ...s, [key]: true }));
     void queryClient.invalidateQueries({ queryKey: installSettingsQuery.queryKey });
     if (key === 'defaultLayout') void queryClient.invalidateQueries({ queryKey: USAGE_KEY });
   };
@@ -72,10 +81,16 @@ function Cards() {
       </span>
     );
 
-  const select = (key: string, label: string, value: string, options: Array<[string, string]>) => (
+  const select = (key: string, label: string, value: string, options: Array<[string, string]>, disabled = false) => (
     <>
       {tick(key)}
-      <select className={styles.select} aria-label={label} value={value} onChange={(e) => void save(key, e.target.value)}>
+      <select
+        className={styles.select}
+        aria-label={label}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => void save(key, e.target.value)}
+      >
         {options.map(([v, text]) => (
           <option key={v} value={v}>{text}</option>
         ))}
@@ -114,10 +129,17 @@ function Cards() {
           data-testid="general-row"
           title={t('workspace.server.default_layout')}
           subtitle={t('workspace.server.default_layout_hint')}
-          trailing={select('defaultLayout', t('workspace.server.default_layout'), settings.defaultLayout === 'workspace' ? 'workspace' : 'classic', [
-            ['classic', t('workspace.layout.classic')],
-            ['workspace', t('workspace.layout.workspace')],
-          ])}
+          trailing={select(
+            'defaultLayout',
+            t('workspace.server.default_layout'),
+            settings.defaultLayout === 'workspace' ? 'workspace' : 'classic',
+            [
+              ['classic', t('workspace.layout.classic')],
+              ['workspace', t('workspace.layout.workspace')],
+            ],
+            // Until the admin's own choice is known, Ruling W cannot tell whether to keep it.
+            !prefsLoaded,
+          )}
         />
         <TwoLineRow
           data-testid="general-row"
@@ -149,9 +171,9 @@ function Cards() {
       <div className={styles.group}>
         <TwoLineRow
           data-testid="general-row"
-          title={t('workspace.server.guest_device')}
-          subtitle={t('workspace.server.guest_device_hint')}
-          trailing={select('defaultMeshtasticSourceId', t('workspace.server.guest_device'), sourceId, sourceOptions)}
+          title={t('settings.default_source.title', 'Default Meshtastic source')}
+          subtitle={t('settings.default_source.label', 'Source used when none is chosen')}
+          trailing={select('defaultMeshtasticSourceId', t('settings.default_source.title', 'Default Meshtastic source'), sourceId, sourceOptions)}
         />
       </div>
     </div>

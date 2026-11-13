@@ -100,7 +100,7 @@ const settings: Record<string, string> = {
   dateFormat: 'DD/MM/YYYY',
   theme: 'mocha',
   preferredSortField: 'longName',
-  // Server › General (r4): the install default layout, the banner offer, the guests' device.
+  // Server › General (r4): the install default layout, the banner offer, the default Meshtastic source.
   defaultLayout: 'classic',
   offerWorkspaceBanner: 'true',
   defaultMeshtasticSourceId: SOURCE_IDS.g2,
