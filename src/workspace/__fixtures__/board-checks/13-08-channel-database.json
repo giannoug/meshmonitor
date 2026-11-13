@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Protocol",
+    "Enabled",
+    "decrypted",
+    "Retroactive decryption",
+    "Drag",
+    "Add channel",
+    "Import file",
+    "Import URL",
+    "Export",
+    "Generate"
+  ],
+  "absent": [],
+  "source": "checks/s13.json"
+}

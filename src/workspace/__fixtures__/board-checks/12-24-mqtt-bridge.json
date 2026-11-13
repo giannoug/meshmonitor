@@ -1,0 +1,19 @@
+{
+  "must": [
+    "Broker preset",
+    "Upstream URL",
+    "Username",
+    "Password",
+    "Mode",
+    "Client ID",
+    "Subscribe",
+    "Publish",
+    "Forwarding",
+    "Topic rewrites",
+    "Geographic",
+    "Save",
+    "reconnects"
+  ],
+  "absent": [],
+  "source": "checks/s12.json"
+}

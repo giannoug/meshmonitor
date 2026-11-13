@@ -1,0 +1,22 @@
+{
+  "must": [
+    "learned from announces",
+    "Search destinations",
+    "Sort by",
+    "Hash",
+    "Name",
+    "App",
+    "Aspects",
+    "Hops",
+    "RSSI",
+    "SNR",
+    "Quality",
+    "Last heard",
+    "Announce rate",
+    "Copy",
+    "Favourite",
+    "Next hop"
+  ],
+  "absent": [],
+  "source": "checks/s09.json"
+}

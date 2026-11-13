@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Message route",
+    "Heard by",
+    "not relayed yet",
+    "Scope",
+    "Hash width",
+    "Hops",
+    "Route",
+    "Packet flow",
+    "From",
+    "Time"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

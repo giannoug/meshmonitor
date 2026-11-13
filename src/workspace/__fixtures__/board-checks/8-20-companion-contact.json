@@ -1,0 +1,20 @@
+{
+  "must": [
+    "Ask the node",
+    "Organise",
+    "Data",
+    "Direct",
+    "Flood",
+    "Discover path",
+    "Reset path",
+    "Ping",
+    "RTT",
+    "Trace path",
+    "Sends",
+    "Not in radio",
+    "Add to radio",
+    "Clock offset"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

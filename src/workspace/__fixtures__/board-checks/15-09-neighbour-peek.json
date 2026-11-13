@@ -1,0 +1,15 @@
+{
+  "must": [
+    "↔",
+    "→",
+    "Bidirectional",
+    "One-way",
+    "Transport",
+    "RF",
+    "MQTT",
+    "SNR",
+    "heard"
+  ],
+  "absent": [],
+  "source": "checks/s15.json"
+}

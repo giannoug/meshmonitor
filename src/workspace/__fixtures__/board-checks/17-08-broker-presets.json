@@ -1,0 +1,31 @@
+{
+  "must": [
+    "Broker preset",
+    "Fills in the broker address, TLS and login. Nothing is sent until you save.",
+    "My saved presets",
+    "Athens community",
+    "Custom…",
+    "Save as preset",
+    "Manage saved presets",
+    "Preset name",
+    "Broker host",
+    "Port",
+    "Use TLS",
+    "Username",
+    "Password",
+    "Root topic (optional)",
+    "Save preset",
+    "Saved broker presets",
+    "Piraeus test broker",
+    "Edit",
+    "Duplicate",
+    "Delete",
+    "Delete this preset?",
+    "Close",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s17.json"
+}

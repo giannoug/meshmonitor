@@ -1,0 +1,11 @@
+{
+  "must": [
+    "Neighbour link",
+    "SNR",
+    "Distance",
+    "Elevation",
+    "View terrain profile"
+  ],
+  "absent": [],
+  "source": "checks/s05.json"
+}

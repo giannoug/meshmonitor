@@ -1,0 +1,21 @@
+{
+  "must": [
+    "Admin",
+    "Notes",
+    "Save",
+    "Asset tracking",
+    "Track this node as an asset",
+    "Keep history for (days)",
+    "Remote admin",
+    "Key mismatch",
+    "low-entropy",
+    "Share contact",
+    "Copy URL",
+    "Merge history…",
+    "Public key",
+    "Store & Forward",
+    "Channel"
+  ],
+  "absent": [],
+  "source": "checks/s15.json"
+}

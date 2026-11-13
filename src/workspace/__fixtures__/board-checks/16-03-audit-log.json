@@ -1,0 +1,19 @@
+{
+  "must": [
+    "Filters",
+    "Clear",
+    "User",
+    "Device",
+    "Action",
+    "Resource",
+    "From",
+    "UI only",
+    "API token only",
+    "Time",
+    "Last 24 h",
+    "Search",
+    "Show 42 entries"
+  ],
+  "absent": [],
+  "source": "checks/s16.json"
+}

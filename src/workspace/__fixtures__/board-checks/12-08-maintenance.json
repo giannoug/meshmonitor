@@ -1,0 +1,35 @@
+{
+  "must": [
+    "Reload from radio",
+    "3 changes detected",
+    "Field",
+    "Old",
+    "New",
+    "Create backup",
+    "Automatic backups",
+    "Keep",
+    "Last backup",
+    "Download",
+    "Restore",
+    "Delete",
+    "Restore this backup?",
+    "Channels",
+    "overwritten",
+    "identity",
+    "reboots",
+    "Firmware",
+    "2.8.2",
+    "Danger zone",
+    "Reboot",
+    "Purge node database",
+    "Shut down",
+    "DFU",
+    "Reset config",
+    "Full device reset",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s12.json"
+}

@@ -1,0 +1,17 @@
+{
+  "must": [
+    "Translation",
+    "Provider",
+    "Test",
+    "ADS-B",
+    "Elevation",
+    "MeshWars",
+    "ATAK",
+    "Virtual node",
+    "Ducting",
+    "MQTT root",
+    "Translation service connected successfully!"
+  ],
+  "absent": [],
+  "source": "checks/s13.json"
+}

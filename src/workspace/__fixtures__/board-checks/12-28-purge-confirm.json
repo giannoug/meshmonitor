@@ -1,0 +1,18 @@
+{
+  "must": [
+    "Danger zone",
+    "Reboot",
+    "Shut down",
+    "Purge node database",
+    "Reboot into DFU mode",
+    "Reset config",
+    "Full device reset",
+    "Purge the node database?",
+    "Type",
+    "PURGE",
+    "cannot be undone",
+    "Maintenance page"
+  ],
+  "absent": [],
+  "source": "checks/s12.json"
+}

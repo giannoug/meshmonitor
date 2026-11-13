@@ -1,0 +1,15 @@
+{
+  "must": [
+    "News",
+    "2 / 3",
+    "Security",
+    "Important",
+    "Security fix in 4.15.2",
+    "Previous",
+    "Next",
+    "Feature",
+    "Release"
+  ],
+  "absent": [],
+  "source": "checks/s17.json"
+}

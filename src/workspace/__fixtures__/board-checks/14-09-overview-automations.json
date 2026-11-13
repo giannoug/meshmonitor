@@ -1,0 +1,17 @@
+{
+  "must": [
+    "Automations",
+    "Variables",
+    "Sends",
+    "No limit set",
+    "Delete",
+    "Templates",
+    "Edit",
+    "Runs",
+    "Trace",
+    "Export",
+    "Duplicate"
+  ],
+  "absent": [],
+  "source": "checks/s14.json"
+}

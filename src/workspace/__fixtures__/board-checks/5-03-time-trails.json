@@ -1,0 +1,15 @@
+{
+  "must": [
+    "Time",
+    "Start",
+    "End",
+    "Live",
+    "Trails",
+    "Points",
+    "Duration",
+    "Follow paused",
+    "Resume"
+  ],
+  "absent": [],
+  "source": "checks/s05.json"
+}

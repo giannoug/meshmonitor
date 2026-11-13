@@ -1,0 +1,20 @@
+{
+  "must": [
+    "Receive-only region feed",
+    "Region",
+    "Broker",
+    "Hidden",
+    "Nodes",
+    "Observers",
+    "Last heartbeat",
+    "Battery",
+    "Uptime",
+    "Noise floor",
+    "Channels",
+    "older, key unknown",
+    "Packets",
+    "Notifications"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

@@ -1,0 +1,18 @@
+{
+  "must": [
+    "Password sign-in is off",
+    "10 recovery codes left",
+    "Turn password sign-in back on",
+    "Your recovery codes",
+    "Shown once",
+    "Copy",
+    "Download",
+    "I saved these codes",
+    "Done"
+  ],
+  "absent": [
+    "Download .txt",
+    "I saved these somewhere safe"
+  ],
+  "source": "checks/s11.json"
+}

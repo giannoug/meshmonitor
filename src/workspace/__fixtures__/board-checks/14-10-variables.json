@@ -1,0 +1,13 @@
+{
+  "must": [
+    "New variable",
+    "Type",
+    "Scope",
+    "Flag auto-clear",
+    "Constant",
+    "Create variable",
+    "Templates"
+  ],
+  "absent": [],
+  "source": "checks/s14.json"
+}

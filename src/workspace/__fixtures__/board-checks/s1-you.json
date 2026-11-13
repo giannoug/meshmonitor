@@ -1,0 +1,10 @@
+{
+  "must": [
+    "Home",
+    "DMs",
+    "Activity",
+    "You"
+  ],
+  "absent": [],
+  "source": "checks/s04.json"
+}

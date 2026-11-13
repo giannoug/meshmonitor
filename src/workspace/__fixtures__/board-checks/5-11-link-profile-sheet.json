@@ -1,0 +1,12 @@
+{
+  "must": [
+    "Link profile",
+    "Line of sight",
+    "Fresnel",
+    "Margin",
+    "Clear",
+    "Inputs"
+  ],
+  "absent": [],
+  "source": "checks/s05.json"
+}

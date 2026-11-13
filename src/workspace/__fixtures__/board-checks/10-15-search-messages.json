@@ -1,0 +1,31 @@
+{
+  "must": [
+    "Search messages",
+    "relay",
+    "Search",
+    "Case sensitive",
+    "Scope",
+    "All messages",
+    "Channels only",
+    "Direct messages only",
+    "Channel",
+    "All channels",
+    "Sender",
+    "Anyone",
+    "From",
+    "To",
+    "Showing 5 of 31 results",
+    "Load more",
+    "# LongFast",
+    "DM with Kifisia Rooftop",
+    "open it in its conversation",
+    "⌘K"
+  ],
+  "absent": [
+    "Ctrl+K",
+    "MeshCore only",
+    "as today",
+    "10-15"
+  ],
+  "source": "checks/s10.json"
+}

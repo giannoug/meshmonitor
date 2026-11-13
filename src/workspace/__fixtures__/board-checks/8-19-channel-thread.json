@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Scope: gr-att",
+    "Heard by",
+    "not relayed yet",
+    "Lycabettus",
+    "Penteli",
+    "1 hop",
+    "Route details",
+    "resends left"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

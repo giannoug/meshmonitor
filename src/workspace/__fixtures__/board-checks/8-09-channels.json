@@ -1,0 +1,22 @@
+{
+  "must": [
+    "Channels",
+    "Slot",
+    "Public",
+    "Add channel",
+    "Hashtag",
+    "Secret (hex, 32 chars)",
+    "Import from URL",
+    "Share",
+    "QR",
+    "Region / Scope",
+    "Reorder slots on device",
+    "Danger zone",
+    "Reset to Public",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s08.json"
+}

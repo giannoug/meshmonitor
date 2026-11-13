@@ -1,0 +1,13 @@
+{
+  "must": [
+    "Auto-pathfinding",
+    "Auto-ack",
+    "Auto-announce",
+    "Sends",
+    "Sends on the mesh",
+    "Rules that include this device",
+    "New rule"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

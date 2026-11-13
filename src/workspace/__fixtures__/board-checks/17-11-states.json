@@ -1,0 +1,11 @@
+{
+  "must": [
+    "Something went wrong",
+    "MeshMonitor hit an error it could not recover from",
+    "Error details",
+    "Try again",
+    "Reload page"
+  ],
+  "absent": [],
+  "source": "checks/s17.json"
+}

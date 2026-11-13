@@ -1,0 +1,26 @@
+{
+  "must": [
+    "relay",
+    "Search",
+    "Case sensitive",
+    "Scope",
+    "All messages",
+    "Channel",
+    "All channels",
+    "Sender",
+    "Anyone",
+    "From",
+    "To",
+    "Showing 4 of 31 results",
+    "tap one to open it",
+    "DM with Kifisia Rooftop"
+  ],
+  "absent": [
+    "⌘K",
+    "Ctrl+K",
+    "MeshCore only",
+    "as today",
+    "10-16"
+  ],
+  "source": "checks/s10.json"
+}

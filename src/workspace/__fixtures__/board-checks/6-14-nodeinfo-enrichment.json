@@ -1,0 +1,13 @@
+{
+  "must": [
+    "NodeInfo enrichment",
+    "Also push to device NodeDB",
+    "Sends 1 NodeInfo request",
+    "Fix all",
+    "Fix",
+    "Donor",
+    "Fillable fields"
+  ],
+  "absent": [],
+  "source": "checks/s06.json"
+}

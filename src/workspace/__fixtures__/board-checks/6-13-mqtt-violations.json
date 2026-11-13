@@ -1,0 +1,15 @@
+{
+  "must": [
+    "ok_to_mqtt violations",
+    "Run",
+    "Confirmed",
+    "Suspected",
+    "Originators",
+    "Broker",
+    "Topic",
+    "Bitfield",
+    "CSV"
+  ],
+  "absent": [],
+  "source": "checks/s06.json"
+}

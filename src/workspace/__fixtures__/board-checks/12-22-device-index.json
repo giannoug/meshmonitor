@@ -1,0 +1,17 @@
+{
+  "must": [
+    "Device",
+    "Position",
+    "Power",
+    "Display",
+    "Network",
+    "Bluetooth",
+    "Role CLIENT",
+    "Restarts",
+    "May restart",
+    "Pins in use",
+    "GPIO 4"
+  ],
+  "absent": [],
+  "source": "checks/s12.json"
+}

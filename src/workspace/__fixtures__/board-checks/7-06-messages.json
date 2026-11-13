@@ -1,0 +1,20 @@
+{
+  "must": [
+    "LongFast",
+    "All sources",
+    "heard by 3",
+    "2 hops",
+    "Reception details",
+    "Source",
+    "Hops",
+    "SNR",
+    "RSSI",
+    "Heard",
+    "Signed",
+    "clock 2 min ahead",
+    "Public",
+    "Refresh"
+  ],
+  "absent": [],
+  "source": "checks/s07.json"
+}

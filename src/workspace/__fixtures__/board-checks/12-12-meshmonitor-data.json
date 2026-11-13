@@ -1,0 +1,34 @@
+{
+  "must": [
+    "Node display",
+    "Hide nodes not heard for",
+    "Inactive after",
+    "Aircraft",
+    "Packet monitor",
+    "Keep at most",
+    "Data",
+    "Erase nodes",
+    "Purge telemetry",
+    "Clean outliers",
+    "Purge messages",
+    "Reset traceroutes",
+    "Saved",
+    "saves as you go",
+    "Reset UI positions",
+    "Reset settings to defaults",
+    "Telemetry",
+    "Graphs show",
+    "PKI DMs",
+    "Decrypt PKI direct messages",
+    "Reliable PKI",
+    "Inherit",
+    "As needed",
+    "Avoid",
+    "⌘,"
+  ],
+  "absent": [
+    "One category per page",
+    "⌘K"
+  ],
+  "source": "checks/s12.json"
+}

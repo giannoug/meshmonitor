@@ -1,0 +1,19 @@
+{
+  "must": [
+    "Layers",
+    "Base map",
+    "Nodes",
+    "Links",
+    "Overlays",
+    "Analysis",
+    "Traceroutes",
+    "Neighbours",
+    "Heatmap",
+    "Trails",
+    "SNR overlay",
+    "Traceroute filters",
+    "2D only"
+  ],
+  "absent": [],
+  "source": "checks/s05.json"
+}

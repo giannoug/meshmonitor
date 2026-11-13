@@ -1,0 +1,17 @@
+{
+  "must": [
+    "Discover",
+    "Nearby",
+    "Repeaters",
+    "Sensors",
+    "returned",
+    "1 new",
+    "Import contact",
+    "Group by role",
+    "Neighbour",
+    "4.11 V",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

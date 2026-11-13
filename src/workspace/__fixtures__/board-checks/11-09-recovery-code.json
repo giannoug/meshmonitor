@@ -1,0 +1,15 @@
+{
+  "must": [
+    "Sign in with a recovery code",
+    "Recovery code",
+    "Username",
+    "Choose a new password",
+    "signed in with a recovery code",
+    "New password",
+    "Confirm new password",
+    "Minimum 8 characters",
+    "Change password"
+  ],
+  "absent": [],
+  "source": "checks/s11.json"
+}

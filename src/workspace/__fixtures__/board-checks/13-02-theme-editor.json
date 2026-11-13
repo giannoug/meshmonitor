@@ -1,0 +1,12 @@
+{
+  "must": [
+    "Visual editor",
+    "JSON editor",
+    "Import",
+    "Export",
+    "Accessibility check",
+    "Theme name"
+  ],
+  "absent": [],
+  "source": "checks/s13.json"
+}

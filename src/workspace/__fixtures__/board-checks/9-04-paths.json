@@ -1,0 +1,22 @@
+{
+  "must": [
+    "Destination",
+    "Via",
+    "Interface",
+    "Hops",
+    "Age",
+    "Probe",
+    "ms · 2 hops",
+    "No reply",
+    "Probing…",
+    "Remote Fleet",
+    "Nothing here is stored",
+    "Destination hash",
+    "Query",
+    "is reachable",
+    "known path",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s09.json"
+}

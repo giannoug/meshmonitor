@@ -1,0 +1,12 @@
+{
+  "must": [
+    "Runs",
+    "Sent",
+    "Skipped",
+    "Failed",
+    "Trigger payload",
+    "Live trace"
+  ],
+  "absent": [],
+  "source": "checks/s14.json"
+}

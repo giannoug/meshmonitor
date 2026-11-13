@@ -1,0 +1,33 @@
+{
+  "must": [
+    "Click the map to place the waypoint",
+    "Sending source",
+    "Pick on map",
+    "Name",
+    "29",
+    "Description",
+    "Icon",
+    "Expires",
+    "Lock to this node",
+    "Virtual (do not broadcast)",
+    "Channel",
+    "Hop limit",
+    "Rebroadcast every",
+    "Android clients notify on every rebroadcast",
+    "Geofence",
+    "Radius",
+    "160 m to 16 km",
+    "Bounding box",
+    "North",
+    "South",
+    "West",
+    "East",
+    "Alert when a node enters",
+    "Alert when a node leaves",
+    "Only for favourite nodes",
+    "Sends",
+    "Locked to another node"
+  ],
+  "absent": [],
+  "source": "checks/s15.json"
+}

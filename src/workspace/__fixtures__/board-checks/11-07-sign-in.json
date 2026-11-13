@@ -1,0 +1,15 @@
+{
+  "must": [
+    "Athens Mesh Watch",
+    "Too many sign-in attempts",
+    "Wait 14 minutes",
+    "Sign in with a passkey",
+    "Username",
+    "Password",
+    "Sign in with OIDC",
+    "Use a recovery code",
+    "GitHub"
+  ],
+  "absent": [],
+  "source": "checks/s11.json"
+}

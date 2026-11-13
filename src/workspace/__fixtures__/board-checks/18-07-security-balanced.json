@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Set Protection Level to Balanced?",
+    "This sets Station G2 to Balanced.",
+    "Compatible is the firmware default.",
+    "Saving the security config reboots the node.",
+    "Set Balanced",
+    "Cancel",
+    "⌘,"
+  ],
+  "absent": [
+    "Type G2 to confirm",
+    "⌘K"
+  ],
+  "source": "checks/s18.json"
+}

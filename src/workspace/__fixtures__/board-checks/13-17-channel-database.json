@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Retroactive decryption",
+    "decrypted",
+    "Drag",
+    "Enabled",
+    "Add channel",
+    "Import file",
+    "Import URL",
+    "Export",
+    "Meshtastic",
+    "MeshCore"
+  ],
+  "absent": [],
+  "source": "checks/s13.json"
+}

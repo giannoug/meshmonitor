@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Search destinations",
+    "Sort by",
+    "Last heard",
+    "lxmf.delivery",
+    "Hops",
+    "SNR",
+    "Quality",
+    "Announce rate"
+  ],
+  "absent": [],
+  "source": "checks/s09.json"
+}

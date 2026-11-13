@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Search direct messages",
+    "All conversations",
+    "Unread only",
+    "Recent (24 h)",
+    "By hops",
+    "Favourites",
+    "With position",
+    "No infrastructure",
+    "Mark all read",
+    "Pin"
+  ],
+  "absent": [],
+  "source": "checks/s10.json"
+}

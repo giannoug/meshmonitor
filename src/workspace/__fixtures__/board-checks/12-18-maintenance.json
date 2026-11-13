@@ -1,0 +1,18 @@
+{
+  "must": [
+    "Firmware",
+    "2.8.2",
+    "Update",
+    "Reload from radio",
+    "3 changes detected",
+    "Hop limit",
+    "Automatic backups",
+    "Create backup",
+    "Download",
+    "Restore",
+    "Delete",
+    "Danger zone"
+  ],
+  "absent": [],
+  "source": "checks/s12.json"
+}

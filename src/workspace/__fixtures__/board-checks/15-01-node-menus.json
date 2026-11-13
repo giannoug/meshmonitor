@@ -1,0 +1,38 @@
+{
+  "must": [
+    "Ask the node",
+    "Organise",
+    "Data",
+    "Traceroute",
+    "Exchange NodeInfo",
+    "Exchange position",
+    "Request telemetry",
+    "Request neighbour info",
+    "Scan for admin",
+    "Sends",
+    "Needs settings:write",
+    "Favourite",
+    "Favourite lock",
+    "Ignore",
+    "Hide from map",
+    "Mark as aircraft",
+    "Not aircraft",
+    "Clear override",
+    "Apply to all sources",
+    "Override position",
+    "Copy NodeInfo",
+    "Merge identity",
+    "Purge data",
+    "traceroute:write",
+    "nodes:write",
+    "messages:write",
+    "admins only",
+    "Who can use these"
+  ],
+  "absent": [
+    "as today",
+    "GATES, AS TODAY",
+    "Aircraft is Meshtastic only"
+  ],
+  "source": "checks/s15.json"
+}

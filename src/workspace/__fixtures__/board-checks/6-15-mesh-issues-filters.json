@@ -1,0 +1,19 @@
+{
+  "must": [
+    "Filters",
+    "Search subject",
+    "Severity",
+    "High",
+    "Medium",
+    "Low",
+    "Tier",
+    "Source",
+    "Station G2",
+    "Show closed",
+    "Show dismissed",
+    "Clear",
+    "Show 13 issues"
+  ],
+  "absent": [],
+  "source": "checks/s06.json"
+}

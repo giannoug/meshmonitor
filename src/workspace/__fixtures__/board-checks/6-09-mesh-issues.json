@@ -1,0 +1,19 @@
+{
+  "must": [
+    "Mesh issues",
+    "Run now",
+    "New",
+    "Reopened",
+    "Muted",
+    "Filters",
+    "By issue",
+    "By node",
+    "Recommendation",
+    "Router cluster",
+    "Evidence",
+    "Dismiss",
+    "Mute rule"
+  ],
+  "absent": [],
+  "source": "checks/s06.json"
+}

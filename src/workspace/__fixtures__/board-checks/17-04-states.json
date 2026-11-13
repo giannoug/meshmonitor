@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Loading…",
+    "No packets logged yet",
+    "Something went wrong",
+    "MeshMonitor hit an error it could not recover from",
+    "Error details",
+    "Try again",
+    "Reload page",
+    "You need messages:read permission to view direct messages."
+  ],
+  "absent": [],
+  "source": "checks/s17.json"
+}

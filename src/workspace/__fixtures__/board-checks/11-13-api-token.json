@@ -1,0 +1,16 @@
+{
+  "must": [
+    "API token",
+    "Shown once",
+    "Copy",
+    "won’t be shown again",
+    "Dismiss",
+    "Bearer",
+    "API docs",
+    "Revoke"
+  ],
+  "absent": [
+    "Regenerate"
+  ],
+  "source": "checks/s11.json"
+}

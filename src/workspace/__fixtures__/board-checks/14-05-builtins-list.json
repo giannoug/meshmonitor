@@ -1,0 +1,29 @@
+{
+  "must": [
+    "Replies",
+    "Scheduled sends",
+    "Node care",
+    "Data",
+    "Sends",
+    "Auto-acknowledge",
+    "Auto-responder",
+    "Auto welcome",
+    "Auto ping",
+    "Geofence triggers",
+    "Forwarding",
+    "Auto-announce",
+    "Timer triggers",
+    "Auto time sync",
+    "Airtime cutoff",
+    "Auto favourite",
+    "Auto key repair",
+    "Auto heap management",
+    "Auto-traceroute",
+    "Remote LocalStats",
+    "Remote admin scanner",
+    "Delete by distance",
+    "Ignored nodes"
+  ],
+  "absent": [],
+  "source": "checks/s14.json"
+}

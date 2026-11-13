@@ -1,0 +1,13 @@
+{
+  "must": [
+    "Custom tilesets",
+    "Test URL",
+    "GeoJSON layers",
+    "Map styles",
+    "Carto",
+    "Default map centre",
+    "Admins only"
+  ],
+  "absent": [],
+  "source": "checks/s13.json"
+}

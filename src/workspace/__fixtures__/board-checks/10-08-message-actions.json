@@ -1,0 +1,15 @@
+{
+  "must": [
+    "Reply",
+    "React",
+    "Custom",
+    "Translate",
+    "Resend",
+    "Details",
+    "Copy",
+    "Delete",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s10.json"
+}

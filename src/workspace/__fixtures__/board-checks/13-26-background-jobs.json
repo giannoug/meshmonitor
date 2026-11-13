@@ -1,0 +1,15 @@
+{
+  "must": [
+    "Position estimation",
+    "Auto-enrichment",
+    "Push corrections",
+    "Sends",
+    "Run now",
+    "Mesh issues",
+    "Coverage",
+    "Retention",
+    "Solar"
+  ],
+  "absent": [],
+  "source": "checks/s13.json"
+}

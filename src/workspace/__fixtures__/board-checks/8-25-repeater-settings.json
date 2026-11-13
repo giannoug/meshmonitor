@@ -1,0 +1,15 @@
+{
+  "must": [
+    "Remote repeater",
+    "Read again",
+    "Sends",
+    "TX power",
+    "Flood advert interval",
+    "Send to node",
+    "Access list",
+    "Import",
+    "Export"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

@@ -1,0 +1,11 @@
+{
+  "must": [
+    "React with an emoji",
+    "Custom emoji",
+    "Type or paste emoji...",
+    "Send",
+    "Sends 1 tapback to Kifisia Rooftop"
+  ],
+  "absent": [],
+  "source": "checks/s18.json"
+}

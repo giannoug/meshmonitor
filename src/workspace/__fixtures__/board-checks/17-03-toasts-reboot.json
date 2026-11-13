@@ -1,0 +1,21 @@
+{
+  "must": [
+    "Configuration error",
+    "Secure cookies are enabled but you are accessing via HTTP",
+    "COOKIE_SECURE",
+    "Learn more",
+    "Restarting Station G2",
+    "Please do not close this window or refresh the page.",
+    "Elapsed: 34 s",
+    "Verifying device connection",
+    "Checking for configuration updates",
+    "Duty cycle limit exceeded",
+    "Protection Level is Balanced",
+    "Rebooting in 5 seconds",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s17.json"
+}

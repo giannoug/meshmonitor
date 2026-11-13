@@ -1,0 +1,12 @@
+{
+  "must": [
+    "Discard unsaved changes?",
+    "Opening another item drops them",
+    "Keep editing",
+    "Discard changes",
+    "Athens",
+    "2 changes"
+  ],
+  "absent": [],
+  "source": "checks/s17.json"
+}

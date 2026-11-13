@@ -1,0 +1,31 @@
+{
+  "must": [
+    "Connected to Heltec MeshCore",
+    "Advert (nearby, zero-hop)",
+    "Flood advert",
+    "Sends",
+    "Disconnect",
+    "Heard by",
+    "not relayed yet",
+    "Scope",
+    "Unscoped flood",
+    "Mute",
+    "Clear channel messages",
+    "/ 127 bytes",
+    "Route details",
+    "Reply",
+    "React",
+    "Translate",
+    "Resend",
+    "resends left",
+    "Delete",
+    "Sent as",
+    "required repeater",
+    "ignored",
+    "Load older",
+    "Jump to bottom",
+    "New"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

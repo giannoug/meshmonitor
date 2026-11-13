@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Dead after (days)",
+    "Save",
+    "2 of 9 selected",
+    "Select all",
+    "Lycabettus Hiker",
+    "Local + Device",
+    "Local only",
+    "days ago",
+    "Delete 2 nodes",
+    "Sends nothing on the mesh"
+  ],
+  "absent": [],
+  "source": "checks/s16.json"
+}

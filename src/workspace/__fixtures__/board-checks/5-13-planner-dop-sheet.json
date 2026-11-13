@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Site planner",
+    "Predict",
+    "Radius",
+    "GNSS DOP",
+    "Elevation mask",
+    "GPS",
+    "Galileo",
+    "Now"
+  ],
+  "absent": [],
+  "source": "checks/s05.json"
+}

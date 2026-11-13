@@ -1,0 +1,17 @@
+{
+  "must": [
+    "New local marker",
+    "Label",
+    "Notes",
+    "Latitude",
+    "Longitude",
+    "Altitude",
+    "Icon",
+    "Colour",
+    "Sends nothing",
+    "Create",
+    "never sent to the mesh"
+  ],
+  "absent": [],
+  "source": "checks/s15.json"
+}

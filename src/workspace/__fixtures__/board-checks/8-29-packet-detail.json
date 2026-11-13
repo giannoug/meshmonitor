@@ -1,0 +1,14 @@
+{
+  "must": [
+    "GRP_TXT",
+    "Packet decode",
+    "Transport codes",
+    "Path",
+    "Hash width",
+    "Decrypt",
+    "key from source",
+    "Observers"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

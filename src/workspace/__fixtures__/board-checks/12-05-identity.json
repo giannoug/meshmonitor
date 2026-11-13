@@ -1,0 +1,18 @@
+{
+  "must": [
+    "Long name",
+    "Short name",
+    "4 characters",
+    "Unmessageable",
+    "Licensed",
+    "Role",
+    "Device",
+    "Save (may restart)",
+    "Sends nothing on the mesh",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s12.json"
+}

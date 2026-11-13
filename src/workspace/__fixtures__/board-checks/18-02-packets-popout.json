@@ -1,0 +1,14 @@
+{
+  "must": [
+    "/meshmonitor/packet-monitor",
+    "Stop capturing",
+    "Filters",
+    "200 shown / 1,284 total",
+    "Station G2"
+  ],
+  "absent": [
+    "GRP_TXT",
+    "ADVERT"
+  ],
+  "source": "checks/s18.json"
+}

@@ -1,0 +1,24 @@
+{
+  "must": [
+    "Athens Mesh Watch",
+    "Sign in with a passkey",
+    "Username",
+    "Password",
+    "Sign in with OIDC",
+    "Lost your passkey? Use a recovery code",
+    "MeshMonitor 4.15.2",
+    "GitHub",
+    "Privacy policy",
+    "Terms",
+    "Contact",
+    "Invalid username or password",
+    "Session expired",
+    "Reload",
+    "Wait 14 minutes",
+    "no OIDC",
+    "COOKIE_SECURE",
+    "Learn more"
+  ],
+  "absent": [],
+  "source": "checks/s11.json"
+}

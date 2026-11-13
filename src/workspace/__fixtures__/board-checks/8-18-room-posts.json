@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Logged in",
+    "214 posts",
+    "Mute",
+    "Unread posts",
+    "Post to Athens Room",
+    "/ 127 bytes",
+    "Sends",
+    "Log out"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

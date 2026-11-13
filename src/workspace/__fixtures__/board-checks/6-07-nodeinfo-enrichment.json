@@ -1,0 +1,22 @@
+{
+  "must": [
+    "NodeInfo enrichment",
+    "Nodes",
+    "Targets",
+    "Fillable fields",
+    "Also push to device NodeDB",
+    "Sends 1 NodeInfo request",
+    "Fix all",
+    "Refresh",
+    "Node",
+    "Target source",
+    "Donor",
+    "Fix",
+    "Copy preview",
+    "Long name",
+    "Hardware",
+    "Copy"
+  ],
+  "absent": [],
+  "source": "checks/s06.json"
+}

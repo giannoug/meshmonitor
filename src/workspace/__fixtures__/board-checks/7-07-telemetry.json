@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Graphs",
+    "Latest",
+    "24 h",
+    "All sources",
+    "Power",
+    "Split by source",
+    "Filters",
+    "Refresh"
+  ],
+  "absent": [],
+  "source": "checks/s07.json"
+}

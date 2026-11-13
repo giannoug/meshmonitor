@@ -1,0 +1,31 @@
+{
+  "must": [
+    "Radio contact list",
+    "Auto-add contacts",
+    "Companions",
+    "Repeaters",
+    "Room servers",
+    "Sensors",
+    "Max hops",
+    "Push to radio",
+    "Remove non-favourite contacts from the radio",
+    "Purge non-favourite nodes",
+    "Backups",
+    "Danger zone",
+    "Reboot Device",
+    "Power off",
+    "Backup Private Key",
+    "Restore Private Key",
+    "Factory Reset",
+    "Type",
+    "Heltec MeshCore",
+    "to confirm",
+    "All channels and their secrets",
+    "private key",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s08.json"
+}

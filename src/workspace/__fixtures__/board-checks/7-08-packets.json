@@ -1,0 +1,18 @@
+{
+  "must": [
+    "Packets",
+    "Filters",
+    "Source",
+    "Meshtastic type",
+    "MeshCore payload type",
+    "MeshCore route type",
+    "Encrypted only",
+    "Transport",
+    "Cross-source",
+    "Clear",
+    "Stop capturing",
+    "sends nothing on the mesh"
+  ],
+  "absent": [],
+  "source": "checks/s07.json"
+}

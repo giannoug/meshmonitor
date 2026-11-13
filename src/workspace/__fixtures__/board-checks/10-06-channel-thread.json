@@ -1,0 +1,12 @@
+{
+  "must": [
+    "LongFast",
+    "Send position",
+    "Translate",
+    "Bell",
+    "Sends",
+    "New"
+  ],
+  "absent": [],
+  "source": "checks/s10.json"
+}

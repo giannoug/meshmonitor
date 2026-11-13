@@ -1,0 +1,11 @@
+{
+  "must": [
+    "Trigger pattern",
+    "Response matrix",
+    "Per-sender cooldown",
+    "Convert to rule",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s14.json"
+}

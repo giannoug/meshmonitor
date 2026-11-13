@@ -1,0 +1,15 @@
+{
+  "must": [
+    "Node actions",
+    "Data",
+    "Override position",
+    "Copy NodeInfo",
+    "Merge identity",
+    "Purge data",
+    "Needs nodes:write",
+    "Admins only",
+    "Needs messages:write"
+  ],
+  "absent": [],
+  "source": "checks/s15.json"
+}

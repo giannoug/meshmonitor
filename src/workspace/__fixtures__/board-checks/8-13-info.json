@@ -1,0 +1,21 @@
+{
+  "must": [
+    "Identity",
+    "Public key",
+    "Device type",
+    "Firmware",
+    "Model",
+    "Radio",
+    "Frequency",
+    "Current health",
+    "Battery",
+    "Noise floor",
+    "Cumulative counters",
+    "RTC drift vs server",
+    "Sync",
+    "History",
+    "Add to Dashboard"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Delete 2 nodes",
+    "This cannot be undone",
+    "This removes:",
+    "node list",
+    "Cancel",
+    "favourites"
+  ],
+  "absent": [
+    "to confirm"
+  ],
+  "source": "checks/s16.json"
+}

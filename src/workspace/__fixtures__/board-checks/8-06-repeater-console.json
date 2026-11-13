@@ -1,0 +1,39 @@
+{
+  "must": [
+    "Remote repeater",
+    "Lycabettus Repeater",
+    "Console",
+    "Guest",
+    "Admin",
+    "Remember this password on the server",
+    "Log out",
+    "Forget stored password",
+    "Fetch stats",
+    "Battery",
+    "Uptime",
+    "Air time",
+    "Noise floor",
+    "TX queue",
+    "Quick actions",
+    "ver",
+    "stats",
+    "neighbors",
+    "discover.neighbors",
+    "get radio",
+    "clock sync",
+    "advert.zerohop",
+    "reboot",
+    "History",
+    "All users",
+    "••••••",
+    "Load more",
+    "Confirm destructive command",
+    "Send",
+    "Sends",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s08.json"
+}

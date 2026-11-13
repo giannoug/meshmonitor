@@ -1,0 +1,17 @@
+{
+  "must": [
+    "Tools",
+    "One at a time",
+    "Measure",
+    "Link profile",
+    "Site planner",
+    "Add waypoint",
+    "Add local marker",
+    "Sends",
+    "Time",
+    "Live",
+    "Time slider"
+  ],
+  "absent": [],
+  "source": "checks/s05.json"
+}

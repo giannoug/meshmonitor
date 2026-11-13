@@ -1,0 +1,11 @@
+{
+  "must": [
+    "Two-factor",
+    "6-digit",
+    "Use a backup code",
+    "Verify",
+    "Back"
+  ],
+  "absent": [],
+  "source": "checks/s11.json"
+}

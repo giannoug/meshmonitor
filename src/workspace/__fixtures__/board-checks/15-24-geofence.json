@@ -1,0 +1,22 @@
+{
+  "must": [
+    "Shape",
+    "None",
+    "Circle",
+    "Rectangle",
+    "Both",
+    "Radius (metres)",
+    "160 m to 16 km",
+    "Bounding box",
+    "North",
+    "South",
+    "West",
+    "East",
+    "Alert when a node enters",
+    "Alert when a node leaves",
+    "Only for favourite nodes",
+    "Each receiving node alerts its own user"
+  ],
+  "absent": [],
+  "source": "checks/s15.json"
+}

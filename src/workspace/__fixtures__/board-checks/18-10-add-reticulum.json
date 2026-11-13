@@ -1,0 +1,15 @@
+{
+  "must": [
+    "Reticulum",
+    "TCP peer",
+    "Host / IP",
+    "amsterdam.connect.reticulum.network",
+    "TCP Port",
+    "4965",
+    "Bridge URL",
+    "Bridge token",
+    "Next"
+  ],
+  "absent": [],
+  "source": "checks/s18.json"
+}

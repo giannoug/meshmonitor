@@ -1,0 +1,17 @@
+{
+  "must": [
+    "Reports",
+    "Mesh issues",
+    "Coverage",
+    "Traceroute explorer",
+    "Solar",
+    "ok_to_mqtt violations",
+    "NodeInfo enrichment",
+    "Needs a look",
+    "Not run yet",
+    "from storage",
+    "Run"
+  ],
+  "absent": [],
+  "source": "checks/s06.json"
+}

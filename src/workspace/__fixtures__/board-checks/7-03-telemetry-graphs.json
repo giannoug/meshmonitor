@@ -1,0 +1,20 @@
+{
+  "must": [
+    "Graphs",
+    "Latest",
+    "15 m",
+    "24 h",
+    "7 d",
+    "All sources",
+    "Refresh",
+    "Power",
+    "Environment & Weather",
+    "Split by source",
+    "Merged",
+    "Y-axis range",
+    "Export CSV",
+    "Remove from favorites"
+  ],
+  "absent": [],
+  "source": "checks/s07.json"
+}

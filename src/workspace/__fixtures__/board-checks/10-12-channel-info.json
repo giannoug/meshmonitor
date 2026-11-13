@@ -1,0 +1,18 @@
+{
+  "must": [
+    "Encryption",
+    "Show",
+    "Uplink",
+    "Downlink",
+    "AEAD",
+    "Location",
+    "Mute",
+    "Mark all as read",
+    "Show MQTT messages",
+    "Beacons",
+    "Purge all messages",
+    "cannot be undone"
+  ],
+  "absent": [],
+  "source": "checks/s10.json"
+}

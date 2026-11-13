@@ -1,0 +1,15 @@
+{
+  "must": [
+    "Set up two-factor",
+    "Scan",
+    "Can’t scan",
+    "Copy",
+    "Backup codes",
+    "Shown once",
+    "6-digit",
+    "Verify and turn on",
+    "Cancel"
+  ],
+  "absent": [],
+  "source": "checks/s11.json"
+}

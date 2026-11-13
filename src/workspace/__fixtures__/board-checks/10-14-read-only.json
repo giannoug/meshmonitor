@@ -1,0 +1,12 @@
+{
+  "must": [
+    "Athens MQTT",
+    "no radio",
+    "Open on Station G2",
+    "Transmit is disabled",
+    "guest",
+    "Sign in"
+  ],
+  "absent": [],
+  "source": "checks/s10.json"
+}

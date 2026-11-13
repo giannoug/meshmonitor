@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Templates",
+    "Use template",
+    "Auto-Ack",
+    "MT↔MC Bridge",
+    "Device Health",
+    "Timed Announcement",
+    "Parameters",
+    "Max relays per minute",
+    "Installs disabled",
+    "Install"
+  ],
+  "absent": [],
+  "source": "checks/s14.json"
+}

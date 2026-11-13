@@ -1,0 +1,34 @@
+{
+  "must": [
+    "Name",
+    "Key (PSK)",
+    "Show",
+    "Copy",
+    "Generate",
+    "1 byte",
+    "16 bytes",
+    "32 bytes",
+    "Role",
+    "Primary",
+    "Secondary",
+    "Disabled",
+    "Location precision",
+    "accuracy",
+    "Uplink",
+    "Downlink",
+    "AEAD",
+    "firmware 2.8.1",
+    "asks you to confirm",
+    "Export JSON",
+    "Import JSON",
+    "Delete channel and messages",
+    "Discard",
+    "Review",
+    "Save",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s12.json"
+}

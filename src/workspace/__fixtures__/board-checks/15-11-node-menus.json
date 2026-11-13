@@ -1,0 +1,19 @@
+{
+  "must": [
+    "Node actions",
+    "Ask the node",
+    "Organise",
+    "Data",
+    "Favourite",
+    "Favourite lock",
+    "Ignore",
+    "Hide from map",
+    "Mark as aircraft",
+    "Not aircraft",
+    "Clear override",
+    "Apply to all sources",
+    "Needs nodes:write"
+  ],
+  "absent": [],
+  "source": "checks/s15.json"
+}

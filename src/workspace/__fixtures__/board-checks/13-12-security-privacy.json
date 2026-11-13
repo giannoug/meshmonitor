@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Default Meshtastic source",
+    "PKI",
+    "Reliable PKI",
+    "Remote admin",
+    "noindex",
+    "Privacy policy URL",
+    "Documents hosted here",
+    "Analytics"
+  ],
+  "absent": [],
+  "source": "checks/s13.json"
+}

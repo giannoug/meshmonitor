@@ -1,0 +1,20 @@
+{
+  "must": [
+    "Links",
+    "Traceroute history",
+    "From",
+    "To",
+    "Show failed traceroutes",
+    "Forward",
+    "Return",
+    "dB",
+    "km",
+    "COPY",
+    "Both",
+    "No response",
+    "Neighbours",
+    "Purge"
+  ],
+  "absent": [],
+  "source": "checks/s15.json"
+}

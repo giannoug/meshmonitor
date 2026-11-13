@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Password (empty for guest)",
+    "Remember password",
+    "Log in with saved password",
+    "Forget saved password",
+    "Attempt 2 of 3",
+    "s left",
+    "Cancel",
+    "access list",
+    "Auto-sync",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

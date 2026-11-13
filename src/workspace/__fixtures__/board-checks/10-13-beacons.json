@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Pending",
+    "Hidden",
+    "All",
+    "Offer",
+    "Last heard",
+    "Join channel",
+    "Dismiss",
+    "Channel slot",
+    "Replace and join",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s10.json"
+}

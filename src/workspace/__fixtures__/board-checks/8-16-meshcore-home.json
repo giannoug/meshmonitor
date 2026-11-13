@@ -1,0 +1,21 @@
+{
+  "must": [
+    "Map",
+    "Nodes",
+    "Automations",
+    "CHANNELS",
+    "athens",
+    "Virtual · receive-only",
+    "ROOMS",
+    "Athens Room",
+    "Kifisia BBS",
+    "DIRECT MESSAGES",
+    "Glyfada Beach",
+    "Advert (nearby, zero-hop)",
+    "Flood advert",
+    "Sends",
+    "Disconnect"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

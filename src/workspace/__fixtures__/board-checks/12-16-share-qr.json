@@ -1,0 +1,17 @@
+{
+  "must": [
+    "Export",
+    "Slot 0",
+    "LongFast",
+    "Athens",
+    "gauntlet",
+    "Include LoRa settings",
+    "EU_868",
+    "QR code",
+    "Copy URL",
+    "Share",
+    "Sends nothing on the mesh"
+  ],
+  "absent": [],
+  "source": "checks/s12.json"
+}

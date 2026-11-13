@@ -1,0 +1,29 @@
+{
+  "must": [
+    "Link profile",
+    "Line of sight",
+    "Fresnel",
+    "Margin",
+    "Clear",
+    "Frequency",
+    "Antenna height",
+    "TX power",
+    "TX gain",
+    "RX gain",
+    "Cable loss",
+    "RX sensitivity",
+    "k-factor",
+    "500 km",
+    "TOOLS · ONE AT A TIME",
+    "Measure",
+    "Site planner",
+    "Add waypoint",
+    "Add local marker",
+    "Sends a waypoint",
+    "Click the map to move A or B",
+    "Cancel",
+    "Loading terrain"
+  ],
+  "absent": [],
+  "source": "checks/s05.json"
+}

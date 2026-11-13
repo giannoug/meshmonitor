@@ -1,0 +1,21 @@
+{
+  "must": [
+    "Slot 0",
+    "Primary",
+    "Secondary",
+    "Uplink",
+    "Downlink",
+    "Default key",
+    "Channel Database",
+    "Add channel",
+    "Import to slot 3",
+    "Reorder",
+    "Apply Order",
+    "reboots",
+    "Cancel",
+    "free",
+    "Sends nothing on the mesh"
+  ],
+  "absent": [],
+  "source": "checks/s12.json"
+}

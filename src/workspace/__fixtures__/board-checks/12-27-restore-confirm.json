@@ -1,0 +1,15 @@
+{
+  "must": [
+    "Restore this backup?",
+    "What changes",
+    "g2-1111.yaml",
+    "slots 0–2",
+    "private key is kept",
+    "Restore and reboot",
+    "Cancel",
+    "Sends nothing on the mesh",
+    "Maintenance page"
+  ],
+  "absent": [],
+  "source": "checks/s12.json"
+}

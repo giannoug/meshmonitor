@@ -1,0 +1,15 @@
+{
+  "must": [
+    "Remote repeater",
+    "Lycabettus Repeater",
+    "Logged in",
+    "QUICK ACTIONS",
+    "reboot",
+    "Send",
+    "Sends",
+    "Remote node status",
+    "History"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

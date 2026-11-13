@@ -1,0 +1,11 @@
+{
+  "must": [
+    "Replies",
+    "Scheduled sends",
+    "Node care",
+    "Data",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s14.json"
+}

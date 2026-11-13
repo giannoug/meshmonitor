@@ -1,0 +1,19 @@
+{
+  "must": [
+    "Athens MQTT",
+    "no radio",
+    "Open on Station G2",
+    "Organise",
+    "Data",
+    "Transmit is disabled",
+    "Re-enable TX",
+    "guest",
+    "Sign in"
+  ],
+  "absent": [
+    "as today",
+    "OTHER READ-ONLY STATES",
+    "Controls stay visible but off"
+  ],
+  "source": "checks/s10.json"
+}

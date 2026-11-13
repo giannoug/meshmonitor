@@ -1,0 +1,23 @@
+{
+  "must": [
+    "Connected",
+    "own",
+    "38 destinations · 4 interfaces",
+    "Refresh",
+    "Airtime",
+    "Load older messages",
+    "Sending…",
+    "Sent",
+    "Delivered",
+    "Failed",
+    "Reply",
+    "Thread",
+    "KB",
+    "not transferred",
+    "back it up",
+    "Type a message",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s09.json"
+}

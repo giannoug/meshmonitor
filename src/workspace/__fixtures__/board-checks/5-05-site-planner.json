@@ -1,0 +1,23 @@
+{
+  "must": [
+    "Site planner",
+    "Predict",
+    "Radius",
+    "TX power",
+    "Sensitivity",
+    "Seeded from",
+    "GNSS DOP",
+    "Time offset",
+    "Now",
+    "Elevation mask",
+    "GPS",
+    "GLONASS",
+    "Galileo",
+    "BeiDou",
+    "Local marker",
+    "Edit",
+    "Delete"
+  ],
+  "absent": [],
+  "source": "checks/s05.json"
+}

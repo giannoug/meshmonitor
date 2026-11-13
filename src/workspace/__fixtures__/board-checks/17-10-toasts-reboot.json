@@ -1,0 +1,12 @@
+{
+  "must": [
+    "Restarting Station G2",
+    "do not close",
+    "Elapsed: 34 s",
+    "COOKIE_SECURE",
+    "Learn more",
+    "Duty cycle limit exceeded"
+  ],
+  "absent": [],
+  "source": "checks/s17.json"
+}

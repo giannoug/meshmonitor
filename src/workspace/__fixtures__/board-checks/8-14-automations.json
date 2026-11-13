@@ -1,0 +1,20 @@
+{
+  "must": [
+    "Auto-pathfinding",
+    "Auto-ack",
+    "Auto-announce",
+    "Auto-responder",
+    "Auto ping",
+    "Forwarding",
+    "Timer triggers",
+    "Delete by distance",
+    "Time sync",
+    "Remote telemetry",
+    "Auto favourite",
+    "Auto welcome",
+    "Sends",
+    "Rules that include this device"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

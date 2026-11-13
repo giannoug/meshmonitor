@@ -1,0 +1,29 @@
+{
+  "must": [
+    "2.7.15",
+    "Stable",
+    "Alpha",
+    "Nightly",
+    "Custom URL",
+    "Local .bin",
+    "Check now",
+    "Release notes",
+    "Install",
+    "Preflight",
+    "Extract",
+    "Flash",
+    "Retry flash",
+    "Cancel",
+    "Admins only",
+    "OTA",
+    "Sends nothing on the mesh",
+    "cannot be updated over Wi-Fi",
+    "Update it over USB instead",
+    "web flasher",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s12.json"
+}

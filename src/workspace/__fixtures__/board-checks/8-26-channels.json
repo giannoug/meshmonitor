@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Slot",
+    "Public",
+    "athens",
+    "Hashtag",
+    "Secret",
+    "Import from URL",
+    "Share",
+    "Scope",
+    "Reorder slots on device",
+    "Reset to Public"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

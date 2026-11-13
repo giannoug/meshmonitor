@@ -1,0 +1,15 @@
+{
+  "must": [
+    "Privacy Policy",
+    "Last updated",
+    "2 November 2026",
+    "What this instance collects",
+    "Contact",
+    "Document not found",
+    "This MeshMonitor instance has not published that document.",
+    "/privacy/privacy-policy",
+    "/privacy/cookies"
+  ],
+  "absent": [],
+  "source": "checks/s17.json"
+}

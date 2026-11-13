@@ -1,0 +1,13 @@
+{
+  "must": [
+    "Locations",
+    "Connections",
+    "This instance",
+    "Direct link",
+    "Through a relay",
+    "Hops",
+    "App"
+  ],
+  "absent": [],
+  "source": "checks/s09.json"
+}

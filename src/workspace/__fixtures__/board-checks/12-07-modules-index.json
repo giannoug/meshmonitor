@@ -1,0 +1,29 @@
+{
+  "must": [
+    "Ambient Lighting",
+    "Canned Messages",
+    "Detection Sensor",
+    "External Notification",
+    "MeshBeacon",
+    "MQTT",
+    "Neighbor Info",
+    "Range Test",
+    "Remote Hardware",
+    "Serial",
+    "Status Message",
+    "Store & Forward",
+    "Telemetry",
+    "Traffic Management",
+    "Audio",
+    "Paxcounter",
+    "TAK",
+    "On",
+    "Off",
+    "3 not on this firmware",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s12.json"
+}

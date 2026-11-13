@@ -1,0 +1,21 @@
+{
+  "must": [
+    "Circle",
+    "Polygon",
+    "Clear shape",
+    "All nodes",
+    "Selected nodes",
+    "Entry",
+    "Exit",
+    "While inside",
+    "Text message",
+    "Script",
+    "Channel",
+    "Cooldown",
+    "Verify response",
+    "Test",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s14.json"
+}

@@ -1,0 +1,20 @@
+{
+  "must": [
+    "Graphs",
+    "Latest",
+    "1 h",
+    "3 d",
+    "7 d",
+    "Search nodes",
+    "All sources",
+    "All types",
+    "Newest first",
+    "Jump to",
+    "Station G2",
+    "Heltec MeshCore",
+    "Athens MQTT",
+    "Star"
+  ],
+  "absent": [],
+  "source": "checks/s07.json"
+}

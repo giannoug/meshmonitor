@@ -1,0 +1,26 @@
+{
+  "must": [
+    "Sources",
+    "Node types",
+    "Transport",
+    "Find node",
+    "Tools",
+    "Time",
+    "Layers",
+    "Traceroutes",
+    "Neighbours",
+    "24 h",
+    "Hops",
+    "Battery",
+    "Ch util",
+    "Link quality",
+    "SNR",
+    "Traceroute links",
+    "HOP SHADING",
+    "SNR SCALE",
+    "ROLE BADGES",
+    "ROUTER"
+  ],
+  "absent": [],
+  "source": "checks/s05.json"
+}

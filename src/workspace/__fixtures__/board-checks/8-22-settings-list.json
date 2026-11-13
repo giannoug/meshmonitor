@@ -1,0 +1,16 @@
+{
+  "must": [
+    "This radio",
+    "ON THE RADIO",
+    "Radio",
+    "Path hash",
+    "Channels",
+    "Console",
+    "Maintenance",
+    "IN MESHMONITOR",
+    "Connection",
+    "Receive-only"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

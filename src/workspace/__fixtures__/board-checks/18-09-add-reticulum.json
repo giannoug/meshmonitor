@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Reticulum",
+    "Attach to shared rnsd",
+    "TCP peer",
+    "Config directory",
+    "/rns",
+    "Bridge URL",
+    "ws://127.0.0.1:8765",
+    "Bridge token",
+    "BRIDGE_TOKEN",
+    "Next"
+  ],
+  "absent": [],
+  "source": "checks/s18.json"
+}

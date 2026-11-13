@@ -1,0 +1,22 @@
+{
+  "must": [
+    "2.7.15",
+    "2.8.2",
+    "Stable",
+    "Alpha",
+    "Nightly",
+    "Custom URL",
+    "Local .bin",
+    "Check now",
+    "Install",
+    "Release notes",
+    "Preflight",
+    "Extract",
+    "Flash",
+    "Retry flash",
+    "Cancel",
+    "Sends nothing on the mesh"
+  ],
+  "absent": [],
+  "source": "checks/s12.json"
+}

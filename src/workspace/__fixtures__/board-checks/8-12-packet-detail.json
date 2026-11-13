@@ -1,0 +1,24 @@
+{
+  "must": [
+    "Packet monitor",
+    "Grouped",
+    "All",
+    "Capture",
+    "Pause",
+    "Payload",
+    "Route",
+    "Path",
+    "Transport codes",
+    "Hash width",
+    "Channel hash",
+    "Cipher MAC",
+    "Decrypt",
+    "key from source",
+    "Observers",
+    "Raw",
+    "Src hash",
+    "Path hash"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

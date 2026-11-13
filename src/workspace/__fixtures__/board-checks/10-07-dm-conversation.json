@@ -1,0 +1,17 @@
+{
+  "must": [
+    "Kifisia Rooftop",
+    "Forward",
+    "Key mismatch",
+    "Traceroute",
+    "Ask the node",
+    "Organise",
+    "Data",
+    "Exchange NodeInfo",
+    "Request telemetry",
+    "Sends",
+    "Scan for admin"
+  ],
+  "absent": [],
+  "source": "checks/s10.json"
+}

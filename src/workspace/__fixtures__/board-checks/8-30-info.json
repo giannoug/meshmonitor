@@ -1,0 +1,15 @@
+{
+  "must": [
+    "Identity",
+    "Public key",
+    "Firmware",
+    "Radio",
+    "Battery",
+    "Noise floor",
+    "RTC drift",
+    "Sync",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

@@ -1,0 +1,19 @@
+{
+  "must": [
+    "Radio",
+    "On the radio",
+    "Preset",
+    "Frequency (MHz)",
+    "Bandwidth (kHz)",
+    "Spreading Factor",
+    "Coding Rate",
+    "Multi-ACKs",
+    "BLE PIN",
+    "Save radio settings",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s08.json"
+}

@@ -1,0 +1,13 @@
+{
+  "must": [
+    "Live trace",
+    "Clear",
+    "Close",
+    "5 min",
+    "left",
+    "Run now",
+    "Would send"
+  ],
+  "absent": [],
+  "source": "checks/s14.json"
+}

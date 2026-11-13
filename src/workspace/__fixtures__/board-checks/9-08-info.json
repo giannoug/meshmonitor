@@ -1,0 +1,20 @@
+{
+  "must": [
+    "Connection",
+    "Mode",
+    "Unknown",
+    "RNS version",
+    "Bridge version",
+    "Interfaces",
+    "Destinations",
+    "Interface status",
+    "Airtime",
+    "Channel load",
+    "Battery",
+    "CPU load",
+    "Noise floor",
+    "Interference"
+  ],
+  "absent": [],
+  "source": "checks/s09.json"
+}

@@ -1,0 +1,29 @@
+{
+  "must": [
+    "/meshmonitor/packet-monitor",
+    "Packet monitor",
+    "Stop capturing",
+    "Pause auto-scroll",
+    "Filters",
+    "Export packets to JSONL",
+    "Clear all packets",
+    "200 shown / 1,284 total",
+    "Raw packet",
+    "Close window",
+    "Sends nothing on the mesh",
+    "Station G2",
+    "Search content / JSON…",
+    "All Types",
+    "All Transports",
+    "All Last Hops",
+    "Hide Own Packets",
+    "Clear Filters"
+  ],
+  "absent": [
+    "Pop out to new window",
+    "MeshCore payload type",
+    "GRP_TXT",
+    "ADVERT"
+  ],
+  "source": "checks/s18.json"
+}

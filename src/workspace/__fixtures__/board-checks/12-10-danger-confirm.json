@@ -1,0 +1,20 @@
+{
+  "must": [
+    "Danger zone",
+    "Purge the node database?",
+    "Type",
+    "PURGE",
+    "cannot be undone",
+    "Purge node database",
+    "Reboot",
+    "30 to 60 seconds",
+    "Cancel",
+    "same docked sheet",
+    "no typed word",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s12.json"
+}

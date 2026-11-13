@@ -1,0 +1,25 @@
+{
+  "must": [
+    "Packets",
+    "Athens MQTT",
+    "Stop capturing",
+    "Gateways",
+    "Encrypted",
+    "Receptions",
+    "Packet detail",
+    "Per-gateway receptions",
+    "Gateway",
+    "Rx time",
+    "Hops",
+    "SNR",
+    "RSSI",
+    "Outcome",
+    "ok_to_mqtt",
+    "violation",
+    "opted out",
+    "Gateway counts reflect the selected gateways only.",
+    "Sends nothing on the mesh"
+  ],
+  "absent": [],
+  "source": "checks/s18.json"
+}

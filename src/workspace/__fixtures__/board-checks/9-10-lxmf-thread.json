@@ -1,0 +1,16 @@
+{
+  "must": [
+    "back it up",
+    "Sending…",
+    "Sent",
+    "Delivered",
+    "Failed",
+    "Reply",
+    "Thread",
+    "KB",
+    "Type a message",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s09.json"
+}

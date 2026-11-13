@@ -1,0 +1,15 @@
+{
+  "must": [
+    "Long name",
+    "Short name",
+    "4 characters",
+    "Unmessageable",
+    "Licensed",
+    "Role",
+    "CLIENT",
+    "Save (may restart)",
+    "Sends nothing on the mesh"
+  ],
+  "absent": [],
+  "source": "checks/s12.json"
+}

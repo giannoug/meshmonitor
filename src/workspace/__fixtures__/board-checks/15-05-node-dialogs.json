@@ -1,0 +1,26 @@
+{
+  "must": [
+    "Request telemetry",
+    "Device",
+    "Environment",
+    "Air quality",
+    "Power",
+    "Copy NodeInfo",
+    "Copy from source",
+    "Field",
+    "Current",
+    "Incoming",
+    "Push to NodeDB",
+    "Position override",
+    "Use this custom position",
+    "Private position",
+    "Latitude",
+    "Longitude",
+    "Altitude",
+    "Purge data for Kifisia Rooftop",
+    "cannot be undone",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s15.json"
+}

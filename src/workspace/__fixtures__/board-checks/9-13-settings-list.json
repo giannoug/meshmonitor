@@ -1,0 +1,10 @@
+{
+  "must": [
+    "LXMF identity",
+    "RNode radio",
+    "own mode",
+    "Global Settings"
+  ],
+  "absent": [],
+  "source": "checks/s09.json"
+}

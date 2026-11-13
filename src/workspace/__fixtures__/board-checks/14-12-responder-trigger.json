@@ -1,0 +1,13 @@
+{
+  "must": [
+    "Pattern",
+    "Script",
+    "Channels",
+    "Cooldown",
+    "Verify response",
+    "Live test",
+    "Would send"
+  ],
+  "absent": [],
+  "source": "checks/s14.json"
+}

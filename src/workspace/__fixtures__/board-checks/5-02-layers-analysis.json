@@ -1,0 +1,32 @@
+{
+  "must": [
+    "Base map",
+    "Nodes",
+    "Links",
+    "Overlays",
+    "Analysis",
+    "Lookback",
+    "Traceroutes",
+    "Neighbours",
+    "Heatmap",
+    "Trails",
+    "SNR overlay",
+    "Direction",
+    "Focus on selected",
+    "Min occurrences",
+    "Min SNR",
+    "2D only",
+    "Follow",
+    "Auto-zoom",
+    "Markers",
+    "Hop shading",
+    "Accuracy regions",
+    "Local markers",
+    "ATAK contacts",
+    "Polar grid",
+    "GNSS DOP",
+    "Traceroute filters"
+  ],
+  "absent": [],
+  "source": "checks/s05.json"
+}

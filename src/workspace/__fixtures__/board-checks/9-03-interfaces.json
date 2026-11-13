@@ -1,0 +1,18 @@
+{
+  "must": [
+    "Online",
+    "Offline",
+    "RNodeInterface",
+    "TCPClientInterface",
+    "AutoInterface",
+    "Bitrate",
+    "TX total",
+    "RX total",
+    "B/s",
+    "Rate pending next poll",
+    "Rate history",
+    "Add to Dashboard"
+  ],
+  "absent": [],
+  "source": "checks/s09.json"
+}

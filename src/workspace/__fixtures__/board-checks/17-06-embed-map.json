@@ -1,0 +1,24 @@
+{
+  "must": [
+    "Athens Mesh",
+    "Hymettus Relay",
+    "HYM",
+    "ROUTER",
+    "RAK4631",
+    "1 hop",
+    "-4 dB",
+    "Lycabettus Repeater",
+    "13 nodes online",
+    "Local",
+    "1 hop",
+    "2 hops",
+    "3 hops",
+    "4+ hops",
+    "Unknown",
+    "Privacy Policy",
+    "Terms of Service",
+    "Contact"
+  ],
+  "absent": [],
+  "source": "checks/s17.json"
+}

@@ -1,0 +1,13 @@
+{
+  "must": [
+    "Delete waypoint “Trailhead”?",
+    "This will be broadcast to the mesh",
+    "Sending source: Station G2",
+    "Nodes that have it remove it from their maps",
+    "Sends 1 waypoint delete",
+    "Cancel",
+    "Delete"
+  ],
+  "absent": [],
+  "source": "checks/s15.json"
+}

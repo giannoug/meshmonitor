@@ -1,0 +1,38 @@
+{
+  "must": [
+    "Remote repeater",
+    "Settings",
+    "Read again",
+    "Identity & radio",
+    "Name",
+    "Latitude",
+    "Longitude",
+    "TX power",
+    "Radio (freq, bandwidth, SF, CR)",
+    "Adverts & forwarding",
+    "Advert interval",
+    "Flood advert interval",
+    "Flood hop limit",
+    "Repeat (forward packets)",
+    "Airtime factor",
+    "RX delay",
+    "TX delay (flood)",
+    "TX delay (direct)",
+    "Access",
+    "Guest password",
+    "Allow read-only login",
+    "Import settings",
+    "Export settings",
+    "Manage access list",
+    "Public key (64 hex)",
+    "Permission level",
+    "Apply",
+    "Send to node",
+    "Sends",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s08.json"
+}

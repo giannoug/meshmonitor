@@ -1,0 +1,13 @@
+{
+  "must": [
+    "Request telemetry",
+    "Device",
+    "Environment",
+    "Air quality",
+    "Power",
+    "Sends 1 telemetry request",
+    "Request"
+  ],
+  "absent": [],
+  "source": "checks/s15.json"
+}

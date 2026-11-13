@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Apprise API Server URL",
+    "Test Connection",
+    "External URL",
+    "Web Push",
+    "VAPID",
+    "Update Contact Email",
+    "Connected successfully (42ms)"
+  ],
+  "absent": [
+    "You › Notifications",
+    "Test passed"
+  ],
+  "source": "checks/s18.json"
+}

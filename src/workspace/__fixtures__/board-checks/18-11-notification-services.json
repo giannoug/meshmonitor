@@ -1,0 +1,24 @@
+{
+  "must": [
+    "Notification services",
+    "Apprise API Server",
+    "Apprise API Server URL",
+    "http://localhost:8000",
+    "Test Connection",
+    "External URL",
+    "https://mesh.example.com",
+    "Web Push",
+    "VAPID",
+    "Active Subscriptions",
+    "Contact Email (VAPID Subject)",
+    "Update Contact Email",
+    "Sends nothing on the mesh",
+    "Connected successfully (42ms)"
+  ],
+  "absent": [
+    "You › Notifications",
+    "Test passed",
+    "keep their own Test and Save"
+  ],
+  "source": "checks/s18.json"
+}

@@ -1,0 +1,21 @@
+{
+  "must": [
+    "Automations",
+    "Variables",
+    "New automation",
+    "Templates",
+    "All devices",
+    "Message",
+    "Until",
+    "Sends",
+    "No limit set",
+    "Enabled",
+    "Runs",
+    "Trace",
+    "Export",
+    "Duplicate",
+    "Delete"
+  ],
+  "absent": [],
+  "source": "checks/s14.json"
+}

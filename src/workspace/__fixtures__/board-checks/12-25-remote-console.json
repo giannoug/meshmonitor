@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Hilltop Relay",
+    "Remote node",
+    "Command prefix",
+    "meshtastic --dest !7c3e10a2",
+    "Send",
+    "Sends",
+    "--set device.role ROUTER",
+    "Acknowledged"
+  ],
+  "absent": [
+    "admin key"
+  ],
+  "source": "checks/s12.json"
+}

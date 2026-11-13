@@ -1,0 +1,26 @@
+{
+  "must": [
+    "last scan 10:00",
+    "every 6 h",
+    "Scan now",
+    "Key problems",
+    "Noisy senders",
+    "Clock off",
+    "Quiet nodes",
+    "Needs a look",
+    "Shared public key",
+    "High",
+    "Weak key",
+    "Medium",
+    "Send a DM",
+    "Sends 1 DM",
+    "Glyfada Beach",
+    "Lycabettus Hiker",
+    "Sends 1 DM to Glyfada Beach",
+    "Sends 1 DM to Lycabettus Hiker"
+  ],
+  "absent": [
+    "Message both"
+  ],
+  "source": "checks/s16.json"
+}

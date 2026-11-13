@@ -1,0 +1,19 @@
+{
+  "must": [
+    "System backups",
+    "Create backup",
+    "Automatic backups",
+    "RESTORE_FROM_BACKUP",
+    "Database size",
+    "Retention",
+    "days",
+    "Run now",
+    "Restart",
+    "Shut down"
+  ],
+  "absent": [
+    "as today",
+    "shown to every viewer"
+  ],
+  "source": "checks/s13.json"
+}

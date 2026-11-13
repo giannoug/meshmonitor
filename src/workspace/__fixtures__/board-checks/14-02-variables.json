@@ -1,0 +1,20 @@
+{
+  "must": [
+    "New variable",
+    "Name",
+    "Type",
+    "Scope",
+    "Default value",
+    "Flag auto-clear",
+    "Constant",
+    "Create variable",
+    "What are types & scopes?",
+    "Per source + node",
+    "Delete"
+  ],
+  "absent": [
+    "as today",
+    "here today"
+  ],
+  "source": "checks/s14.json"
+}

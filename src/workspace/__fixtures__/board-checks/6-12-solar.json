@@ -1,0 +1,21 @@
+{
+  "must": [
+    "Solar",
+    "Run analysis",
+    "Run forecast",
+    "Forecast",
+    "At risk",
+    "Low",
+    "Score",
+    "Days with pattern",
+    "Overrides",
+    "Lookback",
+    "Analysed",
+    "Avg charge",
+    "Avg discharge",
+    "Production points",
+    "Daily pattern"
+  ],
+  "absent": [],
+  "source": "checks/s06.json"
+}

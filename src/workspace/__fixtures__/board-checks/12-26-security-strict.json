@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Protection Level",
+    "Strict",
+    "Set Protection Level to Strict?",
+    "Type",
+    "G2",
+    "Set Strict",
+    "Managed mode",
+    "Security page"
+  ],
+  "absent": [],
+  "source": "checks/s12.json"
+}

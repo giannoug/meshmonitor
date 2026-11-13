@@ -1,0 +1,30 @@
+{
+  "must": [
+    "Upstream URL",
+    "Username",
+    "Password",
+    "Client ID",
+    "Parent broker",
+    "Mode",
+    "Broker preset",
+    "Upstream topics",
+    "Block specific topics",
+    "Uplink only these channels",
+    "Publish topic filter",
+    "Skip raise",
+    "Relay traffic from other bridges",
+    "ok_to_mqtt",
+    "bounding box",
+    "Sweep",
+    "Topic rewrites",
+    "Downlink from",
+    "Uplink to",
+    "Save",
+    "nothing here is sent to a device",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s12.json"
+}

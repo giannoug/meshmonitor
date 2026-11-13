@@ -1,0 +1,12 @@
+{
+  "must": [
+    "Embed profiles",
+    "Preview",
+    "Embed code",
+    "Allowed origins",
+    "Channels",
+    "Copy"
+  ],
+  "absent": [],
+  "source": "checks/s13.json"
+}

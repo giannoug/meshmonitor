@@ -1,0 +1,20 @@
+{
+  "must": [
+    "Sending source",
+    "Pick on map",
+    "Name",
+    "Description",
+    "Icon",
+    "Expires",
+    "Lock to this node",
+    "Virtual (do not broadcast)",
+    "Channel",
+    "Hop limit",
+    "Rebroadcast every",
+    "Android clients notify on every rebroadcast",
+    "Geofence",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s15.json"
+}

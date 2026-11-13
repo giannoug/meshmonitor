@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Receive-only",
+    "gr-att",
+    "Observers",
+    "Lycabettus Repeater",
+    "older, key unknown",
+    "Nodes",
+    "Packets",
+    "Notifications"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

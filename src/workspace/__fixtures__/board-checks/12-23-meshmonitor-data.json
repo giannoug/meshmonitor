@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Data",
+    "Reset UI positions",
+    "Reset settings to defaults",
+    "Danger zone",
+    "Erase nodes",
+    "Purge telemetry",
+    "Clean outliers",
+    "Purge messages",
+    "Reset traceroutes",
+    "Sends nothing on the mesh"
+  ],
+  "absent": [],
+  "source": "checks/s12.json"
+}

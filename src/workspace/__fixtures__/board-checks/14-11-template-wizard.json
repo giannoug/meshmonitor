@@ -1,0 +1,12 @@
+{
+  "must": [
+    "MT↔MC Bridge",
+    "Meshtastic channel",
+    "MeshCore channel",
+    "Max relays per minute",
+    "Installs disabled",
+    "Install"
+  ],
+  "absent": [],
+  "source": "checks/s14.json"
+}

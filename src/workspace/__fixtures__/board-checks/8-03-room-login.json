@@ -1,0 +1,22 @@
+{
+  "must": [
+    "Password (empty for guest)",
+    "Remember password",
+    "Login",
+    "Log in with saved password",
+    "Forget saved password",
+    "Attempt 2 of 3",
+    "s left",
+    "Cancel",
+    "access list",
+    "guest password",
+    "out of range",
+    "Auto-sync",
+    "Periodically re-login to fetch new posts",
+    "Every 6 h",
+    "went unanswered",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

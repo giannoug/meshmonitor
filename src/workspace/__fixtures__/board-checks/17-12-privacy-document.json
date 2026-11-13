@@ -1,0 +1,11 @@
+{
+  "must": [
+    "Privacy Policy",
+    "Last updated",
+    "2 November 2026",
+    "What this instance collects",
+    "Contact"
+  ],
+  "absent": [],
+  "source": "checks/s17.json"
+}

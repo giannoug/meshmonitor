@@ -1,0 +1,22 @@
+{
+  "must": [
+    "Security digest",
+    "Enable daily digest",
+    "Apprise URL",
+    "Send at",
+    "Report type",
+    "Summary",
+    "Detailed",
+    "Format",
+    "Plain text",
+    "Markdown",
+    "Suppress when no issues",
+    "Save",
+    "Send now",
+    "nothing goes on the mesh",
+    "Quiet nodes",
+    "Key mismatch log"
+  ],
+  "absent": [],
+  "source": "checks/s16.json"
+}

@@ -1,0 +1,26 @@
+{
+  "must": [
+    "Connection",
+    "Radio",
+    "This node",
+    "Mesh",
+    "Records",
+    "MQTT",
+    "Server",
+    "Address",
+    "Connected for",
+    "Firmware",
+    "Virtual node",
+    "Region · preset",
+    "Channel util.",
+    "Airtime TX",
+    "Hop limit",
+    "Hardware",
+    "Battery",
+    "Uptime",
+    "Position",
+    "admins"
+  ],
+  "absent": [],
+  "source": "checks/s16.json"
+}

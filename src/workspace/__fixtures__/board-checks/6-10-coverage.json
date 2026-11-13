@@ -1,0 +1,26 @@
+{
+  "must": [
+    "Coverage",
+    "Start survey",
+    "Save as survey",
+    "Fixes heard",
+    "Likely gaps",
+    "Best SNR",
+    "Range",
+    "Sender",
+    "Hops",
+    "Cross-source only",
+    "SNR",
+    "RSSI",
+    "Dots",
+    "Grid",
+    "Receivers",
+    "Export",
+    "Surveys",
+    "Search",
+    "MQTT recording",
+    "All / None"
+  ],
+  "absent": [],
+  "source": "checks/s06.json"
+}

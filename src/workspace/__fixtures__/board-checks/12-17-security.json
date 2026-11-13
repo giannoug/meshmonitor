@@ -1,0 +1,20 @@
+{
+  "must": [
+    "Public key",
+    "Copy",
+    "Private key",
+    "Show",
+    "Set private key",
+    "Admin keys",
+    "2 of 3",
+    "Add key",
+    "Managed mode",
+    "Serial console",
+    "Debug log API",
+    "Legacy admin channel",
+    "Protection Level",
+    "Save & restart"
+  ],
+  "absent": [],
+  "source": "checks/s12.json"
+}

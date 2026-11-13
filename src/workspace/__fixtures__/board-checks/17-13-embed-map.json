@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Athens Mesh",
+    "Traceroute Segment",
+    "Station G2 ↔ Halandri Relay",
+    "13 nodes online",
+    "Local",
+    "4+ hops",
+    "Privacy Policy",
+    "Terms of Service"
+  ],
+  "absent": [],
+  "source": "checks/s17.json"
+}

@@ -1,0 +1,32 @@
+{
+  "must": [
+    "Filters",
+    "Show only",
+    "Hide matching",
+    "Security",
+    "All nodes",
+    "Flagged only",
+    "Hide flagged",
+    "Telemetry data",
+    "Environment metrics",
+    "Position data",
+    "Public key crypto",
+    "Remote admin",
+    "MQTT nodes",
+    "Unknown nodes",
+    "Show ignored nodes",
+    "Favourites",
+    "Favourite locked",
+    "Hidden from map",
+    "Power source",
+    "Powered only",
+    "Battery only",
+    "Hops away",
+    "Device role",
+    "Channel",
+    "Reset all",
+    "Apply"
+  ],
+  "absent": [],
+  "source": "checks/s15.json"
+}

@@ -1,0 +1,28 @@
+{
+  "must": [
+    "Nodes",
+    "Discover",
+    "Nearby",
+    "Repeaters",
+    "Sensors",
+    "returned",
+    "new",
+    "Import contact",
+    "Group by role",
+    "Sort",
+    "More filters",
+    "Export",
+    "RSSI",
+    "SNR",
+    "Voltage",
+    "Hops",
+    "Last heard",
+    "Position",
+    "Key",
+    "Neighbour",
+    "More details",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

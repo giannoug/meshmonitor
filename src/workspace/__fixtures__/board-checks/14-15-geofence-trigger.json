@@ -1,0 +1,12 @@
+{
+  "must": [
+    "Circle",
+    "Polygon",
+    "Entry",
+    "Cooldown",
+    "Sends",
+    "Test"
+  ],
+  "absent": [],
+  "source": "checks/s14.json"
+}

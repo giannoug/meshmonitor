@@ -1,0 +1,17 @@
+{
+  "must": [
+    "Overview",
+    "All-devices map",
+    "Dashboard",
+    "Messages",
+    "Telemetry",
+    "Packets",
+    "Analysis",
+    "Reports",
+    "Automations",
+    "Users",
+    "Audit log"
+  ],
+  "absent": [],
+  "source": "checks/s05.json"
+}

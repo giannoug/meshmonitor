@@ -1,0 +1,19 @@
+{
+  "must": [
+    "Position",
+    "Show position history",
+    "Points only",
+    "Duration",
+    "Oldest",
+    "Newest",
+    "12 of 16",
+    "Playback speed",
+    "Trail up to cursor",
+    "Follow",
+    "Override",
+    "Accuracy",
+    "GPS"
+  ],
+  "absent": [],
+  "source": "checks/s15.json"
+}

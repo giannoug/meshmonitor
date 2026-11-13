@@ -1,0 +1,19 @@
+{
+  "must": [
+    "Hilltop Relay",
+    "Remote node",
+    "Read from node",
+    "Sends",
+    "This radio",
+    "Station G2",
+    "Local",
+    "Search for a node...",
+    "Kifisia Rooftop",
+    "Remote node - session passkey will be requested automatically"
+  ],
+  "absent": [
+    "passkey not set",
+    "admin key"
+  ],
+  "source": "checks/s12.json"
+}

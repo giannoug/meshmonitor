@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Destination hash",
+    "Display name",
+    "Periodic announce",
+    "Last announce",
+    "Next periodic announce",
+    "Announce now",
+    "60 s",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s09.json"
+}

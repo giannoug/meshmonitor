@@ -1,0 +1,15 @@
+{
+  "must": [
+    "Add node from URL",
+    "Paste a Meshtastic contact link",
+    "https://meshtastic.org/v/#",
+    "Cancel",
+    "Add node",
+    "Imported",
+    "Sends nothing"
+  ],
+  "absent": [
+    "until the node is heard"
+  ],
+  "source": "checks/s15.json"
+}

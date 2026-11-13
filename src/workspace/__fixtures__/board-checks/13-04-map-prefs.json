@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Dark mode tileset",
+    "Light mode tileset",
+    "History line",
+    "Neighbour info minimum zoom",
+    "Centre-on-node zoom",
+    "Map click zoom gate",
+    "Cluster overlapping markers",
+    "Discard invalid positions"
+  ],
+  "absent": [],
+  "source": "checks/s13.json"
+}

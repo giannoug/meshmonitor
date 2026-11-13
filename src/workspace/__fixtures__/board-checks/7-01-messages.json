@@ -1,0 +1,25 @@
+{
+  "must": [
+    "Channels",
+    "All channels",
+    "LongFast",
+    "All sources",
+    "Export",
+    "Refresh",
+    "heard by 3",
+    "2 hops",
+    "direct",
+    "Replying to",
+    "Today",
+    "Reception details",
+    "Source",
+    "Hops",
+    "SNR",
+    "RSSI",
+    "Heard",
+    "Signed",
+    "shares its key with"
+  ],
+  "absent": [],
+  "source": "checks/s07.json"
+}

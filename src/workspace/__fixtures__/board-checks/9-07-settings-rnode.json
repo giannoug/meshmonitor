@@ -1,0 +1,26 @@
+{
+  "must": [
+    "RNode radio",
+    "own mode",
+    "Frequency (Hz)",
+    "Bandwidth (Hz)",
+    "Spreading Factor",
+    "Coding Rate",
+    "TX Power (dBm)",
+    "Short Airtime Lock (%)",
+    "Long Airtime Lock (%)",
+    "Radio on",
+    "Apply",
+    "changes the radio",
+    "Device info",
+    "Firmware",
+    "MCU",
+    "Platform",
+    "Chip temp",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s09.json"
+}

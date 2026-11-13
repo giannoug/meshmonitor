@@ -1,0 +1,22 @@
+{
+  "must": [
+    "Logged in",
+    "214 posts",
+    "Last post",
+    "Mute",
+    "Log out",
+    "Unread posts",
+    "Post to Athens Room",
+    "/ 127 bytes",
+    "Sends",
+    "Sort rooms by",
+    "Room name",
+    "Last message",
+    "Message count",
+    "Distance",
+    "Custom",
+    "Mark all as Read"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

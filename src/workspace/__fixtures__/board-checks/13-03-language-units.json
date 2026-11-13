@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Language",
+    "Time format",
+    "24-hour",
+    "Date format",
+    "°C",
+    "°F",
+    "km",
+    "mi",
+    "Sorting",
+    "Link previews"
+  ],
+  "absent": [],
+  "source": "checks/s13.json"
+}

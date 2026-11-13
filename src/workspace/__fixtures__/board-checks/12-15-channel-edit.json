@@ -1,0 +1,25 @@
+{
+  "must": [
+    "Name",
+    "Key (PSK)",
+    "Show",
+    "Copy",
+    "Generate",
+    "Role",
+    "Primary",
+    "Secondary",
+    "Disabled",
+    "Location precision",
+    "accuracy",
+    "Uplink",
+    "Downlink",
+    "AEAD",
+    "2.8.1",
+    "Export JSON",
+    "Import JSON",
+    "Delete channel and messages",
+    "Save"
+  ],
+  "absent": [],
+  "source": "checks/s12.json"
+}

@@ -1,0 +1,22 @@
+{
+  "must": [
+    "Device",
+    "Position",
+    "Power",
+    "Display",
+    "Network",
+    "Bluetooth",
+    "CLIENT",
+    "Pins in use",
+    "GPIO",
+    "may restart",
+    "restarts",
+    "⌘,"
+  ],
+  "absent": [
+    "as today",
+    "today’s restart rule",
+    "⌘K"
+  ],
+  "source": "checks/s12.json"
+}

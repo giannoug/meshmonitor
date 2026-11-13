@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Locations",
+    "Connections",
+    "This instance",
+    "Direct link",
+    "Through a relay",
+    "Relay node",
+    "Hash",
+    "App",
+    "Hops",
+    "Next hop"
+  ],
+  "absent": [],
+  "source": "checks/s09.json"
+}

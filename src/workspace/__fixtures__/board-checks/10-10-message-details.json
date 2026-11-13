@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Message details",
+    "Status",
+    "Route",
+    "Signal",
+    "What this means",
+    "Heard by",
+    "Attempt 1",
+    "Attempt 2"
+  ],
+  "absent": [],
+  "source": "checks/s10.json"
+}

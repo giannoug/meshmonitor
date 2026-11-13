@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Version",
+    "Node.js",
+    "Memory",
+    "Database",
+    "Uptime",
+    "News",
+    "Documentation",
+    "Ko-fi"
+  ],
+  "absent": [],
+  "source": "checks/s13.json"
+}

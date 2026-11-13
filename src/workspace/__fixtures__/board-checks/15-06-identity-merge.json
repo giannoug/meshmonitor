@@ -1,0 +1,21 @@
+{
+  "must": [
+    "Merge node history",
+    "Retire",
+    "Keep",
+    "dry run",
+    "Table",
+    "Action",
+    "Rows",
+    "Move to new node number",
+    "Remove duplicate",
+    "Rows moved",
+    "Before you confirm",
+    "not key-verified",
+    "This merge cannot be undone",
+    "I understand this merge is permanent and cannot be reversed.",
+    "Merge history"
+  ],
+  "absent": [],
+  "source": "checks/s15.json"
+}

@@ -1,0 +1,24 @@
+{
+  "must": [
+    "Triggers",
+    "Search triggers",
+    "Pattern",
+    "Regex",
+    "Text",
+    "HTTP",
+    "Script",
+    "Traceroute",
+    "Mailbox",
+    "Verify response",
+    "Cooldown",
+    "Channels",
+    "Live test",
+    "Import script",
+    "Export",
+    "Test script",
+    "Would send",
+    "Console output"
+  ],
+  "absent": [],
+  "source": "checks/s14.json"
+}

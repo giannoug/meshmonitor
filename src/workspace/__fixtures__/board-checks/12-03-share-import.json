@@ -1,0 +1,30 @@
+{
+  "must": [
+    "Export",
+    "Include LoRa settings",
+    "Copy URL",
+    "QR code",
+    "Import",
+    "Paste",
+    "Decode",
+    "PSK",
+    "precision",
+    "Uplink",
+    "AEAD",
+    "LoRa settings",
+    "Sending",
+    "Rebooting",
+    "Syncing",
+    "Verifying",
+    "Complete",
+    "Sends nothing on the mesh",
+    "On Heltec MeshCore",
+    "one channel",
+    "slot you pick",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s12.json"
+}

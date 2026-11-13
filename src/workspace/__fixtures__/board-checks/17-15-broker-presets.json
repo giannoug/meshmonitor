@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Saved broker presets",
+    "Athens community",
+    "Edit",
+    "Duplicate",
+    "Delete",
+    "Delete this preset?",
+    "Cancel",
+    "Close"
+  ],
+  "absent": [],
+  "source": "checks/s17.json"
+}

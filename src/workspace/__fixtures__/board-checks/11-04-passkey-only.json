@@ -1,0 +1,28 @@
+{
+  "must": [
+    "Turn off password sign-in",
+    "Your password will stop working",
+    "10 one-time recovery codes",
+    "Continue with a passkey",
+    "Waiting for passkey…",
+    "only admin",
+    "Type DISABLE to confirm",
+    "Your recovery codes",
+    "Shown once",
+    "Copy",
+    "Download",
+    "I saved these codes",
+    "Done"
+  ],
+  "absent": [
+    "Download .txt",
+    "I saved these somewhere safe",
+    "Use passkey",
+    "Waiting for your browser",
+    "at any time",
+    "You are the only administrator",
+    "removes:",
+    "MacBook Touch ID"
+  ],
+  "source": "checks/s11.json"
+}

@@ -1,0 +1,31 @@
+{
+  "must": [
+    "Clean telemetry outliers",
+    "Source",
+    "Station G2",
+    "Metric",
+    "Temperature",
+    "Auto-detect outliers",
+    "Sensitivity k (2–20)",
+    "Remove values below",
+    "Remove values above",
+    "Preview",
+    "37 of 4,812 readings would be removed, across 3 of 12 nodes.",
+    "Removed values run from",
+    "Time",
+    "Node",
+    "Value",
+    "Why",
+    "Outlier",
+    "Above max",
+    "Permanently delete 37 readings? This cannot be undone.",
+    "Yes, delete",
+    "Cancel",
+    "Sends nothing on the mesh",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s17.json"
+}

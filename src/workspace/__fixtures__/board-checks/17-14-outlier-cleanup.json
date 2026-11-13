@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Clean telemetry outliers",
+    "Source",
+    "Metric",
+    "Temperature",
+    "Auto-detect outliers",
+    "Sensitivity k (2–20)",
+    "Preview",
+    "37 of 4,812 readings would be removed",
+    "Delete 37 readings…",
+    "Sends nothing on the mesh"
+  ],
+  "absent": [],
+  "source": "checks/s17.json"
+}

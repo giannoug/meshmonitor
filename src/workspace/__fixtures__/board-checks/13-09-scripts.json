@@ -1,0 +1,20 @@
+{
+  "must": [
+    "Check for updates",
+    "In use",
+    "Unused",
+    "Update",
+    "Roll back",
+    "Source",
+    "Delete",
+    "Import",
+    "Save source",
+    "No update source",
+    "available",
+    "Unused"
+  ],
+  "absent": [
+    "as today"
+  ],
+  "source": "checks/s13.json"
+}

@@ -1,0 +1,23 @@
+{
+  "must": [
+    "Add waypoint here",
+    "Add local marker here",
+    "Measure from here",
+    "New local marker",
+    "Label",
+    "Notes",
+    "Latitude",
+    "Longitude",
+    "Altitude",
+    "Icon",
+    "Antenna",
+    "Colour",
+    "Teal",
+    "never sent to the mesh",
+    "Delete waypoint",
+    "broadcast",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s15.json"
+}

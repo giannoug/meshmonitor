@@ -1,0 +1,13 @@
+{
+  "must": [
+    "From",
+    "To",
+    "Swap",
+    "Original",
+    "Preview",
+    "LoRa payload",
+    "Replace in draft"
+  ],
+  "absent": [],
+  "source": "checks/s10.json"
+}

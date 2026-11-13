@@ -1,0 +1,17 @@
+{
+  "must": [
+    "Danger zone",
+    "Reboot Device",
+    "Power off",
+    "Backup Private Key",
+    "Restore Private Key",
+    "Factory Reset",
+    "Heltec MeshCore",
+    "to confirm",
+    "Purge",
+    "Push to radio",
+    "Sends nothing on the mesh"
+  ],
+  "absent": [],
+  "source": "checks/s08.json"
+}

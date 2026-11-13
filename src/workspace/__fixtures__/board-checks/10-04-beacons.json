@@ -1,0 +1,23 @@
+{
+  "must": [
+    "Beacons",
+    "Search node, channel or message",
+    "Pending",
+    "Hidden",
+    "All",
+    "Node",
+    "Offer",
+    "First heard",
+    "Last heard",
+    "Join channel",
+    "Dismiss",
+    "Mute",
+    "Restore",
+    "Channel slot",
+    "empty",
+    "Replace and join",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s10.json"
+}

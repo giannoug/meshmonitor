@@ -1,0 +1,23 @@
+{
+  "must": [
+    "LXMF identity",
+    "Destination hash",
+    "Copy",
+    "Display name",
+    "Saving does not announce",
+    "Periodic announce",
+    "Every 6 h",
+    "Last announce",
+    "Next periodic announce",
+    "Announce now (42 s)",
+    "60 s",
+    "Sends",
+    "Save",
+    "read-only access",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s09.json"
+}

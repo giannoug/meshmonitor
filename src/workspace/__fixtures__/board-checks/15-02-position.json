@@ -1,0 +1,24 @@
+{
+  "must": [
+    "Position",
+    "Show position history",
+    "Points only",
+    "Duration",
+    "Oldest",
+    "Newest",
+    "12 of 16",
+    "Playback speed",
+    "Trail up to cursor",
+    "Follow",
+    "Override",
+    "Use this custom position",
+    "Accuracy",
+    "GPS",
+    "opt-in on Meshtastic 2.8+"
+  ],
+  "absent": [
+    "drawn on this map",
+    "as today"
+  ],
+  "source": "checks/s15.json"
+}

@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Packet detail",
+    "Per-gateway receptions",
+    "Rx time",
+    "SNR",
+    "RSSI",
+    "ok_to_mqtt",
+    "violation",
+    "Close"
+  ],
+  "absent": [],
+  "source": "checks/s18.json"
+}

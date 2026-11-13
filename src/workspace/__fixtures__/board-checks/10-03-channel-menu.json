@@ -1,0 +1,21 @@
+{
+  "must": [
+    "Channel info",
+    "Encryption",
+    "Show",
+    "Uplink",
+    "Downlink",
+    "AEAD",
+    "Location",
+    "Purge all messages",
+    "Danger zone",
+    "Mute",
+    "1 hour",
+    "1 week",
+    "Mark all as read",
+    "Show MQTT messages",
+    "Beacons"
+  ],
+  "absent": [],
+  "source": "checks/s10.json"
+}

@@ -1,0 +1,30 @@
+{
+  "must": [
+    "Public key",
+    "Private key",
+    "Show",
+    "Copy",
+    "Set private key",
+    "Admin keys",
+    "2 of 3",
+    "Add key",
+    "Managed mode",
+    "Serial console",
+    "Debug log API",
+    "Legacy admin channel",
+    "Protection Level",
+    "Strict",
+    "Set Protection Level to Strict?",
+    "Type",
+    "G2",
+    "Set Strict",
+    "PKI DM decryption",
+    "Save & restart",
+    "after the 2.8.2 update",
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/s12.json"
+}

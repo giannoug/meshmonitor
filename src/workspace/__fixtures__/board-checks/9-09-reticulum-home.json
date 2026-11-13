@@ -1,0 +1,13 @@
+{
+  "must": [
+    "Map",
+    "Destinations",
+    "Dashboard",
+    "Tools",
+    "LXMF MESSAGES",
+    "Kifisia Sideband",
+    "Trail attached"
+  ],
+  "absent": [],
+  "source": "checks/s09.json"
+}

@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Interfaces",
+    "Paths",
+    "Via",
+    "Probe",
+    "No reply",
+    "Remote Fleet",
+    "Query",
+    "Sends"
+  ],
+  "absent": [],
+  "source": "checks/s09.json"
+}

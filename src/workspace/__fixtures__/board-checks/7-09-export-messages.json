@@ -1,0 +1,18 @@
+{
+  "must": [
+    "Export messages",
+    "Sources",
+    "Channels",
+    "Include",
+    "Contains any of",
+    "Leave out messages with",
+    "From",
+    "To",
+    "Sender ID",
+    "Time zone",
+    "Include emoji reactions",
+    "Download CSV"
+  ],
+  "absent": [],
+  "source": "checks/s07.json"
+}

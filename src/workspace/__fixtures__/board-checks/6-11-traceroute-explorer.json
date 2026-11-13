@@ -1,0 +1,15 @@
+{
+  "must": [
+    "Traceroute explorer",
+    "Pairs",
+    "Answer rate",
+    "Route changed",
+    "Forward",
+    "Return",
+    "Copy links",
+    "Pair history",
+    "Paths used"
+  ],
+  "absent": [],
+  "source": "checks/s06.json"
+}
