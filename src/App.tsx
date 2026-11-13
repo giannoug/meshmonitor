@@ -33,6 +33,7 @@ import { shouldShowQuickStatus } from './components/QuickStatus/quickStatusGate'
 import DeviceNotificationToaster from './components/DeviceNotificationToaster';
 import { RebootModal } from './components/RebootModal';
 import { AppBanners } from './components/AppBanners';
+import WorkspaceBanner from './components/WorkspaceBanner/WorkspaceBanner';
 import ConnectionErrorPanel from './components/ConnectionErrorPanel';
 import { AppHeader } from './components/AppHeader';
 import { PurgeDataModal } from './components/PurgeDataModal';
@@ -3460,6 +3461,7 @@ function App() {
         quickStatusSourceId={sourceId}
       />}
 
+      <WorkspaceBanner />
       <AppBanners
         // The TX-disabled banner blames the LoRa config; an MQTT source has no
         // radio at all, so the disabled controls' tooltip explains it instead.

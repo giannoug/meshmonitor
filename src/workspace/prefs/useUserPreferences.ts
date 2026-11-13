@@ -7,7 +7,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiService from '../../services/api';
 
 type Prefs = Record<string, unknown>;
-const KEY = ['user', 'preferences'];
+/** The preference map's query key; whoever writes outside `setPref` invalidates it. */
+export const PREFERENCES_KEY = ['user', 'preferences'];
 const path = (key: string) => `/api/user/preferences/${encodeURIComponent(key)}`;
 
 export function useUserPreferences({ enabled = true }: { enabled?: boolean } = {}): {
@@ -20,7 +21,7 @@ export function useUserPreferences({ enabled = true }: { enabled?: boolean } = {
 } {
   const queryClient = useQueryClient();
   const { data, isPending, isSuccess, isError } = useQuery({
-    queryKey: KEY,
+    queryKey: PREFERENCES_KEY,
     enabled,
     queryFn: async () =>
       (await apiService.get<{ data?: { preferences?: Prefs } }>('/api/user/preferences')).data?.preferences ?? {},
@@ -30,17 +31,17 @@ export function useUserPreferences({ enabled = true }: { enabled?: boolean } = {
   // Optimistic: apply locally, send, roll back to the previous map on failure.
   const mutate = useCallback(
     async (change: (p: Prefs) => Prefs, send: () => Promise<unknown>) => {
-      await queryClient.cancelQueries({ queryKey: KEY });
-      const prev = queryClient.getQueryData<Prefs>(KEY);
-      queryClient.setQueryData<Prefs>(KEY, change(prev ?? {}));
+      await queryClient.cancelQueries({ queryKey: PREFERENCES_KEY });
+      const prev = queryClient.getQueryData<Prefs>(PREFERENCES_KEY);
+      queryClient.setQueryData<Prefs>(PREFERENCES_KEY, change(prev ?? {}));
       try {
         await send();
       } catch (err) {
-        queryClient.setQueryData<Prefs>(KEY, prev);
+        queryClient.setQueryData<Prefs>(PREFERENCES_KEY, prev);
         throw err;
       }
       // A write before the first load landed leaves only that key in the cache.
-      void queryClient.invalidateQueries({ queryKey: KEY });
+      void queryClient.invalidateQueries({ queryKey: PREFERENCES_KEY });
     },
     [queryClient],
   );

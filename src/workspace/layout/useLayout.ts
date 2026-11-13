@@ -6,12 +6,22 @@
  * fetched when the preview flag is on.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiService from '../../services/api';
-import { useUserPreferences } from '../prefs/useUserPreferences';
+import { PREFERENCES_KEY, useUserPreferences } from '../prefs/useUserPreferences';
 import { asLayout, resolveLayout, type Layout } from './resolveLayout';
 
 const MIRROR_KEY = 'mm.layout';
+
+/**
+ * The install settings (`GET /api/settings`), one cache entry for the gate,
+ * the Classic banner and Server › General, which invalidates it after a save.
+ */
+export const installSettingsQuery = {
+  queryKey: ['settings', 'install'],
+  queryFn: () => apiService.get<Record<string, string | undefined>>('/api/settings'),
+  staleTime: 5 * 60_000,
+};
 
 function readMirror(): Layout | null {
   try {
@@ -29,13 +39,9 @@ export function useLayout(): { layout: Layout; ready: boolean; preview: boolean;
     staleTime: 5 * 60_000,
   });
   const preview = config.data?.workspacePreview === true;
-  const settings = useQuery({
-    queryKey: ['settings', 'defaultLayout'],
-    queryFn: () => apiService.get<{ defaultLayout?: string }>('/api/settings'),
-    staleTime: 5 * 60_000,
-    enabled: preview,
-  });
-  const { prefs, isSuccess: prefsOk, isError: prefsFailed, setPref } = useUserPreferences({ enabled: preview });
+  const settings = useQuery({ ...installSettingsQuery, enabled: preview });
+  const queryClient = useQueryClient();
+  const { prefs, isSuccess: prefsOk, isError: prefsFailed } = useUserPreferences({ enabled: preview });
 
   // Only a full successful answer replaces the mirror: a transient error must not.
   const resolvedOk = config.isSuccess && (!preview || (settings.isSuccess && prefsOk));
@@ -56,7 +62,15 @@ export function useLayout(): { layout: Layout; ready: boolean; preview: boolean;
     }
   }, [resolvedOk, resolved]);
 
-  const setLayout = useCallback((l: Layout) => setPref('layout', l), [setPref]);
+  // Saved first, then re-read: the gate swaps layouts on the cached value, so
+  // an optimistic write that fails would swap the page away and back.
+  const setLayout = useCallback(
+    async (l: Layout) => {
+      await apiService.put('/api/user/preferences/layout', { value: l });
+      await queryClient.invalidateQueries({ queryKey: PREFERENCES_KEY });
+    },
+    [queryClient],
+  );
 
   return {
     layout: resolvedOk ? resolved : (mirror ?? 'classic'),

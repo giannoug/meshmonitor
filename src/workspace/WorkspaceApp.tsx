@@ -20,6 +20,8 @@ import { WebSocketProvider } from '../contexts/WebSocketContext';
 import WorkspaceShell from './shell/WorkspaceShell';
 import WorkspaceSource from './source/WorkspaceSource';
 import YouHome from './you/YouHome';
+import LayoutPage from './you/LayoutPage';
+import GeneralLayoutCard from './server/GeneralLayoutCard';
 import { workspaceRedirect } from './routes';
 import {
   AnalysisRehost,
@@ -73,10 +75,11 @@ function WorkspaceRoutes() {
           <Route path="users" element={<UsersRehost />} />
 
           <Route path="preferences/*" element={<GlobalSettingsRehost />} />
-          <Route path="server/*" element={<GlobalSettingsRehost />} />
+          {/* General's Layout and Sources cards sit above today's page (Task 1.8); 6.4 rebuilds the rest. */}
+          <Route path="server/*" element={<GlobalSettingsRehost above={{ general: <GeneralLayoutCard /> }} />} />
           <Route path="you" element={<YouHome />} />
-          {/* Task 1.8 swaps in the Layout page; other You categories are Phase 6's. */}
-          <Route path="you/layout" element={<OverviewRehost />} />
+          {/* Other You categories are Phase 6's. */}
+          <Route path="you/layout" element={<LayoutPage />} />
           <Route path="you/*" element={<OverviewRehost />} />
 
           <Route path="*" element={<OverviewRehost />} />

@@ -100,7 +100,14 @@ const settings: Record<string, string> = {
   dateFormat: 'DD/MM/YYYY',
   theme: 'mocha',
   preferredSortField: 'longName',
+  // Server › General (r4): the install default layout, the banner offer, the guests' device.
+  defaultLayout: 'classic',
+  offerWorkspaceBanner: 'true',
+  defaultMeshtasticSourceId: SOURCE_IDS.g2,
 };
+
+/** `GET /api/admin/layout-usage` (r4 "Who uses which"). */
+const layoutUsage = { windowDays: 30, classic: 9, workspace: 4 };
 
 function node(num: number, longName: string, shortName: string, extra: Partial<DeviceInfo> = {}): DeviceInfo {
   const id = `!${num.toString(16).padStart(8, '0')}`;
@@ -188,6 +195,7 @@ export const athensFixture = {
   config,
   userPreferences,
   settings,
+  layoutUsage,
   nodes,
   channels,
   messages,

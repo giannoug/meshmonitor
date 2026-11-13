@@ -99,7 +99,6 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     ['/users', 'users'],
     ['/preferences/units', 'global-settings'],
     ['/server/general', 'global-settings'],
-    ['/you/layout', 'dashboard'],
     [`${g2}/nodes`, 'app'],
     [`${g2}/settings`, 'app'],
     [`${g2}/settings/lora`, 'app'],
@@ -120,6 +119,19 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
   it('honours the default landing page only on /', async () => {
     renderAt('/');
     expect(await expectPage('dashboard')).toHaveAttribute('data-show-list', 'false');
+  });
+
+  it('/you/layout shows the Layout page (Task 1.8)', async () => {
+    renderAt('/you/layout');
+    expect(await screen.findByText('Only you · on every browser you sign in from')).toBeInTheDocument();
+    expect(screen.queryByTestId('page-dashboard')).toBeNull();
+  });
+
+  it('/server/general shows the Layout and Sources cards above today\'s General (Task 1.8)', async () => {
+    renderAt('/server/general');
+    const card = await screen.findByText('Default layout for new users');
+    const page = await expectPage('global-settings');
+    expect(card.compareDocumentPosition(page) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('/you shows the You page (Task 1.7)', async () => {

@@ -27,4 +27,9 @@ export const BOARDS: Board[] = [
     },
   },
   { id: 's1-you', size: 'phone', path: '/you' },
+  // Task 1.8. The You sidebar of r2 is 6.1's; r4's Server sidebar and the rest of General are 6.4's.
+  // r3-classic-banner is not here: the banner ships off (WORKSPACE_ENTRY_ENABLED), so its check is Vitest-only.
+  { id: 'r2-you-layout', size: 'desktop', path: '/you/layout' },
+  { id: 's3-layout', size: 'phone', path: '/you/layout' },
+  { id: 'r4-server-general', size: 'desktop', path: '/server/general' },
 ];

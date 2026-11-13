@@ -1,15 +1,12 @@
 {
   "must": [
-    "ACCOUNT",
     "Sign-in & security",
-    "API token",
-    "PREFERENCES",
+    "API Token",
     "Language & units",
     "Appearance",
     "Help & about",
     "Only you · on every browser you sign in from",
     "Both layouts show the same data and settings",
-    "IN WORKSPACE",
     "Messages as",
     "Hops, SNR and route",
     "Rows"

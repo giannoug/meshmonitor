@@ -25,6 +25,7 @@
 | Frontend pages | `src/pages/*` (`Unified*Page` = multi-source aware) |
 | Shared map shell | `src/components/map/` — `BaseMap` (MapContainer + raster/vector tile branch + optional TilesetSelector/resize). New map surfaces MUST compose `BaseMap` instead of hand-rolling `MapContainer`; shared layers land here during epic #4047. `BaseMap` wraps itself in an error boundary and, with no WebGL2, draws a vector tileset's raster form for that render only (`vectorSupport.ts`; the saved tileset is not changed). jsdom has no WebGL, so `src/test/setup.ts` forces "vector available" before each test; a fallback test opts out with `setVectorRenderingForTests(null \| false)`. |
 | ESLint config | `eslint.config.mjs` (raw-SQL ban lives here) |
+| Workspace layout (opt-in, #6365) | `src/workspace/` (`WorkspaceApp.tsx`, `shell/`, `you/`, `server/`, `rehost/`), `src/workspace/LayoutGate.tsx` (Classic or Workspace per user: `WORKSPACE_PREVIEW` env, `layout` preference, `defaultLayout` setting), `src/contexts/ShellContext.ts` (re-hosted Classic pages hide their own chrome), Classic entry points in `src/components/WorkspaceBanner/` behind `WORKSPACE_ENTRY_ENABLED` (`src/workspace/layout/workspaceEntry.ts`). Build decisions: `docs/superpowers/workspace-ledger.md`. |
 
 ## Hard rules
 

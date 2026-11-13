@@ -69,12 +69,17 @@ export function OverviewRehost({ landing = false, notice }: { landing?: boolean;
   );
 }
 
-/** `/preferences/<x>` and `/server/<x>`: today's global settings page, scrolled to the category. */
-export function GlobalSettingsRehost() {
+/**
+ * `/preferences/<x>` and `/server/<x>`: today's global settings page, scrolled
+ * to the category. `above[category]` draws above the page; it sits beside the
+ * page, so moving between categories keeps the page mounted.
+ */
+export function GlobalSettingsRehost({ above }: { above?: Record<string, ReactNode> }) {
   const category = (useParams()['*'] ?? '').split('/')[0];
   const to = useHashTarget(globalSettingsHash(category));
   return (
     <Redirect to={to}>
+      {above && Object.hasOwn(above, category) && above[category]}
       <Rehost>
         <GlobalSettingsPage />
       </Rehost>

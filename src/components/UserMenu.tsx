@@ -13,6 +13,8 @@ import ChangePasswordModal from './ChangePasswordModal';
 import APITokenManagement from './APITokenManagement';
 import MFAManagement from './MFAManagement';
 import PasskeyManagement from './PasskeyManagement';
+import TryWorkspaceMenuItem from './WorkspaceBanner/TryWorkspaceMenuItem';
+import { WORKSPACE_ENTRY_ENABLED } from '../workspace/layout/workspaceEntry';
 
 interface UserMenuProps {
   onLogout?: () => void;
@@ -145,6 +147,8 @@ const UserMenu: React.FC<UserMenuProps> = ({ onLogout }) => {
             >
               {t('user_menu.api_token')}
             </button>
+
+            {WORKSPACE_ENTRY_ENABLED && <TryWorkspaceMenuItem onSelect={() => setShowMenu(false)} />}
 
             <button
               className="user-menu-item"

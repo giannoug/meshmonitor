@@ -1,0 +1,274 @@
+/* You › Layout (boards r2-you-layout, s3-layout). */
+.page {
+  box-sizing: border-box;
+  max-width: 760px;
+  padding: 24px 32px 48px;
+  color: var(--color-text);
+}
+
+.head {
+  margin-bottom: 24px;
+}
+
+.title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.scope {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+/* Phone: a page header with the way back to You (s3). */
+.phoneHead {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  margin: 0 -16px 16px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--color-surface);
+  background: var(--color-bg-sunken);
+}
+
+.back {
+  position: absolute;
+  left: 8px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border-radius: 12px;
+  color: var(--color-accent);
+  font-size: 17px;
+  text-decoration: none;
+}
+
+.back:focus-visible {
+  outline: 2px solid var(--color-accent);
+}
+
+.phoneTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.note {
+  margin: 0 0 16px;
+  color: var(--color-text-subtle);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px;
+  border: 1px solid var(--color-surface);
+  border-radius: 14px;
+  background: var(--color-bg-sunken);
+  cursor: pointer;
+}
+
+.card[data-checked] {
+  border: 2px solid var(--color-accent);
+  padding: 19px;
+  background: var(--color-bg-raised);
+}
+
+.card:has(.radio:focus-visible) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.card:has(.radio:disabled) {
+  cursor: default;
+  opacity: 0.7;
+}
+
+/* The native radio stays for keyboard and screen readers; the card shows the state. */
+.radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+
+/* A sketch of each layout, drawn with boxes. */
+.preview {
+  box-sizing: border-box;
+  height: 110px;
+  margin-bottom: 12px;
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--color-surface-hover);
+  border-radius: 10px;
+}
+
+.preview[data-layout='classic'] {
+  grid-template-rows: 16px 6px 1fr;
+}
+
+.preview[data-layout='workspace'] {
+  grid-template-columns: 22px 72px 1fr;
+}
+
+.preview > span,
+.tabs > span {
+  border-radius: 4px;
+  background: var(--color-surface);
+}
+
+.preview .tabs {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  background: none;
+}
+
+.preview .rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding-top: 6px;
+  background: var(--color-bg);
+}
+
+.rail > span {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.rail > span:nth-child(1) {
+  background: var(--device-1);
+}
+
+.rail > span:nth-child(2) {
+  background: var(--device-2);
+}
+
+.rail > span:nth-child(3) {
+  background: var(--device-3);
+}
+
+.preview .side {
+  background: var(--color-surface-hover);
+}
+
+.tick {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.name {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.desc {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-subtle);
+}
+
+.info {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0 0;
+  padding: 16px 20px;
+  border: 1px solid var(--color-surface);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+  line-height: 1.45;
+}
+
+.info > :first-child {
+  flex: none;
+  margin-top: 1px;
+}
+
+.caption {
+  margin: 20px 4px 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text-subtle);
+}
+
+.groupTitle {
+  margin: 32px 4px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.group {
+  overflow: hidden;
+  border: 1px solid var(--color-surface);
+  border-radius: 12px;
+  background: var(--color-bg-sunken);
+}
+
+.group > * + * {
+  border-top: 1px solid var(--color-surface);
+}
+
+/* The value reads as text, as on the board; it is still a native select. */
+.select {
+  max-width: 220px;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: 8px;
+  appearance: none;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15px;
+  text-align: right;
+  cursor: pointer;
+}
+
+.select:focus-visible {
+  outline: 2px solid var(--color-accent);
+}
+
+.select option {
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+}
+
+/* Phone (useIsPhone sets data-phone): one column, under the tab bar. */
+.page[data-phone] {
+  padding: 0 16px calc(var(--app-nav-bar-height) + env(safe-area-inset-bottom, 0px) + 24px);
+}
+
+.page[data-phone] .cards {
+  grid-template-columns: 1fr;
+}
+

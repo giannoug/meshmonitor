@@ -18,6 +18,11 @@ const defaults: Record<string, FixtureHandler> = {
   'GET /api/users/:id/channel-database-permissions': () => ({ data: [] }),
   'GET /api/user/preferences': () => ({ success: true, data: { preferences: A.userPreferences } }),
   'GET /api/settings': () => A.settings,
+  'GET /api/admin/layout-usage': () => ({ success: true, data: A.layoutUsage }),
+  // Empty lists for the re-hosted Server › General page (r4), which toasts on a 404.
+  'GET /api/embed-profiles': () => [],
+  'GET /api/channel-database': () => ({ success: true, data: [] }),
+  'GET /api/scripts/inventory': () => ({ success: true, data: { scripts: [] } }),
   'GET /api/sources': () => A.sources,
   'GET /api/sources/:id/status': (url) => A.statuses[url.pathname.split('/')[3]],
   'GET /api/unified/status': () => A.unifiedStatus,
