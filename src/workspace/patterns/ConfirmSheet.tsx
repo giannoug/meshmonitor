@@ -19,6 +19,11 @@ export interface ConfirmSheetProps {
   confirmWord?: string;
   danger?: boolean;
   busy?: boolean;
+  /**
+   * A rejected promise (or a throw) keeps the sheet open and shows the error
+   * inline (the Error's message, else the generic `errors.generic` copy); the
+   * confirm stays available for a retry. The caller owns `busy` and closing.
+   */
   onConfirm(): void | Promise<void>;
   onCancel(): void;
 }
@@ -32,12 +37,21 @@ function OpenConfirm({ title, body, consequences, confirmLabel, cancelLabel, con
   const { t } = useTranslation();
   const id = useId();
   const [typed, setTyped] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const needsWord = !!confirmWord?.trim();
   const canConfirm = !busy && (!needsWord || typed.trim() === confirmWord!.trim());
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (canConfirm) void onConfirm();
+    if (!canConfirm) return;
+    setError(null);
+    void (async () => {
+      try {
+        await onConfirm();
+      } catch (err) {
+        setError(err instanceof Error && err.message ? err.message : t('errors.generic'));
+      }
+    })();
   };
 
   return (
@@ -55,6 +69,7 @@ function OpenConfirm({ title, body, consequences, confirmLabel, cancelLabel, con
             form={id}
             className={danger ? `${styles.confirm} ${styles.danger}` : styles.confirm}
             disabled={!canConfirm}
+            aria-busy={busy || undefined}
           >
             {busy && <span className={styles.spinner} data-testid="confirm-spinner" aria-hidden="true" />}
             {confirmLabel}
@@ -62,6 +77,7 @@ function OpenConfirm({ title, body, consequences, confirmLabel, cancelLabel, con
         </div>
       }
     >
+      {busy && <span className={styles.visuallyHidden} role="status">{t('workspace.state.loading')}</span>}
       <form id={id} className={styles.form} onSubmit={submit}>
         {body && <div className={styles.text}>{body}</div>}
         {consequences && consequences.length > 0 && (
@@ -69,6 +85,7 @@ function OpenConfirm({ title, body, consequences, confirmLabel, cancelLabel, con
             {consequences.map((c) => <li key={c}>{c}</li>)}
           </ul>
         )}
+        {error && <p className={styles.error} role="alert">{error}</p>}
         {needsWord && (
           <div className={styles.field}>
             <label htmlFor={`${id}-word`} className={styles.label}>{t('typed_confirm.prompt', { word: confirmWord })}</label>

@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWorkspace } from '../../test/renderWorkspace';
 import { ShellDevicesContext } from '../../shell/shellDevices';
 import ConfirmSheet from '../ConfirmSheet';
@@ -50,6 +50,35 @@ describe('ConfirmSheet', () => {
   });
 });
 
+describe('ConfirmSheet failure and busy', () => {
+  it('keeps the sheet open and shows the error when onConfirm rejects', async () => {
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    const { onCancel } = confirm({ confirmWord: undefined, onConfirm: vi.fn().mockRejectedValue(new Error('Server said no')) });
+    fireEvent.click(screen.getByRole('button', { name: 'Purge now' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Server said no');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Purge now' })).toBeEnabled();
+    await new Promise((r) => setTimeout(r, 0));
+    process.off('unhandledRejection', unhandled);
+    expect(unhandled).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+  it('falls back to the generic error copy and clears it on retry', async () => {
+    const onConfirm = vi.fn().mockRejectedValueOnce('boom').mockResolvedValue(undefined);
+    confirm({ confirmWord: undefined, onConfirm });
+    fireEvent.click(screen.getByRole('button', { name: 'Purge now' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('An error occurred');
+    fireEvent.click(screen.getByRole('button', { name: 'Purge now' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+  });
+  it('announces busy: aria-busy on confirm and a live status', () => {
+    confirm({ busy: true });
+    expect(screen.getByRole('button', { name: /Purge now/ })).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…');
+  });
+});
+
 describe('OneTimeReveal', () => {
   it('Done waits for the ack when mustAck', () => {
     const onDone = vi.fn();
@@ -91,6 +120,10 @@ describe('SendsLine and DeviceTag', () => {
   it('SendsLine shows its text', () => {
     renderWorkspace(<SendsLine>Sends 1 message</SendsLine>);
     expect(screen.getByText('Sends 1 message')).toBeInTheDocument();
+  });
+  it('DeviceTag renders nothing outside the shell provider', () => {
+    const { container } = renderWorkspace(<DeviceTag sourceId="a" />);
+    expect(container).toBeEmptyDOMElement();
   });
   it('DeviceTag shows the abbreviation, and nothing for an unknown id', () => {
     const src = { id: 'a', name: 'Alpha Base', abbrev: 'AB', colorToken: 'var(--device-2)' } as never;
