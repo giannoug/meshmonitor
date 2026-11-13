@@ -259,3 +259,25 @@ describe('hashchange bridge (SectionNav)', () => {
     }
   });
 });
+
+describe('forced password change (recovery-code sign-in)', () => {
+  const withFlag = (passwordChangeRequired?: boolean): RenderWorkspaceOptions => ({
+    fixtures: { 'GET /api/auth/status': () => ({ ...athensFixture.authStatus, passwordChangeRequired }) },
+  });
+
+  it.each([
+    ['phone', 390],
+    ['desktop', 1280],
+  ])('shows today\'s forced dialog on %s, outside the shell', async (_, width) => {
+    renderShell('/overview', { width, ...withFlag(true) });
+    const dialog = await screen.findByRole('dialog', { name: 'Choose a new password' });
+    expect(document.querySelector('[data-workspace-shell]')).not.toContainElement(dialog);
+    expect(within(dialog).queryByLabelText('Current Password')).toBeNull();
+  });
+
+  it.each([false, undefined])('is absent when passwordChangeRequired is %s', async (flag) => {
+    renderShell('/overview', { phone: true, ...withFlag(flag) });
+    await screen.findByRole('navigation', { name: 'Tabs' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});

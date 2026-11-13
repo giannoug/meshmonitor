@@ -18,7 +18,6 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { UiIcon, type UiIconName } from '../../components/icons';
 import { deviceConfigurationNav, globalSettingsNav, mapNav } from '../../components/nav/sourceNavEntries';
-import { visibleMeshCoreViews, type MeshCoreView } from '../../components/MeshCore/meshCoreViewAccess';
 import {
   configurationNavItems,
   hasDeviceConfigurationPage,
@@ -26,7 +25,7 @@ import {
 } from '../../components/search/configSections';
 import { PREFERENCE_CATEGORIES } from '../routes';
 import SidebarSection from './SidebarSection';
-import { familyOf, statusLabel, TOOL_TABS } from './deviceTabs';
+import { statusLabel, useDeviceTab } from './deviceTabs';
 import type { WorkspaceSource } from './useWorkspaceSources';
 import styles from './DeviceSidebar.module.css';
 
@@ -47,17 +46,12 @@ interface DeviceSidebarProps {
   onNavigate?: () => void;
 }
 
-/** The view gate each row shares with MeshCore's tabs. */
-const GATE: Record<string, MeshCoreView> = {
-  map: 'nodes', nodes: 'nodes', dashboard: 'telemetry', automation: 'automations', config: 'configuration',
-  tools: 'info', channels: 'channels', dms: 'dms',
-};
-
 export default function DeviceSidebar({ mode, sourceId, source, onNavigate }: DeviceSidebarProps) {
   const { t } = useTranslation();
   const { authStatus, hasPermission } = useAuth();
   const isAdmin = authStatus?.authenticated === true && authStatus.user?.isAdmin === true;
   const base = sourceId ? `/source/${encodeURIComponent(sourceId)}` : '';
+  const tab = useDeviceTab(source);
 
   const list = (rows: Row[]) => (
     <ul className={styles.list}>
@@ -124,18 +118,6 @@ export default function DeviceSidebar({ mode, sourceId, source, onNavigate }: De
   }
 
   // Device mode.
-  const family = familyOf(source.type);
-  const visible = visibleMeshCoreViews({
-    canRead: (resource) => hasPermission(resource, 'read', { sourceId: source.id }),
-    isAuthenticated: authStatus?.authenticated ?? false,
-  });
-  const tab = (key: string): string | null => {
-    if (source.type === 'meshcore_mqtt') return key === 'map' ? base : null;
-    if (key === 'automation' && source.type === 'mqtt_bridge') return null;
-    if (key === 'config' && family === 'meshtastic' && !hasDeviceConfigurationPage(source.type)) return null;
-    const name = TOOL_TABS[family][key];
-    return name && visible.includes(GATE[key]) ? `${base}/${name}` : null;
-  };
   const active = source.live?.activeNodeCount;
   const tools: Array<Row & { key: string }> = [
     { key: 'map', to: '', label: mapNav(t).label, icon: 'map' },

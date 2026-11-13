@@ -91,6 +91,16 @@ describe('a-chat-D-phone (frame)', () => {
     expect(await tab(/^DMs/)).toHaveAttribute('href', `/source/${SOURCE_IDS.rak}/messages`);
   });
 
+  it('gates DMs like the sidebar: no messages:read, DMs disabled', async () => {
+    renderShell(`/source/${SOURCE_IDS.g2}/nodes`, {
+      permissions: { bySource: { [SOURCE_IDS.g2]: { nodes: { read: true, write: false } } } },
+    });
+    expect(await tab(/^Home/)).toHaveAttribute('href', `/source/${SOURCE_IDS.g2}`);
+    const bar = await tabBar();
+    expect(within(bar).queryByRole('link', { name: /^DMs/ })).toBeNull();
+    expect(within(bar).getByText('DMs').closest('[aria-disabled]')).toHaveAttribute('aria-disabled', 'true');
+  });
+
   it.each([768, 1280])('the tab bar is hidden at %i px', async (width) => {
     renderShell(`/source/${SOURCE_IDS.g2}/channels`, { width });
     await screen.findByRole('navigation', { name: 'Devices' });

@@ -7,12 +7,13 @@
  *   view, as the desktop sidebar's Direct messages link (Meshtastic
  *   `messages`, MeshCore and Reticulum `dms`). Badge: its DM unread.
  * - Activity: `/source/:id/activity` (today's device page until Phase 2).
- * - With no device, DMs and Activity are shown disabled.
+ * - With no device, DMs and Activity are shown disabled; so is DMs for a
+ *   viewer the sidebar would not show Direct messages to.
  */
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon, type UiIconName } from '../../components/icons';
-import { dmsPathOf } from './deviceTabs';
+import { useDeviceTab } from './deviceTabs';
 import type { WorkspaceSource } from './useWorkspaceSources';
 import styles from './TabBar.module.css';
 
@@ -27,9 +28,11 @@ interface TabBarProps {
 export default function TabBar({ home, active }: TabBarProps) {
   const { t } = useTranslation();
   const base = home && `/source/${encodeURIComponent(home.id)}`;
+  // Gated as the desktop sidebar's Direct messages entry (messages:read, type).
+  const dms = useDeviceTab(home)('dms');
   const tabs: Array<{ key: PhoneTab; to: string | null; icon: UiIconName; badge?: number }> = [
     { key: 'home', to: base ?? '/overview', icon: 'home' },
-    { key: 'dms', to: home && dmsPathOf(home), icon: 'messages', badge: home?.dmUnread },
+    { key: 'dms', to: dms, icon: 'messages', badge: home?.dmUnread },
     { key: 'activity', to: base && `${base}/activity`, icon: 'notifications' },
     { key: 'you', to: '/you', icon: 'user' },
   ];

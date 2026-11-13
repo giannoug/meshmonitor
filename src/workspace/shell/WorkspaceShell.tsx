@@ -11,13 +11,18 @@
  * their own (hidden) sidebar used to set. So the window stays the scroller, as
  * in Classic.
  *
- * Also here: the open device going away (Review Focus 4), and the hashchange
- * that Classic's SectionNav needs after a client-side move to a `#section`.
+ * Also here: the open device going away (Review Focus 4), the hashchange
+ * that Classic's SectionNav needs after a client-side move to a `#section`,
+ * and the forced password change after a recovery-code sign-in (Classic shows
+ * it from UserMenu, which the Workspace does not mount).
  */
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { matchPath, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../../components/ToastContainer';
+import ChangePasswordModal from '../../components/ChangePasswordModal';
+import { useAuth } from '../../contexts/AuthContext';
 import { UiIcon } from '../../components/icons';
 import { useDashboardSources } from '../../hooks/useDashboardData';
 import DeviceRail from './DeviceRail';
@@ -77,6 +82,7 @@ function useLeaveRemovedSource(openId: string | null) {
 export default function WorkspaceShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const location = useLocation();
+  const { authStatus, refreshAuth } = useAuth();
   const isPhone = useIsPhone();
   const narrow = useIsNarrowDesktop();
   const { sources } = useWorkspaceSources();
@@ -103,6 +109,11 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [drawerOpen]);
 
+  // Same component and props as UserMenu; portaled, so no shell stacking context traps it.
+  const forcedPasswordChange =
+    authStatus?.passwordChangeRequired === true &&
+    createPortal(<ChangePasswordModal isOpen forced onClose={() => void refreshAuth()} />, document.body);
+
   if (isPhone) {
     return (
       <ShellDevicesContext.Provider value={{ sources, home }}>
@@ -113,6 +124,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
             </PhoneShell>
           </div>
         </div>
+        {forcedPasswordChange}
       </ShellDevicesContext.Provider>
     );
   }
@@ -150,6 +162,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
         {/* A div, not <main>: re-hosted pages bring their own <main>. */}
         <div className={`${styles.main} ${styles.framed}`}>{children}</div>
       </div>
+      {forcedPasswordChange}
     </ShellDevicesContext.Provider>
   );
 }
