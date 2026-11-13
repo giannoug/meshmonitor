@@ -1,16 +1,17 @@
 {
   "must": [
-    "You’re viewing as a guest. Sign in to send messages",
-    "Map",
     "Nodes",
-    "Dashboard",
     "CHANNELS",
     "Home",
-    "Sign in"
+    "Sign in",
+    "You’re viewing as a guest",
+    "Map",
+    "Dashboard",
+    "Connected"
   ],
   "absent": [
     "Activity",
-    "Message"
+    "Add device"
   ],
   "source": "written"
 }

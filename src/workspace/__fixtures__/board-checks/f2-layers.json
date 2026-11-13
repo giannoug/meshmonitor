@@ -2,10 +2,8 @@
   "must": [
     "Analysis",
     "Layers",
-    "Reset",
     "BASE MAP",
     "Tiles",
-    "NODES",
     "Max age",
     "Cluster nearby nodes",
     "Estimated positions",

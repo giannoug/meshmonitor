@@ -2,7 +2,6 @@
   "must": [
     "60 s cooldown per sender",
     "Cooldown per trigger and node",
-    "Automations",
     "All devices",
     "BUILT IN",
     "RULES",
@@ -18,9 +17,7 @@
     "No limit set",
     "Sends nothing on the mesh",
     "Home",
-    "DMs",
-    "Activity",
-    "You"
+    "DMs"
   ],
   "absent": [
     "replies a minute"

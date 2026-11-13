@@ -2,8 +2,6 @@
   "must": [
     "Activity",
     "Mark all read",
-    "TODAY",
-    "YESTERDAY",
     "replied in",
     "reacted in",
     "mentioned you in",

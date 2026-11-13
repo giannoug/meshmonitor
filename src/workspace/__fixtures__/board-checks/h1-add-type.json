@@ -1,7 +1,6 @@
 {
   "must": [
     "Add device",
-    "Type",
     "Connection",
     "Name & connect",
     "What are you connecting?",
@@ -11,9 +10,7 @@
     "MQTT bridge",
     "MeshCore MQTT",
     "Reticulum",
-    "Admins only · every field stays editable",
-    "Cancel",
-    "Next"
+    "Admins only · every field stays editable"
   ],
   "absent": [
     "Add source",

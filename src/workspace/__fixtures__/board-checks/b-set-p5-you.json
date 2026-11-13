@@ -6,15 +6,11 @@
     "Units & formats",
     "Sorting",
     "Appearance",
-    "Map",
     "Link previews",
     "Server settings",
     "Activity & notifications",
-    "Sign out",
     "Preferences apply to everyone on this MeshMonitor.",
-    "Home",
-    "DMs",
-    "Activity"
+    "Home"
   ],
   "absent": [
     "⌘K",

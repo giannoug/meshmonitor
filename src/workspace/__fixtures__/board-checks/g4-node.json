@@ -3,24 +3,13 @@
     "Ask the node",
     "Organise",
     "Data",
-    "Message",
-    "Overview",
-    "Telemetry",
-    "Links",
-    "Position",
-    "Admin",
-    "Hops",
     "SNR · RSSI",
-    "Battery",
     "Channel util.",
     "POSITION",
     "RADIO",
     "Heard on",
-    "Uptime",
     "Home",
-    "DMs",
-    "Activity",
-    "You"
+    "DMs"
   ],
   "absent": [
     "Favourite"

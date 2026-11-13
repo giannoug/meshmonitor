@@ -1,11 +1,13 @@
 {
   "must": [
-    "Direct messages",
     "Search DMs",
     "Home",
     "DMs",
+    "Direct messages",
+    "Station G2",
     "Activity",
-    "You"
+    "You",
+    "You:"
   ],
   "absent": [
     "⌘K"

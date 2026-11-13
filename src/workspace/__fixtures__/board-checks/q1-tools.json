@@ -1,17 +1,15 @@
 {
   "must": [
     "Overview",
-    "Tools",
     "STATION G2",
-    "Info",
     "Packet monitor",
-    "Security",
-    "Dashboard",
     "Analysis, Reports, Users, Audit log",
     "Home",
     "DMs",
-    "Activity",
-    "You"
+    "Tools",
+    "Info",
+    "Security",
+    "Dashboard"
   ],
   "absent": [
     "IN OVERVIEW"

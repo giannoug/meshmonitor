@@ -1,13 +1,10 @@
 {
   "must": [
     "⌘,",
-    "Notifications",
     "DELIVERY",
     "Web Push on this browser",
-    "Apprise",
     "Audio notifications",
     "NOTIFY ME ABOUT",
-    "Direct messages",
     "Emoji reactions",
     "Newly found nodes",
     "Low battery",

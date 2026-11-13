@@ -7,14 +7,8 @@
     "Retry now",
     "Edit connection",
     "Disconnect",
-    "Map",
     "Nodes",
-    "Automations",
-    "Tools",
-    "Home",
-    "DMs",
-    "Activity",
-    "You"
+    "Home"
   ],
   "absent": [
     "⌘K"

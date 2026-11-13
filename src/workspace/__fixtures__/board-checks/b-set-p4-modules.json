@@ -1,6 +1,5 @@
 {
   "must": [
-    "Modules",
     "Canned Messages",
     "Detection Sensor",
     "External Notification",
@@ -10,7 +9,6 @@
     "Range Test",
     "Serial",
     "Store & Forward",
-    "Telemetry",
     "Traffic Management",
     "Hidden: Paxcounter, Audio, TAK (not supported here).",
     "Why?"

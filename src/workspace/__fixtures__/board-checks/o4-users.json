@@ -22,7 +22,6 @@
     "Local · 2FA",
     "CAN USE",
     "Nodes & map",
-    "Channels",
     "Device settings",
     "Packet monitor",
     "Traceroutes",
@@ -30,9 +29,6 @@
     "ACROSS THIS MESHMONITOR",
     "Server settings",
     "Channel database",
-    "None",
-    "Read",
-    "Write",
     "Click a cell to cycle None → Read → Write."
   ],
   "absent": [],

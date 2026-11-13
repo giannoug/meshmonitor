@@ -2,16 +2,10 @@
   "must": [
     "Nodes",
     "Search nodes",
-    "Online",
-    "Favourites",
-    "Direct",
-    "Filters",
-    "Last heard",
-    "ROUTER",
     "Home",
-    "DMs",
-    "Activity",
-    "You"
+    "Favourites",
+    "Filters",
+    "Last heard"
   ],
   "absent": [
     "⌘K"

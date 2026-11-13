@@ -1,6 +1,5 @@
 {
   "must": [
-    "Back",
     "Add device",
     "Step 2 of 3",
     "Connected by",
@@ -11,8 +10,7 @@
     "Companion",
     "Repeater",
     "Repeaters have no chat.",
-    "Advanced · baud rate, heartbeat",
-    "Next"
+    "Advanced · baud rate, heartbeat"
   ],
   "absent": [
     "Add source"

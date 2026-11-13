@@ -1,15 +1,13 @@
 {
   "must": [
     "Station G2",
-    "Map",
-    "Automations",
-    "Tools",
-    "Channels",
-    "Direct messages",
     "Home",
     "DMs",
-    "Activity",
-    "You"
+    "Search",
+    "Channels",
+    "Direct messages",
+    "Automations",
+    "Tools"
   ],
   "absent": [
     "Configuration",

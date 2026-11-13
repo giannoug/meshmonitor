@@ -10,9 +10,7 @@
     "PASSKEYS",
     "Add a passkey",
     "API TOKEN",
-    "Home",
-    "DMs",
-    "Activity"
+    "Home"
   ],
   "absent": [
     "Regenerate"

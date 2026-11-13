@@ -1,13 +1,13 @@
 {
   "must": [
     "You",
+    "Same data and settings in both.",
+    "Home",
     "Layout",
     "Classic",
     "Workspace",
-    "Same data and settings in both.",
-    "Home",
-    "DMs",
-    "Activity"
+    "Tabs across the top, one source at a time.",
+    "Devices down the left, channels and DMs in one sidebar"
   ],
   "absent": [
     "⌘K"

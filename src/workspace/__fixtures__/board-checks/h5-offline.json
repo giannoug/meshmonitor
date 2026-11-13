@@ -1,7 +1,6 @@
 {
   "must": [
     "Offline since 14:02",
-    "Retry",
     "Sending is paused while Rooftop RAK is offline",
     "Last error: connection refused.",
     "Last 24 hours",

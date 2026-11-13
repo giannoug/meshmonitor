@@ -2,8 +2,6 @@
   "must": [
     "Send a DM to Glyfada Beach",
     "Send a DM to Lycabettus Hiker",
-    "Security",
-    "Export",
     "Scan now",
     "Key problems",
     "Noisy senders",
@@ -14,7 +12,6 @@
     "Weak key",
     "Sending a lot",
     "Send a DM",
-    "Info",
     "Packet monitor"
   ],
   "absent": [

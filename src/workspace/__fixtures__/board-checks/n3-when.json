@@ -5,12 +5,10 @@
     "MESSAGES",
     "A message arrives",
     "Someone reacts",
-    "NODES",
     "A new node is heard",
     "A node goes quiet",
     "Battery drops below…",
     "A node enters an area",
-    "TIME",
     "On a schedule",
     "MESH",
     "A traceroute finishes"

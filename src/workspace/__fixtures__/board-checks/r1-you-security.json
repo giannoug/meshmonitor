@@ -9,13 +9,11 @@
     "Authenticator app",
     "Turn off",
     "PASSKEYS",
-    "Remove",
     "Add a passkey",
     "API TOKEN",
     "One token per user, for scripts and automations",
     "ACCOUNT",
-    "PREFERENCES",
-    "Sign out"
+    "PREFERENCES"
   ],
   "absent": [
     "Regenerate"

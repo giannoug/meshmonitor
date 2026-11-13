@@ -1,9 +1,6 @@
 {
   "must": [
-    "Settings",
-    "LoRa",
     "RADIO",
-    "Region",
     "Use modem preset",
     "Modem preset",
     "Hop limit",

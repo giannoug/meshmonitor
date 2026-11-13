@@ -1,7 +1,5 @@
 {
   "must": [
-    "Dashboard",
-    "Edit",
     "MESH HEALTH",
     "Nodes online",
     "Channel util.",
@@ -9,12 +7,8 @@
     "Packets / h",
     "Low battery",
     "New today",
-    "Hops away",
-    "Direct",
     "Home",
-    "DMs",
-    "Activity",
-    "You"
+    "DMs"
   ],
   "absent": [
     "⌘K"

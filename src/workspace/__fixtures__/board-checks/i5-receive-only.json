@@ -1,12 +1,13 @@
 {
   "must": [
-    "Receive-only",
-    "Switch",
     "Home",
     "DMs",
-    "Activity",
-    "You",
-    "so it can’t send. Reply from a device with a radio."
+    "so it can’t send. Reply from a device with a radio.",
+    "Receive-only",
+    "Switch",
+    "Heard by",
+    "Athens MQTT",
+    "only listens to gateways"
   ],
   "absent": [
     "Message",

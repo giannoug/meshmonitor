@@ -1,19 +1,15 @@
 {
   "must": [
     "Station G2",
-    "Map",
     "Nodes",
-    "Dashboard",
-    "Automations",
     "Configuration",
     "More tools…",
-    "Channels",
-    "Direct messages",
     "Message a node",
-    "Details",
-    "Traceroute",
-    "New",
-    "Message"
+    "200 left",
+    "nodes heard today",
+    "heard via",
+    "delivered",
+    "Direct messages"
   ],
   "absent": [
     "Add source",

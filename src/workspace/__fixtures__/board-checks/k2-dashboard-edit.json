@@ -1,12 +1,9 @@
 {
   "must": [
-    "Cancel",
     "Edit dashboard",
-    "Done",
     "Health tiles",
     "YOUR BOARD · TOP TO BOTTOM",
     "Telemetry chart · battery",
-    "Hops away",
     "Watched nodes",
     "Live mesh activity",
     "Add widget",

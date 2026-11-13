@@ -1,14 +1,13 @@
 {
   "must": [
     "You",
-    "Notifications",
     "THIS PHONE",
     "What each device sends",
     "In its settings",
     "Quiet hours, Apprise and filters live in each device",
     "Home",
-    "DMs",
-    "Activity"
+    "Notifications",
+    "this only decides what also buzzes"
   ],
   "absent": [
     "⌘K"

@@ -1,14 +1,15 @@
 {
   "must": [
-    "Back",
     "Add device",
     "Step 3 of 3",
-    "Name",
     "Connect automatically",
     "Couldn’t connect.",
     "Edit connection",
     "Save anyway, connect later",
-    "Try again"
+    "Try again",
+    "Name",
+    "Back",
+    "Reached"
   ],
   "absent": [
     "Add source"

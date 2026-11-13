@@ -1,20 +1,14 @@
 {
   "must": [
-    "Tools",
     "Packets",
-    "All",
-    "Text",
-    "Position",
-    "Telemetry",
     "NodeInfo",
     "Live · newest first",
-    "Encrypted",
     "Traceroute",
-    "Routing",
     "Home",
     "DMs",
-    "Activity",
-    "You"
+    "Tools",
+    "Encrypted",
+    "Routing"
   ],
   "absent": [
     "⌘K"

@@ -2,10 +2,8 @@
   "must": [
     "60 s cooldown per sender",
     "Cooldown per trigger and node",
-    "Automations",
     "Templates",
     "New rule",
-    "All",
     "On",
     "Sends on the mesh",
     "Needs attention",

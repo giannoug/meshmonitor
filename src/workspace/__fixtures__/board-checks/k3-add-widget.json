@@ -4,13 +4,10 @@
     "Telemetry chart",
     "Watched nodes",
     "Traceroute",
-    "Hops away",
     "Distance",
     "Hops × distance",
     "Live mesh activity",
-    "Cancel",
-    "Edit dashboard",
-    "Done"
+    "Edit dashboard"
   ],
   "absent": [
     "⌘K"

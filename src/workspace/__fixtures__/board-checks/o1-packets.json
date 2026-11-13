@@ -1,27 +1,15 @@
 {
   "must": [
     "Packet monitor",
-    "Pause",
-    "Columns",
     "Filter packets",
-    "All",
-    "Text",
-    "Position",
-    "Telemetry",
     "NodeInfo",
-    "Routing",
-    "Encrypted",
-    "TIME",
-    "FROM",
-    "TO",
-    "TYPE",
-    "HOPS",
-    "SNR",
     "RAW",
     "Copy JSON",
     "Show sender",
-    "Info",
-    "Security"
+    "Pause",
+    "Columns",
+    "Encrypted",
+    "Live · "
   ],
   "absent": [
     "⌘K",

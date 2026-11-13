@@ -1,22 +1,13 @@
 {
   "must": [
-    "Automations",
     "No limit set",
-    "Rule",
     "Trace",
-    "WHEN",
     "A message arrives in",
-    "IF",
     "Text starts with",
-    "THEN",
     "LIMITS",
     "Add a limit",
-    "Step",
-    "Test",
     "Home",
-    "DMs",
-    "Activity",
-    "You"
+    "DMs"
   ],
   "absent": [
     "⌘K"

@@ -2,12 +2,8 @@
   "must": [
     "Analysis",
     "Layers",
-    "Reset",
-    "Done",
     "Satellite",
     "Topo",
-    "3D terrain",
-    "NODES",
     "Max age",
     "Cluster nearby nodes",
     "Estimated positions",
@@ -18,8 +14,7 @@
     "Waypoints",
     "Ducting forecast",
     "Home",
-    "DMs",
-    "You"
+    "DMs"
   ],
   "absent": [
     "Add source"

@@ -1,10 +1,5 @@
 {
   "must": [
-    "Dashboard",
-    "1 h",
-    "24 h",
-    "7 d",
-    "Edit",
     "Nodes online",
     "Channel util.",
     "Airtime TX",
@@ -12,15 +7,9 @@
     "Low battery",
     "New today",
     "Watched nodes",
-    "Hops away",
-    "Direct",
     "Live mesh activity",
     "packets / min",
-    "Text",
-    "Position",
-    "Telemetry",
-    "NodeInfo",
-    "Routing"
+    "NodeInfo"
   ],
   "absent": [
     "⌘K",

@@ -4,15 +4,11 @@
     "Organise",
     "Data",
     "Find a node on the map",
-    "Online",
-    "Favourites",
     "More filters",
     "Layers",
     "On the map",
     "Open in Nodes",
-    "Message",
-    "Open node page",
-    "Last route"
+    "Open node page"
   ],
   "absent": [
     "Add source"

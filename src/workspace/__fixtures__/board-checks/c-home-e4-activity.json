@@ -1,15 +1,12 @@
 {
   "must": [
     "Activity",
-    "TODAY",
-    "YESTERDAY",
     "replied in",
     "reacted in",
     "mentioned you in",
     "to you:",
     "Home",
-    "DMs",
-    "You"
+    "replied in a DM"
   ],
   "absent": [
     "⌘K"

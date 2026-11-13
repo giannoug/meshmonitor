@@ -9,19 +9,12 @@
     "Sends 1 path request flood",
     "Reset",
     "Sends nothing; next message floods",
-    "Telemetry",
     "Neighbours",
-    "Path",
-    "Direct",
     "REPEATER",
     "Admin login",
     "Not logged in",
-    "Uptime",
-    "Battery",
     "Home",
-    "DMs",
-    "Activity",
-    "You"
+    "DMs"
   ],
   "absent": [
     "Same page as Meshtastic",

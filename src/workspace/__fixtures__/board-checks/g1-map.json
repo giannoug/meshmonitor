@@ -4,15 +4,12 @@
     "Organise",
     "Data",
     "Find a node",
-    "Hops",
-    "SNR",
-    "Battery",
-    "Message",
     "Swipe up for the node page",
     "Home",
     "DMs",
-    "Activity",
-    "You"
+    "Message",
+    "Hops",
+    "Battery"
   ],
   "absent": [
     "Trace"

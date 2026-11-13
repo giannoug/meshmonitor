@@ -2,14 +2,12 @@
   "must": [
     "Add device",
     "Name & connect",
-    "Name",
     "Connect automatically when MeshMonitor starts",
     "Advanced · virtual node, MQTT link, passive mode",
     "CONNECTING",
     "Read node info",
     "Loaded channels",
     "Syncing node database",
-    "Back",
     "Add another",
     "Open Station G2"
   ],

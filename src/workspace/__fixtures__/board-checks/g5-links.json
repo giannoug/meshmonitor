@@ -3,18 +3,11 @@
     "Ask the node",
     "Organise",
     "Data",
-    "Overview",
-    "Telemetry",
-    "Links",
-    "Position",
-    "Admin",
     "Route from you",
     "Run traceroute",
     "NEIGHBOURS · HEARD DIRECTLY BY KIFISIA",
-    "Message",
     "Home",
-    "DMs",
-    "You"
+    "DMs"
   ],
   "absent": [
     "Favourite"

@@ -2,13 +2,10 @@
   "must": [
     "Editing dashboard",
     "Drag, or use the arrows. Saved to your account.",
-    "Cancel",
-    "Done",
     "Choose tiles",
     "Nodes online",
     "Channel util.",
     "Watched nodes",
-    "Hops away",
     "Live mesh activity",
     "Add widget",
     "Telemetry chart",
