@@ -6,16 +6,20 @@
  */
 
 import { useNavigate } from 'react-router-dom';
+import { useShellEmbedded } from '../contexts/ShellContext';
 import { useTranslation } from 'react-i18next';
 import { ToastProvider } from '../components/ToastContainer';
 import UsersTab from '../components/UsersTab';
 
 function UsersPageInner() {
   const navigate = useNavigate();
+  // Inside the Workspace shell (#6365) the shell owns the back navigation.
+  const embedded = useShellEmbedded();
   const { t } = useTranslation();
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '1rem' }}>
+      {!embedded && (
       <button
         onClick={() => navigate('/', { state: { showList: true } })}
         style={{
@@ -30,6 +34,7 @@ function UsersPageInner() {
       >
         {t('admin.back_to_dashboard')}
       </button>
+      )}
       <UsersTab />
     </div>
   );

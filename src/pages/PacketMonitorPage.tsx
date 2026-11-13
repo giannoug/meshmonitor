@@ -7,6 +7,7 @@ import { SettingsProvider } from '../contexts/SettingsContext';
 import { DataProvider, useData } from '../contexts/DataContext';
 import { CsrfProvider } from '../contexts/CsrfContext';
 import { SourceProvider } from '../contexts/SourceContext';
+import { useShellEmbedded } from '../contexts/ShellContext';
 import { WebSocketProvider } from '../contexts/WebSocketContext';
 import { MeshCorePacketMonitorView } from '../components/MeshCore/MeshCorePacketMonitorView';
 import type { MeshCoreContact } from '../utils/meshcoreHelpers';
@@ -14,6 +15,27 @@ import { useDashboardSources } from '../hooks/useDashboardData';
 import { appBasename } from '../init';
 import api from '../services/api';
 import '../App.css';
+
+/**
+ * The pop-out window's viewport-sized frame. Inside the Workspace shell
+ * (#6365) the page is not a window of its own, so the shell sizes it instead.
+ */
+const PopoutFrame: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const embedded = useShellEmbedded();
+  if (embedded) return <>{children}</>;
+  return (
+    <div style={{
+      width: '100vw',
+      height: '100dvh',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      background: 'var(--color-bg)'
+    }}>
+      {children}
+    </div>
+  );
+};
 
 const PacketMonitorContent: React.FC = () => {
   const { setDeviceInfo } = useData();
@@ -32,14 +54,7 @@ const PacketMonitorContent: React.FC = () => {
   }, [setDeviceInfo]);
 
   return (
-    <div style={{
-      width: '100vw',
-      height: '100dvh',
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden',
-      background: 'var(--color-bg)'
-    }}>
+    <PopoutFrame>
       <PacketMonitorPanel
         standalone
         onClose={() => window.close()}
@@ -49,7 +64,7 @@ const PacketMonitorContent: React.FC = () => {
           console.log('Node clicked in pop-out:', nodeId);
         }}
       />
-    </div>
+    </PopoutFrame>
   );
 };
 
@@ -74,21 +89,14 @@ const MeshCorePacketMonitorPopout: React.FC<{ sourceId: string; sourceName: stri
   return (
     <SourceProvider sourceId={sourceId} sourceName={sourceName} sourceType={sourceType}>
       <WebSocketProvider>
-        <div style={{
-          width: '100vw',
-          height: '100dvh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          background: 'var(--color-bg)'
-        }}>
+        <PopoutFrame>
           <MeshCorePacketMonitorView
             baseUrl={appBasename}
             sourceId={sourceId}
             contacts={contacts}
             standalone
           />
-        </div>
+        </PopoutFrame>
       </WebSocketProvider>
     </SourceProvider>
   );

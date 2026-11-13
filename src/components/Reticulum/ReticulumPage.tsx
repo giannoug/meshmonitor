@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next';
 import { useReticulum } from './hooks/useReticulum';
 import { ReticulumSubToolbar } from './ReticulumSubToolbar';
 import { SourceNavLayout } from '../nav/SourceNavLayout';
+import { useShellEmbedded } from '../../contexts/ShellContext';
 import { readSidebarPinned, useSidebarPin } from '../nav/useSidebarPin';
 import { ReticulumDestinationsView } from './ReticulumDestinationsView';
 import { ReticulumInterfacesView } from './ReticulumInterfacesView';
@@ -48,9 +49,13 @@ interface ReticulumPageProps {
   /** When provided, mirrors the polled interface list to the parent so the
    *  source header can read the live RNode gauges (battery / Ch / Air, #6120). */
   onInterfacesChange?: (interfaces: ReticulumInterfaceRow[]) => void;
+  /** Controlled view (the Workspace shell drives it from the URL, #6365). Omit for local state. */
+  view?: ReticulumView;
+  /** Called with every view the page asks for, controlled or not. */
+  onViewChange?: (view: ReticulumView) => void;
 }
 
-export const ReticulumPage: React.FC<ReticulumPageProps> = ({ baseUrl, sourceId, enabled, onStatusChange, onInterfacesChange }) => {
+export const ReticulumPage: React.FC<ReticulumPageProps> = ({ baseUrl, sourceId, enabled, onStatusChange, onInterfacesChange, view: viewProp, onViewChange }) => {
   const { t } = useTranslation();
   const {
     status, destinations, interfaces, loading, error, refresh, toggleFavorite,
@@ -59,7 +64,14 @@ export const ReticulumPage: React.FC<ReticulumPageProps> = ({ baseUrl, sourceId,
     paths, probeResult, probingHash, probe, remoteStatus, remoteStatusLoading, queryRemoteStatus,
   } = useReticulum({ sourceId, enabled });
 
-  const [view, setView] = useState<ReticulumView>('destinations');
+  const [localView, setLocalView] = useState<ReticulumView>('destinations');
+  const view = viewProp ?? localView;
+  const setView = useCallback((next: ReticulumView) => {
+    if (viewProp === undefined) setLocalView(next);
+    onViewChange?.(next);
+  }, [viewProp, onViewChange]);
+  // Inside the Workspace shell the shell's sidebar replaces this page's nav.
+  const embedded = useShellEmbedded();
   // Same Pin sidebar behaviour as the Meshtastic and MeshCore sidebars
   // (#5481/#6118): one global pin, the nav starts expanded when pinned, and an
   // unpinned nav collapses after a nav click.
@@ -68,7 +80,7 @@ export const ReticulumPage: React.FC<ReticulumPageProps> = ({ baseUrl, sourceId,
   const selectView = useCallback((next: ReticulumView) => {
     setView(next);
     if (!navPinned) setToolbarExpanded(false);
-  }, [navPinned]);
+  }, [navPinned, setView]);
   const handleToggleNavPin = useCallback(() => {
     if (toggleNavPin()) setToolbarExpanded(true);
   }, [toggleNavPin]);
@@ -125,7 +137,7 @@ export const ReticulumPage: React.FC<ReticulumPageProps> = ({ baseUrl, sourceId,
           including the phone flip that docks the nav as a bottom bar. */}
       <SourceNavLayout
         contentClassName={styles.content}
-        nav={(
+        nav={embedded ? null : (
           <ReticulumSubToolbar
             view={view}
             onSelect={selectView}

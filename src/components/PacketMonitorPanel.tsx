@@ -9,6 +9,7 @@ import apiService from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useSource } from '../contexts/SourceContext';
+import { useShellEmbedded } from '../contexts/ShellContext';
 import { useDeviceConfig, useNodes } from '../hooks/useServerData';
 import { usePackets } from '../hooks/usePackets';
 import { useInfiniteVirtualRows } from '../hooks/useInfiniteVirtualRows';
@@ -64,6 +65,9 @@ const PacketMonitorPanel: React.FC<PacketMonitorPanelProps> = ({ onClose, onNode
   const { t } = useTranslation();
   const { hasPermission, authStatus } = useAuth();
   const { timeFormat, dateFormat } = useSettings();
+  // A pop-out's close button calls window.close(); inside the Workspace shell
+  // (#6365) the page is not a pop-out window, so there is nothing to close.
+  const hideClose = useShellEmbedded() && !!standalone;
   const { sourceId } = useSource();
   // `packet_log_enabled` is a global (not per-source) setting, gated by
   // settings:write. anySource mirrors the unscoped write it toggles.
@@ -442,9 +446,11 @@ const PacketMonitorPanel: React.FC<PacketMonitorPanelProps> = ({ onClose, onNode
       <div className={`packet-monitor-panel${standalone ? ' packet-monitor-standalone' : ''}`}>
         <div className="packet-monitor-header">
           <h3>{t('packet_monitor.title')}</h3>
-          <button className="close-btn" onClick={onClose} aria-label={t('common.close')}>
-            ×
-          </button>
+          {!hideClose && (
+            <button className="close-btn" onClick={onClose} aria-label={t('common.close')}>
+              ×
+            </button>
+          )}
         </div>
         <div className="packet-monitor-no-permission">
           <p>
@@ -507,9 +513,11 @@ const PacketMonitorPanel: React.FC<PacketMonitorPanelProps> = ({ onClose, onNode
             <button className="control-btn" onClick={handlePopout} title={t('packet_monitor.popout')} aria-label={t('packet_monitor.popout')}>
               <ExternalLink size={14} />
             </button>
-            <button className="close-btn" onClick={onClose} aria-label={t('common.close')}>
-              ×
-            </button>
+            {!hideClose && (
+              <button className="close-btn" onClick={onClose} aria-label={t('common.close')}>
+                ×
+              </button>
+            )}
           </div>
         </div>
 

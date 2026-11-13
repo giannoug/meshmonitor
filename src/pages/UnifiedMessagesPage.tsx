@@ -27,6 +27,7 @@
 
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useShellEmbedded } from '../contexts/ShellContext';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
@@ -329,6 +330,8 @@ function formatDateDivider(timestampMs: number, t: TFn): string {
 
 export default function UnifiedMessagesPage() {
   const navigate = useNavigate();
+  // Inside the Workspace shell (#6365) the shell owns the back navigation.
+  const embedded = useShellEmbedded();
   const { t } = useTranslation();
   const { authStatus, hasPermission } = useAuth();
   const isAuthenticated = authStatus?.authenticated ?? false;
@@ -629,9 +632,11 @@ export default function UnifiedMessagesPage() {
   return (
     <div className="unified-page unified-page--chat">
       <div className="unified-header">
-        <button className="unified-header__back" onClick={() => navigate('/', { state: { showList: true } })}>
-          {t('unified.back_to_sources')}
-        </button>
+        {!embedded && (
+          <button className="unified-header__back" onClick={() => navigate('/', { state: { showList: true } })}>
+            {t('unified.back_to_sources')}
+          </button>
+        )}
         <div className="unified-header__title">
           <h1>{t('unified.messages.title')}</h1>
           <p>

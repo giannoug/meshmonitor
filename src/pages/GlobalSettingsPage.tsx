@@ -7,6 +7,7 @@
  */
 
 import { useNavigate } from 'react-router-dom';
+import { useShellEmbedded } from '../contexts/ShellContext';
 import { useTranslation } from 'react-i18next';
 import { SettingsProvider, useSettings } from '../contexts/SettingsContext';
 import { UIProvider } from '../contexts/UIContext';
@@ -21,6 +22,8 @@ import styles from './GlobalSettingsPage.module.css';
 
 function GlobalSettingsInner() {
   const navigate = useNavigate();
+  // Inside the Workspace shell (#6365) the shell owns the back navigation.
+  const embedded = useShellEmbedded();
   const { t } = useTranslation();
   const {
     maxNodeAgeHours,
@@ -77,6 +80,7 @@ function GlobalSettingsInner() {
 
   return (
     <div className={styles.page} data-testid="global-settings-page">
+      {!embedded && (
       <button
         onClick={() => navigate('/', { state: { showList: true } })}
         style={{
@@ -91,6 +95,7 @@ function GlobalSettingsInner() {
       >
         {t('admin.back_to_dashboard')}
       </button>
+      )}
       <SaveBarGroup id="settings">
       <SettingsTab
         mode="global"

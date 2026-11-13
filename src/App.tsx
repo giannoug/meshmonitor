@@ -77,6 +77,7 @@ import { useComposeDraftStore } from './contexts/composeDraftStore';
 import { UIProvider, useUI } from './contexts/UIContext';
 import { AutomationProvider, useAutomation } from './contexts/AutomationContext';
 import { useAuth } from './contexts/AuthContext';
+import { useShellEmbedded } from './contexts/ShellContext';
 import { useCsrf } from './contexts/CsrfContext';
 import { useSource } from './contexts/SourceContext';
 import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
@@ -162,6 +163,8 @@ function App() {
   }, [location.hash, location.pathname, location.state, navigate]);
 
   const webSocketConnected = useWebSocketConnected();
+  // Inside the Workspace shell (#6365) the shell draws the header and nav.
+  const shellEmbedded = useShellEmbedded();
   const { showToast } = useToast();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [configIssues, setConfigIssues] = useState<
@@ -3426,7 +3429,7 @@ function App() {
         onSecurityFilterChange={setSecurityFilter}
         onClose={() => setShowNodeFilterPopup(false)}
       />
-      <AppHeader
+      {!shellEmbedded && <AppHeader
         baseUrl={baseUrl}
         nodeAddress={nodeAddress}
         currentNodeId={currentNodeId}
@@ -3455,7 +3458,7 @@ function App() {
           canWriteConfiguration: hasPermission('configuration', 'write'),
         })}
         quickStatusSourceId={sourceId}
-      />
+      />}
 
       <AppBanners
         // The TX-disabled banner blames the LoRa config; an MQTT source has no
@@ -3541,7 +3544,7 @@ function App() {
         />
       )}
 
-      <Sidebar
+      {!shellEmbedded && <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         hasPermission={hasPermission}
@@ -3591,7 +3594,7 @@ function App() {
         hasReadableVirtualChannels={channelDatabaseEntries.length > 0}
         mqttReadOnly={isMqttBridge}
         hideDeviceConfig={isMqtt}
-      />
+      />}
 
       <main id="main-content" className="app-main">
         {error && (

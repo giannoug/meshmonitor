@@ -43,6 +43,7 @@ import { MeshCoreAutomationsView } from './MeshCoreAutomationsView';
 import NotificationsTab from '../NotificationsTab';
 import { SecurityTab } from '../SecurityTab';
 import { useAuth } from '../../contexts/AuthContext';
+import { useShellEmbedded } from '../../contexts/ShellContext';
 import { SaveBarProvider, SaveBarGroup } from '../../contexts/SaveBarContext';
 import { useOptionalMuteSettings } from '../../contexts/SettingsContext';
 import { SaveBar } from '../SaveBar';
@@ -72,9 +73,13 @@ interface MeshCorePageProps {
   /** When provided, the parent renders the connection chip in its own header
    *  and the inline status bar suppresses its duplicate "Connected to X" text. */
   onStatusChange?: (status: ConnectionStatus | null, loaded: boolean, connecting: boolean) => void;
+  /** Controlled view (the Workspace shell drives it from the URL, #6365). Omit for local state. */
+  view?: MeshCoreView;
+  /** Called with every view the page asks for, controlled or not. */
+  onViewChange?: (view: MeshCoreView) => void;
 }
 
-export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, enabled, onStatusChange }) => {
+export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, enabled, onStatusChange, view: viewProp, onViewChange }) => {
   const { t } = useTranslation();
   const { authStatus } = useAuth();
   const isAdmin = authStatus?.user?.isAdmin ?? false;
@@ -98,14 +103,21 @@ export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, e
   // appears once the grants have loaded.
   // `#configuration` opens straight on Configuration: the source form's
   // Analyzer Observer note links here (#5831).
-  const [requestedView, setView] = useState<MeshCoreView>(() =>
+  const [localView, setLocalView] = useState<MeshCoreView>(() =>
     typeof window !== 'undefined' && window.location.hash === '#configuration' ? 'configuration' : 'nodes',
   );
+  const requestedView = viewProp ?? localView;
+  const setView = useCallback((next: MeshCoreView) => {
+    if (viewProp === undefined) setLocalView(next);
+    onViewChange?.(next);
+  }, [viewProp, onViewChange]);
+  // Inside the Workspace shell the shell's sidebar replaces this page's nav.
+  const embedded = useShellEmbedded();
   const visibleViews = useMeshCoreViewAccess();
   const view = resolveMeshCoreView(requestedView, visibleViews);
   const canOpenSettings = visibleViews.includes('settings');
   const canOpenDeviceConfiguration = visibleViews.includes('configuration');
-  const openDeviceConfiguration = useCallback(() => setView('configuration'), []);
+  const openDeviceConfiguration = useCallback(() => setView('configuration'), [setView]);
   // Same Pin sidebar behaviour as the Meshtastic sidebar (#5481): one global
   // pin, the nav starts expanded when pinned, and an unpinned nav collapses
   // after a nav click.
@@ -114,7 +126,7 @@ export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, e
   const selectView = useCallback((next: MeshCoreView) => {
     setView(next);
     if (!navPinned) setToolbarExpanded(false);
-  }, [navPinned]);
+  }, [navPinned, setView]);
   const handleToggleNavPin = useCallback(() => {
     if (toggleNavPin()) setToolbarExpanded(true);
   }, [toggleNavPin]);
@@ -169,19 +181,19 @@ export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, e
   const navigateToDm = useCallback((publicKey: string) => {
     setPendingDmContact(publicKey);
     setView('dms');
-  }, []);
+  }, [setView]);
 
   // `nodeKey` is `mc:<64-hex>`; open that contact's DM with the draft pre-filled.
   const openDmWithDraft = useCallback((nodeKey: string, draft: string) => {
     setPendingDmContact(nodeKey.startsWith('mc:') ? nodeKey.slice(3) : nodeKey);
     setPendingDmDraft(draft);
     setView('dms');
-  }, []);
+  }, [setView]);
 
   const showNodeOnMap = useCallback((publicKey: string) => {
     setPendingMapNode(publicKey);
     setView('nodes');
-  }, []);
+  }, [setView]);
 
   useEffect(() => {
     // `loaded`: the first snapshot settled. A source with no manager never
@@ -228,7 +240,7 @@ export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, e
       navigateToDm(target.publicKey);
     }
     clearPendingNavigation();
-  }, [pendingNavigation, sourceId, contacts, navigateToDm, clearPendingNavigation]);
+  }, [pendingNavigation, sourceId, contacts, navigateToDm, clearPendingNavigation, setView]);
 
   return (
     <div className="meshcore-page">
@@ -256,7 +268,7 @@ export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, e
           row, including the phone flip that docks the nav as a bottom bar. */}
       <SourceNavLayout
         contentClassName="meshcore-content"
-        nav={(
+        nav={embedded ? null : (
           <MeshCoreSubToolbar
             view={view}
             onSelect={selectView}

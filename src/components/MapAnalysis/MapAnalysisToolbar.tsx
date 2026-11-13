@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDashboardSources } from '../../hooks/useDashboardData';
+import { useShellEmbedded } from '../../contexts/ShellContext';
 import ToolbarMenu, { ToolbarMenuItem } from './ToolbarMenu';
 import SourceMultiSelect from './SourceMultiSelect';
 import NodeTypeFilterControl from './NodeTypeFilterControl';
@@ -60,6 +61,9 @@ const UNTIMED_LAYERS: { key: LayerKey; label: string; icon: ReactNode }[] = [
 
 export default function MapAnalysisToolbar() {
   const navigate = useNavigate();
+  // Inside the Workspace shell (#6365) the shell owns navigation; the rest of
+  // this toolbar (layers, filters) is content.
+  const embedded = useShellEmbedded();
   const {
     config,
     setLayerEnabled,
@@ -220,15 +224,17 @@ export default function MapAnalysisToolbar() {
 
   return (
     <div className="map-analysis-toolbar-row">
-      <button
-        type="button"
-        className="map-analysis-back icon-only"
-        onClick={() => navigate('/', { state: { showList: true } })}
-        title="Back to Sources"
-        aria-label="Back to Sources"
-      >
-        <ArrowLeft size={ICON} />
-      </button>
+      {!embedded && (
+        <button
+          type="button"
+          className="map-analysis-back icon-only"
+          onClick={() => navigate('/', { state: { showList: true } })}
+          title="Back to Sources"
+          aria-label="Back to Sources"
+        >
+          <ArrowLeft size={ICON} />
+        </button>
+      )}
       <SourceMultiSelect
         sources={sources.map((s: { id: string; name: string }) => ({ id: s.id, name: s.name }))}
         value={config.sources}

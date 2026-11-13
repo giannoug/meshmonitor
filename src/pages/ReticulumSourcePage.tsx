@@ -23,6 +23,7 @@ import { ToastProvider } from '../components/ToastContainer';
 import { MapProvider } from '../contexts/MapContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSource } from '../contexts/SourceContext';
+import { useShellEmbedded } from '../contexts/ShellContext';
 import LoginModal from '../components/LoginModal';
 import UserMenu from '../components/UserMenu';
 import { appBasename } from '../init';
@@ -41,6 +42,8 @@ function ReticulumSourceInner() {
   const { sourceId, sourceName } = useSource();
   const { authStatus, hasPermission } = useAuth();
   const isAuthenticated = authStatus?.authenticated ?? false;
+  // Inside the Workspace shell (#6365) the shell draws the topbar.
+  const embedded = useShellEmbedded();
 
   // Per-source permission — sourceId is auto-bound via SourceContext. This
   // is the resource the reticulum data routes actually enforce (build spec
@@ -76,6 +79,7 @@ function ReticulumSourceInner() {
 
   return (
     <div className="dashboard-page">
+      {!embedded && (
       <header className="dashboard-topbar">
         <button
           className="back-to-sources-btn"
@@ -118,6 +122,7 @@ function ReticulumSourceInner() {
           )}
         </div>
       </header>
+      )}
 
       {canReadNodes ? (
         <ReticulumPage

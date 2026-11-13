@@ -21,6 +21,7 @@ import TelemetryTriggerNotice from './TelemetryTriggerNotice';
 import { StepList, type TraceStep } from './outcomeMeta';
 import { summarizeTriggerEvent, parseJsonColumn } from './eventSummary';
 import { UiIcon } from '../icons';
+import { useShellEmbedded } from '../../contexts/ShellContext';
 import { compile, decompile, outputNameErrors, type WorkflowForm } from './compile';
 import { BLOCK_BY_TYPE } from './catalog';
 import { emptySendFinding } from '../../types/automation';
@@ -118,15 +119,17 @@ function validateForm(form: WorkflowForm): string[] {
 export default function AutomationsPage() {
   const [view, setView] = useState<'automations' | 'variables'>('automations');
   const navigate = useNavigate();
+  // Inside the Workspace shell (#6365) the shell owns the back navigation.
+  const embedded = useShellEmbedded();
   return (
     <div className="ae-page">
       <div className="ae-container">
-        <div className="ae-topbar">
+        {!embedded && <div className="ae-topbar">
           {/* Router navigation, not window.location: only a client-side navigate
               carries `showList`, which is what tells DashboardPage to show the
               source list instead of bouncing to the default landing page (#4447). */}
           <button className="ae-btn ae-btn--ghost" onClick={() => navigate('/', { state: { showList: true } })}><UiIcon name="back" size={15} /> Dashboard</button>
-        </div>
+        </div>}
         <h1 className="ae-title">Automation Engine</h1>
         <p className="ae-subtitle">Advanced Mode (beta) — global “when this happens, do that” workflows across every source.</p>
         <div className="ae-tabs">

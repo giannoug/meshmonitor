@@ -9,6 +9,7 @@
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useShellEmbedded } from '../contexts/ShellContext';
 import { useTranslation } from 'react-i18next';
 import type { TemperatureUnit } from '../utils/temperature';
 import type { TimeFormat } from '../contexts/SettingsContext';
@@ -28,6 +29,8 @@ function readPref(key: string): string | null {
 
 export default function UnifiedTelemetryPage() {
   const navigate = useNavigate();
+  // Inside the Workspace shell (#6365) the shell owns the back navigation.
+  const embedded = useShellEmbedded();
   const { t } = useTranslation();
   const [view, setView] = useState<View>('graphs');
   // Bumped when a favorite changes on the Latest tab, so the graphs refetch.
@@ -39,9 +42,11 @@ export default function UnifiedTelemetryPage() {
 
   const header = (
     <>
-      <button className="unified-header__back" onClick={() => navigate('/', { state: { showList: true } })}>
-        {t('unified.back_to_sources')}
-      </button>
+      {!embedded && (
+        <button className="unified-header__back" onClick={() => navigate('/', { state: { showList: true } })}>
+          {t('unified.back_to_sources')}
+        </button>
+      )}
       <div className="unified-header__title">
         <h1>{t('unified.telemetry.title')}</h1>
         <p>{view === 'graphs' ? t('unified.telemetry.subtitle_graphs') : t('unified.telemetry.subtitle')}</p>

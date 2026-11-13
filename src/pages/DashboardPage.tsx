@@ -14,6 +14,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { SettingsProvider, useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useShellEmbedded } from '../contexts/ShellContext';
 import { MapProvider, useMapContext } from '../contexts/MapContext';
 import { useUnreadBySource, useMarkAllDmsRead } from '../hooks/useUnreadBySource';
 import {
@@ -143,6 +144,9 @@ function DashboardInner() {
   const [prunePending, setPrunePending] = useState(false);
   // Mobile drawer state — hamburger toggles; source selection auto-closes.
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  // Inside the Workspace shell (#6365) the shell draws the topbar; the source
+  // list (DashboardSidebar) is content and stays.
+  const embedded = useShellEmbedded();
 
   // News popup state — auto-opens on unread news, can be reopened via sidebar footer button.
   const [showNewsPopup, setShowNewsPopup] = useState(false);
@@ -1160,6 +1164,7 @@ function DashboardInner() {
   return (
     <div className="dashboard-page">
       {/* Top bar */}
+      {!embedded && (
       <header className="dashboard-topbar">
         <button
           className="dashboard-topbar-hamburger"
@@ -1186,6 +1191,7 @@ function DashboardInner() {
           )}
         </div>
       </header>
+      )}
 
       {/* Body */}
       <div className="dashboard-body">

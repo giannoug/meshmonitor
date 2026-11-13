@@ -15,6 +15,7 @@
  */
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useShellEmbedded } from '../contexts/ShellContext';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { Filter, BarChart3, Pause, Play, Circle, Square } from 'lucide-react';
@@ -58,6 +59,8 @@ const RANGE_OPTIONS: RangeHours[] = [1, 24, 0];
 
 export default function UnifiedPacketMonitorPage() {
   const navigate = useNavigate();
+  // Inside the Workspace shell (#6365) the shell owns the back navigation.
+  const embedded = useShellEmbedded();
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
 
@@ -207,9 +210,11 @@ export default function UnifiedPacketMonitorPage() {
     return (
       <div className="unified-packets-page">
         <div className="unified-packets-header">
-          <button className="unified-packets-back" onClick={() => navigate('/', { state: { showList: true } })}>
-            {t('unified.back_to_sources')}
-          </button>
+          {!embedded && (
+            <button className="unified-packets-back" onClick={() => navigate('/', { state: { showList: true } })}>
+              {t('unified.back_to_sources')}
+            </button>
+          )}
           <h1>{t('unified.packets.title', 'Unified Packet Monitor')}</h1>
         </div>
         <div className="packet-monitor-no-permission">
@@ -222,9 +227,11 @@ export default function UnifiedPacketMonitorPage() {
   return (
     <div className="unified-packets-page">
       <div className="unified-packets-header">
-        <button className="unified-packets-back" onClick={() => navigate('/', { state: { showList: true } })}>
-          {t('unified.back_to_sources')}
-        </button>
+        {!embedded && (
+          <button className="unified-packets-back" onClick={() => navigate('/', { state: { showList: true } })}>
+            {t('unified.back_to_sources')}
+          </button>
+        )}
         <div className="unified-packets-title">
           <h1>{t('unified.packets.title', 'Unified Packet Monitor')}</h1>
           <p>{t('unified.packets.subtitle', 'Live packet stream across all sources')}</p>
