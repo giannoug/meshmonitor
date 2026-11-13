@@ -216,6 +216,9 @@ export function parseAdminPassword(
  * Environment configuration interface
  */
 export interface EnvironmentConfig {
+  // Workspace layout preview gate (#6365)
+  workspacePreview: boolean;
+
   // Node environment
   nodeEnv: 'production' | 'development';
   nodeEnvProvided: boolean;
@@ -939,6 +942,7 @@ export function loadEnvironmentConfig(): EnvironmentConfig {
   }
 
   return {
+    workspacePreview: process.env.WORKSPACE_PREVIEW === 'true',
     // Node environment
     nodeEnv: nodeEnv.value,
     nodeEnvProvided: nodeEnv.wasProvided,

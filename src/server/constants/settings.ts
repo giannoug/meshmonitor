@@ -12,6 +12,8 @@ import {
  * everywhere automatically.
  */
 export const VALID_SETTINGS_KEYS = [
+  'defaultLayout', // #6365 — install default layout: classic | workspace
+  'offerWorkspaceBanner', // #6365 — show the Workspace-layout banner to Classic users
   'maxNodeAgeHours',
   // P7a (#6254): Security tab dead-node threshold, per source, whole days.
   // Unset reads as the protocol default (see securityDeadNodeDays below).
@@ -965,6 +967,9 @@ export type PerSourceSettingKey = typeof PER_SOURCE_SETTINGS_KEYS[number];
  * is silent data loss.
  */
 export const GLOBAL_ONLY_SETTINGS_KEYS = new Set<string>([
+  // #6365: install-wide layout defaults; only ever read globally.
+  'defaultLayout',
+  'offerWorkspaceBanner',
   // One origin per install, read via getSetting by securityDigestService (#4437).
   // getSettingForSource does NOT fall back to the global row (removed in
   // #2839/#2840), so a per-source value here would be stored and never read.
@@ -1201,6 +1206,9 @@ export const SECRET_SETTINGS_KEYS = new Set<string>([
  * the server contact NOAA, so the maintainer reserved it for admins.
  */
 export const ADMIN_ONLY_SETTINGS_KEYS = new Set<string>([
+  // #6365: writes only; reads stay open so the layout gate can resolve them.
+  'defaultLayout',
+  'offerWorkspaceBanner',
   'ductingOverlayEnabled',
   // #6337: turning it on lets any finder user make the server contact
   // api.meshtastic.org.

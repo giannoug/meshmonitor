@@ -14,7 +14,8 @@ import databaseService from '../../services/database.js';
 import { logger } from '../../utils/logger.js';
 import { optionalAuth, requireAuth } from '../auth/authMiddleware.js';
 import { getMapTilesetValidationError, normalizeMapTilesetPayload } from '../utils/mapTilesetPreferences.js';
-import { fail } from '../utils/apiResponse.js';
+import { ok, fail } from '../utils/apiResponse.js';
+import { isAllowedUserPreferenceKey, validateUserPreferenceValue } from '../constants/userPreferenceKeys.js';
 import { isAircraftDisplayMode } from '../../utils/aircraftClassification.js';
 
 const router = express.Router();
@@ -136,6 +137,55 @@ router.post('/map-preferences', requireAuth(), async (req, res) => {
   } catch (error) {
     logger.error('Error saving user map preferences:', error);
     fail(res, 500, 'SAVE_FAILED', 'Failed to save map preferences');
+  }
+});
+
+// Generic per-user key/value preferences (#6365)
+router.get('/preferences', optionalAuth(), async (req, res) => {
+  try {
+    if (!req.user || req.user.username === 'anonymous') return ok(res, { preferences: {} });
+    ok(res, { preferences: await databaseService.getUserPreferencesAsync(req.user.id) });
+  } catch (error) {
+    logger.error('Error fetching user preferences:', error);
+    fail(res, 500, 'FETCH_FAILED', 'Failed to fetch preferences');
+  }
+});
+
+router.put('/preferences/:key', optionalAuth(), async (req, res) => {
+  try {
+    if (!req.user || req.user.username === 'anonymous') {
+      return fail(res, 403, 'ANONYMOUS_USER', 'Cannot save preferences for anonymous user');
+    }
+    const key = req.params.key;
+    if (!isAllowedUserPreferenceKey(key)) {
+      return fail(res, 400, 'INVALID_PREFERENCE_KEY', 'Unknown preference key');
+    }
+    const value = req.body?.value;
+    if (value === undefined) return fail(res, 400, 'INVALID_PREFERENCE_VALUE', 'value is required');
+    const err = validateUserPreferenceValue(key, value);
+    if (err === 'too large') return fail(res, 413, 'PREFERENCE_TOO_LARGE', 'Preference value is too large');
+    if (err) return fail(res, 400, 'INVALID_PREFERENCE_VALUE', err);
+    await databaseService.setUserPreferenceAsync(req.user!.id, key, value);
+    ok(res);
+  } catch (error) {
+    logger.error('Error saving user preference:', error);
+    fail(res, 500, 'SAVE_FAILED', 'Failed to save preference');
+  }
+});
+
+router.delete('/preferences/:key', optionalAuth(), async (req, res) => {
+  try {
+    if (!req.user || req.user.username === 'anonymous') {
+      return fail(res, 403, 'ANONYMOUS_USER', 'Cannot delete preferences for anonymous user');
+    }
+    if (!isAllowedUserPreferenceKey(req.params.key)) {
+      return fail(res, 400, 'INVALID_PREFERENCE_KEY', 'Unknown preference key');
+    }
+    await databaseService.deleteUserPreferenceAsync(req.user!.id, req.params.key);
+    ok(res);
+  } catch (error) {
+    logger.error('Error deleting user preference:', error);
+    fail(res, 500, 'DELETE_FAILED', 'Failed to delete preference');
   }
 });
 

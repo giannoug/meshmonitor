@@ -331,6 +331,7 @@ export interface ActiveSchema {
   systemBackupHistory: any;
   customThemes: any;
   userMapPreferences: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- #6365 same untyped table slot as its siblings
   userPreferences: any;
   solarEstimates: any;
   autoTracerouteNodes: any;

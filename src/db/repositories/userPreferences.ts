@@ -7,6 +7,8 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { BaseRepository, DrizzleDatabase } from './base.js';
 import { DatabaseType } from '../types.js';
 
+type PrefRow = { key: string; value: string };
+
 function parse(text: string): unknown {
   try {
     return JSON.parse(text);
@@ -24,7 +26,7 @@ export class UserPreferencesRepository extends BaseRepository {
     const t = this.tables.userPreferences;
     const rows = await this.db.select().from(t).where(eq(t.userId, userId));
     const out: Record<string, unknown> = {};
-    for (const r of rows as any[]) {
+    for (const r of rows as PrefRow[]) {
       const v = parse(r.value);
       if (v !== undefined) out[r.key] = v;
     }
@@ -38,7 +40,7 @@ export class UserPreferencesRepository extends BaseRepository {
       .from(t)
       .where(and(eq(t.userId, userId), eq(t.key, key)))
       .limit(1);
-    return rows.length ? parse((rows[0] as any).value) : undefined;
+    return rows.length ? parse((rows[0] as PrefRow).value) : undefined;
   }
 
   async set(userId: number, key: string, value: unknown): Promise<void> {
@@ -65,7 +67,7 @@ export class UserPreferencesRepository extends BaseRepository {
       .from(t)
       .where(and(eq(t.key, key), inArray(t.userId, userIds)));
     const out: Record<string, number> = {};
-    for (const r of rows as any[]) {
+    for (const r of rows as PrefRow[]) {
       const v = parse(r.value);
       if (v === undefined) continue;
       const k = String(v);

@@ -431,6 +431,10 @@ router.post('/', requirePermission('settings', 'write', { sourceIdFrom: 'query' 
       );
     }
 
+    if ('defaultLayout' in filteredSettings && !['classic', 'workspace'].includes(filteredSettings.defaultLayout)) {
+      return fail(res, 400, 'INVALID_SETTING_VALUE', 'defaultLayout must be classic or workspace');
+    }
+
     // Keys whose consumers compare against the exact string 'true'. `String(v)` above
     // happily stores '1' / 'yes' / 'TRUE', every one of which those consumers read as
     // FALSE — a silent fail-OPEN for a safety flag (#4547 Phase 1 review). Reject rather

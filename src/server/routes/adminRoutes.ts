@@ -1093,6 +1093,31 @@ router.post('/reboot', extendRequestTimeout(REBOOT_TIMEOUT_MS), requireAdmin(), 
   }
 });
 
+// Layout usage (#6365): active users who logged in within the window, split by
+// resolved layout (stored `layout`, else install `defaultLayout`, else classic).
+router.get('/layout-usage', requireAdmin(), async (_req, res) => {
+  try {
+    const windowDays = 30;
+    const cutoff = Date.now() - windowDays * 86_400_000;
+    const users = (await databaseService.auth.getAllUsers()).filter(
+      u => u.isActive && u.lastLoginAt != null && u.lastLoginAt >= cutoff,
+    );
+    const stored = await databaseService.countUserPreferenceValuesAsync('layout', users.map(u => u.id));
+    const defaultLayout = (await databaseService.settings.getSetting('defaultLayout')) === 'workspace' ? 'workspace' : 'classic';
+    const storedWorkspace = stored.workspace ?? 0;
+    const storedClassic = stored.classic ?? 0;
+    const unset = users.length - storedWorkspace - storedClassic;
+    ok(res, {
+      windowDays,
+      classic: storedClassic + (defaultLayout === 'classic' ? unset : 0),
+      workspace: storedWorkspace + (defaultLayout === 'workspace' ? unset : 0),
+    });
+  } catch (error) {
+    logger.error('Error computing layout usage:', error);
+    fail(res, 500, 'LAYOUT_USAGE_FAILED', 'Failed to compute layout usage');
+  }
+});
+
 router.get('/suppressed-ghosts', requireAdmin(), async (_req, res) => {
   try {
     const suppressed = await databaseService.getSuppressedGhostNodesAsync();
