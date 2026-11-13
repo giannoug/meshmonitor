@@ -1,8 +1,26 @@
 {
   "must": [
-    "Analysis"
+    "Analysis",
+    "Layers",
+    "Reset",
+    "BASE MAP",
+    "Tiles",
+    "NODES",
+    "Max age",
+    "Cluster nearby nodes",
+    "Estimated positions",
+    "LINKS",
+    "Route segments",
+    "Heard by other devices",
+    "ANALYSIS",
+    "OVERLAYS",
+    "Position history",
+    "Waypoints",
+    "Ducting forecast",
+    "Find a node on the map"
   ],
-  "absent": [],
-  "source": "checks/s05.json",
-  "partial": true
+  "absent": [
+    "Add source"
+  ],
+  "source": "written"
 }

@@ -1,0 +1,24 @@
+{
+  "must": [
+    "Settings",
+    "LoRa",
+    "RADIO",
+    "Region",
+    "Use modem preset",
+    "Modem preset",
+    "Hop limit",
+    "TRANSMIT",
+    "Transmit enabled",
+    "Transmit power",
+    "OK to MQTT",
+    "Advanced · 7 settings",
+    "Node restarts",
+    "Review",
+    "Save & restart"
+  ],
+  "absent": [
+    "⌘K",
+    "⌘,"
+  ],
+  "source": "written"
+}

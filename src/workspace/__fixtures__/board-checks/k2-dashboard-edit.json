@@ -1,0 +1,20 @@
+{
+  "must": [
+    "Cancel",
+    "Edit dashboard",
+    "Done",
+    "Health tiles",
+    "YOUR BOARD · TOP TO BOTTOM",
+    "Telemetry chart · battery",
+    "Hops away",
+    "Watched nodes",
+    "Live mesh activity",
+    "Add widget",
+    "Saved to your account, so the same board shows",
+    "Drag by the handle, or use the arrows."
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "written"
+}

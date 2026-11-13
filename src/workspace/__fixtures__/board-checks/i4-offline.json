@@ -1,0 +1,23 @@
+{
+  "must": [
+    "Offline since 14:02",
+    "History is here; sending is paused.",
+    "Connection",
+    "Last 24 hours",
+    "Retry now",
+    "Edit connection",
+    "Disconnect",
+    "Map",
+    "Nodes",
+    "Automations",
+    "Tools",
+    "Home",
+    "DMs",
+    "Activity",
+    "You"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "written"
+}

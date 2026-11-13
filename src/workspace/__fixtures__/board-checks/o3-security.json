@@ -1,11 +1,25 @@
 {
   "must": [
     "Send a DM to Glyfada Beach",
-    "Send a DM to Lycabettus Hiker"
+    "Send a DM to Lycabettus Hiker",
+    "Security",
+    "Export",
+    "Scan now",
+    "Key problems",
+    "Noisy senders",
+    "Clock off",
+    "Quiet nodes",
+    "NEEDS A LOOK",
+    "Shared public key",
+    "Weak key",
+    "Sending a lot",
+    "Send a DM",
+    "Info",
+    "Packet monitor"
   ],
   "absent": [
-    "Message both"
+    "Message both",
+    "⌘K"
   ],
-  "source": "checks/r2.json",
-  "partial": true
+  "source": "written"
 }

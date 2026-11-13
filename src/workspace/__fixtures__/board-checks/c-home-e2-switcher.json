@@ -1,11 +1,21 @@
 {
   "must": [
     "Overview",
-    "LXMF messages"
+    "LXMF messages",
+    "Devices",
+    "DEVICES",
+    "Add device",
+    "Receive-only",
+    "Home",
+    "DMs",
+    "Activity",
+    "You",
+    "Heltec MeshCore",
+    "Rooftop RAK",
+    "Athens MQTT"
   ],
   "absent": [
     "no chat yet"
   ],
-  "source": "checks/s05.json",
-  "partial": true
+  "source": "written"
 }

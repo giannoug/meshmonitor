@@ -18,9 +18,14 @@
     "Station G2",
     "Heltec MeshCore",
     "Rooftop RAK",
-    "Athens MQTT"
+    "Athens MQTT",
+    "Overview",
+    "THIS MESHMONITOR",
+    "DEVICES",
+    "Pins take the colour of the device that hears them."
   ],
-  "absent": [],
-  "source": "checks/r2.json",
-  "partial": true
+  "absent": [
+    "Add source"
+  ],
+  "source": "written"
 }

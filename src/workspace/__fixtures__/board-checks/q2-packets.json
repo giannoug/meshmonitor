@@ -1,0 +1,23 @@
+{
+  "must": [
+    "Tools",
+    "Packets",
+    "All",
+    "Text",
+    "Position",
+    "Telemetry",
+    "NodeInfo",
+    "Live · newest first",
+    "Encrypted",
+    "Traceroute",
+    "Routing",
+    "Home",
+    "DMs",
+    "Activity",
+    "You"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "written"
+}

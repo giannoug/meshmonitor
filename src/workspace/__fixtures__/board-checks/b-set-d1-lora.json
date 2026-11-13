@@ -1,10 +1,32 @@
 {
   "must": [
-    "⌘,"
+    "⌘,",
+    "Search settings",
+    "PINNED",
+    "ON THE RADIO",
+    "Identity",
+    "LoRa",
+    "Channels",
+    "Security",
+    "Device",
+    "Modules",
+    "Maintenance",
+    "IN MESHMONITOR",
+    "Node display",
+    "Region",
+    "Modem preset",
+    "Hop limit",
+    "TRANSMIT",
+    "Transmit enabled",
+    "Transmit power",
+    "OK to MQTT",
+    "Discard",
+    "Review",
+    "Save & restart"
   ],
   "absent": [
-    "⌘K"
+    "⌘K",
+    "Device Configuration"
   ],
-  "source": "checks/r2.json",
-  "partial": true
+  "source": "written"
 }

@@ -1,0 +1,21 @@
+{
+  "must": [
+    "Activity",
+    "Mark all read",
+    "TODAY",
+    "YESTERDAY",
+    "replied in",
+    "reacted in",
+    "mentioned you in",
+    "to you:",
+    "Push for replies, reactions and mentions:",
+    "Settings › Notifications",
+    "CHANNELS",
+    "DIRECT MESSAGES",
+    "More tools…"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "written"
+}

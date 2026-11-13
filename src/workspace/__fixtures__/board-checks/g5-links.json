@@ -2,11 +2,22 @@
   "must": [
     "Ask the node",
     "Organise",
-    "Data"
+    "Data",
+    "Overview",
+    "Telemetry",
+    "Links",
+    "Position",
+    "Admin",
+    "Route from you",
+    "Run traceroute",
+    "NEIGHBOURS · HEARD DIRECTLY BY KIFISIA",
+    "Message",
+    "Home",
+    "DMs",
+    "You"
   ],
   "absent": [
     "Favourite"
   ],
-  "source": "checks/s15.json",
-  "partial": true
+  "source": "written"
 }

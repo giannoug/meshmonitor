@@ -17,9 +17,25 @@
     "Station G2",
     "Heltec MeshCore",
     "Rooftop RAK",
-    "Athens MQTT"
+    "Athens MQTT",
+    "Edit",
+    "1 h",
+    "24 h",
+    "7 d",
+    "DEVICE",
+    "NODES",
+    "CH. UTIL",
+    "AIRTIME TX",
+    "PACKETS / H",
+    "LOW BATTERY",
+    "STATUS",
+    "Gateways reporting",
+    "Hops away",
+    "THIS MESHMONITOR",
+    "DEVICES"
   ],
-  "absent": [],
-  "source": "checks/r2.json",
-  "partial": true
+  "absent": [
+    "Add source"
+  ],
+  "source": "written"
 }

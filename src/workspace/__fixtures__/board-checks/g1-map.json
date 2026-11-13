@@ -2,11 +2,20 @@
   "must": [
     "Ask the node",
     "Organise",
-    "Data"
+    "Data",
+    "Find a node",
+    "Hops",
+    "SNR",
+    "Battery",
+    "Message",
+    "Swipe up for the node page",
+    "Home",
+    "DMs",
+    "Activity",
+    "You"
   ],
   "absent": [
     "Trace"
   ],
-  "source": "checks/s15.json",
-  "partial": true
+  "source": "written"
 }

@@ -1,0 +1,20 @@
+{
+  "must": [
+    "Welcome to MeshMonitor",
+    "Add your first device",
+    "Restore a backup",
+    "Meshtastic node",
+    "MeshCore",
+    "MQTT broker",
+    "MQTT bridge",
+    "MeshCore MQTT",
+    "Reticulum",
+    "Read the getting-started guide"
+  ],
+  "absent": [
+    "Add source",
+    "Map",
+    "CHANNELS"
+  ],
+  "source": "written"
+}

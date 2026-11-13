@@ -1,0 +1,23 @@
+{
+  "must": [
+    "Station G2",
+    "Map",
+    "Nodes",
+    "Dashboard",
+    "Automations",
+    "Configuration",
+    "More tools…",
+    "Channels",
+    "Direct messages",
+    "Message a node",
+    "Details",
+    "Traceroute",
+    "New",
+    "Message"
+  ],
+  "absent": [
+    "Add source",
+    "⌘K"
+  ],
+  "source": "written"
+}

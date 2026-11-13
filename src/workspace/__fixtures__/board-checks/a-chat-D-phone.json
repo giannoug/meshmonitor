@@ -1,0 +1,19 @@
+{
+  "must": [
+    "Station G2",
+    "Map",
+    "Automations",
+    "Tools",
+    "Channels",
+    "Direct messages",
+    "Home",
+    "DMs",
+    "Activity",
+    "You"
+  ],
+  "absent": [
+    "Configuration",
+    "More tools…"
+  ],
+  "source": "written"
+}

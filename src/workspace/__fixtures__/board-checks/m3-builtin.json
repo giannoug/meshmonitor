@@ -2,11 +2,22 @@
   "must": [
     "60 s cooldown per sender",
     "Maximum number of responses",
-    "2 other nodes, then quiet"
+    "2 other nodes, then quiet",
+    "Auto-acknowledge",
+    "Built in",
+    "saves as you change it",
+    "Convert to rule",
+    "REPLY TO",
+    "Direct messages",
+    "WHEN THE MESSAGE SAYS",
+    "Add word",
+    "REPLY",
+    "Tokens",
+    "LIMITS",
+    "Cooldown per node"
   ],
   "absent": [
     "replies a minute"
   ],
-  "source": "checks/r2.json",
-  "partial": true
+  "source": "written"
 }

@@ -2,11 +2,28 @@
   "must": [
     "Ask the node",
     "Organise",
-    "Data"
+    "Data",
+    "Message",
+    "Overview",
+    "Telemetry",
+    "Links",
+    "Position",
+    "Admin",
+    "Hops",
+    "SNR · RSSI",
+    "Battery",
+    "Channel util.",
+    "POSITION",
+    "RADIO",
+    "Heard on",
+    "Uptime",
+    "Home",
+    "DMs",
+    "Activity",
+    "You"
   ],
   "absent": [
     "Favourite"
   ],
-  "source": "checks/s15.json",
-  "partial": true
+  "source": "written"
 }

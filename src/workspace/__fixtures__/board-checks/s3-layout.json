@@ -1,0 +1,16 @@
+{
+  "must": [
+    "You",
+    "Layout",
+    "Classic",
+    "Workspace",
+    "Same data and settings in both.",
+    "Home",
+    "DMs",
+    "Activity"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "written"
+}

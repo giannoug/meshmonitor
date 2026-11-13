@@ -1,8 +1,28 @@
 {
   "must": [
-    "Analysis"
+    "Analysis",
+    "Layers",
+    "Reset",
+    "Done",
+    "Satellite",
+    "Topo",
+    "3D terrain",
+    "NODES",
+    "Max age",
+    "Cluster nearby nodes",
+    "Estimated positions",
+    "LINKS",
+    "Heard by other devices",
+    "OVERLAYS",
+    "Position history",
+    "Waypoints",
+    "Ducting forecast",
+    "Home",
+    "DMs",
+    "You"
   ],
-  "absent": [],
-  "source": "checks/s05.json",
-  "partial": true
+  "absent": [
+    "Add source"
+  ],
+  "source": "written"
 }

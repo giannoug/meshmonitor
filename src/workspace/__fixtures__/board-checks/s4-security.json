@@ -1,10 +1,21 @@
 {
   "must": [
-    "Revoke"
+    "Revoke",
+    "You",
+    "Sign-in & security",
+    "PASSWORD",
+    "Change password",
+    "TWO-FACTOR",
+    "Authenticator app",
+    "PASSKEYS",
+    "Add a passkey",
+    "API TOKEN",
+    "Home",
+    "DMs",
+    "Activity"
   ],
   "absent": [
     "Regenerate"
   ],
-  "source": "checks/r2.json",
-  "partial": true
+  "source": "written"
 }

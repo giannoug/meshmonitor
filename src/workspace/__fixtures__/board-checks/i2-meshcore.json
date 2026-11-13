@@ -1,0 +1,21 @@
+{
+  "must": [
+    "Back",
+    "Add device",
+    "Step 2 of 3",
+    "Connected by",
+    "USB on the server",
+    "Network",
+    "Serial port",
+    "Firmware",
+    "Companion",
+    "Repeater",
+    "Repeaters have no chat.",
+    "Advanced · baud rate, heartbeat",
+    "Next"
+  ],
+  "absent": [
+    "Add source"
+  ],
+  "source": "written"
+}

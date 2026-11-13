@@ -16,9 +16,20 @@
     "Heltec MeshCore",
     "Rooftop RAK",
     "Reticulum node",
-    "Athens MQTT"
+    "Athens MQTT",
+    "CSV",
+    "User",
+    "Device",
+    "Action",
+    "Last 24 h",
+    "TIME",
+    "WHO",
+    "WHAT",
+    "DEVICE",
+    "FROM",
+    "Repeater consoles",
+    "Who changed or sent what, on every device"
   ],
   "absent": [],
-  "source": "checks/s05.json",
-  "partial": true
+  "source": "written"
 }

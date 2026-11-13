@@ -1,0 +1,19 @@
+{
+  "must": [
+    "Add widget",
+    "Telemetry chart",
+    "Watched nodes",
+    "Traceroute",
+    "Hops away",
+    "Distance",
+    "Hops × distance",
+    "Live mesh activity",
+    "Cancel",
+    "Edit dashboard",
+    "Done"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "written"
+}

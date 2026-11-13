@@ -1,0 +1,20 @@
+{
+  "must": [
+    "Nodes",
+    "Search nodes",
+    "Online",
+    "Favourites",
+    "Direct",
+    "Filters",
+    "Last heard",
+    "ROUTER",
+    "Home",
+    "DMs",
+    "Activity",
+    "You"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "written"
+}

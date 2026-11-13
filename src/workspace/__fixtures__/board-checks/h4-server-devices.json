@@ -14,9 +14,18 @@
     "Embed",
     "Background jobs",
     "Integrations",
-    "Analytics"
+    "Analytics",
+    "Server",
+    "Admins · applies to everyone",
+    "Connected",
+    "Offline since 14:02",
+    "Disabled",
+    "Receiving",
+    "The order here is the order of the strip.",
+    "Disabled devices keep their history"
   ],
-  "absent": [],
-  "source": "checks/s13.json",
-  "partial": true
+  "absent": [
+    "Add source"
+  ],
+  "source": "written"
 }

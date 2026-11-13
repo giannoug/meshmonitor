@@ -1,0 +1,18 @@
+{
+  "must": [
+    "Cancel",
+    "Add device",
+    "Step 1 of 3",
+    "What are you connecting?",
+    "Meshtastic node",
+    "MeshCore",
+    "MQTT broker",
+    "MQTT bridge",
+    "MeshCore MQTT",
+    "Reticulum"
+  ],
+  "absent": [
+    "Add source"
+  ],
+  "source": "written"
+}

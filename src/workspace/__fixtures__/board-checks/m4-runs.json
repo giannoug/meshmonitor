@@ -1,0 +1,26 @@
+{
+  "must": [
+    "Automations",
+    "No limit set",
+    "Rule",
+    "Live trace",
+    "All",
+    "Sent",
+    "Skipped",
+    "Failed",
+    "Export",
+    "TIME",
+    "TRIGGERED BY",
+    "RESULT",
+    "TOOK",
+    "WHEN",
+    "IF",
+    "THEN",
+    "Skipped · IF not met",
+    "Failed · script timed out"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "written"
+}

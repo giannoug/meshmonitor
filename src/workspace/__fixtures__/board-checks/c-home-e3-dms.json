@@ -1,0 +1,14 @@
+{
+  "must": [
+    "Direct messages",
+    "Search DMs",
+    "Home",
+    "DMs",
+    "Activity",
+    "You"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "written"
+}

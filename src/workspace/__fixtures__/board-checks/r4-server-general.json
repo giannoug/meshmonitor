@@ -12,9 +12,19 @@
     "Embed",
     "Background jobs",
     "Integrations",
-    "Analytics"
+    "Analytics",
+    "Server",
+    "Admins · applies to everyone",
+    "LAYOUT",
+    "People who already picked one keep their choice.",
+    "Classic",
+    "Offer Workspace to Classic users",
+    "Who uses which",
+    "SOURCES",
+    "Default device for guests"
   ],
-  "absent": [],
-  "source": "checks/s13.json",
-  "partial": true
+  "absent": [
+    "Add source"
+  ],
+  "source": "written"
 }

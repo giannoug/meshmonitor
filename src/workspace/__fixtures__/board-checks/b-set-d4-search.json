@@ -1,11 +1,20 @@
 {
   "must": [
     "⌘,",
-    "opens with"
+    "opens with",
+    "Search settings",
+    "esc",
+    "STATION G2",
+    "Setting",
+    "Section",
+    "PREFERENCES",
+    "Remote",
+    "↑↓",
+    "Searches every device, Preferences and Server"
   ],
   "absent": [
-    "⌘K"
+    "⌘K",
+    "Device Configuration"
   ],
-  "source": "checks/r2.json",
-  "partial": true
+  "source": "written"
 }

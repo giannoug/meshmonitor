@@ -1,0 +1,28 @@
+{
+  "must": [
+    "Automations",
+    "No limit set",
+    "Test",
+    "Rule",
+    "Live trace",
+    "WHEN",
+    "A message arrives in",
+    "IF",
+    "Text starts with",
+    "THEN",
+    "LIMITS",
+    "Add a limit",
+    "Why this matters",
+    "Add a step",
+    "Finally…",
+    "Prefer JSON? ⋯ › Edit as JSON. Everything here round-trips.",
+    "Test run",
+    "nothing was sent",
+    "Sample message",
+    "Run again"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "written"
+}

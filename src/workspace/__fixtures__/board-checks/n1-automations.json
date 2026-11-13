@@ -1,11 +1,29 @@
 {
   "must": [
     "60 s cooldown per sender",
-    "Cooldown per trigger and node"
+    "Cooldown per trigger and node",
+    "Automations",
+    "All devices",
+    "BUILT IN",
+    "RULES",
+    "Auto-acknowledge",
+    "Auto-announce",
+    "Auto-responder",
+    "Timer triggers",
+    "Auto key repair",
+    "Auto-traceroute",
+    "Welcome new nodes",
+    "Low battery alert",
+    "Weather bot",
+    "No limit set",
+    "Sends nothing on the mesh",
+    "Home",
+    "DMs",
+    "Activity",
+    "You"
   ],
   "absent": [
     "replies a minute"
   ],
-  "source": "checks/r2.json",
-  "partial": true
+  "source": "written"
 }

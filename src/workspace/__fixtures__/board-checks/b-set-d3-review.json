@@ -1,10 +1,18 @@
 {
   "must": [
-    "⌘,"
+    "⌘,",
+    "Review changes",
+    "Discard",
+    "Modem preset",
+    "Hop limit",
+    "Rebroadcast mode",
+    "may restart",
+    "Save & restart",
+    "Search settings"
   ],
   "absent": [
-    "⌘K"
+    "⌘K",
+    "Device Configuration"
   ],
-  "source": "checks/r2.json",
-  "partial": true
+  "source": "written"
 }

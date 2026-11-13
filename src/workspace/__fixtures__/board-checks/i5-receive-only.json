@@ -1,0 +1,16 @@
+{
+  "must": [
+    "Receive-only",
+    "Switch",
+    "Home",
+    "DMs",
+    "Activity",
+    "You",
+    "so it can’t send. Reply from a device with a radio."
+  ],
+  "absent": [
+    "Message",
+    "⌘K"
+  ],
+  "source": "written"
+}

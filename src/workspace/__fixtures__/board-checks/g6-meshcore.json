@@ -8,7 +8,20 @@
     "Discover path",
     "Sends 1 path request flood",
     "Reset",
-    "Sends nothing; next message floods"
+    "Sends nothing; next message floods",
+    "Telemetry",
+    "Neighbours",
+    "Path",
+    "Direct",
+    "REPEATER",
+    "Admin login",
+    "Not logged in",
+    "Uptime",
+    "Battery",
+    "Home",
+    "DMs",
+    "Activity",
+    "You"
   ],
   "absent": [
     "Same page as Meshtastic",
@@ -16,6 +29,5 @@
     "Ping",
     "More"
   ],
-  "source": "checks/s08.json",
-  "partial": true
+  "source": "written"
 }

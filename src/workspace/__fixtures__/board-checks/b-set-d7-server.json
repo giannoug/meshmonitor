@@ -14,12 +14,19 @@
     "Embed",
     "Background jobs",
     "Integrations",
-    "Analytics"
+    "Analytics",
+    "Server",
+    "Admins · applies to everyone",
+    "CONNECTION",
+    "Save",
+    "WHERE IT IS USED",
+    "Last test",
+    "Server · applies to everyone on this MeshMonitor"
   ],
   "absent": [
     "Reached in 42 ms",
-    "⌘K"
+    "⌘K",
+    "Device Configuration"
   ],
-  "source": "checks/r2.json",
-  "partial": true
+  "source": "written"
 }

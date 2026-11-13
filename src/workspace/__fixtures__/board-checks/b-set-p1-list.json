@@ -1,0 +1,30 @@
+{
+  "must": [
+    "Search settings",
+    "This radio",
+    "PINNED",
+    "ON THE RADIO",
+    "Identity",
+    "LoRa",
+    "Channels",
+    "Security",
+    "Device",
+    "Modules",
+    "Maintenance",
+    "IN MESHMONITOR",
+    "Node display",
+    "Notifications",
+    "Telemetry",
+    "Review",
+    "Home",
+    "DMs",
+    "Activity",
+    "You"
+  ],
+  "absent": [
+    "⌘K",
+    "⌘,",
+    "Device Configuration"
+  ],
+  "source": "written"
+}

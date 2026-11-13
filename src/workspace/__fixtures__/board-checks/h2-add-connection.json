@@ -1,0 +1,17 @@
+{
+  "must": [
+    "Add device",
+    "Meshtastic node over the network",
+    "Reachable from this server, not from your browser.",
+    "Host or IP address",
+    "Port",
+    "Advanced · heartbeat interval, passive mode",
+    "Back",
+    "Cancel",
+    "Next"
+  ],
+  "absent": [
+    "Add source"
+  ],
+  "source": "written"
+}

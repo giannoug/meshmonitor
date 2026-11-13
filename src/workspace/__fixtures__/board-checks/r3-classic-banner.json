@@ -1,0 +1,22 @@
+{
+  "must": [
+    "Try the Workspace layout.",
+    "Try it",
+    "Not now",
+    "You › Layout",
+    "Map",
+    "Channels",
+    "Messages",
+    "Dashboard",
+    "Info",
+    "Packet Monitor",
+    "Settings",
+    "Automation",
+    "Device Config",
+    "Classic layout, unchanged"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "written"
+}

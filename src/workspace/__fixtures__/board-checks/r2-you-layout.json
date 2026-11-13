@@ -1,0 +1,28 @@
+{
+  "must": [
+    "ACCOUNT",
+    "Profile",
+    "Sign-in & security",
+    "API token",
+    "PREFERENCES",
+    "Layout",
+    "Language & units",
+    "Appearance",
+    "Map",
+    "Notifications",
+    "Help & about",
+    "Sign out",
+    "Only you · on every browser you sign in from",
+    "Classic",
+    "Workspace",
+    "Both layouts show the same data and settings",
+    "IN WORKSPACE",
+    "Messages as",
+    "Rows (Slack-style)",
+    "Hops, SNR and route"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "written"
+}

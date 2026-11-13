@@ -1,0 +1,18 @@
+{
+  "must": [
+    "Activity",
+    "TODAY",
+    "YESTERDAY",
+    "replied in",
+    "reacted in",
+    "mentioned you in",
+    "to you:",
+    "Home",
+    "DMs",
+    "You"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "written"
+}

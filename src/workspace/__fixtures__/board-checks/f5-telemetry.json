@@ -2,11 +2,26 @@
   "must": [
     "Ask the node",
     "Organise",
-    "Data"
+    "Data",
+    "Overview",
+    "Telemetry",
+    "Links",
+    "Position",
+    "Admin",
+    "6 h",
+    "24 h",
+    "7 d",
+    "30 d",
+    "Custom",
+    "Battery level",
+    "Voltage",
+    "Channel utilisation",
+    "Temperature",
+    "On Dashboard",
+    "Add to Dashboard"
   ],
   "absent": [
     "Exchange"
   ],
-  "source": "checks/s15.json",
-  "partial": true
+  "source": "written"
 }

@@ -16,9 +16,25 @@
     "Heltec MeshCore",
     "Rooftop RAK",
     "Reticulum node",
-    "Athens MQTT"
+    "Athens MQTT",
+    "Admin · local",
+    "Operator · OIDC",
+    "Local · 2FA",
+    "CAN USE",
+    "Nodes & map",
+    "Channels",
+    "Device settings",
+    "Packet monitor",
+    "Traceroutes",
+    "Copy Station G2 to all devices",
+    "ACROSS THIS MESHMONITOR",
+    "Server settings",
+    "Channel database",
+    "None",
+    "Read",
+    "Write",
+    "Click a cell to cycle None → Read → Write."
   ],
   "absent": [],
-  "source": "checks/s05.json",
-  "partial": true
+  "source": "written"
 }

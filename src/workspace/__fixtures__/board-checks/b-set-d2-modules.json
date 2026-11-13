@@ -1,10 +1,22 @@
 {
   "must": [
-    "⌘,"
+    "⌘,",
+    "Modules",
+    "AVAILABLE",
+    "Canned Messages",
+    "Detection Sensor",
+    "External Notification",
+    "MeshBeacon",
+    "Neighbor Info",
+    "Range Test",
+    "Serial",
+    "Traffic Management",
+    "Why?",
+    "Search settings"
   ],
   "absent": [
-    "⌘K"
+    "⌘K",
+    "Device Configuration"
   ],
-  "source": "checks/r2.json",
-  "partial": true
+  "source": "written"
 }

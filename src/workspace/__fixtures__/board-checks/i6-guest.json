@@ -1,0 +1,16 @@
+{
+  "must": [
+    "You’re viewing as a guest. Sign in to send messages",
+    "Map",
+    "Nodes",
+    "Dashboard",
+    "CHANNELS",
+    "Home",
+    "Sign in"
+  ],
+  "absent": [
+    "Activity",
+    "Message"
+  ],
+  "source": "written"
+}

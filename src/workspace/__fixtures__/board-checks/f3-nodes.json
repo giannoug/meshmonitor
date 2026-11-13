@@ -1,0 +1,31 @@
+{
+  "must": [
+    "Nodes",
+    "Show on map",
+    "Export",
+    "Search nodes",
+    "All",
+    "Online",
+    "Favourites",
+    "Role",
+    "More filters",
+    "Last heard",
+    "Columns",
+    "NODE",
+    "ROLE",
+    "HOPS",
+    "SNR",
+    "RSSI",
+    "BATTERY",
+    "LAST HEARD ▾",
+    "DISTANCE",
+    "HARDWARE",
+    "COLUMNS · DRAG TO REORDER",
+    "Public key",
+    "Via MQTT"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "written"
+}

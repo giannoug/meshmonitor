@@ -1,0 +1,19 @@
+{
+  "must": [
+    "Jump to",
+    "Map",
+    "Automations",
+    "Tools",
+    "CHANNELS",
+    "DIRECT MESSAGES",
+    "All direct messages",
+    "Home",
+    "DMs",
+    "Activity",
+    "You"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "written"
+}
