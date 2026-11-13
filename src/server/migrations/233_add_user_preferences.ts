@@ -60,7 +60,7 @@ export async function runMigration233Mysql(pool: import('mysql2/promise').Pool):
       id INT AUTO_INCREMENT PRIMARY KEY,
       userId INT NOT NULL,
       \`key\` VARCHAR(191) NOT NULL,
-      \`value\` TEXT NOT NULL,
+      \`value\` MEDIUMTEXT NOT NULL,
       updatedAt BIGINT NOT NULL,
       UNIQUE KEY ${UNIQUE_INDEX} (userId, \`key\`),
       CONSTRAINT user_preferences_user_fk FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE

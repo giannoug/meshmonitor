@@ -165,7 +165,7 @@ router.put('/preferences/:key', optionalAuth(), async (req, res) => {
     const err = validateUserPreferenceValue(key, value);
     if (err === 'too large') return fail(res, 413, 'PREFERENCE_TOO_LARGE', 'Preference value is too large');
     if (err) return fail(res, 400, 'INVALID_PREFERENCE_VALUE', err);
-    await databaseService.setUserPreferenceAsync(req.user!.id, key, value);
+    await databaseService.setUserPreferenceAsync(req.user.id, key, value);
     ok(res);
   } catch (error) {
     logger.error('Error saving user preference:', error);
@@ -181,7 +181,7 @@ router.delete('/preferences/:key', optionalAuth(), async (req, res) => {
     if (!isAllowedUserPreferenceKey(req.params.key)) {
       return fail(res, 400, 'INVALID_PREFERENCE_KEY', 'Unknown preference key');
     }
-    await databaseService.deleteUserPreferenceAsync(req.user!.id, req.params.key);
+    await databaseService.deleteUserPreferenceAsync(req.user.id, req.params.key);
     ok(res);
   } catch (error) {
     logger.error('Error deleting user preference:', error);

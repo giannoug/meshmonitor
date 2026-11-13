@@ -35,7 +35,7 @@ const MYSQL_DDL = [
   'CREATE TABLE users (id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(64))',
   `CREATE TABLE user_preferences (
     id INT AUTO_INCREMENT PRIMARY KEY, userId INT NOT NULL,
-    \`key\` VARCHAR(191) NOT NULL, \`value\` TEXT NOT NULL, updatedAt BIGINT NOT NULL,
+    \`key\` VARCHAR(191) NOT NULL, \`value\` MEDIUMTEXT NOT NULL, updatedAt BIGINT NOT NULL,
     UNIQUE KEY up_uniq (userId, \`key\`),
     FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE)`,
 ];
@@ -51,6 +51,11 @@ function suite(name: string, make: () => Promise<{ repo: UserPreferencesReposito
       await ctx.repo.set(u[0], 'a', { a: [1, 'x'] });
       expect(await ctx.repo.get(u[0], 'a')).toEqual({ a: [1, 'x'] });
       expect(await ctx.repo.get(u[0], 'missing')).toBeUndefined();
+    });
+    it('stores a value of exactly 65,536 JSON bytes', async () => {
+      const v = 'x'.repeat(65534);
+      await ctx.repo.set(u[0], 'big', v);
+      expect(await ctx.repo.get(u[0], 'big')).toBe(v);
     });
     it('set twice keeps one row', async () => {
       await ctx.repo.set(u[0], 'dup', 1);

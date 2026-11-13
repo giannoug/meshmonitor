@@ -238,6 +238,7 @@ function validTestValue(key: string, suffix = ''): string {
     mqttRootDirectoryRefreshEnabled: 'true',
     // #6365: enum validated to classic|workspace.
     defaultLayout: 'workspace',
+    offerWorkspaceBanner: 'true', // strict boolean
     // Reliable PKI (#5691): enums, INVALID_RELIABLE_PKI_MODE otherwise.
     reliablePkiMode: 'asNeeded',
     reliablePkiSourceMode: 'off',

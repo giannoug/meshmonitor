@@ -462,6 +462,8 @@ router.post('/', requirePermission('settings', 'write', { sourceIdFrom: 'query' 
       // MQTT root directory refresh (#6337): lets finder users trigger
       // requests to api.meshtastic.org.
       'mqttRootDirectoryRefreshEnabled',
+      // Workspace banner offer (#6365): exact 'true'/'false' only.
+      'offerWorkspaceBanner',
     ] as const;
 
     for (const key of STRICT_BOOLEAN_SETTINGS_KEYS) {

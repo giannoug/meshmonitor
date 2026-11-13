@@ -5,7 +5,7 @@
  */
 import { sqliteTable, text, integer, real, primaryKey as sqlitePrimaryKey } from 'drizzle-orm/sqlite-core';
 import { pgTable, text as pgText, integer as pgInteger, real as pgReal, boolean as pgBoolean, bigint as pgBigint, serial as pgSerial, doublePrecision as pgDoublePrecision, primaryKey as pgPrimaryKey } from 'drizzle-orm/pg-core';
-import { mysqlTable, varchar as myVarchar, text as myText, int as myInt, double as myDouble, boolean as myBoolean, bigint as myBigint, serial as mySerial, primaryKey as myPrimaryKey } from 'drizzle-orm/mysql-core';
+import { mysqlTable, mediumtext as myMediumText, varchar as myVarchar, text as myText, int as myInt, double as myDouble, boolean as myBoolean, bigint as myBigint, serial as mySerial, primaryKey as myPrimaryKey } from 'drizzle-orm/mysql-core';
 import { usersSqlite, usersPostgres, usersMysql } from './auth.js';
 
 // ============ BACKUP HISTORY ============
@@ -681,6 +681,6 @@ export const userPreferencesMysql = mysqlTable('user_preferences', {
   id: mySerial('id').primaryKey(),
   userId: myInt('userId').notNull().references(() => usersMysql.id, { onDelete: 'cascade' }),
   key: myVarchar('key', { length: 191 }).notNull(),
-  value: myText('value').notNull(),
+  value: myMediumText('value').notNull(), // TEXT caps at 65,535 bytes; the API cap is 65,536
   updatedAt: myBigint('updatedAt', { mode: 'number' }).notNull(),
 });
