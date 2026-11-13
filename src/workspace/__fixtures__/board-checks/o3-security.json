@@ -1,0 +1,11 @@
+{
+  "must": [
+    "Send a DM to Glyfada Beach",
+    "Send a DM to Lycabettus Hiker"
+  ],
+  "absent": [
+    "Message both"
+  ],
+  "source": "checks/r2.json",
+  "partial": true
+}

@@ -1,0 +1,11 @@
+{
+  "must": [
+    "⌘,",
+    "opens with"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/r2.json",
+  "partial": true
+}

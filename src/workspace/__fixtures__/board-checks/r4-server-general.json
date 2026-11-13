@@ -1,0 +1,20 @@
+{
+  "must": [
+    "General",
+    "Default layout for new users",
+    "Devices",
+    "Notification services",
+    "Security & privacy",
+    "Backup & maintenance",
+    "Channel database",
+    "Scripts",
+    "Map & tiles",
+    "Embed",
+    "Background jobs",
+    "Integrations",
+    "Analytics"
+  ],
+  "absent": [],
+  "source": "checks/s13.json",
+  "partial": true
+}

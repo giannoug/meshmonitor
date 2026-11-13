@@ -1,0 +1,25 @@
+{
+  "must": [
+    "Reticulum node",
+    "4 of 5 connected",
+    "Dashboard",
+    "All devices · each row opens",
+    "Offline since 14:02",
+    "All-devices map",
+    "Messages",
+    "Telemetry",
+    "Packets",
+    "Analysis",
+    "Reports",
+    "Automations",
+    "Users",
+    "Audit log",
+    "Station G2",
+    "Heltec MeshCore",
+    "Rooftop RAK",
+    "Athens MQTT"
+  ],
+  "absent": [],
+  "source": "checks/r2.json",
+  "partial": true
+}

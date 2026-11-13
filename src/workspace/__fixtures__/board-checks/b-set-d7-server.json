@@ -1,0 +1,25 @@
+{
+  "must": [
+    "Apprise API Server URL",
+    "Test Connection",
+    "Connected successfully (42ms)",
+    "Devices",
+    "General",
+    "Notification services",
+    "Security & privacy",
+    "Backup & maintenance",
+    "Channel database",
+    "Scripts",
+    "Map & tiles",
+    "Embed",
+    "Background jobs",
+    "Integrations",
+    "Analytics"
+  ],
+  "absent": [
+    "Reached in 42 ms",
+    "⌘K"
+  ],
+  "source": "checks/r2.json",
+  "partial": true
+}

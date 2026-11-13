@@ -1,0 +1,8 @@
+{
+  "must": [
+    "Analysis"
+  ],
+  "absent": [],
+  "source": "checks/s05.json",
+  "partial": true
+}

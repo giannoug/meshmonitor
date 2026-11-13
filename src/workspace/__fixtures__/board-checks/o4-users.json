@@ -1,0 +1,24 @@
+{
+  "must": [
+    "Users",
+    "ON EACH DEVICE",
+    "Reset password",
+    "All-devices map",
+    "Dashboard",
+    "Messages",
+    "Telemetry",
+    "Packets",
+    "Analysis",
+    "Reports",
+    "Automations",
+    "Audit log",
+    "Station G2",
+    "Heltec MeshCore",
+    "Rooftop RAK",
+    "Reticulum node",
+    "Athens MQTT"
+  ],
+  "absent": [],
+  "source": "checks/s05.json",
+  "partial": true
+}

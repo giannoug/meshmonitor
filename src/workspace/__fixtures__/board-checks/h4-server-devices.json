@@ -1,0 +1,22 @@
+{
+  "must": [
+    "Devices",
+    "Add device",
+    "Primary",
+    "Reticulum node",
+    "General",
+    "Notification services",
+    "Security & privacy",
+    "Backup & maintenance",
+    "Channel database",
+    "Scripts",
+    "Map & tiles",
+    "Embed",
+    "Background jobs",
+    "Integrations",
+    "Analytics"
+  ],
+  "absent": [],
+  "source": "checks/s13.json",
+  "partial": true
+}

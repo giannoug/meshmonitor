@@ -1,0 +1,10 @@
+{
+  "must": [
+    "Overview"
+  ],
+  "absent": [
+    "IN OVERVIEW"
+  ],
+  "source": "checks/s05.json",
+  "partial": true
+}

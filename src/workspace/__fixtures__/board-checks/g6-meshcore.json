@@ -1,0 +1,21 @@
+{
+  "must": [
+    "Console",
+    "Log in",
+    "Ask the node",
+    "Organise",
+    "Data",
+    "Discover path",
+    "Sends 1 path request flood",
+    "Reset",
+    "Sends nothing; next message floods"
+  ],
+  "absent": [
+    "Same page as Meshtastic",
+    "Console opens Settings",
+    "Ping",
+    "More"
+  ],
+  "source": "checks/s08.json",
+  "partial": true
+}

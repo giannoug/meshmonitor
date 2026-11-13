@@ -1,0 +1,12 @@
+{
+  "must": [
+    "session passkey acquired (212s remaining)",
+    "⌘,"
+  ],
+  "absent": [
+    "admin key OK",
+    "⌘K"
+  ],
+  "source": "checks/r2.json",
+  "partial": true
+}

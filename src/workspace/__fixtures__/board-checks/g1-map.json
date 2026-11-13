@@ -1,0 +1,12 @@
+{
+  "must": [
+    "Ask the node",
+    "Organise",
+    "Data"
+  ],
+  "absent": [
+    "Trace"
+  ],
+  "source": "checks/s15.json",
+  "partial": true
+}

@@ -1,0 +1,24 @@
+{
+  "must": [
+    "Audit log",
+    "Who changed or sent what",
+    "Search the log",
+    "All-devices map",
+    "Dashboard",
+    "Messages",
+    "Telemetry",
+    "Packets",
+    "Analysis",
+    "Reports",
+    "Automations",
+    "Users",
+    "Station G2",
+    "Heltec MeshCore",
+    "Rooftop RAK",
+    "Reticulum node",
+    "Athens MQTT"
+  ],
+  "absent": [],
+  "source": "checks/s05.json",
+  "partial": true
+}

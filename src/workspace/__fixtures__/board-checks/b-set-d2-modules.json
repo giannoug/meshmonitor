@@ -1,0 +1,10 @@
+{
+  "must": [
+    "⌘,"
+  ],
+  "absent": [
+    "⌘K"
+  ],
+  "source": "checks/r2.json",
+  "partial": true
+}

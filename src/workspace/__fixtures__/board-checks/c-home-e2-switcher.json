@@ -1,0 +1,11 @@
+{
+  "must": [
+    "Overview",
+    "LXMF messages"
+  ],
+  "absent": [
+    "no chat yet"
+  ],
+  "source": "checks/s05.json",
+  "partial": true
+}

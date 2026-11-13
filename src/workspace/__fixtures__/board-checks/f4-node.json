@@ -5,8 +5,13 @@
     "Links",
     "Position",
     "Admin",
-    "Battery"
+    "Battery",
+    "Ask the node",
+    "Organise",
+    "Data"
   ],
-  "absent": [],
+  "absent": [
+    "Exchange"
+  ],
   "source": "checks/s04.json"
 }

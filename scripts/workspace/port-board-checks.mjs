@@ -14,30 +14,38 @@ const id = (f) => f.replace(/\.dc\.html$/, '');
 
 const order = read(canvas).order.map(id).filter((b) => !SKIP.test(b));
 const written = {};
-for (const f of fs.readdirSync(source).filter((f) => /^s\d+\.json$/.test(f)).sort()) {
-  for (const [board, c] of Object.entries(read(path.join(source, f)).boards ?? {})) {
-    written[id(board)] = { must: c.must ?? [], absent: c.absent ?? [], source: `checks/${f}` };
-  }
+// boards entries are full data; redraw / sidebar blocks add strings and, when they are a board's
+// only data, make a "partial" json for the check-writer to extend.
+const add = (board, c, file, full) => {
+  const w = (written[id(board)] ??= { must: [], absent: [], source: `checks/${file}`, partial: true });
+  if (full) { w.partial = false; w.source = `checks/${file}`; }
+  const u = (a, b) => [...new Set([...a, ...(b ?? [])])];
+  w.must = u(w.must, [...(c.must ?? []), ...(c.file_must ?? []), ...(c.sidebar_must ?? [])]);
+  w.absent = u(w.absent, [...(c.absent ?? []), ...(c.file_absent ?? [])]);
+};
+const files = fs.readdirSync(source).filter((f) => /^(s\d+|r2)\.json$/.test(f)).sort();
+for (const f of files) {
+  const d = read(path.join(source, f));
+  for (const [b, c] of Object.entries(d.boards ?? {})) add(b, c, f, true);
 }
-const r2 = path.join(source, 'r2.json');
-if (fs.existsSync(r2)) {
-  for (const [board, c] of Object.entries(read(r2).redraw ?? {})) {
-    const w = written[id(board)];
-    if (!w) continue; // r2-only boards keep no json: they still need a real check
-    w.must = [...new Set([...w.must, ...(c.must ?? []), ...(c.file_must ?? [])])];
-    w.absent = [...new Set([...w.absent, ...(c.absent ?? []), ...(c.file_absent ?? [])])];
-  }
+for (const f of files) {
+  const d = read(path.join(source, f));
+  for (const [b, c] of Object.entries(d.redraw ?? {})) add(b, c, f, false);
 }
+for (const w of Object.values(written)) if (!w.partial) delete w.partial;
 
 fs.mkdirSync(out, { recursive: true });
 const missing = [];
+const partial = [];
 for (const board of order) {
   const file = path.join(out, `${board}.json`);
   const existing = fs.existsSync(file) ? read(file) : null;
   if (existing?.source === 'written') continue; // hand-written checks are never overwritten
+  if (written[board]?.partial) partial.push(board);
   if (written[board]) fs.writeFileSync(file, JSON.stringify(written[board], null, 2) + '\n');
   else if (!existing) missing.push(board);
 }
+if (partial.length) console.log(`${partial.length} partial (extend):\n${partial.join('\n')}`);
 if (missing.length) {
   console.log(`${missing.length} boards without checks:\n${missing.join('\n')}`);
   process.exit(1);

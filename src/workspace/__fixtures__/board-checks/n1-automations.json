@@ -1,0 +1,11 @@
+{
+  "must": [
+    "60 s cooldown per sender",
+    "Cooldown per trigger and node"
+  ],
+  "absent": [
+    "replies a minute"
+  ],
+  "source": "checks/r2.json",
+  "partial": true
+}
