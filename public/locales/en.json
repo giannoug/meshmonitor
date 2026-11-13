@@ -8532,5 +8532,8 @@
   "workspace.entry.body": "Devices down the left, channels and DMs in one sidebar, and a proper phone layout. Your data and settings stay the same, and you can switch back from You › Layout.",
   "workspace.entry.try": "Try it",
   "workspace.entry.not_now": "Not now",
-  "workspace.entry.menu_item": "Try the Workspace layout"
+  "workspace.entry.menu_item": "Try the Workspace layout",
+  "workspace.state.loading": "Loading…",
+  "workspace.state.empty": "Nothing here yet",
+  "workspace.reveal.shown_once": "Shown once"
 }

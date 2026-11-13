@@ -1,0 +1,16 @@
+.reveal { display: flex; flex-direction: column; gap: 12px; color: var(--color-text); }
+.once { margin: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-error); }
+.intro { margin: 0; line-height: 1.45; color: var(--color-text-subtle); }
+.secrets {
+  margin: 0; padding: 12px 12px 12px 36px; display: grid; gap: 6px; font-family: ui-monospace, monospace;
+  background: var(--color-bg-sunken); border: 1px solid var(--color-surface); border-radius: 8px;
+}
+.row { display: flex; gap: 8px; }
+.ack { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.btn {
+  min-height: 44px; padding: 0 16px; font: inherit; font-weight: 600; cursor: pointer;
+  color: var(--color-text); background: var(--color-bg-raised); border: 1px solid var(--color-surface); border-radius: 8px;
+}
+.done { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-bg-sunken); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+@media (min-width: 768px) { .btn { min-height: 36px; } .ack { min-height: 36px; } }
