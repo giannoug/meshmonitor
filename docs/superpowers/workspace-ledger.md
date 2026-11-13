@@ -96,3 +96,10 @@ Ruling: 1.8 — extra file `src/components/WorkspaceBanner/TryWorkspaceMenuItem.
 Ruling: 1.8 — Athens fixture serves empty `/api/embed-profiles`, `/api/channel-database`, `/api/scripts/inventory` — why: the re-hosted General page toasts on 404 and the toasts covered r4's cards in the screenshot — cost if wrong: none.
 Ruling: 1.8 — r4 drops 'Default device for guests' (Ruling V, D9b); the row reads today's "Default Meshtastic source" / "Source used when none is chosen".
 Ruling: 1.8 r4 — every General card control saves before it updates the cache (none optimistic), and the default-layout select waits for the admin's preferences to load (Ruling W) — why: the gate shares the settings cache; one save path is simpler than a per-key rollback — cost if wrong: a short wait before a toggle flips.
+
+## Phase 1 summary (gate)
+- Commits f6275fe..9722e08 (tasks 1.1–1.8, each reviewed; fix rounds: 1.2, 1.3, 1.5, 1.6, 1.7, 1.8 one round each).
+- Boards accepted: a-chat-D-desktop (frame), a-chat-D-phone (frame), c-home-e2-switcher, s1-you, r2-you-layout, s3-layout, r4-server-general (Layout + Sources cards), r3-classic-banner (Vitest only; inert until 9.3).
+- Contact sheet (private artifact): https://claude.ai/artifact/T6EKSkwVCFumU2XJpNsX19
+- CI has not run on this fork (Actions off); verified locally: lint:ci filter, full Vitest (0 failed), build + bundle check, Playwright 14 passed.
+- No PR created (requester's instruction).
