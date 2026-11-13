@@ -23,7 +23,7 @@ Workspace ships **alongside** today's layout (Classic). Users opt in. Classic ke
 - Build every board on the canvas except the rejected chat options A, B and C (`a-chat-A-*`, `a-chat-B-*`, `a-chat-C-*`): 324 boards, phone (390×844) and desktop (1280×800).
 - Every page's layout, placement, menus, sheets, copy and states match its board (decision D5).
 - Workspace is usable end to end from phase 1. Pages not yet rebuilt are re-hosted inside the shell.
-- Opt-in exactly as r2/r3/r4/s3 describe once finished. During the build, the opt-in is hidden behind an admin gate.
+- Opt-in exactly as r2/r3/r4/s3 describe once finished. During the build, Workspace is reachable only when the server runs with `WORKSPACE_PREVIEW=true` (D3).
 
 **Non-goals**
 - No new product features, and no change to what a feature does, its storage, permissions or protocol behaviour, unless a board's note requires it. §7 lists every backend change the boards require.
@@ -33,11 +33,11 @@ Workspace ships **alongside** today's layout (Classic). Users opt in. Classic ke
 
 **Anti-goals (failure even if it works)**
 - A power user cannot find a control they use today.
-- Classic changes look or behaviour. Exceptions: the documented `ShellContext` hook (§5.4) and the opt-in entry points (§5.2).
+- Classic changes look or behaviour. Exceptions, and only these: the `ShellContext` hook (§5.4), the r3 banner, and one user-menu item "Try the Workspace layout" (D18).
 - Something that transmits or destroys data has no Sends line or no confirm where its board has one.
 - MeshCore or Reticulum reads as "Meshtastic with fields hidden".
 - A save resets a safety timer, or a new notification path spams users.
-- The build runs on silently while CI or the PG/MySQL suites are skipped or red.
+- The build runs on silently while the local gate (§9) or the PG/MySQL suites are skipped or red.
 
 ## 3. Decisions (made with the requester, 2026-11-13)
 
@@ -45,14 +45,14 @@ Workspace ships **alongside** today's layout (Classic). Users opt in. Classic ke
 |---|---|---|
 | D1 | Delivery | **Re-host first.** Phase 1 is the shell, opt-in, routes and every existing page re-hosted unchanged in `<main>`. Later phases rebuild one area each to its boards. |
 | D2 | Phase order | 0 setup → 1 foundation → 2 chat + Activity → 3 Map/Nodes/node page → 4 Overview → 5 device settings frame → 6 You/Server/sign-in/devices → 7 MeshCore + Reticulum → 8 Dashboard/Automations/More tools → 9 shared patterns, odd pages, gate removal. |
-| D3 | Opt-in during the build | **Admin-gated preview.** The Layout choice and the admin default (r2–r4) ship in phase 1 but stay hidden until an admin turns the gate on. Default layout is Classic. |
-| D4 | End state of the gate | **Removed last.** The final phase removes the gate and turns on the r3 banner behaviour, in its own commit so it can be dropped before merging. |
+| D3 | Opt-in during the build | **Env-var preview, any user.** With the server env `WORKSPACE_PREVIEW=true`, any signed-in user who opens `/you/layout` can pick Workspace; the default stays Classic, and admins can change it in Server › General (r4). Without the env var, everyone gets Classic and the Workspace-only routes redirect to their Classic equivalents. No Classic UI change, and no gate setting is stored. |
+| D4 | End state of the gate | **Removed last.** Phase 9 removes the env check and turns on the r3 banner and the D18 menu item, in their own commit so it can be dropped before merging. Until then the banner and menu item are built but render nothing. |
 | D5 | Depth per page | **Re-compose to the board.** Layout, placement, menus, sheets, copy and states match the board. Existing inner parts (charts, tables, map layers, form fields, hooks, API calls, validation) are reused and re-arranged; they are split or restyled only where the board differs. |
 | D6 | Per-user storage | **New `user_preferences` table** `(userId, key, value)` on SQLite/PG/MySQL. It holds Layout, Workspace display preferences, settings pins and the per-user dashboard. |
 | D7 | URLs | **Shared URLs plus new paths.** Both layouts read the same URLs. Workspace adds new paths (§5.5). Old `#section` links redirect in Workspace only. |
 | D8 | Breakpoints | Phone layout below **768 px**. Desktop shell from 768 px; between 768 and 1023 px the sidebar becomes an overlay drawer. Verified at 390×844 and 1280×800, with a smoke check at 820×1180. |
 | D9 | Deviations allowed without asking | (a) role tokens, not hex; every theme works. (b) Today's en.json copy wins over a board's wording for the same control; new strings go in en.json. (c) Boards that show several dialogs or menus open "to fit the canvas" are built one at a time. (d) Today's behaviour wins where a board contradicts it and its note doesn't explicitly override it. Each one taken is logged as a `Ruling:`. |
-| D10 | Tests | Vitest/RTL per component, with each board's `checks/*.json` must/absent strings ported to assertions. Plus a **committed Playwright suite** (new devDependency and CI job) running on API fixtures of the canvas cast. It screenshots each board's screen at its size for side-by-side review with png3. **No pixel-diff gate.** |
+| D10 | Tests | Vitest/RTL per component, with each board's `checks/*.json` must/absent strings ported to assertions. Plus a **committed Playwright suite** (new devDependency, and a CI job that runs wherever Actions is on) running on API fixtures of the canvas cast. It screenshots each board's screen at its size for side-by-side review with png3. **No pixel-diff gate.** |
 | D11 | Branch and PR | **One branch, one PR**: `claude/eager-pascal-svegts`, one draft PR on giannoug/meshmonitor. Each phase is a commit range; the PR body is updated as each phase lands. The requester merges; I never merge. |
 | D12 | Dashboard | **Per-user in Workspace, seeded.** Workspace reads and writes the board in `user_preferences`. On first open it is seeded from today's install-wide `dashboardWidgets`. Classic keeps the install-wide board. |
 | D13 | New push toggles | Replies and Meshtastic Mentions (cs2) are **off by default** for everyone. |
@@ -60,6 +60,9 @@ Workspace ships **alongside** today's layout (Classic). Users opt in. Classic ke
 | D15 | Shared code with Classic | **Workspace-only row kit.** New settings categories reuse today's hooks, handlers and validation. Classic's section components and `AdminCommandsTab` / `admin-commands/*` are untouched; their duplication is retired only after Classic goes. |
 | D16 | Font | **Bundle Inter** (self-hosted woff2) for Workspace only. Classic keeps the system font stack. |
 | D17 | Architecture | Workspace is its own tree at the route level (§5). |
+| D18 | Classic → Workspace | Classic gets the r3 banner and **one permanent user-menu item, "Try the Workspace layout"**. **"Not now" saves `layout=classic`**, so a later admin default of Workspace doesn't move that user (r4: "People who already picked one keep their choice"). |
+| D19 | Starred charts | **Shared, as today.** Only the board (which widgets, their order and size) is per user. Stars stay today's install-wide `telemetryFavorites` per source, so retention is unchanged, and starring or unstarring changes it for everyone, as in Classic today. |
+| D20 | CI | **Local verification only.** Actions is off on giannoug/meshmonitor and stays off. The phase gate is local (§9). The PR body says plainly that CI has not run. `/ci-monitor` is not used while Actions is off. |
 
 ## 4. Approaches considered (shell architecture)
 
@@ -75,7 +78,7 @@ Workspace ships **alongside** today's layout (Classic). Users opt in. Classic ke
 ### 5.1 Layout resolution
 
 `resolveLayout(user, settings)` returns `'classic' | 'workspace'`:
-1. Gate off (`workspacePreviewEnabled` false, during the build) → `classic` for everyone.
+1. During the build, server env `WORKSPACE_PREVIEW` not `true` → `classic` for everyone. The server exposes the flag through the existing public config endpoint. Phase 9 deletes this rule.
 2. Signed-in user with a `layout` preference → that value.
 3. Signed-in user without one → the install default `defaultLayout` (`classic` unless an admin changes it in Server › General, r4). r4's "People who already picked one keep their choice" is rule 2.
 4. Anonymous viewer → the install default.
@@ -85,8 +88,8 @@ The preference is server-side, so it "takes effect straight away on this and you
 ### 5.2 Entry points between layouts
 
 - **Workspace → Classic:** You › Layout (r2 desktop, s3 phone).
-- **Classic → Workspace:** the r3 banner ("Try the Workspace layout", Try it / Not now). It shows once per user while Server › General's "Offer Workspace to Classic users" (r4) is on and the gate is on. *Open, see §12 Q1:* how a Classic user who chose Not now reaches Workspace later.
-- **Admin gate, during the build:** an admin turns it on. *Open, see §12 Q2:* where.
+- **Classic → Workspace:** (a) the r3 banner ("Try the Workspace layout", Try it / Not now). It shows once per signed-in user while Server › General's "Offer Workspace to Classic users" (r4) is on. Try it saves `layout=workspace`; Not now saves `layout=classic` and `workspace.bannerDismissed`. (b) The Classic user-menu item "Try the Workspace layout" (D18), always there for signed-in users; it saves `layout=workspace`. Both are inert until phase 9.
+- **During the build:** `/you/layout` with `WORKSPACE_PREVIEW=true` (D3).
 
 ### 5.3 Tree
 
@@ -176,11 +179,10 @@ Each change is required by a board or decision. Anything outside this list needs
 
 1. **`user_preferences` table** (D6). Columns: `userId` FK → users (cascade delete), `key` (text, ≤64), `value` (JSON text), `updatedAt`; unique `(userId, key)`. Migration on all three backends via the migration skill and helpers, idempotent. Added to `BACKUP_TABLES` after `users`. Repository `UserPreferencesRepository` (get/getAll/set/delete, scoped to a userId). Routes `GET/PUT/DELETE /api/user/preferences[/:key]`: self only, `requireAuth`, key allowlist (`layout`, `workspace.*`, `settings.pins`, `dashboard.<sourceId|overview>`), value size cap 64 KB, `ok()`/`fail()` envelope, route tests on `createRouteTestApp()`.
 2. **Install settings** in `VALID_SETTINGS_KEYS`:
-   - `workspacePreviewEnabled` (gate, removed in phase 9)
    - `defaultLayout` (`classic`|`workspace`)
    - `offerWorkspaceBanner` (r4 toggle)
    
-   Per-user banner dismissal is stored as `user_preferences` key `workspace.bannerDismissed`.
+   Per-user banner dismissal is stored as `user_preferences` key `workspace.bannerDismissed`. The build-time gate is the env var `WORKSPACE_PREVIEW` (D3), read at startup and exposed read-only to the client; it is not a setting and is removed in phase 9.
 3. **"Who uses which" (r4):** read-only, admin-only count of users who signed in during the last 30 days (`lastLoginAt`), by resolved layout.
 4. **Activity (cs1/cs2):** `GET /api/sources/:id/activity?before=&limit=` returns, for the selected device's own node only:
    - replies to messages it sent (`replyId`),
@@ -217,29 +219,35 @@ Phase done:
 - the full Vitest suite green (with PG/MySQL up when the phase touches schema);
 - `npm run build` + `check:bundle-size` green;
 - Playwright suite green;
-- the PR body updated;
-- `/ci-monitor` green on the pushed head.
+- the PR body updated, saying CI has not run (D20).
 
 ## 10. Test and verification setup
 
 - **Vitest/RTL** next to components. Board-check assertions come from a tool, `scripts/workspace/port-board-checks.mjs`, that copies the needed `checks/*.json` entries into `src/workspace/__fixtures__/board-checks/` (committed, so tests don't depend on the git-excluded scratch folder).
 - **Fixtures:** one Athens-cast dataset (Station G2, Heltec MeshCore, Rooftop RAK, Reticulum node, Athens MQTT; Athens node names) under `src/workspace/__fixtures__/`. Vitest uses it through mocked `ApiService`; Playwright uses it through `page.route()` interception, so no backend runs.
-- **Playwright:** `@playwright/test` as a devDependency, pinned to the preinstalled browser's version, or launched with `executablePath: /opt/pw-browsers/chromium` if the pin differs. Specs live in `tests/workspace-e2e/`, run with `--trace off`, and `npm run test:workspace-e2e` builds and serves with `vite preview`. A new CI job runs it and uploads screenshots as an artifact. Screenshots are not committed.
+- **Playwright:** `@playwright/test` as a devDependency, pinned to the preinstalled browser's version, or launched with `executablePath: /opt/pw-browsers/chromium` if the pin differs. Specs live in `tests/workspace-e2e/`, run with `--trace off`, and `npm run test:workspace-e2e` builds and serves with `vite preview`. A CI job for it is committed (screenshots uploaded as an artifact) so it runs wherever Actions is on, but it is not part of the gate (D20). Screenshots are not committed.
 - **Board review sheets:** per phase, a contact sheet pairs each screenshot with its png3 board. It is published as a private artifact and linked from the PR body.
-- **PG/MySQL:** the containers from CLAUDE.md, on the dockerd started in this session. If an image can't be pulled after retries, the schema task is parked (D14) and CI is named as the authority in the PR.
+- **PG/MySQL:** the containers from CLAUDE.md, on the dockerd started in this session. If an image can't be pulled after retries, the schema task is parked (D14): with Actions off (D20) there is no other authority.
+- **Missing checks and renders:** 41 non-rejected boards have no `checks/*.json` entry. Before a phase's implementation starts, a separate agent writes their must/absent strings from the board HTML and its section notes, so the grader is not the builder; each is logged as a Ruling. The 16 boards missing from `png3/` are rendered with `design-scratch/render.mjs`.
 - **Classic guard:** a Vitest snapshot of Classic's chrome with no `ShellContext`, plus the existing Classic suites unchanged.
 
 ## 11. Process
 
 - Execution: superpowers:subagent-driven-development, per the plan from superpowers:writing-plans.
 - Ledger: committed at `docs/superpowers/workspace-ledger.md`, because the container is ephemeral. Every decision taken during the build is a `Ruling:` line with why and cost if wrong. `BLOCKED:` lines for D14.
-- Commits on `claude/eager-pascal-svegts`, pushed after each task. One draft PR opened after phase 1, body updated per phase. `/ci-monitor` after each push.
+- Commits on `claude/eager-pascal-svegts`, pushed after each task. One draft PR opened after phase 1, body updated per phase. No `/ci-monitor` while Actions is off (D20); if Actions is ever turned on, `/ci-monitor` runs after each push.
 - The run stops only for destructive or irreversible actions, security-sensitive changes, or a plan defect with no sensible path; each of those is parked per D14. The auth-touching items here (preferences routes, Activity endpoint permission checks) are covered by the plan's security review step, not stopped on.
 - Finish: whole-branch review on the most capable model, one fix pass, final report (Rulings, deferred minors, board-by-board coverage).
 
 ## 12. Open questions for the requester
 
-(Filled from the builder check; see §13.)
+The builder check raised four questions; all were answered on 2026-11-13 and are now D3, D18, D19 and D20. None remain open.
+
+Calls I made from the builder check (check these):
+- Add device builds on today's create, status and delete source APIs; no new endpoint.
+- Activity read state (what is "new" in the feed) is per user, in `user_preferences` under `workspace.activity.<sourceId>`.
+- "Workspace display preferences" means r2's In Workspace rows (Messages as Rows / Bubbles; Hops, SNR and route On hover or tap), stored under `workspace.*`.
+- The missing checks and renders are handled as §10 describes.
 
 ## 13. Left to the builder
 
