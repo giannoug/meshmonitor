@@ -35,6 +35,15 @@ describe('workspaceRedirect', () => {
     expect(workspaceRedirect(loc(url), { isAdmin })).toBe(to);
   });
 
+  it.each([
+    ['/settings#settings-%E0%A4%A', true, '/server/general'],
+    ['/source/s1/configuration#config-%E0', false, '/source/s1/settings'],
+    ['/source/s1/settings#%', false, null],
+    ['/nodes#%E0', false, null],
+  ])('a malformed hash on %s does not throw (→ %s)', (url, isAdmin, to) => {
+    expect(workspaceRedirect(loc(url), { isAdmin })).toBe(to);
+  });
+
   it('every preference category goes to /preferences', () => {
     for (const c of PREFERENCE_CATEGORIES) {
       expect(workspaceRedirect(loc(`/settings#settings-${c}`))).toBe(`/preferences/${c}`);
@@ -93,7 +102,7 @@ describe('reticulumViewForPath', () => {
     ['interfaces', 'interfaces'],
     ['paths', 'paths'],
     ['dm/abc', 'dms'],
-    ['nodes', 'destinations'],
+    ['nodes', null],
   ])('%s → %s', (splat, view) => {
     expect(reticulumViewForPath(splat)).toBe(view);
   });

@@ -5,15 +5,17 @@
  * page embedded, Classic URLs redirect, source URLs pick the page by source
  * type and drive the MeshCore/Reticulum view.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { renderWorkspace, type RenderWorkspaceOptions } from '../test/renderWorkspace';
 import { SOURCE_IDS } from '../__fixtures__/athens';
 import WorkspaceApp from '../WorkspaceApp';
+import { mounts } from './pageStub';
 
+// One marker element per provider, so a test can count the sockets a route opens.
 vi.mock('../../contexts/WebSocketContext', () => ({
-  WebSocketProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  WebSocketProvider: ({ children }: { children: React.ReactNode }) => <div data-ws-provider="">{children}</div>,
 }));
 vi.mock('../../App', async () => ({ default: (await import('./pageStub')).pageStub('app') }));
 vi.mock('../../pages/DashboardPage', async () => ({ default: (await import('./pageStub')).pageStub('dashboard') }));
@@ -29,10 +31,23 @@ vi.mock('../../pages/MeshCoreSourcePage', async () => ({ default: (await import(
 vi.mock('../../pages/MeshCoreIngestSourcePage', async () => ({ default: (await import('./pageStub')).pageStub('meshcore-ingest') }));
 vi.mock('../../pages/ReticulumSourcePage', async () => ({ default: (await import('./pageStub')).pageStub('reticulum') }));
 
+/** Shows the real URL, and navigates client-side when its input changes. */
 function RealUrl() {
   const { pathname, search, hash } = useLocation();
-  return <output data-testid="real-url">{pathname + search + hash}</output>;
+  const navigate = useNavigate();
+  return (
+    <>
+      <output data-testid="real-url">{pathname + search + hash}</output>
+      <input data-testid="goto" onChange={(e) => void navigate(e.target.value)} />
+    </>
+  );
 }
+
+const goTo = (path: string) => fireEvent.change(screen.getByTestId('goto'), { target: { value: path } });
+
+beforeEach(() => {
+  for (const k of Object.keys(mounts)) delete mounts[k];
+});
 
 function renderAt(route: string, opts: RenderWorkspaceOptions = {}) {
   return renderWorkspace(
@@ -213,5 +228,44 @@ describe('unknown sources (Review Focus 4)', () => {
     await expectPage('dashboard');
     expect(screen.getByText('This device was not found.')).toBeInTheDocument();
     expect(screen.queryByTestId('page-app')).toBeNull();
+  });
+});
+
+describe('sockets (Ruling N)', () => {
+  it.each([
+    [`${g2}/nodes`, 'app'],
+    [`${heltec}/nodes`, 'meshcore'],
+    [`${rns}/destinations`, 'reticulum'],
+    ['/overview/reports', 'reports'],
+    ['/', 'dashboard'],
+    ['/source/no-such-device/nodes', 'dashboard'],
+  ])('%s has exactly one WebSocketProvider', async (route, page) => {
+    const { container } = renderAt(route);
+    await expectPage(page);
+    expect(container.querySelectorAll('[data-ws-provider]')).toHaveLength(1);
+  });
+});
+
+describe('re-hosted pages stay mounted while the URL is fixed up', () => {
+  it.each([
+    [`${g2}/nodes`, `${g2}/settings/lora`, `${g2}/settings/lora#config-lora`, 'app'],
+    [`${g2}/nodes`, `${g2}/configuration`, `${g2}/settings`, 'app'],
+    [`${g2}/nodes`, `${g2}/configuration#config-lora`, `${g2}/settings/lora#config-lora`, 'app'],
+    ['/server/general', '/server/backup', '/server/backup#settings-backup', 'global-settings'],
+    ['/overview', '/overview/map', '/overview/map', 'dashboard'],
+    [`${heltec}/nodes`, `${heltec}/admin`, `${heltec}/nodes`, 'meshcore'],
+  ])('%s → %s (lands on %s) keeps one %s', async (from, to, lands, page) => {
+    renderAt(from);
+    await expectPage(page);
+    goTo(to);
+    await waitFor(() => expect(realUrl()).toBe(lands));
+    expect(mounts[page]).toBe(1);
+  });
+
+  it('an unknown Reticulum segment goes to the default view', async () => {
+    renderAt(`${rns}/nodes`);
+    await waitFor(() => expect(realUrl()).toBe(`${rns}/destinations`));
+    expect(screen.getByTestId('view')).toHaveTextContent('destinations');
+    expect(mounts.reticulum).toBe(1);
   });
 });

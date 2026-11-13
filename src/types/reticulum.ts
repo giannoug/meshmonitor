@@ -130,7 +130,8 @@ export interface ReticulumInterfaceRow {
 }
 
 /** Sub-toolbar view identifiers for `ReticulumPage`/`ReticulumSubToolbar` (WP2; 'dms' added Phase 2 WP5; 'map'/'configuration' added Phase 3; 'paths' added Phase 4 WP4). */
-export type ReticulumView = 'destinations' | 'interfaces' | 'map' | 'dms' | 'info' | 'configuration' | 'settings' | 'paths';
+export const RETICULUM_VIEWS = ['destinations', 'interfaces', 'map', 'dms', 'info', 'configuration', 'settings', 'paths'] as const;
+export type ReticulumView = (typeof RETICULUM_VIEWS)[number];
 
 /**
  * One row from `GET /api/sources/:id/reticulum/paths` (mirrors the server's

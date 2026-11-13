@@ -5,10 +5,11 @@
  * its Workspace area replaces the page.
  */
 import { lazy, Suspense, type ReactNode } from 'react';
-import { Navigate, useLocation, useParams } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useParams, type To } from 'react-router-dom';
 import RouteLoading from '../../components/RouteLoading/RouteLoading';
 import { ShellContext } from '../../contexts/ShellContext';
 import { globalSettingsHash } from '../routes';
+import { useHashTarget } from './useHashTarget';
 
 // The same chunks Classic loads (main.tsx).
 const DashboardPage = lazy(() => import('../../pages/DashboardPage.tsx'));
@@ -32,44 +33,52 @@ export function Rehost({ children }: { children: ReactNode }) {
 }
 
 /**
- * Puts `hash` in the URL before rendering `children`: Classic's SectionNav
- * scrolls to the `#section` it finds in `window.location`, so a category URL
- * carries the section of the Classic page it re-hosts.
+ * Renders `children` and, when `to` is set, replaces the URL with it. The
+ * page stays mounted while the URL changes: returning the <Navigate> in its
+ * place would unmount it, and App would lose its data and reconnect.
  */
-export function WithHash({ hash, children }: { hash: string; children: ReactNode }) {
-  const { pathname, search, hash: current } = useLocation();
-  if (hash && current !== hash) return <Navigate replace to={{ pathname, search, hash }} />;
-  return <>{children}</>;
+export function Redirect({ to, children }: { to: To | null; children: ReactNode }) {
+  return (
+    <>
+      {to && <Navigate replace to={to} />}
+      {children}
+    </>
+  );
 }
 
 /**
  * Overview › Map: today's DashboardPage. It jumps to the admin's default
- * landing page unless the history entry says `showList`; only `/` (`landing`)
- * should jump, so every other Overview URL gets `showList` first.
+ * landing page unless the location state says `showList`; only `/`
+ * (`landing`) should jump, so every other Overview URL hands the page a
+ * location with `showList`. The real URL is untouched.
  */
 export function OverviewRehost({ landing = false, notice }: { landing?: boolean; notice?: ReactNode }) {
-  const { pathname, search, hash, state } = useLocation();
-  const showList = (state as { showList?: boolean } | null)?.showList === true;
-  if (!landing && !showList) {
-    return <Navigate replace to={{ pathname, search, hash }} state={{ ...(state as object | null), showList: true }} />;
-  }
-  return (
+  const location = useLocation();
+  const page = (
     <Rehost>
       {notice}
       <DashboardPage />
     </Rehost>
+  );
+  if (landing) return page;
+  return (
+    // Parent routes of this wrapper end in `/*`, as React Router requires for descendant <Routes>.
+    <Routes location={{ ...location, state: { ...(location.state as object | null), showList: true } }}>
+      <Route path="*" element={page} />
+    </Routes>
   );
 }
 
 /** `/preferences/<x>` and `/server/<x>`: today's global settings page, scrolled to the category. */
 export function GlobalSettingsRehost() {
   const category = (useParams()['*'] ?? '').split('/')[0];
+  const to = useHashTarget(globalSettingsHash(category));
   return (
-    <WithHash hash={globalSettingsHash(category)}>
+    <Redirect to={to}>
       <Rehost>
         <GlobalSettingsPage />
       </Rehost>
-    </WithHash>
+    </Redirect>
   );
 }
 

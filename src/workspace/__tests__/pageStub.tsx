@@ -4,11 +4,18 @@
  * location it sees. Real chrome hiding is covered by Task 1.4's
  * classicChrome.snapshot test; this checks the routing and the wrappers.
  */
+import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useShellEmbedded } from '../../contexts/ShellContext';
 
+/** Mounts per page name, so a test can tell a re-render from a remount. */
+export const mounts: Record<string, number> = {};
+
 export function pageStub(name: string) {
   return function PageStub(props: { view?: string; onViewChange?: (v: string) => void }) {
+    useEffect(() => {
+      mounts[name] = (mounts[name] ?? 0) + 1;
+    }, []);
     const embedded = useShellEmbedded();
     const { pathname, hash, state } = useLocation();
     const showList = (state as { showList?: boolean } | null)?.showList === true;

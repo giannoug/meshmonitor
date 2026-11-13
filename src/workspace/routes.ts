@@ -12,7 +12,7 @@ import {
   SOURCE_SETTINGS_SECTIONS,
 } from '../components/search/configSections';
 import { MESHCORE_VIEWS, type MeshCoreView } from '../components/MeshCore/meshCoreViewAccess';
-import type { ReticulumView } from '../types/reticulum';
+import { RETICULUM_VIEWS, type ReticulumView } from '../types/reticulum';
 import { classicFallback } from './layout/classicFallback';
 
 type Loc = { pathname: string; hash: string; search: string };
@@ -22,11 +22,20 @@ export const PREFERENCE_CATEGORIES = ['language', 'units', 'sorting', 'appearanc
 
 const RETIRED_SOURCE_TAB = /^\/source\/([^/]+)\/(configuration|settings|admin|notifications)\/?$/;
 
+/** The `#section` id; '' when absent or malformed (a bad escape must not throw on every render). */
+function sectionOf(hash: string): string {
+  try {
+    return decodeURIComponent(hash.replace(/^#/, ''));
+  } catch {
+    return '';
+  }
+}
+
 /** Where a Classic URL lives in the Workspace, or null when the Workspace serves it as is. */
 export function workspaceRedirect(loc: Loc, { isAdmin = false }: { isAdmin?: boolean } = {}): string | null {
-  const section = decodeURIComponent(loc.hash.replace(/^#/, ''));
   const m = loc.pathname.match(RETIRED_SOURCE_TAB);
   if (m) {
+    const section = sectionOf(loc.hash);
     const settings = `/source/${m[1]}/settings`;
     switch (m[2]) {
       case 'configuration':
@@ -40,6 +49,7 @@ export function workspaceRedirect(loc: Loc, { isAdmin = false }: { isAdmin?: boo
     }
   }
   if (/^\/settings\/?$/.test(loc.pathname)) {
+    const section = sectionOf(loc.hash);
     if (!section.startsWith('settings-')) return isAdmin ? '/server/general' : '/preferences/appearance';
     const category = section.slice('settings-'.length);
     return PREFERENCE_CATEGORIES.includes(category) ? `/preferences/${category}` : `/server/${category}`;
@@ -98,11 +108,13 @@ export function meshcoreViewForPath(splat: string, hash: string): MeshCoreView |
   return MESHCORE_ALIASES[segment] ?? null;
 }
 
-const RETICULUM_VIEWS: readonly ReticulumView[] = ['destinations', 'interfaces', 'map', 'dms', 'info', 'configuration', 'settings', 'paths'];
+/** Destinations: the Reticulum page's default view. */
+export const RETICULUM_DEFAULT_VIEW: ReticulumView = 'destinations';
 
-/** The Reticulum view a source URL asks for; anything else shows Destinations, the page's default. */
-export function reticulumViewForPath(splat: string): ReticulumView {
+/** The Reticulum view a source URL asks for, or null for a segment Reticulum has no view for. */
+export function reticulumViewForPath(splat: string): ReticulumView | null {
   const segment = splat.split('/')[0];
+  if (!segment) return RETICULUM_DEFAULT_VIEW;
   if (segment === 'dm') return 'dms';
-  return (RETICULUM_VIEWS as readonly string[]).includes(segment) ? (segment as ReticulumView) : 'destinations';
+  return (RETICULUM_VIEWS as readonly string[]).includes(segment) ? (segment as ReticulumView) : null;
 }

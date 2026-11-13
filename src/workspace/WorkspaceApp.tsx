@@ -1,12 +1,15 @@
 /**
  * The Workspace layout (spec §5.3–5.5): providers, the shell, and the route
- * table. Until each area's phase replaces it, a route renders its re-host
+ * table. Deviation from the brief's provider order (Ruling N): as in Classic,
+ * the app-level WebSocketProvider wraps only non-source routes; a source route
+ * has just its per-source one, else a second, join-all-sources socket would
+ * refetch the open source's poll on every event from any source. Until each area's phase replaces it, a route renders its re-host
  * wrapper: today's page inside `ShellContext embedded`. `/privacy/*` and
  * `/packet-monitor` never get here (LayoutGate renders Classic for them);
  * `/embed/:profileId` is a separate server-rendered page.
  */
 import { Suspense } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import './styles/fonts.css';
 import RouteLoading from '../components/RouteLoading/RouteLoading';
 import { ToastProvider } from '../components/ToastContainer';
@@ -43,36 +46,38 @@ function WorkspaceRoutes() {
   return (
     <Suspense fallback={<RouteLoading />}>
       <Routes>
-        <Route index element={<OverviewRehost landing />} />
-        <Route path="overview" element={<OverviewRehost />} />
-        <Route path="overview/map" element={<OverviewRehost />} />
-        {/* Not cross-source pages in Classic: the Overview until Phases 4 and 8. */}
-        <Route path="overview/dashboard" element={<OverviewRehost />} />
-        <Route path="overview/audit" element={<OverviewRehost />} />
-        <Route path="overview/messages" element={<UnifiedMessagesRehost />} />
-        <Route path="overview/telemetry" element={<UnifiedTelemetryRehost />} />
-        <Route path="overview/packets" element={<UnifiedPacketsRehost />} />
-        <Route path="overview/analysis" element={<AnalysisRehost />} />
-        <Route path="overview/reports/*" element={<ReportsRehost />} />
-        <Route path="overview/automations" element={<AutomationsRehost />} />
-        <Route path="overview/users" element={<UsersRehost />} />
-
-        <Route path="unified/messages" element={<UnifiedMessagesRehost />} />
-        <Route path="unified/telemetry" element={<UnifiedTelemetryRehost />} />
-        <Route path="unified/packets" element={<UnifiedPacketsRehost />} />
-        <Route path="analysis" element={<AnalysisRehost />} />
-        <Route path="reports" element={<ReportsRehost />} />
-        <Route path="automations/*" element={<AutomationsRehost />} />
-        <Route path="users" element={<UsersRehost />} />
-
+        {/* The per-source socket only (renderSourceApp), as in Classic. */}
         <Route path="source/:sourceId/*" element={<WorkspaceSource />} />
 
-        <Route path="preferences/*" element={<GlobalSettingsRehost />} />
-        <Route path="server/*" element={<GlobalSettingsRehost />} />
-        {/* The You frame lands in Task 1.7. */}
-        <Route path="you/*" element={<OverviewRehost />} />
+        {/* Every other route shares one app-level socket, kept across navigation (Ruling N). */}
+        <Route element={<WebSocketProvider><Outlet /></WebSocketProvider>}>
+          <Route index element={<OverviewRehost landing />} />
+          {/* `/overview`, `/overview/map`, and `/overview/dashboard` and `/overview/audit`,
+              which have no cross-source Classic page: the Overview until Phases 4 and 8. */}
+          <Route path="overview/*" element={<OverviewRehost />} />
+          <Route path="overview/messages" element={<UnifiedMessagesRehost />} />
+          <Route path="overview/telemetry" element={<UnifiedTelemetryRehost />} />
+          <Route path="overview/packets" element={<UnifiedPacketsRehost />} />
+          <Route path="overview/analysis" element={<AnalysisRehost />} />
+          <Route path="overview/reports/*" element={<ReportsRehost />} />
+          <Route path="overview/automations" element={<AutomationsRehost />} />
+          <Route path="overview/users" element={<UsersRehost />} />
 
-        <Route path="*" element={<OverviewRehost />} />
+          <Route path="unified/messages" element={<UnifiedMessagesRehost />} />
+          <Route path="unified/telemetry" element={<UnifiedTelemetryRehost />} />
+          <Route path="unified/packets" element={<UnifiedPacketsRehost />} />
+          <Route path="analysis" element={<AnalysisRehost />} />
+          <Route path="reports" element={<ReportsRehost />} />
+          <Route path="automations/*" element={<AutomationsRehost />} />
+          <Route path="users" element={<UsersRehost />} />
+
+          <Route path="preferences/*" element={<GlobalSettingsRehost />} />
+          <Route path="server/*" element={<GlobalSettingsRehost />} />
+          {/* The You frame lands in Task 1.7. */}
+          <Route path="you/*" element={<OverviewRehost />} />
+
+          <Route path="*" element={<OverviewRehost />} />
+        </Route>
       </Routes>
     </Suspense>
   );
@@ -82,15 +87,13 @@ export default function WorkspaceApp() {
   return (
     <CsrfProvider>
       <AuthProvider>
-        <WebSocketProvider>
-          <SettingsProvider>
-            <ToastProvider>
-              <WorkspaceShell>
-                <WorkspaceRoutes />
-              </WorkspaceShell>
-            </ToastProvider>
-          </SettingsProvider>
-        </WebSocketProvider>
+        <SettingsProvider>
+          <ToastProvider>
+            <WorkspaceShell>
+              <WorkspaceRoutes />
+            </WorkspaceShell>
+          </ToastProvider>
+        </SettingsProvider>
       </AuthProvider>
     </CsrfProvider>
   );
