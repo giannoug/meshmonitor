@@ -42,6 +42,7 @@ import { WebSocketProvider } from './contexts/WebSocketContext';
 import { SourceProvider } from './contexts/SourceContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { installKeyboardInsetsObserver } from './utils/keyboardInsets';
+import LayoutGate from './workspace/LayoutGate';
 
 // Every page is its own lazy chunk, so a visit loads only the page it lands
 // on rather than the whole app in one ~4 MB `main` bundle. Chunks reference
@@ -190,6 +191,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <Suspense fallback={<RouteLoading />}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter basename={appBasename}>
+          {/* Classic or the Workspace, per user (#6365). The Classic route
+              table below is unchanged. */}
+          <LayoutGate classic={
           <Routes>
             {/* Standalone routes — no auth providers needed */}
             <Route path="packet-monitor" element={<PacketMonitorPage />} />
@@ -268,6 +272,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               element={sharedProviders(<DashboardPage />)}
             />
           </Routes>
+          } />
         </BrowserRouter>
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
