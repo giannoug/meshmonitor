@@ -100,7 +100,10 @@ describe('DeviceRail', () => {
     const login = await within(r).findByRole('button', { name: 'Login' });
     expect(within(r).queryByRole('link', { name: 'Your account' })).toBeNull();
     fireEvent.click(login);
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    const dialog = await screen.findByRole('dialog');
+    // Outside the rail's stacking context (fixed, z-index 20), so nothing in the shell paints over it.
+    expect(r).not.toContainElement(dialog);
+    expect(document.querySelector('[data-workspace-shell]')).not.toContainElement(dialog);
   });
 
   it('Review Focus 2: a user who can read only source A gets no square for B', async () => {

@@ -4,6 +4,7 @@
  * Global Settings for admins, and the viewer's account (or Login).
  */
 import { useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
@@ -108,7 +109,8 @@ export default function DeviceRail({ sources, openId, overviewActive, drawerTogg
             <UiIcon name="user" size={20} />
             <span className={styles.srOnly}>{t('auth.login')}</span>
           </button>
-          <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
+          {/* Portaled: the rail is a fixed stacking context (z-index 20), which would cap the dialog's own z-index. */}
+          {createPortal(<LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />, document.body)}
         </>
       )}
     </nav>
