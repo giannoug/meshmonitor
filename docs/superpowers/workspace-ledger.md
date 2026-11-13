@@ -103,3 +103,6 @@ Ruling: 1.8 r4 — every General card control saves before it updates the cache 
 - Contact sheet (private artifact): https://claude.ai/artifact/T6EKSkwVCFumU2XJpNsX19
 - CI has not run on this fork (Actions off); verified locally: lint:ci filter, full Vitest (0 failed), build + bundle check, Playwright 14 passed.
 - No PR created (requester's instruction).
+Ruling: controller Z — 2.1 new workspace.state.loading "Loading…" (today's ellipsis copy has no shared key: RouteLoading hardcodes it, common.loading_indicator uses three dots); SendsLine uses UiIcon radioSignal (no antenna icon) — cost: key/icon swap.
+Ruling: controller AA — ConfirmSheet catches a rejected onConfirm, stays open with an inline error (Error message, else errors.generic) and allows retry — why: async actions must not fail silently — cost: none.
+Ruling: controller AB — 2.1 implementer rulings below adopted.
