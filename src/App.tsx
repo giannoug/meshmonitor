@@ -66,7 +66,7 @@ import { resolveNeighborInfoErrorToast } from './utils/neighborInfoError';
 import { settingsToMatrix } from './utils/autoAckMatrix';
 import { applyHomoglyphOptimization } from './utils/homoglyph';
 import Sidebar from './components/Sidebar';
-import { SearchModal } from './components/SearchModal/SearchModal.js';
+import { SearchModal, dmPeerId, type SearchResult } from './components/SearchModal/SearchModal.js';
 import ConfigSearchHost from './components/search/ConfigSearchHost';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { MapProvider, useMapContext } from './contexts/MapContext';
@@ -3338,18 +3338,14 @@ function App() {
   // useSourceView (#3962 5.4 PR4)
 
   // Navigate to message from search result
-  const handleNavigateToMessage = useCallback((result: { id: string; source: string; channel?: number; fromNodeId?: string; fromNodeNum?: number }) => {
+  const handleNavigateToMessage = useCallback((result: SearchResult) => {
     setIsSearchOpen(false);
     setFocusMessageId(result.id);
     if (result.channel === -1) {
       setActiveTab('messages');
-      // Navigate to DM conversation with the sender
-      if (result.fromNodeId) {
-        setSelectedDMNode(result.fromNodeId);
-      } else if (result.fromNodeNum) {
-        // Fallback: convert nodeNum to hex ID format
-        setSelectedDMNode(`!${result.fromNodeNum.toString(16)}`);
-      }
+      // Open the DM with the peer, not with ourselves for a message we sent
+      const peer = dmPeerId(result, currentNodeId);
+      if (peer) setSelectedDMNode(peer);
     } else {
       setActiveTab('channels');
       // Navigate to the specific channel
@@ -3358,7 +3354,7 @@ function App() {
         selectedChannelRef.current = result.channel;
       }
     }
-  }, [setActiveTab, setSelectedDMNode, setSelectedChannel]);
+  }, [setActiveTab, setSelectedDMNode, setSelectedChannel, currentNodeId]);
 
   // Security tab adapters (#6254 S6): the tab speaks `mt:<n>` keys, this shell
   // speaks `!hex` DM node ids and a tab switch.
@@ -4092,6 +4088,7 @@ function App() {
         canSearchDms={hasPermission('messages', 'read')}
         canSearchMeshcore={false}
         sourceId={sourceId}
+        localNodeId={currentNodeId}
       />
 
       {/* Cross-page configuration search (#5182) */}

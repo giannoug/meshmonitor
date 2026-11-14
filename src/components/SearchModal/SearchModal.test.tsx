@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { SearchModal } from './SearchModal';
+import { SearchModal, dmPeerId } from './SearchModal';
 
 // Mock apiService (default export)
 vi.mock('../../services/api.js', () => ({
@@ -289,5 +289,22 @@ describe('SearchModal', () => {
       const options = Array.from(scopeSelect.querySelectorAll('option')).map(o => o.getAttribute('value'));
       expect(options).toContain('channels');
     });
+  });
+});
+
+describe('dmPeerId (DM result pick target)', () => {
+  const local = '!abcd0001';
+  const base = { id: 'dm', text: 'hi', channel: -1, timestamp: 1700000000, source: 'standard' as const };
+
+  it('opens the recipient for a DM we sent', () => {
+    expect(dmPeerId({ ...base, fromNodeId: local, toNodeId: '!abcd0002' }, local)).toBe('!abcd0002');
+  });
+
+  it('opens the sender for a DM we received', () => {
+    expect(dmPeerId({ ...base, fromNodeId: '!abcd0002', toNodeId: local }, local)).toBe('!abcd0002');
+  });
+
+  it('falls back to node numbers when ids are missing', () => {
+    expect(dmPeerId({ ...base, fromNodeNum: 0xabcd0001, toNodeNum: 0x2 }, local)).toBe('!00000002');
   });
 });

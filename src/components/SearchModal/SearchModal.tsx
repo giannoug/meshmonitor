@@ -10,7 +10,7 @@ import './SearchModal.css';
 // Reticulum has no messaging surface in Phase 1b (messaging is Phase 2/3
 // scope per the build spec), so no 'reticulum' branch is added here — doing
 // so would imply a search backend that doesn't exist yet.
-interface SearchResult {
+export interface SearchResult {
   id: string;
   text: string;
   fromNodeId?: string;
@@ -35,9 +35,21 @@ interface SearchModalProps {
   canSearchMeshcore?: boolean;
   /** Limit the search to this source (the page's current source). */
   sourceId?: string | null;
+  /** Our own node id (`!hex`), so a DM result is labelled by its peer. */
+  localNodeId?: string | null;
 }
 
 const RESULTS_PER_PAGE = 25;
+
+/**
+ * The other end of a DM result: `to` for a message we sent, `from` for one we
+ * received. `from` alone would open a DM with ourselves for our own sends.
+ */
+export function dmPeerId(result: SearchResult, localNodeId?: string | null): string | undefined {
+  const fromId = result.fromNodeId ?? (result.fromNodeNum != null ? `!${result.fromNodeNum.toString(16).padStart(8, '0')}` : undefined);
+  const toId = result.toNodeId ?? (result.toNodeNum != null ? `!${result.toNodeNum.toString(16).padStart(8, '0')}` : undefined);
+  return localNodeId && fromId === localNodeId ? toId : fromId;
+}
 
 export const SearchModal: React.FC<SearchModalProps> = ({
   isOpen,
@@ -48,6 +60,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   canSearchDms = true,
   canSearchMeshcore = false,
   sourceId,
+  localNodeId,
 }) => {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -146,15 +159,14 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     if (result.source === 'meshcore') {
       return t('search.meshcore_label');
     }
-    if (result.channel !== undefined && result.channel !== null) {
-      const ch = channels.find(c => c.id === result.channel);
-      return t('search.channel_label', { name: ch?.name || t('channels.channel_fallback', { channelNum: result.channel }) });
+    if (result.channel === -1 || result.channel == null) {
+      const peer = dmPeerId(result, localNodeId);
+      if (!peer) return '';
+      const node = nodes.find(n => n.nodeId === peer);
+      return t('search.dm_label', { name: node?.longName ?? peer });
     }
-    if (result.toNodeId) {
-      const node = nodes.find(n => n.nodeId === result.toNodeId);
-      return t('search.dm_label', { name: node?.longName ?? result.toNodeId });
-    }
-    return '';
+    const ch = channels.find(c => c.id === result.channel);
+    return t('search.channel_label', { name: ch?.name || t('channels.channel_fallback', { channelNum: result.channel }) });
   };
 
   const getSenderName = (result: SearchResult): string => {
