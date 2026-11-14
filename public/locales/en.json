@@ -8637,6 +8637,7 @@
   "workspace.activity.name_and_others_other": "{{name}} and {{count}} others",
   "workspace.activity.to_you": "to you: {{text}}",
   "workspace.activity.mark_all_read": "Mark all read",
+  "workspace.activity.mark_read_failed": "Failed to mark activity as read. Please try again.",
   "workspace.activity.empty_title": "Nothing about {{name}} yet",
   "workspace.activity.empty_detail": "Replies to its messages, reactions and @mentions of it will show up here.",
   "workspace.activity.push_phone": "Choose what also pushes to this phone",

@@ -8,15 +8,17 @@
  *   rows), so `fetchMore` walks past empty pages, up to `EMPTY_PAGE_CAP`.
  * - Last seen: the user preference `workspace.activity.<sourceId>` (ms).
  *   `unseenCount` counts loaded items newer than it; `markSeen` writes the
- *   newest item's time. An anonymous viewer has no preferences: no count, no
- *   write.
+ *   newest item's time and rejects when the write fails (`useMarkSeen` toasts).
+ *   An anonymous viewer has no preferences: no count, no write.
  * - Fresh data (Ruling N), with no timer of its own: `message:new` on the
  *   source's socket where a WebSocketProvider is above; elsewhere (the shell's
  *   bell and tab bar) a change in the unread counts the shell already polls
  *   for the device (read from the cache, never fetched here).
  */
 import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { skipToken, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useToast } from '../../components/ToastContainer';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOptionalSocket } from '../../contexts/WebSocketContext';
 import type { UnreadCountsData } from '../../hooks/useUnreadCounts';
@@ -108,8 +110,8 @@ export function useActivity(sourceId: string | null | undefined, { enabled = tru
   const newest = items[0]?.timestamp;
   const markSeen = useCallback(async () => {
     if (lastSeen === null || !sourceId || newest === undefined || newest <= lastSeen) return;
-    // A failed write rolls the pref back, so the badge stays; nothing else to undo.
-    await setPref(activityPrefKey(sourceId), newest).catch(() => undefined);
+    // A failed write rolls the pref back (the badge stays) and rejects, for the caller's toast.
+    await setPref(activityPrefKey(sourceId), newest);
   }, [lastSeen, sourceId, newest, setPref]);
 
   return {
@@ -123,4 +125,14 @@ export function useActivity(sourceId: string | null | undefined, { enabled = tru
     lastSeen,
     markSeen,
   };
+}
+
+/** Mark all read for a page or panel (inside a ToastProvider): a failed write says so, as DmInbox's. */
+export function useMarkSeen(activity: Pick<Activity, 'markSeen'>): () => void {
+  const { t } = useTranslation();
+  const { showToast } = useToast();
+  const { markSeen } = activity;
+  return useCallback(() => {
+    markSeen().catch(() => showToast(t('workspace.activity.mark_read_failed'), 'error'));
+  }, [markSeen, showToast, t]);
 }

@@ -13,13 +13,14 @@ import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import Sheet from '../patterns/Sheet';
 import { ActivityList, PushLine } from './ActivityList';
-import { useActivity } from './useActivity';
+import { useActivity, useMarkSeen } from './useActivity';
 import styles from './ActivityFeed.module.css';
 
 export default function ActivityPanel({ sourceId, deviceName }: { sourceId: string; deviceName: string }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const activity = useActivity(sourceId);
+  const markSeen = useMarkSeen(activity);
   const label = t('workspace.tabs.activity');
   const close = () => setOpen(false);
 
@@ -42,7 +43,7 @@ export default function ActivityPanel({ sourceId, deviceName }: { sourceId: stri
         side="right"
         title={t('workspace.activity.panel_title', { name: deviceName })}
         actions={
-          <button type="button" className={styles.textButton} onClick={() => void activity.markSeen()}>
+          <button type="button" className={styles.textButton} onClick={markSeen}>
             {t('workspace.activity.mark_all_read')}
           </button>
         }

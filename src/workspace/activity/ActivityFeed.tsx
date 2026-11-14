@@ -26,7 +26,7 @@ import { canReadMessages } from '../shell/deviceTabs';
 import { useShellDevices } from '../shell/shellDevices';
 import { useIsPhone } from '../shell/useIsPhone';
 import { ActivityList, PushLine } from './ActivityList';
-import { useActivity } from './useActivity';
+import { useActivity, useMarkSeen } from './useActivity';
 import threadStyles from '../chat/ChannelThread.module.css';
 import styles from './ActivityFeed.module.css';
 
@@ -51,6 +51,7 @@ function ActivityPage({ sourceId, deviceName }: { sourceId: string; deviceName: 
   useChatRuntime(-1);
   const canRead = canReadMessages(hasPermission, sourceId);
   const activity = useActivity(sourceId, { enabled: canRead });
+  const markSeen = useMarkSeen(activity);
   const [menu, setMenu] = useState(false);
   const markAll = (
     <button
@@ -58,7 +59,7 @@ function ActivityPage({ sourceId, deviceName }: { sourceId: string; deviceName: 
       className={styles.textButton}
       onClick={() => {
         setMenu(false);
-        void activity.markSeen();
+        markSeen();
       }}
     >
       {t('workspace.activity.mark_all_read')}

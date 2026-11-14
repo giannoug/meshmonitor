@@ -55,6 +55,21 @@ describe('c-home-e6-desktop-activity', () => {
     expect(await within(await sidebar()).findByRole('button', { name: 'Activity' })).toBeInTheDocument();
   });
 
+  it('a failed Mark all read says so and keeps the badge', async () => {
+    await openPanel({
+      fixtures: {
+        'PUT /api/user/preferences/:key': () =>
+          new Response(JSON.stringify({ success: false, error: 'boom', code: 'INTERNAL_ERROR' }), {
+            status: 500,
+            headers: { 'content-type': 'application/json' },
+          }),
+      },
+    });
+    fireEvent.click(within(await panel()).getByRole('button', { name: 'Mark all read' }));
+    expect(await screen.findByText('Failed to mark activity as read. Please try again.')).toBeInTheDocument();
+    expect(within(await sidebar()).getByRole('button', { name: 'Activity, 3 unread' })).toBeInTheDocument();
+  });
+
   it('a row opens the conversation at that message and closes the panel', async () => {
     Element.prototype.scrollIntoView = () => {};
     await openPanel();
