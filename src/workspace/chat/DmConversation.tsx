@@ -53,6 +53,7 @@ import ReadOnlyNote from './ReadOnlyNote';
 import TracerouteStripD from './TracerouteStripD';
 import { replyIdOf } from './channelLabel';
 import { useChatRuntime } from './useChatRuntime';
+import { useSearchFocus } from './useSearchFocus';
 import styles from './ChannelThread.module.css';
 import dmStyles from './DmConversation.module.css';
 
@@ -63,6 +64,7 @@ export interface DmConversationRouteProps {
 }
 
 export default function DmConversationRoute({ sourceId, source, nodeId }: DmConversationRouteProps) {
+  useSearchFocus();
   return (
     <ChatProviders sourceId={sourceId} source={source} classicTab="messages">
       <DmConversation nodeId={nodeId} deviceName={source.name} />

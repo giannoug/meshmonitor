@@ -30,22 +30,17 @@ import styles from './SearchMessages.module.css';
 export interface SearchMessagesProps {
   source: WorkspaceSource;
   phone: boolean;
+  /** The panel shows only while open; the search (text, filters, results) lives as long as this component. */
+  open: boolean;
   onClose(): void;
 }
 
-export default function SearchMessages(props: SearchMessagesProps) {
-  return createPortal(<SearchPanel {...props} />, document.body);
-}
-
-function SearchPanel({ source, phone, onClose }: SearchMessagesProps) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
+/**
+ * Mounted by the shell for the open device (keyed by it), so the search survives close and reopen as
+ * today's always-mounted SearchModal does, and another device starts blank.
+ */
+export default function SearchMessages({ source, phone, open, onClose }: SearchMessagesProps) {
   const { hasPermission } = useAuth();
-  const { contentRef, onKeyDown } = useDialogA11y(onClose);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const ids = { title: useId(), scope: useId(), channel: useId(), sender: useId(), from: useId(), to: useId() };
-  useEffect(() => inputRef.current?.focus(), []);
-
   // The device's channels, nodes and local node, from the poll its page holds (no fetch of its own).
   const { data: poll } = useQuery<PollData>({ queryKey: sourcePollQueryKey(source.id), queryFn: skipToken });
   const scoped = { sourceId: source.id };
@@ -68,6 +63,28 @@ function SearchPanel({ source, phone, onClose }: SearchMessagesProps) {
   const local = (poll?.deviceConfig?.basic?.nodeId as string | undefined) || poll?.config?.localNodeInfo?.nodeId;
   const canSearchDms = hasPermission('messages', 'read', scoped);
   const s = useMessageSearch({ canSearchDms, canSearchMeshcore: false, channelCount: channels.length, sourceId: source.id });
+  if (!open) return null;
+  return createPortal(
+    <SearchPanel {...{ source, phone, onClose, s, channels, nodes, local, canSearchDms }} />,
+    document.body,
+  );
+}
+
+interface SearchPanelProps extends Omit<SearchMessagesProps, 'open'> {
+  s: ReturnType<typeof useMessageSearch>;
+  channels: Array<{ id: number; name: string }>;
+  nodes: Array<{ nodeId: string; longName: string; shortName: string }>;
+  local: string | undefined;
+  canSearchDms: boolean;
+}
+
+function SearchPanel({ source, phone, onClose, s, channels, nodes, local, canSearchDms }: SearchPanelProps) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { contentRef, onKeyDown } = useDialogA11y(onClose);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const ids = { title: useId(), scope: useId(), channel: useId(), sender: useId(), from: useId(), to: useId() };
+  useEffect(() => inputRef.current?.focus(), []);
 
   const isDm = (r: SearchResult) => r.channel === undefined || r.channel === null || r.channel === -1;
   // The other end of a DM: ours go to `to`, theirs come from `from`.
@@ -88,7 +105,10 @@ function SearchPanel({ source, phone, onClose }: SearchMessagesProps) {
   const pick = (r: SearchResult) => {
     const base = `/source/${encodeURIComponent(source.id)}`;
     onClose();
-    void navigate(isDm(r) ? `${base}/dm/${encodeURIComponent(peerOf(r))}` : `${base}/channel/${r.channel}`);
+    // The conversation scrolls to and highlights the message (useFocusMessage), as App's focusMessageId.
+    void navigate(isDm(r) ? `${base}/dm/${encodeURIComponent(peerOf(r))}` : `${base}/channel/${r.channel}`, {
+      state: { focusMessageId: r.id },
+    });
   };
 
   const showChannelFilter = (s.scope === 'all' || s.scope === 'channels') && channels.length > 0;

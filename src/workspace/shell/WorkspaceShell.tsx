@@ -131,8 +131,9 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', onKey, true);
   }, [searchable, canSearch]);
   const openSearch = canSearch ? () => setSearchOpen(true) : null;
-  const search = searchOpen && canSearch && source && (
-    <SearchMessages source={source} phone={isPhone} onClose={() => setSearchOpen(false)} />
+  // Kept mounted per device, so the search survives close and reopen (today's SearchModal is always mounted).
+  const search = canSearch && source && (
+    <SearchMessages key={source.id} source={source} phone={isPhone} open={searchOpen} onClose={() => setSearchOpen(false)} />
   );
 
   useHashChangeOnNavigate(location.hash);

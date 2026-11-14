@@ -63,6 +63,7 @@ import ReadOnlyNote from './ReadOnlyNote';
 import { channelLabel, heardToday, replyIdOf } from './channelLabel';
 import { useChannelDatabaseEntries } from './useChannelDatabaseEntries';
 import { useChatRuntime } from './useChatRuntime';
+import { useSearchFocus } from './useSearchFocus';
 import styles from './ChannelThread.module.css';
 
 export interface ChannelThreadRouteProps {
@@ -74,6 +75,7 @@ export interface ChannelThreadRouteProps {
 
 /** The providers App mounts for itself, with Classic's `/channels` location. */
 export default function ChannelThreadRoute({ sourceId, source, channel, view }: ChannelThreadRouteProps) {
+  useSearchFocus();
   return (
     <ChatProviders sourceId={sourceId} source={source} classicTab="channels">
       <ChannelThread channel={channel} view={view} deviceName={source.name} />

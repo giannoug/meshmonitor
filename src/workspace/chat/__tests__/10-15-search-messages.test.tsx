@@ -11,7 +11,7 @@ import type { ReactNode } from 'react';
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
-import { SOURCE_IDS } from '../../__fixtures__/athens';
+import { athensFixture, SOURCE_IDS } from '../../__fixtures__/athens';
 import { renderChat } from './renderChat';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
@@ -79,6 +79,47 @@ describe('10-15-search-messages', () => {
     await search();
     fireEvent.keyDown(document, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Search Messages' })).toBeNull());
+  });
+
+  it('keeps the search across close and reopen, as today\'s always-mounted modal', async () => {
+    const { d } = await search();
+    fireEvent.click(d.getByRole('button', { name: /Anyone hearing the Hymettus relay/ }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Search Messages' })).toBeNull());
+    fireEvent.keyDown(document, { key: 'k', metaKey: true });
+    const again = within(await dialog());
+    expect(again.getByRole('textbox', { name: 'Search for text in messages...' })).toHaveValue('relay');
+    expect(again.getByText('Showing 5 of 31 results')).toBeInTheDocument();
+  });
+
+  it('another device starts a blank search', async () => {
+    const { d } = await search();
+    fireEvent.click(d.getByRole('button', { name: 'Close' }));
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Devices' })).getByRole('link', { name: /^Athens MQTT/ }));
+    const side = within(await screen.findByRole('complementary', { name: 'Athens MQTT' }));
+    fireEvent.click(side.getByRole('button', { name: /^Search Messages/ }));
+    const fresh = within(await dialog());
+    expect(fresh.getByRole('textbox', { name: 'Search for text in messages...' })).toHaveValue('');
+    expect(fresh.queryByText(/Showing/)).toBeNull();
+  });
+
+  it.each([
+    // The poll's own rows, so the opened conversation holds them: a DM (Athens Rover) and a LongFast message.
+    ['a DM', 5, 0xa1b2c302, '!a1b2c300', -1, 'Heading up Hymettus, will relay this morning'],
+    ['a channel message', 3, 0xa1b2c303, '!ffffffff', 0, 'Glyfada Beach checking in'],
+  ])('picking %s scrolls to it and highlights it, as today', async (_kind, n, fromNum, toNodeId, channel, text) => {
+    const id = `${SOURCE_IDS.g2}_${fromNum}_${n}`;
+    const hit = { ...athensFixture.searchResults[0], id, fromNodeId: `!${fromNum.toString(16)}`, fromNodeNum: fromNum, toNodeId, channel, text };
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');
+    const { d } = await search(channel === -1 ? `${g2}/channel/0` : `${g2}/dms`, {
+      fixtures: { 'GET /api/messages/search': () => ({ success: true, count: 5, total: 31, data: [hit, ...athensFixture.searchResults.slice(1)] }) },
+    });
+    fireEvent.click(d.getByRole('button', { name: new RegExp(text.slice(0, 20)) }));
+    await waitFor(() => {
+      const row = document.querySelector(`[data-message-id="${id}"]`)!;
+      expect(row).not.toBeNull();
+      expect(scroll.mock.contexts).toContain(row);
+      expect(row.className).toMatch(/searchHighlight/);
+    });
   });
 
   it('Load More asks for the next page', async () => {

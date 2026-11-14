@@ -8625,6 +8625,7 @@
   "workspace.home.tools": "Tools",
   "workspace.home.all_dms": "All direct messages",
   "workspace.dms.you_prefix": "You: {{text}}",
+  "workspace.dms.mark_read_failed": "Failed to mark messages as read. Please try again.",
   "workspace.search.shortcut_mac": "⌘K",
   "workspace.search.shortcut_other": "Ctrl+K",
   "workspace.search.pick_hint": "Pick one to open it in its conversation",

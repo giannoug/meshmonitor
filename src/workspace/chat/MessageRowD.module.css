@@ -238,3 +238,14 @@ button.chip:focus-visible {
   flex-wrap: wrap;
   gap: 4px 10px;
 }
+
+/* A message picked in message search (useSearchFocus): today's 3 s pulse (SearchModal.css). */
+@keyframes searchPulse {
+  0% { background-color: color-mix(in srgb, var(--color-warning) 30%, transparent); }
+  50% { background-color: color-mix(in srgb, var(--color-warning) 15%, transparent); }
+  100% { background-color: transparent; }
+}
+
+.searchHighlight {
+  animation: searchPulse 3s ease-out forwards;
+}

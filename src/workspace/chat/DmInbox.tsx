@@ -19,6 +19,7 @@ import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
+import { useToast } from '../../components/ToastContainer';
 import { DmFilterSelect } from '../../components/messages/DmFilterSelect';
 import { MarkAllReadButton } from '../../components/messages/MarkAllReadButton';
 import { useAuth } from '../../contexts/AuthContext';
@@ -30,9 +31,10 @@ import { appBasename } from '../../init';
 import type { DeviceInfo } from '../../types/device';
 import type { DmFilter } from '../../types/ui';
 import { formatRelativeTime } from '../../utils/datetime';
-import { passesDmFilter } from '../../utils/dmListFilter';
+import { compareDmListEntries, matchesDmListSearch, passesDmFilter } from '../../utils/dmListFilter';
+import { getMessageContentMatchNodeIds } from '../../utils/messageContentFilter';
 import { formatMessagePreview } from '../../utils/messagePreview';
-import { hasValidPosition, isInfrastructureNode } from '../../utils/nodeHelpers';
+import { hasValidPosition, isInfrastructureNode, isNodeComplete } from '../../utils/nodeHelpers';
 import { getEffectiveHops } from '../../utils/nodeHops';
 import StateView from '../patterns/StateView';
 import { useIsPhone } from '../shell/useIsPhone';
@@ -55,13 +57,13 @@ export default function DmInboxRoute({ sourceId, source }: DmInboxRouteProps) {
   );
 }
 
-interface Row {
-  node: DeviceInfo;
+/** A conversation row: the peer node as Classic's DM list sorts it, plus what the row shows. */
+interface Row extends DeviceInfo {
   id: string;
   name: string;
-  lastTime: number;
+  unreadCount: number;
+  lastMessageTime: number;
   preview: string;
-  unread: number;
   pinned: boolean;
 }
 
@@ -70,10 +72,11 @@ function DmInbox({ sourceId, deviceName }: { sourceId: string; deviceName: strin
   const isPhone = useIsPhone();
   const { authStatus, hasPermission } = useAuth();
   const { pollData: poll } = useChatRuntime(-1);
-  const { nodeHopsCalculation, timeFormat, dateFormat } = useSettings();
+  const { nodeHopsCalculation, hideIncompleteNodes, timeFormat, dateFormat } = useSettings();
   const canRead = hasPermission('messages', 'read', { sourceId });
   const { data: unread } = useUnreadCounts({ baseUrl: appBasename, sourceId, enabled: authStatus?.authenticated === true });
   const { mutateAsync: markRead } = useMarkAsRead({ baseUrl: appBasename });
+  const { showToast } = useToast();
   const [sticky, toggleSticky] = useStickyDmNodes();
   const [filter, setFilter] = useState<DmFilter>('all');
   const [query, setQuery] = useState('');
@@ -82,8 +85,8 @@ function DmInbox({ sourceId, deviceName }: { sourceId: string; deviceName: strin
   const rows = useMemo<Row[]>(() => {
     const local = (poll?.deviceConfig?.basic?.nodeId as string | undefined) || poll?.config?.localNodeInfo?.nodeId;
     const localNum = local ? parseInt(local.slice(1), 16) : null;
-    // Each peer's DMs, from the poll the screen holds.
-    const byPeer = new Map<string, { last: { text: string; time: number; ours: boolean }; texts: string[] }>();
+    // Each peer's latest DM, from the poll the screen holds.
+    const byPeer = new Map<string, { text: string; time: number; ours: boolean }>();
     for (const m of poll?.messages ?? []) {
       if (m.channel !== -1) continue;
       const ours = m.fromNodeId === local;
@@ -91,57 +94,57 @@ function DmInbox({ sourceId, deviceName }: { sourceId: string; deviceName: strin
       if (!peer || peer === local) continue;
       // getMessageSortTime's rule (receive time, else send time) on the poll's raw rows.
       const time = new Date(m.receivedAt ?? m.timestamp).getTime();
-      const entry = byPeer.get(peer) ?? { last: { text: '', time: -1, ours }, texts: [] };
-      entry.texts.push((m.text ?? '').toLowerCase());
-      if (time > entry.last.time) entry.last = { text: m.text ?? '', time, ours };
-      byPeer.set(peer, entry);
+      if (time > (byPeer.get(peer)?.time ?? -1)) byPeer.set(peer, { text: m.text ?? '', time, ours });
     }
-    const term = query.trim().toLowerCase();
-    const hopsOf = (n: DeviceInfo) => getEffectiveHops(n, nodeHopsCalculation, poll?.traceroutes, localNum);
+    // Classic's list rules (MessagesTab): the filter field (with #3922's message match), Hide Incomplete
+    // Nodes and the DM filter; a pinned row skips all three.
+    const contentMatchIds = getMessageContentMatchNodeIds(poll?.messages ?? [], query);
     return (poll?.nodes ?? [])
       .flatMap((node): Row[] => {
         const id = node.user?.id;
         if (!id || id === local) return [];
-        const dms = byPeer.get(id);
+        const last = byPeer.get(id);
         const pinned = sticky.has(node.nodeNum);
         // Without a search, the inbox is conversations (and pins); a search reaches every node.
-        if (!term && !dms && !pinned) return [];
-        const name = node.user?.longName || t('messages.node_fallback', { nodeNum: node.nodeNum });
-        if (
-          term &&
-          !name.toLowerCase().includes(term) &&
-          !node.user?.shortName?.toLowerCase().includes(term) &&
-          !id.toLowerCase().includes(term) &&
-          !dms?.texts.some((text) => text.includes(term))
-        ) {
-          return [];
-        }
-        const count = unread?.directMessages[id] ?? 0;
-        const lastTime = dms ? dms.last.time : 0;
+        if (!query && !last && !pinned) return [];
+        const unreadCount = unread?.directMessages[id] ?? 0;
+        const lastMessageTime = last ? last.time : 0;
         if (
           !pinned &&
-          !passesDmFilter(
-            { unread: count > 0, lastMessageTime: lastTime, isFavorite: node.isFavorite === true, hasPosition: hasValidPosition(node), isInfrastructure: isInfrastructureNode(node) },
-            filter,
-          )
+          (!matchesDmListSearch(node, query, contentMatchIds) ||
+            (hideIncompleteNodes && !isNodeComplete(node)) ||
+            !passesDmFilter(
+              {
+                unread: unreadCount > 0,
+                lastMessageTime,
+                isFavorite: node.isFavorite === true,
+                hasPosition: hasValidPosition(node),
+                isInfrastructure: isInfrastructureNode(node),
+              },
+              filter,
+            ))
         ) {
           return [];
         }
-        const text = dms ? formatMessagePreview(dms.last.text) : '';
-        const preview = dms ? (dms.last.ours ? t('workspace.dms.you_prefix', { text }) : text) : t('messages.no_messages_preview');
-        return [{ node, id, name, lastTime, preview, unread: count, pinned }];
+        const name = node.user?.longName || t('messages.node_fallback', { nodeNum: node.nodeNum });
+        const text = last ? formatMessagePreview(last.text) : '';
+        const preview = last ? (last.ours ? t('workspace.dms.you_prefix', { text }) : text) : t('messages.no_messages_preview');
+        return [{ ...node, id, name, unreadCount, lastMessageTime, preview, pinned }];
       })
-      .sort((a, b) => {
-        // Today's order (MessagesTab): pinned, then unread (newest first), then hops for the hop-based filters,
-        // else favourites, latest message, last heard, name.
-        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-        if (a.unread > 0 !== b.unread > 0) return a.unread > 0 ? -1 : 1;
-        if (a.unread > 0 && b.lastTime !== a.lastTime) return b.lastTime - a.lastTime;
-        if (['hops', 'favorites', 'withPosition', 'noInfra'].includes(filter)) return hopsOf(a.node) - hopsOf(b.node);
-        if (!!a.node.isFavorite !== !!b.node.isFavorite) return a.node.isFavorite ? -1 : 1;
-        return b.lastTime - a.lastTime || (b.node.lastHeard ?? 0) - (a.node.lastHeard ?? 0) || a.name.localeCompare(b.name);
-      });
-  }, [poll, unread, sticky, filter, query, nodeHopsCalculation, t]);
+      .sort((a, b) =>
+        compareDmListEntries(a, b, sticky, filter, (n) => getEffectiveHops(n, nodeHopsCalculation, poll?.traceroutes, localNum)),
+      );
+  }, [poll, unread, sticky, filter, query, hideIncompleteNodes, nodeHopsCalculation, t]);
+
+  // As Classic's markMessagesAsRead: log a failure; and say so, since nothing else on this screen would.
+  const markAllRead = async () => {
+    try {
+      await markRead({ allDMs: true, sourceId });
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+      showToast(t('workspace.dms.mark_read_failed'), 'error');
+    }
+  };
 
   const totalUnread = Object.values(unread?.directMessages ?? {}).reduce((sum, n) => sum + n, 0);
 
@@ -188,7 +191,7 @@ function DmInbox({ sourceId, deviceName }: { sourceId: string; deviceName: strin
                 title={t('messages.mark_all_read_title')}
                 unreadCount={totalUnread}
                 confirmMessage={t('workspace.chat.mark_read_confirm')}
-                onMarkAll={() => markRead({ allDMs: true, sourceId })}
+                onMarkAll={markAllRead}
               />
             </div>
           </div>
@@ -197,20 +200,20 @@ function DmInbox({ sourceId, deviceName }: { sourceId: string; deviceName: strin
               <li key={r.id} className={styles.item}>
                 <Link
                   to={`/source/${encodeURIComponent(sourceId)}/dm/${encodeURIComponent(r.id)}`}
-                  className={`${styles.link} ${r.unread > 0 ? styles.unread : ''}`}
+                  className={`${styles.link} ${r.unreadCount > 0 ? styles.unread : ''}`}
                 >
                   <span className={styles.avatar} aria-hidden="true">
-                    {r.node.user?.shortName || '?'}
-                    <span className={styles.presence} data-presence={isHeardRecently(r.node.lastHeard) ? 'online' : 'offline'} />
+                    {r.user?.shortName || '?'}
+                    <span className={styles.presence} data-presence={isHeardRecently(r.lastHeard) ? 'online' : 'offline'} />
                   </span>
                   <span className={styles.text}>
                     <span className={styles.line}>
                       <span className={styles.name}>{r.name}</span>
-                      {r.lastTime > 0 && <span className={styles.time}>{formatRelativeTime(r.lastTime, timeFormat, dateFormat)}</span>}
+                      {r.lastMessageTime > 0 && <span className={styles.time}>{formatRelativeTime(r.lastMessageTime, timeFormat, dateFormat)}</span>}
                     </span>
                     <span className={styles.line}>
                       <span className={styles.preview}>{r.preview}</span>
-                      {r.unread > 0 && <span className={styles.badge}>{r.unread}</span>}
+                      {r.unreadCount > 0 && <span className={styles.badge}>{r.unreadCount}</span>}
                     </span>
                   </span>
                 </Link>
@@ -219,7 +222,7 @@ function DmInbox({ sourceId, deviceName }: { sourceId: string; deviceName: strin
                   className={`${styles.pin} ${r.pinned ? styles.pinned : ''}`}
                   aria-pressed={r.pinned}
                   title={t(r.pinned ? 'messages.unpin_node' : 'messages.pin_node')}
-                  onClick={() => toggleSticky(r.node.nodeNum)}
+                  onClick={() => toggleSticky(r.nodeNum)}
                 >
                   <UiIcon name="pin" size={18} />
                   <span className={threadStyles.srOnly}>{`${t(r.pinned ? 'messages.unpin_node' : 'messages.pin_node')}: ${r.name}`}</span>

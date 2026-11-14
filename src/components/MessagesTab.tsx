@@ -17,7 +17,7 @@ import { MarkAllReadButton } from './messages/MarkAllReadButton';
 import { DmFilterSelect } from './messages/DmFilterSelect';
 import { useStickyDmNodes } from '../hooks/useStickyDmNodes';
 import { NodeStatChips } from './nodes/NodeStatChips';
-import { passesDmFilter } from '../utils/dmListFilter';
+import { compareDmListEntries, matchesDmListSearch, passesDmFilter } from '../utils/dmListFilter';
 import { formatMessagePreview } from '../utils/messagePreview';
 import { TimeFormat, DateFormat, useNotificationMuteSettings } from '../contexts/SettingsContext';
 import {
@@ -85,6 +85,7 @@ import {
   useNodeNamesToken,
 } from './messages/messageRowSupport';
 import type { TranslatedMessageState } from './translation/TranslatedMessage';
+import { useScrollToFocusedMessage } from '../hooks/useScrollToFocusedMessage';
 
 /** The latest handlers behind the stable row callbacks (see `rowActions`). */
 interface RowLatest {
@@ -515,19 +516,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
   }, [showNodeInfoChannelDropdown]);
 
   // Scroll to and highlight a focused message from search
-  useEffect(() => {
-    if (!focusMessageId) return;
-    const timer = setTimeout(() => {
-      const el = document.querySelector(`[data-message-id="${CSS.escape(focusMessageId)}"]`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.classList.add('search-highlight');
-        setTimeout(() => el.classList.remove('search-highlight'), 3000);
-      }
-      onFocusMessageHandled?.();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [focusMessageId, onFocusMessageHandled]);
+  useScrollToFocusedMessage(focusMessageId, onFocusMessageHandled);
 
   // One-off reads/writes of the compose draft (bell, translate). Doesn't
   // subscribe: only MessageComposeInput re-renders on a keystroke.
@@ -1079,30 +1068,6 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
       };
     });
 
-  // Sort by hops (ascending, 0 first, unknown last)
-  const sortByHops = (a: NodeWithMessages, b: NodeWithMessages): number => {
-    const aHops = getEffectiveHops(a, nodeHopsCalculation, traceroutes, currentNodeNum);
-    const bHops = getEffectiveHops(b, nodeHopsCalculation, traceroutes, currentNodeNum);
-    return aHops - bHops;
-  };
-
-  // Default sort: favorites first, then by last message time, then by last heard
-  const sortDefault = (a: NodeWithMessages, b: NodeWithMessages): number => {
-    if (a.isFavorite && !b.isFavorite) return -1;
-    if (!a.isFavorite && b.isFavorite) return 1;
-
-    // 1. Prioritize nodes with messages (most recent message first; lastMessageTime is ms)
-    const msgDiff = (b.lastMessageTime || 0) - (a.lastMessageTime || 0);
-    if (msgDiff !== 0) return msgDiff;
-
-    // 2. Fallback for nodes without message history (or tied): most recently heard first (lastHeard is seconds)
-    const heardDiff = (b.lastHeard || 0) - (a.lastHeard || 0);
-    if (heardDiff !== 0) return heardDiff;
-
-    // 3. Deterministic alphabetical fallback
-    return (a.user?.longName || `Node ${a.nodeNum}`).localeCompare(b.user?.longName || `Node ${b.nodeNum}`);
-  };
-
   // Sort and filter nodes based on dmFilter
   const sortedNodesWithMessages = [...nodesWithMessages]
     .filter(node => {
@@ -1121,34 +1086,9 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
         dmFilter
       );
     })
-    .sort((a, b) => {
-      // Sticky nodes always come first. Sticky is a deliberate user pin, so it
-      // outranks the unread-first rule below (#6115 decision: sticky > unread).
-      const aSticky = stickyNodes.has(a.nodeNum);
-      const bSticky = stickyNodes.has(b.nodeNum);
-      if (aSticky && !bSticky) return -1;
-      if (!aSticky && bSticky) return 1;
-
-      // #6115: conversations with unread DMs sort to the top — ahead of
-      // favorites and of every filter's ordering — newest message first. A new
-      // DM from a non-favorite node must not sit below favorites or get buried
-      // by a hops-based filter.
-      const aUnread = a.unreadCount > 0;
-      const bUnread = b.unreadCount > 0;
-      if (aUnread && !bUnread) return -1;
-      if (!aUnread && bUnread) return 1;
-      if (aUnread && bUnread) {
-        const unreadMsgDiff = (b.lastMessageTime || 0) - (a.lastMessageTime || 0);
-        if (unreadMsgDiff !== 0) return unreadMsgDiff;
-      }
-
-      // For hops-based filters, sort by hops ascending
-      if (['hops', 'favorites', 'withPosition', 'noInfra'].includes(dmFilter)) {
-        return sortByHops(a, b);
-      }
-      // Default sort: favorites first, then by last message time, then by last heard
-      return sortDefault(a, b);
-    });
+    .sort((a, b) =>
+      compareDmListEntries(a, b, stickyNodes, dmFilter, n => getEffectiveHops(n, nodeHopsCalculation, traceroutes, currentNodeNum))
+    );
 
   // Filter for display
   const filteredNodes = sortedNodesWithMessages.filter(node => {
@@ -1167,15 +1107,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
       const nodeChannel = node.channel ?? 0;
       if (nodeChannel !== channelFilter) return false;
     }
-    if (!messagesNodeFilter) return true;
-    const searchTerm = messagesNodeFilter.toLowerCase();
-    return (
-      node.user?.longName?.toLowerCase().includes(searchTerm) ||
-      node.user?.shortName?.toLowerCase().includes(searchTerm) ||
-      node.user?.id?.toLowerCase().includes(searchTerm) ||
-      // Issue #3922: also match conversations by message content.
-      (node.user?.id ? messageContentMatchNodeIds.has(node.user.id) : false)
-    );
+    return matchesDmListSearch(node, messagesNodeFilter, messageContentMatchNodeIds);
   });
 
   // Options for the mobile "Select a conversation" <select>, built from the
@@ -1185,15 +1117,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
   const mobileDropdownOptions = sortedNodesWithMessages
     .filter(node => {
       if (!showIncompleteNodes && !isNodeComplete(node)) return false;
-      if (!messagesNodeFilter) return true;
-      const searchTerm = messagesNodeFilter.toLowerCase();
-      return (
-        node.user?.longName?.toLowerCase().includes(searchTerm) ||
-        node.user?.shortName?.toLowerCase().includes(searchTerm) ||
-        node.user?.id?.toLowerCase().includes(searchTerm) ||
-        // Issue #3922: also match conversations by message content.
-        (node.user?.id ? messageContentMatchNodeIds.has(node.user.id) : false)
-      );
+      return matchesDmListSearch(node, messagesNodeFilter, messageContentMatchNodeIds);
     })
     .map(node => {
       const displayName = node.user?.longName || `Node ${node.nodeNum}`;

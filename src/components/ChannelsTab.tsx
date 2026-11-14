@@ -51,6 +51,7 @@ import {
   useNodeNamesToken,
 } from './messages/messageRowSupport';
 import type { TranslatedMessageState } from './translation/TranslatedMessage';
+import { useScrollToFocusedMessage } from '../hooks/useScrollToFocusedMessage';
 
 /** The latest handlers behind the stable row callbacks (see `rowActions`). */
 interface RowLatest {
@@ -492,20 +493,7 @@ export default function ChannelsTab({
   }, [channelMessagesContainerRef, selectedChannel, shouldShowData]);
 
   // Scroll to and highlight a focused message from search
-  useEffect(() => {
-    if (!focusMessageId) return;
-    // Delay to allow React to render the channel's messages after tab/channel switch
-    const timer = setTimeout(() => {
-      const el = document.querySelector(`[data-message-id="${CSS.escape(focusMessageId)}"]`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.classList.add('search-highlight');
-        setTimeout(() => el.classList.remove('search-highlight'), 3000);
-      }
-      onFocusMessageHandled?.();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [focusMessageId, onFocusMessageHandled]);
+  useScrollToFocusedMessage(focusMessageId, onFocusMessageHandled);
 
   // Helper: get channel name
   const getChannelName = (channelNum: number): string => {

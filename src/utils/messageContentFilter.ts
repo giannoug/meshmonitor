@@ -29,7 +29,7 @@ import type { MeshMessage } from '../types/message.js';
  * @returns A set of node IDs (e.g. `!abcd1234`) with at least one matching DM.
  */
 export function getMessageContentMatchNodeIds(
-  messages: MeshMessage[],
+  messages: ReadonlyArray<Pick<MeshMessage, 'channel' | 'portnum' | 'to' | 'from' | 'text'>>,
   filter: string,
   minLength = 2,
 ): Set<string> {
