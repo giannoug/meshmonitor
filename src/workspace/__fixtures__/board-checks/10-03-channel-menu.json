@@ -1,19 +1,19 @@
 {
   "must": [
-    "Channel info",
+    "Channel Information",
     "Encryption",
     "Show",
     "Uplink",
     "Downlink",
     "AEAD",
     "Location",
-    "Purge all messages",
+    "Purge All Messages",
     "Danger zone",
     "Mute",
     "1 hour",
     "1 week",
-    "Mark all as read",
-    "Show MQTT messages",
+    "Mark all as Read",
+    "Show MQTT/Bridge Messages",
     "Beacons"
   ],
   "absent": [],

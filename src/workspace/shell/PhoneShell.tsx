@@ -2,7 +2,7 @@
  * The phone frame, below 768 px (D8; boards a-chat-D-phone, c-home-e2-switcher,
  * s1-you): a header naming the open device (or the Overview) that opens the
  * device switcher, the page, and the tab bar. You, Preferences and Server
- * pages have no device header.
+ * pages, and a channel conversation (its own header), have no device header.
  *
  * Re-hosted Classic pages reserve room for their own header and bottom bar
  * from `--app-header-height` and `--app-nav-bar-height`; here those carry the
@@ -13,7 +13,7 @@ import { matchPath, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import type { SidebarMode } from './DeviceSidebar';
-import { statusLabel } from './deviceTabs';
+import { isMeshtasticFamily, statusLabel } from './deviceTabs';
 import DeviceSwitcherSheet from './DeviceSwitcherSheet';
 import TabBar, { type PhoneTab } from './TabBar';
 import type { WorkspaceSource } from './useWorkspaceSources';
@@ -45,8 +45,10 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
   // Following a row (or any link) closes the switcher.
   useEffect(() => setSwitcherOpen(false), [pathname]);
 
-  const showHeader = mode !== 'you' && mode !== 'server';
   const source = sources.find((s) => s.id === openId);
+  // A Meshtastic channel conversation draws its own header (boards 10-06, 10-14).
+  const ownHeader = !!source && isMeshtasticFamily(source.type) && !!matchPath('/source/:id/channel/*', pathname);
+  const showHeader = mode !== 'you' && mode !== 'server' && !ownHeader;
   const title = source?.name ?? t('workspace.shell.overview');
   const active = source?.live?.activeNodeCount;
   const status =

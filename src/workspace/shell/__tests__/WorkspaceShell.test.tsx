@@ -150,7 +150,7 @@ describe('DeviceSidebar', () => {
       ['Automation', '/source/src-g2/automation'],
       ['Device Configuration', '/source/src-g2/settings'],
       ['More tools…', '/source/src-g2/info'],
-      ['Open channels', '/source/src-g2/channels'],
+      // Channels lists the device's channels from the page's poll (Task 2.3; none here).
       ['Message a node', '/source/src-g2/messages'],
     ]);
   });

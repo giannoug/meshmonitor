@@ -22,6 +22,11 @@ export function familyOf(type: string): 'meshtastic' | 'meshcore' | 'reticulum' 
   return 'meshtastic';
 }
 
+/** Sources that Classic serves with App (Meshtastic TCP and the MQTT types): the Workspace chat's scope. */
+export function isMeshtasticFamily(type: string): boolean {
+  return familyOf(type) === 'meshtastic' && type !== 'meshcore_mqtt';
+}
+
 /** Today's words for a device's state. */
 export function statusLabel(t: TFunction, status: WorkspaceSource['status']): string {
   return {

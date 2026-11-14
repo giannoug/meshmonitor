@@ -1,0 +1,160 @@
+/*
+ * A channel in layout D (boards 10-06, 10-03, a-chat-D-desktop): header,
+ * messages, composer. Fixed to the page column (the shell keeps the window as
+ * the scroller for re-hosted pages; the conversation scrolls inside itself).
+ */
+.page {
+  position: fixed;
+  top: var(--app-header-height);
+  right: 0;
+  bottom: var(--app-nav-bar-height);
+  left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.header {
+  flex: none;
+  min-height: 64px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--color-surface);
+}
+
+.page[data-phone] .header {
+  padding: 8px 12px;
+}
+
+.titles {
+  min-width: 0;
+  flex: 1;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tools {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.button {
+  min-height: 36px;
+  min-width: 36px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--color-surface-hover);
+}
+
+.buttonOn,
+.buttonOn:hover {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.button:focus-visible,
+.icon:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.badge {
+  min-width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-danger);
+  color: var(--color-bg);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* A short conversation sits at the bottom, by the composer (and still scrolls when long). */
+.messages::before {
+  content: '';
+  margin-top: auto;
+}
+
+.page[data-phone] .messages {
+  padding: 12px 16px;
+}
+
+.empty {
+  margin: 24px;
+  text-align: center;
+  color: var(--color-text-subtle);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

@@ -3,12 +3,10 @@
     "Athens MQTT",
     "no radio",
     "Open on Station G2",
-    "Organise",
-    "Data",
     "Transmit is disabled",
     "Re-enable TX",
     "guest",
-    "Sign in"
+    "Login"
   ],
   "absent": [
     "as today",

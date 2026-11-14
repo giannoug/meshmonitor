@@ -100,6 +100,8 @@ const settings: Record<string, string> = {
   dateFormat: 'DD/MM/YYYY',
   theme: 'mocha',
   preferredSortField: 'longName',
+  // The composer's Translate chip (useTranslationSettings).
+  translationEnabled: 'true',
   // Server › General (r4): the install default layout, the banner offer, the default Meshtastic source.
   defaultLayout: 'classic',
   offerWorkspaceBanner: 'true',
@@ -144,13 +146,20 @@ function channel(id: number, name: string, role: number): Channel {
     role, roleName: role === 1 ? 'Primary' : 'Secondary', uplinkEnabled: false, downlinkEnabled: false };
 }
 
-const channels: Channel[] = [channel(0, 'LongFast', 1), channel(1, 'gauntlet', 2), channel(2, 'Athens Ops', 2)];
+const channels: Channel[] = [
+  // The admin sees the PSK (channel info's Show); slot 0 shares location.
+  { ...channel(0, 'LongFast', 1), psk: 'AQ==', positionPrecision: 13, uplinkEnabled: true },
+  channel(1, 'gauntlet', 2),
+  channel(2, 'Athens Ops', 2),
+];
 
-function message(n: number, fromNum: number, toNodeId: string, channelId: number, text: string, agoS: number): RawMessage {
+function message(
+  n: number, fromNum: number, toNodeId: string, channelId: number, text: string, agoS: number, extra: Partial<RawMessage> = {},
+): RawMessage {
   const fromNodeId = `!${fromNum.toString(16).padStart(8, '0')}`;
   const ts = (NOW_S - agoS) * 1000;
-  return { id: `${SOURCE_IDS.g2}_${n}`, from: fromNodeId, to: toNodeId, fromNodeId, toNodeId, text,
-    channel: channelId, portnum: 1, timestamp: ts, receivedAt: ts, hopStart: 3, hopLimit: 2, rxSnr: 6.5, rxRssi: -92 };
+  return { id: `${SOURCE_IDS.g2}_${fromNum}_${n}`, from: fromNodeId, to: toNodeId, fromNodeId, toNodeId, text,
+    channel: channelId, portnum: 1, timestamp: ts, receivedAt: ts, hopStart: 3, hopLimit: 2, rxSnr: 6.5, rxRssi: -92, ...extra };
 }
 
 const BROADCAST = '!ffffffff';
@@ -160,6 +169,8 @@ const messages: RawMessage[] = [
   message(3, 0xa1b2c303, BROADCAST, 0, 'Glyfada Beach checking in', 900),
   message(4, 0xa1b2c300, BROADCAST, 1, 'gauntlet test 1', 300),
   message(5, 0xa1b2c302, '!a1b2c300', -1, 'Heading up Hymettus, will relay this morning', 240),
+  // Ours, acknowledged by the mesh (the thread's "Delivered").
+  message(6, 0xa1b2c300, BROADCAST, 0, 'Welcome back! Hearing you direct from Kifisia', 600, { deliveryState: 'delivered', isLocalMessage: true }),
 ];
 
 const telemetry: TelemetryData[] = [0, 1, 2, 3].map((i) => ({
@@ -168,6 +179,29 @@ const telemetry: TelemetryData[] = [0, 1, 2, 3].map((i) => ({
 }));
 
 const unreadCounts: UnreadCountsData = { channels: { 0: 2, 1: 0, 2: 0 }, directMessages: { '!a1b2c302': 1 } };
+
+/** `GET /api/messages/first-unread`: LongFast's oldest unread is Glyfada Beach's check-in (the "New" line). */
+const firstUnread = { channels: { 0: (NOW_S - 900) * 1000 }, directMessages: { '!a1b2c302': (NOW_S - 240) * 1000 } };
+
+/** `GET /api/device/tx-status?sourceId=`: the radio can send. */
+const txStatus = { txEnabled: true, udpRelayEnabled: false, canTransmit: true };
+
+function offer(nodeNum: number, channelName: string, agoS: number, hidden: 'dismissed' | 'muted' | null = null) {
+  const at = NOW_MS - agoS * 1000;
+  return {
+    sourceId: SOURCE_IDS.g2, nodeNum, message: null, offerChannelName: channelName, hasChannelKey: true,
+    offerRegion: null, offerPreset: null, hasOffer: true, firstSeenAt: at - 7_200_000, lastSeenAt: at,
+    dismissedAt: hidden === 'dismissed' ? at : null, mutedAt: hidden === 'muted' ? at : null,
+  };
+}
+
+/** `GET /api/sources/:id/beacon-offers?includeDismissed=true`: two pending, one dismissed, one muted. */
+const beaconOffers = [
+  offer(0xa1b2c303, 'Hiking-Athens', 600),
+  offer(0xa1b2c304, 'Coast', 3600),
+  offer(0xa1b2c305, 'West-Side', 86_400, 'dismissed'),
+  offer(0xa1b2c308, 'Keratea-Ops', 172_800, 'muted'),
+];
 
 const unreadBySource: UnreadBySourceData = {
   sources: { [SOURCE_IDS.g2]: { directMessages: 1 }, [SOURCE_IDS.heltec]: { directMessages: 2 } },
@@ -182,7 +216,7 @@ const poll: PollData = {
   channels,
   telemetryNodes: { nodes: ['!a1b2c300', '!a1b2c301'], weather: ['!a1b2c308'], estimatedPosition: [], pkc: ['!a1b2c301'] },
   config,
-  deviceConfig: { basic: { nodeId: '!a1b2c300', nodeAddress: '192.168.1.40' }, lora: { modemPreset: 0 } },
+  deviceConfig: { basic: { nodeId: '!a1b2c300', nodeAddress: '192.168.1.40' }, lora: { modemPreset: 0, hopLimit: 3 } },
   traceroutes: [],
   deviceNodeNums: [0xa1b2c300],
 };
@@ -203,4 +237,7 @@ export const athensFixture = {
   unreadCounts,
   unreadBySource,
   poll,
+  txStatus,
+  beaconOffers,
+  firstUnread,
 };

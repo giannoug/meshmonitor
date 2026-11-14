@@ -1,45 +1,53 @@
 /**
  * @vitest-environment jsdom
  *
- * Board a-chat-D-desktop, frame only (Task 1.6): the device rail and the
- * layout-D sidebar. The chat pane is Phase 2, which owns the full
- * `expectBoard('a-chat-D-desktop')`; here only the frame's must strings.
+ * Board a-chat-D-desktop: the device rail, the layout-D sidebar (Task 1.6)
+ * and, from Task 2.3, its content: the channel list and the open channel.
  */
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { describe, it, expect } from 'vitest';
-import { within } from '@testing-library/react';
-import { renderWorkspace } from '../../test/renderWorkspace';
-import { ToastProvider } from '../../../components/ToastContainer';
-import WorkspaceShell from '../WorkspaceShell';
+import type { ReactNode } from 'react';
+import { describe, it, expect, vi } from 'vitest';
+import { screen, within } from '@testing-library/react';
+import { expectBoard } from '../../test/boardChecks';
+import { SOURCE_IDS } from '../../__fixtures__/athens';
+import { renderChat } from '../../chat/__tests__/renderChat';
 
-const check = JSON.parse(
-  readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), '../../__fixtures__/board-checks/a-chat-D-desktop.json'),
-    'utf8',
-  ),
-) as { must: string[]; absent: string[] };
+vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
+  ...(await orig<object>()),
+  WebSocketProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
 
-/** The board's must strings that belong to the rail and sidebar; the rest are chat content. */
-const FRAME_MUST = ['Station G2', 'Nodes', 'Configuration', 'More tools…', 'Message a node', 'Direct messages'];
+const route = `/source/${SOURCE_IDS.g2}/channel/0`;
 
-describe('a-chat-D-desktop (frame)', () => {
-  it('shows the board frame', async () => {
-    const { container, findByRole } = renderWorkspace(
-      <ToastProvider>
-        <WorkspaceShell>
-          <p>page</p>
-        </WorkspaceShell>
-      </ToastProvider>,
-      { route: '/source/src-g2/channels' },
-    );
-    const sidebar = await findByRole('complementary', { name: 'Station G2' });
+describe('a-chat-D-desktop', () => {
+  it('a-chat-D-desktop shows the board', async () => {
+    const { container } = renderChat(route);
+    const sidebar = await screen.findByRole('complementary', { name: 'Station G2' });
     await within(sidebar).findByText('12 online');
+    await screen.findByText('Glyfada Beach checking in');
+    expectBoard('a-chat-D-desktop', container);
+  });
 
-    expect(check.must).toEqual(expect.arrayContaining(FRAME_MUST));
-    const text = (container.textContent ?? '').replace(/\s+/g, ' ');
-    for (const s of FRAME_MUST) expect(text).toContain(s);
-    for (const s of check.absent) expect(text).not.toContain(s);
+  it("the sidebar lists the device's channels, marks the open one, and counts unread", async () => {
+    renderChat(`/source/${SOURCE_IDS.g2}/channel/1`);
+    const sidebar = await screen.findByRole('complementary', { name: 'Station G2' });
+    const open = await within(sidebar).findByRole('link', { name: 'gauntlet' });
+    expect(open).toHaveAttribute('href', `/source/${SOURCE_IDS.g2}/channel/1`);
+    expect(open).toHaveAttribute('aria-current', 'page');
+    expect(await within(sidebar).findByRole('link', { name: 'LongFast, 2 unread' })).toHaveAttribute(
+      'href',
+      `/source/${SOURCE_IDS.g2}/channel/0`,
+    );
+    expect(within(sidebar).getByRole('link', { name: 'Athens Ops' })).toBeInTheDocument();
+  });
+
+  it('lists only the channels the viewer may read', async () => {
+    renderChat(route, {
+      permissions: { bySource: { [SOURCE_IDS.g2]: { channel_0: { read: true, write: true }, messages: { read: true, write: false } } } },
+    });
+    const sidebar = await screen.findByRole('complementary', { name: 'Station G2' });
+    await within(sidebar).findByRole('link', { name: /LongFast/ });
+    expect(within(sidebar).queryByRole('link', { name: 'gauntlet' })).toBeNull();
+    expect(within(sidebar).queryByRole('link', { name: 'Athens Ops' })).toBeNull();
   });
 });

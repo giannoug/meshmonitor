@@ -30,6 +30,7 @@ vi.mock('../../pages/UsersPage', async () => ({ default: (await import('./pageSt
 vi.mock('../../pages/MeshCoreSourcePage', async () => ({ default: (await import('./pageStub')).pageStub('meshcore') }));
 vi.mock('../../pages/MeshCoreIngestSourcePage', async () => ({ default: (await import('./pageStub')).pageStub('meshcore-ingest') }));
 vi.mock('../../pages/ReticulumSourcePage', async () => ({ default: (await import('./pageStub')).pageStub('reticulum') }));
+vi.mock('../chat/ChannelThread', async () => ({ default: (await import('./pageStub')).pageStub('channel-thread') }));
 
 /** Shows the real URL, and navigates client-side when its input changes. */
 function RealUrl() {
@@ -106,7 +107,11 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     [`${g2}/node/!a1b2c301/telemetry`, 'app'],
     [`${g2}/dms`, 'app'],
     [`${g2}/activity`, 'app'],
-    [`${g2}/channel/0`, 'app'],
+    // A Meshtastic channel is the Workspace's own thread, with App not mounted (Task 2.3, Ruling AD).
+    [`${g2}/channel/0`, 'channel-thread'],
+    [`${g2}/channel/0/beacons`, 'channel-thread'],
+    [`/source/${SOURCE_IDS.mqtt}/channel/2`, 'channel-thread'],
+    [`${g2}/channels`, 'app'],
     [`${g2}/dm/!a1b2c301`, 'app'],
     [`/source/${SOURCE_IDS.mqtt}/nodes`, 'app'],
     [`${heltec}/room/r1`, 'meshcore'],
@@ -176,7 +181,6 @@ describe('redirects', () => {
     [`${g2}/settings?node=`, `${g2}/admin`],
     [`${g2}/settings`, `${g2}/configuration`],
     [`${g2}/dm/!a1b2c301`, `${g2}/messages`],
-    [`${g2}/channel/0`, `${g2}/channels`],
   ])('the re-hosted App at %s sees %s', async (route, seen) => {
     renderAt(route);
     await expectPage('app');

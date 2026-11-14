@@ -1,0 +1,216 @@
+/* A layout D message (boards a-chat-D-desktop, 10-06): rows or bubbles. */
+.row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.avatar {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--color-bg-sunken);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.body {
+  min-width: 0;
+  flex: 1;
+}
+
+.head {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.name {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.time {
+  font-size: 12px;
+  color: var(--color-text-subtle);
+}
+
+.ack {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.ack[data-ack='failed'],
+.ack[data-ack='timeout'] {
+  color: var(--color-error);
+}
+
+.text {
+  margin-top: 2px;
+  color: var(--color-text);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.quote {
+  display: flex;
+  gap: 6px;
+  margin: 2px 0;
+  padding-left: 8px;
+  border-left: 2px solid var(--color-surface-active);
+  color: var(--color-text-subtle);
+  font-size: 13px;
+}
+
+/* Hops, SNR and route: shown on hover, focus or a tap, or always (workspace.signalDetail). */
+.signal {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--color-text-subtle);
+}
+
+.row[data-detail='hover'] .signal {
+  display: none;
+}
+
+.row[data-detail='hover']:hover .signal,
+.row[data-detail='hover']:focus-within .signal,
+.row[data-detail='hover'][data-open] .signal {
+  display: block;
+}
+
+.reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.chip {
+  padding: 2px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 14px;
+}
+
+.date {
+  margin: 12px 0 4px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-text-subtle);
+}
+
+/* Reply (Task 2.5 adds the full hover bar). */
+.actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: none;
+  padding: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-raised);
+}
+
+.row:hover .actions,
+.row:focus-within .actions {
+  display: flex;
+}
+
+@media (hover: none) {
+  .actions {
+    position: static;
+    display: flex;
+    border: 0;
+    background: none;
+  }
+}
+
+.action {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.action:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--color-accent);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Bubbles: theirs on the left with the avatar, ours on the right. */
+.row[data-style='bubbles'] {
+  align-items: flex-end;
+}
+
+.row[data-style='bubbles'][data-mine] {
+  justify-content: flex-end;
+}
+
+.bubble {
+  max-width: min(560px, 80%);
+  padding: 8px 14px;
+  border-radius: 16px;
+  background: var(--color-chat-bubble-received-bg);
+  color: var(--color-chat-bubble-received-text);
+}
+
+.row[data-mine] .bubble {
+  background: var(--color-chat-bubble-sent-bg);
+  color: var(--color-chat-bubble-sent-text);
+}
+
+.row[data-mine] .bubble .text,
+.row[data-mine] .bubble .time,
+.row[data-mine] .bubble .ack {
+  color: inherit;
+}
+
+.bubble .text {
+  color: inherit;
+}
+
+.bubbleName {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent-alt);
+}
+
+.bubbleText {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}

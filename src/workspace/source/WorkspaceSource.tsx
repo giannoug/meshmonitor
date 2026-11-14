@@ -4,7 +4,10 @@
  *
  * - Meshtastic-family sources (App): Classic URLs redirect to their Workspace
  *   form, and App sees the Classic location of a Workspace-only URL
- *   (`classicSourceLocation`), since it picks its tab from the path.
+ *   (`classicSourceLocation`), since it picks its tab from the path. A
+ *   channel (`channel/<n>[/beacons]`) is the Workspace's own ChannelThread
+ *   instead, with App not mounted (Ruling AD: one owner of the message state
+ *   per screen).
  * - MeshCore / Reticulum: the view comes from the URL and view changes
  *   navigate. A MeshCore view the viewer may not open is replaced in the URL
  *   by the one the page shows.
@@ -43,6 +46,10 @@ const PAGES: SourcePages = {
   MeshCoreIngestSourcePage: lazy(() => import('../../pages/MeshCoreIngestSourcePage.tsx')),
   ReticulumSourcePage: lazy(() => import('../../pages/ReticulumSourcePage.tsx')),
 };
+
+const ChannelThread = lazy(() => import('../chat/ChannelThread.tsx'));
+/** `channel/<n>` and `channel/<n>/beacons`: the Workspace chat (Task 2.3). */
+const CHAT_PATH = /^channel\/(\d+)(\/beacons)?\/?$/;
 
 export default function WorkspaceSource() {
   const { t } = useTranslation();
@@ -102,6 +109,15 @@ export default function WorkspaceSource() {
   }
 
   if (source?.type === 'meshcore_mqtt') return <Rehost>{renderSourceApp(PAGES, sourceId, source, splat)}</Rehost>;
+
+  const chat = source && splat.match(CHAT_PATH);
+  if (chat) {
+    return (
+      <Rehost>
+        <ChannelThread key={sourceId} sourceId={sourceId} source={source} channel={Number(chat[1])} view={chat[2] ? 'beacons' : 'thread'} />
+      </Rehost>
+    );
+  }
 
   // Meshtastic family: App. A Classic URL redirects to its Workspace form;
   // meanwhile App already shows that URL's Classic tab.

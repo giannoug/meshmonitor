@@ -28,10 +28,21 @@ const defaults: Record<string, FixtureHandler> = {
   'GET /api/unified/status': () => A.unifiedStatus,
   'GET /api/messages/unread-by-source': () => A.unreadBySource,
   'GET /api/messages/unread-counts': () => A.unreadCounts,
+  'GET /api/messages/first-unread': () => ({ success: true, data: A.firstUnread }),
+  // Older pages for a conversation's scroll-back: the poll already holds them all.
+  'GET /api/messages/channel/:channel': () => ({ messages: [], hasMore: false }),
+  // The MQTT mirror reads the same mesh as Station G2.
   'GET /api/poll': (url) => {
     const sourceId = url.searchParams.get('sourceId');
-    return !sourceId || sourceId === SOURCE_IDS.g2 ? A.poll : undefined;
+    return !sourceId || sourceId === SOURCE_IDS.g2 || sourceId === SOURCE_IDS.mqtt ? A.poll : undefined;
   },
+  'GET /api/device/tx-status': () => A.txStatus,
+  'POST /api/messages/mark-read': () => ({ success: true }),
+  'GET /api/sources/:id/beacon-offers/count': () => ({
+    success: true,
+    data: { pending: A.beaconOffers.filter((o) => !o.dismissedAt && !o.mutedAt).length, total: A.beaconOffers.length },
+  }),
+  'GET /api/sources/:id/beacon-offers': () => ({ success: true, data: A.beaconOffers }),
   'GET /api/connection': (url) => {
     const status = A.statuses[url.searchParams.get('sourceId') ?? SOURCE_IDS.g2];
     return status && { ...A.poll.connection, connected: status.connected };

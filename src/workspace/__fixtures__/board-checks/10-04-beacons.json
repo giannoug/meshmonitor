@@ -1,7 +1,6 @@
 {
   "must": [
     "Beacons",
-    "Search node, channel or message",
     "Pending",
     "Hidden",
     "All",

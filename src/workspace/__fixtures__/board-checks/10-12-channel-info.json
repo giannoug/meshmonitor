@@ -7,10 +7,10 @@
     "AEAD",
     "Location",
     "Mute",
-    "Mark all as read",
-    "Show MQTT messages",
+    "Mark all as Read",
+    "Show MQTT/Bridge Messages",
     "Beacons",
-    "Purge all messages",
+    "Purge All Messages",
     "cannot be undone"
   ],
   "absent": [],

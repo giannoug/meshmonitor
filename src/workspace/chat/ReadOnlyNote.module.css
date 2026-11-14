@@ -1,0 +1,63 @@
+/* In place of the composer (boards 10-05, 10-14). */
+.note {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 12px 24px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+  color: var(--color-accent);
+}
+
+.body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--color-text);
+}
+
+.label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.text {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.primary {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.primary:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}

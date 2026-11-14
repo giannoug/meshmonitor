@@ -46,9 +46,61 @@ export interface BeaconsModalProps {
 }
 
 export default function BeaconsModal({
-  offers, loading, error, canWrite, nodeName,
-  onClose, onJoin, onDismiss, onMute, onRestore, busy, escapeCloses = true,
+  onClose, escapeCloses = true, ...list
 }: BeaconsModalProps) {
+  const { t } = useTranslation();
+
+  // Escape closes the list, like every other overlay in the app. Bound to the
+  // document rather than the dialog so it works before anything inside has
+  // taken focus.
+  useEffect(() => {
+    if (!escapeCloses) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [escapeCloses, onClose]);
+
+  return (
+    <div className={styles.beaconModalOverlay} onClick={onClose}>
+      <div
+        className={styles.beaconModal}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('beacons.panel_title')}
+        data-testid="beacons-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={styles.beaconModalHead}>
+          <h3 className={styles.beaconModalTitle}>
+            <UiIcon name="announcement" /> {t('beacons.panel_title')}
+          </h3>
+          <button
+            type="button"
+            className={styles.beaconModalClose}
+            onClick={onClose}
+            aria-label={t('common.close', 'Close')}
+            data-testid="beacons-modal-close"
+          >
+            <UiIcon name="close" />
+          </button>
+        </div>
+
+        <BeaconsList {...list} />
+      </div>
+    </div>
+  );
+}
+
+export type BeaconsListProps = Omit<BeaconsModalProps, 'onClose' | 'escapeCloses'>;
+
+/**
+ * The search, filter and table of the beacons list, without the modal around
+ * it (#6365 Rule X: the Workspace shows it as a page).
+ */
+export function BeaconsList({
+  offers, loading, error, canWrite, nodeName,
+  onJoin, onDismiss, onMute, onRestore, busy,
+}: BeaconsListProps) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<BeaconFilter>('pending');
   const [query, setQuery] = useState('');
@@ -60,16 +112,6 @@ export default function BeaconsModal({
   );
 
   const hiddenCount = useMemo(() => offers.filter(isHidden).length, [offers]);
-
-  // Escape closes the list, like every other overlay in the app. Bound to the
-  // document rather than the dialog so it works before anything inside has
-  // taken focus.
-  useEffect(() => {
-    if (!escapeCloses) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [escapeCloses, onClose]);
 
   /** Clicking the active column flips direction; a new column starts descending
    *  for times (newest first) and ascending for text. */
@@ -102,109 +144,85 @@ export default function BeaconsModal({
   );
 
   return (
-    <div className={styles.beaconModalOverlay} onClick={onClose}>
-      <div
-        className={styles.beaconModal}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('beacons.panel_title')}
-        data-testid="beacons-modal"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className={styles.beaconModalHead}>
-          <h3 className={styles.beaconModalTitle}>
-            <UiIcon name="announcement" /> {t('beacons.panel_title')}
-          </h3>
-          <button
-            type="button"
-            className={styles.beaconModalClose}
-            onClick={onClose}
-            aria-label={t('common.close', 'Close')}
-            data-testid="beacons-modal-close"
-          >
-            <UiIcon name="close" />
-          </button>
+    <>
+      <div className={styles.beaconModalControls}>
+        <label className={styles.beaconSearch}>
+          <UiIcon name="search" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t('beacons.search_placeholder', 'Search node, channel or message')}
+            aria-label={t('beacons.search_placeholder', 'Search node, channel or message')}
+            data-testid="beacons-search"
+          />
+        </label>
+
+        <div className={styles.beaconFilters} role="group" aria-label={t('beacons.filter_label', 'Show')}>
+          {(['pending', 'hidden', 'all'] as BeaconFilter[]).map((f) => (
+            <button
+              key={f}
+              type="button"
+              className={`${styles.beaconFilter}${filter === f ? ` ${styles.beaconFilterActive}` : ''}`}
+              aria-pressed={filter === f}
+              onClick={() => setFilter(f)}
+              data-testid={`beacons-filter-${f}`}
+            >
+              {f === 'pending' && t('beacons.filter_pending', 'Pending')}
+              {f === 'hidden' && t('beacons.filter_hidden', 'Hidden ({{count}})', { count: hiddenCount })}
+              {f === 'all' && t('beacons.filter_all', 'All')}
+            </button>
+          ))}
         </div>
-
-        <div className={styles.beaconModalControls}>
-          <label className={styles.beaconSearch}>
-            <UiIcon name="search" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t('beacons.search_placeholder', 'Search node, channel or message')}
-              aria-label={t('beacons.search_placeholder', 'Search node, channel or message')}
-              data-testid="beacons-search"
-            />
-          </label>
-
-          <div className={styles.beaconFilters} role="group" aria-label={t('beacons.filter_label', 'Show')}>
-            {(['pending', 'hidden', 'all'] as BeaconFilter[]).map((f) => (
-              <button
-                key={f}
-                type="button"
-                className={`${styles.beaconFilter}${filter === f ? ` ${styles.beaconFilterActive}` : ''}`}
-                aria-pressed={filter === f}
-                onClick={() => setFilter(f)}
-                data-testid={`beacons-filter-${f}`}
-              >
-                {f === 'pending' && t('beacons.filter_pending', 'Pending')}
-                {f === 'hidden' && t('beacons.filter_hidden', 'Hidden ({{count}})', { count: hiddenCount })}
-                {f === 'all' && t('beacons.filter_all', 'All')}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {error && <div className={styles.beaconOffersError} role="alert">{error}</div>}
-
-        {loading && rows.length === 0 && (
-          <p className={styles.beaconEmpty}>{t('beacons.loading', 'Loading beacons…')}</p>
-        )}
-
-        {!loading && rows.length === 0 && (
-          <p className={styles.beaconEmpty} data-testid="beacons-empty">
-            {query.trim()
-              ? t('beacons.no_matches', 'No beacons match that search.')
-              : filter === 'hidden'
-                ? t('beacons.none_hidden', 'Nothing has been dismissed or muted.')
-                : t('beacons.none_pending', 'No beacons have been heard on this source.')}
-          </p>
-        )}
-
-        {rows.length > 0 && (
-          <div className={styles.beaconTableWrap}>
-            <table className={styles.beaconTable}>
-              <thead>
-                <tr>
-                  {header('node', 'beacons.col_node', 'Node')}
-                  {header('channel', 'beacons.col_channel', 'Offer')}
-                  {header('firstSeenAt', 'beacons.col_first_heard', 'First heard')}
-                  {header('lastSeenAt', 'beacons.col_last_heard', 'Last heard')}
-                  <th scope="col">{t('beacons.col_actions', 'Actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((offer) => (
-                  <BeaconRow
-                    key={`${offer.sourceId}:${offer.nodeNum}`}
-                    offer={offer}
-                    who={nodeName?.(offer.nodeNum) ?? nodeHexId(offer.nodeNum)}
-                    canWrite={canWrite}
-                    busy={busy}
-                    onJoin={onJoin}
-                    onDismiss={onDismiss}
-                    onMute={onMute}
-                    onRestore={onRestore}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
-    </div>
+
+      {error && <div className={styles.beaconOffersError} role="alert">{error}</div>}
+
+      {loading && rows.length === 0 && (
+        <p className={styles.beaconEmpty}>{t('beacons.loading', 'Loading beacons…')}</p>
+      )}
+
+      {!loading && rows.length === 0 && (
+        <p className={styles.beaconEmpty} data-testid="beacons-empty">
+          {query.trim()
+            ? t('beacons.no_matches', 'No beacons match that search.')
+            : filter === 'hidden'
+              ? t('beacons.none_hidden', 'Nothing has been dismissed or muted.')
+              : t('beacons.none_pending', 'No beacons have been heard on this source.')}
+        </p>
+      )}
+
+      {rows.length > 0 && (
+        <div className={styles.beaconTableWrap}>
+          <table className={styles.beaconTable}>
+            <thead>
+              <tr>
+                {header('node', 'beacons.col_node', 'Node')}
+                {header('channel', 'beacons.col_channel', 'Offer')}
+                {header('firstSeenAt', 'beacons.col_first_heard', 'First heard')}
+                {header('lastSeenAt', 'beacons.col_last_heard', 'Last heard')}
+                <th scope="col">{t('beacons.col_actions', 'Actions')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((offer) => (
+                <BeaconRow
+                  key={`${offer.sourceId}:${offer.nodeNum}`}
+                  offer={offer}
+                  who={nodeName?.(offer.nodeNum) ?? nodeHexId(offer.nodeNum)}
+                  canWrite={canWrite}
+                  busy={busy}
+                  onJoin={onJoin}
+                  onDismiss={onDismiss}
+                  onMute={onMute}
+                  onRestore={onRestore}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
   );
 }
 

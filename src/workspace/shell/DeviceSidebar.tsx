@@ -3,7 +3,8 @@
  * follows the route (spec §5.3):
  *
  * - `device`: header (device name, status line), the device's tools, then
- *   Channels and Direct messages. Until Phase 2 fills them, those two sections
+ *   Channels and Direct messages. A Meshtastic-family device lists its
+ *   channels (Task 2.3); other types, and Direct messages until Task 2.4,
  *   link to today's tabs.
  * - `settings` / `server` / `you`: the categories of the re-hosted settings
  *   pages, as links to their Workspace URLs (Phases 5 and 6 rebuild them).
@@ -25,7 +26,8 @@ import {
 } from '../../components/search/configSections';
 import { PREFERENCE_CATEGORIES } from '../routes';
 import SidebarSection from './SidebarSection';
-import { statusLabel, useDeviceTab } from './deviceTabs';
+import { isMeshtasticFamily, statusLabel, useDeviceTab } from './deviceTabs';
+import ChannelList from '../chat/ChannelList';
 import type { WorkspaceSource } from './useWorkspaceSources';
 import styles from './DeviceSidebar.module.css';
 
@@ -139,7 +141,11 @@ export default function DeviceSidebar({ mode, sourceId, source, onNavigate }: De
       {list(rows)}
       {channels && (
         <SidebarSection title={t('channels.title')}>
-          {list([{ to: channels, label: t('workspace.shell.open_channels'), icon: 'channels' }])}
+          {isMeshtasticFamily(source.type) ? (
+            <ChannelList sourceId={source.id} sourceType={source.type} onNavigate={onNavigate} />
+          ) : (
+            list([{ to: channels, label: t('workspace.shell.open_channels'), icon: 'channels' }])
+          )}
         </SidebarSection>
       )}
       {dms && (
