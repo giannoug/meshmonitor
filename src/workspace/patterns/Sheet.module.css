@@ -112,7 +112,13 @@
   border-top: 1px solid var(--color-surface);
 }
 
-/* A swipe-up sheet (onSwipeUp) takes vertical drags itself, so the browser does not pan or cancel them. */
-.sheet[data-swipe] {
+/*
+ * A swipe-up sheet (onSwipeUp) takes vertical drags itself, so the browser does not pan or cancel them.
+ * `.body` is a scroller, and a touch's touch-action is worked out only up to the nearest scroller, so
+ * the body needs it too or a drag that starts there is a native pan (pointercancel). Its content then
+ * does not scroll by touch: keep a swipe sheet's content short.
+ */
+.sheet[data-swipe],
+.sheet[data-swipe] .body {
   touch-action: pan-x;
 }

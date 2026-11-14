@@ -67,7 +67,7 @@ import api from '../../services/api';
 import type { DbTraceroute } from '../../services/database';
 import type { DeviceInfo } from '../../types/device';
 import { getEffectivePosition } from '../../utils/nodeHelpers';
-import { computeClampedTargetZoom, resolveClusteredMapCenterTargetZoom } from '../../utils/mapZoomAnimation';
+import { resolveClusteredMapCenterTargetZoom } from '../../utils/mapZoomAnimation';
 import type { PacketFlightStats } from '../../utils/packetFlightEdges';
 import ChatProviders from '../chat/ChatProviders';
 import { useChatRuntime } from '../chat/useChatRuntime';
@@ -79,6 +79,7 @@ import MapToolbar, { MapControls } from './MapToolbar';
 import NeighbourPeek, { type NeighbourLink } from './NeighbourPeek';
 import NodePeek from './NodePeek';
 import PhoneMap from './PhoneMap';
+import { peekCenterTarget } from './peekCenter';
 import { useIsPhone } from '../shell/useIsPhone';
 import { markerKey, useDeviceMap } from './useDeviceMap';
 import styles from './DeviceMap.module.css';
@@ -233,16 +234,9 @@ function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
     [data.nodePositions],
   );
   const centerZoom = resolveClusteredMapCenterTargetZoom(settings.mapCenterTargetZoom, data.clusterZoomThreshold);
-  /**
-   * MapCenterController leaves its target a quarter of the map below centre (room for a popup above it).
-   * On phone the peek sheet covers the lower half, so aim half a map lower: the node lands a quarter from the top.
-   */
-  const centerTarget = (p: [number, number]): [number, number] => {
-    if (!isPhone || !leaflet) return p;
-    const zoom = computeClampedTargetZoom(leaflet.getZoom(), centerZoom);
-    const ll = leaflet.unproject(leaflet.project(p, zoom).add([0, leaflet.getContainer().clientHeight / 2]), zoom);
-    return [ll.lat, ll.lng];
-  };
+  // On phone the node must clear its peek sheet (peekCenterTarget); desktop centres as before.
+  const centerTarget = (p: [number, number]): [number, number] =>
+    isPhone && leaflet ? peekCenterTarget(leaflet, p, centerZoom) : p;
   const openNode = (node: DeviceInfo, center: boolean) => {
     setPanel({ kind: 'node', key: markerKey(node) });
     setSelectedNodeId(node.user?.id ?? null);
@@ -254,14 +248,15 @@ function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
     setPanel(null);
   };
 
-  // Center on Map from elsewhere (Ruling AJ): handled once the nodes are in, then dropped.
+  // Center on Map from elsewhere (Ruling AJ): handled once the nodes are in, then dropped. On a
+  // phone it also waits for the 2D map, which the peek offset needs (a warm cache has the nodes first).
   useEffect(() => {
-    if (!focusNodeId || isLoading) return;
+    if (!focusNodeId || isLoading || (isPhone && !leaflet && !effective3D)) return;
     const node = nodes.find((n) => n.user?.id === focusNodeId);
     if (node) openNode(node, true);
     onFocusHandled();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 runs once per focus request, after the nodes load
-  }, [focusNodeId, isLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 runs once per focus request, after the nodes (and on phone the map) load
+  }, [focusNodeId, isLoading, leaflet]);
 
   const peekNode = panel?.kind === 'node' ? nodes.find((n) => markerKey(n) === panel.key) : undefined;
   const fitPositions = data.visibleMapNodes.flatMap((n) => {
