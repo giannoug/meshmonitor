@@ -6,8 +6,8 @@
  * - not in the device database: today's sentence (softer when MeshMonitor can
  *   restore the key), under the board's title;
  * - unmessageable: today's sentence and "Message anyway" (#4153), which the
- *   caller keeps per node. Once on, the banner stays with the button pressed
- *   (the board), where today it goes. Not shown on an MQTT mirror.
+ *   caller keeps per node. As today, the banner goes once overridden; on an
+ *   MQTT mirror the override never lifts the mirror's limit.
  * Clear changes MeshMonitor only; nothing here sends on the mesh.
  */
 import { useState } from 'react';
@@ -28,13 +28,11 @@ export interface DmBannersProps {
   node: DeviceInfo;
   /** Ours to this node, for the key-mismatch severity (today's isMyMessage count). */
   sentDirectMessageCount: number;
-  /** null: no unmessageable banner (not flagged, or an MQTT mirror). */
+  /** null: no unmessageable banner (today's dmReadOnlyReason is not 'unmessageable'). */
   onMessageAnyway: (() => void) | null;
-  /** "Message anyway" is on: the banner stays, its button pressed (board 10-01). */
-  messageAnyway: boolean;
 }
 
-export default function DmBanners({ sourceId, node, sentDirectMessageCount, onMessageAnyway, messageAnyway }: DmBannersProps) {
+export default function DmBanners({ sourceId, node, sentDirectMessageCount, onMessageAnyway }: DmBannersProps) {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
   const { showToast } = useToast();
@@ -111,8 +109,6 @@ export default function DmBanners({ sourceId, node, sentDirectMessageCount, onMe
           <button
             type="button"
             className={styles.action}
-            aria-pressed={messageAnyway}
-            disabled={messageAnyway}
             onClick={onMessageAnyway}
             title={t('messages.unmessageable_override_title', 'This flag is self-reported and may be stale or wrong. Try messaging this node anyway.')}
           >

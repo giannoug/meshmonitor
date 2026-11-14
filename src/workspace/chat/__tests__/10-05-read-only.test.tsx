@@ -11,7 +11,7 @@
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { cleanup, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, screen, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { athensFixture, SOURCE_IDS } from '../../__fixtures__/athens';
 import { joined, renderChat } from './renderChat';
@@ -81,8 +81,11 @@ describe('read-only states', () => {
     expect(head.queryByRole('button', { name: 'Ask the node' })).toBeNull();
     expect(screen.queryByText('Can you run a traceroute to me?')).toBeNull();
     expect(document.querySelector('textarea')).toBeNull();
-    // Not the unmessageable banner: the mirror's own note says why.
+    // Kifisia reports itself unmessageable; as today, Message anyway never lifts the mirror's limit.
+    fireEvent.click(screen.getByRole('button', { name: 'Message anyway' }));
     expect(screen.queryByRole('button', { name: 'Message anyway' })).toBeNull();
+    expect(screen.queryByText('Can you run a traceroute to me?')).toBeNull();
+    expect(document.querySelector('textarea')).toBeNull();
     expect(screen.getByRole('link', { name: 'Open on Station G2' })).toHaveAttribute('href', `/source/${SOURCE_IDS.g2}/dm/!a1b2c301`);
   });
 

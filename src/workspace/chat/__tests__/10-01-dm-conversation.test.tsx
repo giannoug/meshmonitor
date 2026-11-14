@@ -9,7 +9,7 @@
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { athensFixture, SOURCE_IDS } from '../../__fixtures__/athens';
 import { joined, renderChat } from './renderChat';
@@ -34,6 +34,11 @@ async function openConversation() {
 
 describe('10-01-dm-conversation', () => {
   it('10-01-dm-conversation shows the board', async () => {
+    // The board draws the unmessageable banner beside the open conversation; today the banner
+    // goes once overridden, so its state is captured first and checked with the rest.
+    renderChat(route);
+    const banner = (await screen.findByRole('button', { name: 'Message anyway' })).closest('[role="status"]')!.textContent ?? '';
+    cleanup();
     const { container } = await openConversation();
     const theirs = screen.getByText('Can you run a traceroute to me?').closest('[data-message-id]') as HTMLElement;
     fireEvent.click(within(theirs).getByRole('button', { name: 'Reply' }));
@@ -42,7 +47,7 @@ describe('10-01-dm-conversation', () => {
     fireEvent.click(within(header()).getByRole('button', { name: 'Data' }));
     fireEvent.click(screen.getByRole('button', { name: /^Purge Data/ }));
     const sheet = await screen.findByRole('dialog', { name: 'Purge Data for Kifisia Rooftop' });
-    expectBoard('10-01-dm-conversation', joined(container, sheet));
+    expectBoard('10-01-dm-conversation', joined(banner, container, sheet));
     expect(screen.queryByTestId('page-app')).toBeNull();
   });
 
@@ -60,8 +65,9 @@ describe('10-01-dm-conversation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Message anyway' }));
     expect(await screen.findByText('Can you run a traceroute to me?')).toBeInTheDocument();
     expect(document.querySelector('textarea')).toBeInTheDocument();
-    // The banner stays, its button pressed, as the board draws it.
-    expect(screen.getByRole('button', { name: 'Message anyway' })).toHaveAttribute('aria-pressed', 'true');
+    // As today: once overridden, the banner goes.
+    expect(screen.queryByText(/reports itself as unmessageable/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Message anyway' })).toBeNull();
   });
 
   it('Clear posts today\'s request', async () => {

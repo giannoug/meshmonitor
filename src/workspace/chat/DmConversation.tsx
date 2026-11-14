@@ -9,7 +9,8 @@
  *
  * Read-only states, as today (s10n3): an MQTT mirror hides the DM log, the
  * composer and Ask the node, and says why; an unmessageable node hides the log
- * and composer until "Message anyway" (per node, this visit, as today); TX
+ * and composer until "Message anyway" (per node, this visit, as today; both
+ * through today's computeMessagesReadOnlyState); TX
  * disabled keeps the composer, off, with today's tooltip; without
  * messages:read (a guest) the DM is not shown.
  */
@@ -29,6 +30,7 @@ import { useViewTranslations } from '../../hooks/useViewTranslations';
 import { appBasename } from '../../init';
 import type { MeshMessage } from '../../types/message';
 import { buildResponseIndex, repliedMessageFor, tapbacksFor } from '../../components/messages/messageRowSupport';
+import { computeMessagesReadOnlyState } from '../../components/messagesReadOnlyState';
 import { getMessageDateSeparator, shouldShowDateSeparator } from '../../utils/datetime';
 import { mentionCandidatesFromNodes } from '../../utils/mentionCandidates';
 import { isTapbackMessage } from '../../utils/messageReplies';
@@ -173,9 +175,13 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
   }
 
   const canWrite = hasPermission('messages', 'write', scope);
-  const flaggedUnmessageable = !isMqtt && node?.isUnmessagable === true;
-  const unmessageable = flaggedUnmessageable && !overrides.has(nodeId);
-  const showLog = !isMqtt && !unmessageable;
+  // Today's rule (MessagesTab): MQTT always hides the log; "Message anyway" lifts only the self-report.
+  const { dmReadOnly, dmReadOnlyReason } = computeMessagesReadOnlyState({
+    mqttReadOnly: isMqtt,
+    isUnmessagable: node?.isUnmessagable,
+    overrideUnmessageable: overrides.has(nodeId),
+  });
+  const showLog = !dmReadOnly;
   const localNodeNum = currentNodeId ? parseNodeId(currentNodeId) : null;
   const peerNum = node?.nodeNum ?? parseNodeId(nodeId);
   const radioDevice = sources.find((s) => s.type === 'meshtastic_tcp' && s.enabled && s.id !== sourceId);
@@ -207,8 +213,7 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
             sourceId={sid}
             node={node}
             sentDirectMessageCount={rows.filter(isMine).length}
-            onMessageAnyway={flaggedUnmessageable ? () => setOverrides((prev) => new Set(prev).add(nodeId)) : null}
-            messageAnyway={!unmessageable}
+            onMessageAnyway={dmReadOnlyReason === 'unmessageable' ? () => setOverrides((prev) => new Set(prev).add(nodeId)) : null}
           />
         )}
         {peerNum != null && (

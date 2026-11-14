@@ -22,7 +22,14 @@ vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/p
 
 const KIF = 0xa1b2c301;
 const route = `/source/${SOURCE_IDS.g2}/dm/!a1b2c301`;
+const ROVER = 0xa1b2c302;
 const kifisia = athensFixture.nodes.find((n) => n.nodeNum === KIF)!;
+
+/** The Athens poll with some nodes heard on another channel slot. */
+const pollWithChannels = (byNode: Record<number, number>) => ({
+  ...athensFixture.poll,
+  nodes: athensFixture.poll.nodes!.map((n) => (n.nodeNum in byNode ? { ...n, channel: byNode[n.nodeNum] } : n)),
+});
 
 async function openMenu(name: 'Ask the node' | 'Organise' | 'Data', opts = {}) {
   renderChat(route, opts);
@@ -50,15 +57,32 @@ describe('Ask the node (Meshtastic)', () => {
   });
 
   it("Exchange Node Info posts to /api/nodeinfo/request on the node's channel, not as a DM", async () => {
-    const menu = await openMenu('Ask the node');
+    // Kifisia Rooftop heard on gauntlet (slot 1), so the node's channel is not the default 0.
+    const menu = await openMenu('Ask the node', { fixtures: { 'GET /api/poll': () => pollWithChannels({ [KIF]: 1 }) } });
+    expect(menu.getByText('Sends your NodeInfo on # gauntlet and asks for theirs')).toBeInTheDocument();
     fireEvent.click(menu.getByRole('button', { name: /^Exchange Node Info/ }));
     await waitFor(() => expect(posted('/api/nodeinfo/request')).toHaveLength(1));
     expect(JSON.parse(String(posted('/api/nodeinfo/request')[0][1]!.body))).toEqual({
       destination: KIF,
       sourceId: SOURCE_IDS.g2,
-      channel: 0,
+      channel: 1,
     });
     expect(posted('/api/messages/send')).toHaveLength(0);
+  });
+
+  it("switching DMs re-seeds the pickers: the next node's own channel is sent", async () => {
+    renderChat(route, { fixtures: { 'GET /api/poll': () => pollWithChannels({ [ROVER]: 2 }) } });
+    await within(await screen.findByTestId('dm-header')).findByText('Kifisia Rooftop');
+    const side = within(await screen.findByRole('complementary', { name: 'Station G2' }));
+    fireEvent.click(await side.findByRole('link', { name: /Athens Rover/ }));
+    const head = await screen.findByTestId('dm-header');
+    await within(head).findByText('Athens Rover');
+    fireEvent.click(within(head).getByRole('button', { name: 'Ask the node' }));
+    const menu = within(screen.getByRole('group', { name: 'Ask the node' }));
+    expect(menu.getByText('Sends your position on # Athens Ops and asks for theirs')).toBeInTheDocument();
+    fireEvent.click(menu.getByRole('button', { name: /^Exchange Node Info/ }));
+    await waitFor(() => expect(posted('/api/nodeinfo/request')).toHaveLength(1));
+    expect(JSON.parse(String(posted('/api/nodeinfo/request')[0][1]!.body))).toEqual({ destination: ROVER, sourceId: SOURCE_IDS.g2, channel: 2 });
   });
 
   it('the channel picker changes the channel Exchange Position is sent on', async () => {

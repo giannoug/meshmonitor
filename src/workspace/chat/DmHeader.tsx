@@ -81,6 +81,8 @@ export default function DmHeader(props: DmHeaderProps) {
         )}
         {props.signedIn && node && (
           <NodeActionMenus
+            // Per node: its channel pickers start on that node's channel (key repair).
+            key={nodeId}
             protocol={protocol}
             sourceId={sourceId}
             node={node}
