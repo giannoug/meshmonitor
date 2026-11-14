@@ -265,3 +265,11 @@ Ruling: 2.9 — "Our message" for a reply means the target row `${sourceId}_${ow
 Ruling: 2.9 — A source with no known own node (not yet connected, MQTT bridge/broker) sends no reply/mention push — why: the feed returns empty there too, and an MQTT source has no own node. — cost if wrong: reply/mention pushes are missed for MQTT-only setups.
 Ruling: 2.9 — Titles are "Reply in #channel · Source" or "Mention in #channel · Source" ("a direct message" for DMs), and the body is "Sender: text" capped at 240 characters — why: modelled on the MeshCore mention alert. Copy for the UI comes in Task 5.8. — cost if wrong: cosmetic.
 Ruling: 2.9 — A tapback is never a reply push or a mention push, using `isTapbackMessage` (`emoji === 1`, or emoji-only text with a `replyId`) — why: controller resolution 2 and the feed's rule. — cost if wrong: none expected.
+
+## Phase 2 summary (gate)
+- Commits a2d9703..7050d00 (tasks 2.1–2.9, each reviewed; fix rounds: 2.1, 2.3, 2.4, 2.5, 2.6, 2.8 one round each; 2.2, 2.7, 2.9 clean first time).
+- Boards accepted (23): c-home-e1-home, c-home-e3-dms, c-home-e4-activity, c-home-e5-activity-empty, c-home-e6-desktop-activity, 10-01-dm-conversation, 10-02-message-details, 10-03-channel-menu, 10-04-beacons, 10-05-read-only, 10-06-channel-thread, 10-07-dm-conversation, 10-08-message-actions, 10-09-translate, 10-10-message-details, 10-11-dm-inbox, 10-12-channel-info, 10-13-beacons, 10-14-read-only, 10-15-search-messages, 10-16-search-messages, 18-05-emoji-picker, 18-06-emoji-picker.
+- Contact sheet (private artifact): https://claude.ai/artifact/Fn2ZzKd6U75LXW9EAt7hbf
+- CI has not run on this fork (Actions off); verified locally at 2.9: lint:ci filter, full Vitest 39,424 passed / 0 failed / 109 skipped (PG and MySQL ran), tsc, build + bundle check, Playwright 37 passed.
+- Backend changes this phase: GET /api/sources/:id/activity (2.7), notifyOnReply + Meshtastic notifyOnMention push, migration 234 (2.9). No mesh traffic, no new timers.
+- No PR created (requester's instruction).
