@@ -750,6 +750,7 @@ import embedPublicRoutes from './routes/embedPublicRoutes.js';
 import { privacyPublicRouter, privacyAdminRouter } from './routes/privacyRoutes.js';
 import firmwareUpdateRoutes from './routes/firmwareUpdateRoutes.js';
 import sourceRoutes from './routes/sourceRoutes.js';
+import activityRoutes from './routes/activityRoutes.js';
 import unifiedRoutes from './routes/unifiedRoutes.js';
 import analysisRoutes from './routes/analysisRoutes.js';
 import aircraftRoutes from './routes/aircraftRoutes.js';
@@ -945,6 +946,9 @@ apiRouter.use('/embed-profiles', embedProfileRoutes);
 
 // Firmware OTA update routes (admin only)
 apiRouter.use('/firmware', firmwareUpdateRoutes);
+
+// Workspace Activity feed (#6365) — read-only, per source.
+apiRouter.use('/sources/:id/activity', activityRoutes);
 
 // Sources management routes
 apiRouter.use('/sources', sourceRoutes);

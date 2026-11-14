@@ -2530,7 +2530,7 @@ export class MeshCoreRepository extends BaseRepository {
    * Shared by `searchMessages` and `listMessages` so both apply the identical
    * visibility rules.
    */
-  private meshcoreScopesCondition(scopes: MeshCoreMessageScope[]): SQL | null {
+  meshcoreScopesCondition(scopes: MeshCoreMessageScope[]): SQL | null {
     const parts = scopes
       .map((sc) => this.meshcoreScopeCondition(sc))
       .filter((c): c is SQL => c !== null);

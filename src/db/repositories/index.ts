@@ -216,6 +216,8 @@ export type {
 } from './mqttOkToMqttViolations.js';
 export { AtakContactsRepository } from './atakContacts.js';
 export type { AtakContactRow } from './atakContacts.js';
+export { ActivityRepository, ACTIVITY_SCAN_ROWS } from './activity.js';
+export type { ActivityItem, ActivityPage, ActivityConversation, MeshtasticActivityQuery, MeshcoreActivityQuery } from './activity.js';
 export { MeshBeaconOffersRepository, offerContentChanged, computeHasOffer, toPublicOffer } from './meshBeaconOffers.js';
 export {
   NodeIdentityMergeRepository,

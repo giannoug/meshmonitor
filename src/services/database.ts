@@ -105,6 +105,7 @@ import {
   MapPreferencesRepository,
   UserPreferencesRepository,
   ThemesRepository,
+  ActivityRepository,
   ALL_SOURCES,
 } from '../db/repositories/index.js';
 import type { SourceSetScope } from '../db/repositories/index.js';
@@ -126,6 +127,7 @@ import type { MeshIssueFinding } from '../server/services/meshIssues/types.js';
 import type { ConversationReadStateMap, AircraftFlightMatchRow, FlightMatchLookupWrite, FlightMatchRecheckWrite, AssetNode, AssetNodeSettings } from '../db/repositories/index.js';
 import type { MeshCoreIgnoredNodeRow, MeshCoreMessageFilterRow, MeshCoreMessageFilterInput, MeshCoreFilterMode } from '../db/repositories/index.js';
 import type { MessageSourceScope } from '../db/repositories/index.js';
+import type { ActivityPage, MeshtasticActivityQuery, MeshcoreActivityQuery } from '../db/repositories/index.js';
 import type { PasskeySummary, DbPasskey, CreatePasskeyInput } from '../db/repositories/index.js';
 import { assetRetentionCutoff } from '../utils/assetTracking.js';
 import type { ConversationKind } from '../db/schema/conversationReadState.js';
@@ -643,6 +645,7 @@ class DatabaseService {
   public mqttOkToMqttViolationsRepo: MqttOkToMqttViolationsRepository | null = null;
   public atakContactsRepo: AtakContactsRepository | null = null;
   public meshBeaconOffersRepo: MeshBeaconOffersRepository | null = null;
+  public activityRepo: ActivityRepository | null = null;
   public nodeIdentityMergeRepo: NodeIdentityMergeRepository | null = null;
   public reticulumRepo: ReticulumRepository | null = null;
   public estimatedPositionsRepo: EstimatedPositionsRepository | null = null;
@@ -1028,6 +1031,12 @@ class DatabaseService {
     return this.meshBeaconOffersRepo;
   }
 
+  /** Workspace Activity feed reads (#6365). */
+  get activity(): ActivityRepository {
+    if (!this.activityRepo) throw new Error('Database not initialized');
+    return this.activityRepo;
+  }
+
   /** Node identity-merge tool + undo journal (#5032). */
   get nodeIdentityMerge(): NodeIdentityMergeRepository {
     if (!this.nodeIdentityMergeRepo) throw new Error('Database not initialized');
@@ -1290,6 +1299,7 @@ class DatabaseService {
       this.mqttOkToMqttViolationsRepo = new MqttOkToMqttViolationsRepository(drizzleDb, this.drizzleDbType);
       this.atakContactsRepo = new AtakContactsRepository(drizzleDb, this.drizzleDbType);
       this.meshBeaconOffersRepo = new MeshBeaconOffersRepository(drizzleDb, this.drizzleDbType);
+      this.activityRepo = new ActivityRepository(drizzleDb, this.drizzleDbType);
       this.nodeIdentityMergeRepo = new NodeIdentityMergeRepository(drizzleDb, this.drizzleDbType);
       this.reticulumRepo = new ReticulumRepository(drizzleDb, this.drizzleDbType);
       this.estimatedPositionsRepo = new EstimatedPositionsRepository(drizzleDb, this.drizzleDbType);
@@ -2040,6 +2050,13 @@ class DatabaseService {
 
   // Direct messages methods moved to MessagesRepository (databaseService.messages.getDirectMessages)
 
+
+  /** One page of a source's Activity feed (#6365); see ActivityRepository. */
+  async getActivityAsync(
+    q: ({ protocol: 'meshtastic' } & MeshtasticActivityQuery) | ({ protocol: 'meshcore' } & MeshcoreActivityQuery),
+  ): Promise<ActivityPage> {
+    return q.protocol === 'meshcore' ? this.activity.listMeshcore(q) : this.activity.listMeshtastic(q);
+  }
 
   async searchMessagesAsync(options: {
     query: string;

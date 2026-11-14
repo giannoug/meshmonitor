@@ -905,7 +905,7 @@ export class MessagesRepository extends BaseRepository {
    * scope can match anything. Callers MUST treat `null` as "zero rows" — never
    * as "no filter" (#5517).
    */
-  private sourceScopesCondition(scopes: MessageSourceScope[]): SQL | null {
+  sourceScopesCondition(scopes: MessageSourceScope[]): SQL | null {
     const { messages: table } = this.tables;
     const parts: SQL[] = [];
     for (const scope of scopes) {
