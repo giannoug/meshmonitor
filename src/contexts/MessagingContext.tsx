@@ -203,13 +203,15 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children, 
   const markMessagesAsRead = useCallback(
     async (messageIds?: string[], channelId?: number, nodeId?: string, allDMs?: boolean): Promise<void> => {
       try {
-        await markAsReadMutation({ messageIds, channelId, nodeId, allDMs });
+        // Without sourceId the server marks the primary source's DMs (and checks
+        // permissions there), not the device this view is showing.
+        await markAsReadMutation({ messageIds, channelId, nodeId, allDMs, sourceId: sourceId ?? undefined });
         // The mutation automatically invalidates and refetches unread counts
       } catch (error) {
         console.error('Error marking messages as read:', error);
       }
     },
-    [markAsReadMutation]
+    [markAsReadMutation, sourceId]
   );
 
   const value = useMemo<MessagingContextType>(() => ({
