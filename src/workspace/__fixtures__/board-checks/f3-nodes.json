@@ -1,16 +1,15 @@
 {
   "must": [
     "Nodes",
-    "Show on map",
-    "Search nodes",
+    "Show on Map",
     "More filters",
     "RSSI",
-    "BATTERY",
-    "LAST HEARD ▾",
-    "DISTANCE",
-    "HARDWARE",
-    "COLUMNS · DRAG TO REORDER",
-    "Public key",
+    "Battery",
+    "Last Heard",
+    "Distance",
+    "Hardware",
+    "Columns · drag to reorder",
+    "Public Key",
     "Via MQTT"
   ],
   "absent": [

@@ -6,6 +6,7 @@
 import type { DeviceInfo } from '../types/device.js';
 import type { NodeFilters, SecurityFilter } from '../types/ui.js';
 import { isAgedOutAircraft } from '../components/map/agedOutAircraft.js';
+import { isNodeComplete } from './nodeHelpers.js';
 
 export const DEFAULT_NODE_FILTERS: NodeFilters = {
   filterMode: 'show',
@@ -35,6 +36,20 @@ export function normalizeNodeFilters(raw: unknown): NodeFilters {
   if (!Array.isArray(merged.deviceRoles)) merged.deviceRoles = [];
   if (!Array.isArray(merged.channels)) merged.channels = [];
   return merged;
+}
+
+/**
+ * Check or uncheck `value` in a multi-select where `[]` means "all" (the
+ * filter's device roles and channels). Returns `selected` itself when nothing
+ * changes (checking a value while all are selected).
+ */
+export function toggleInSelection(selected: number[], value: number, checked: boolean, all: number[]): number[] {
+  if (checked) {
+    if (selected.length === 0) return selected;
+    const next = [...selected, value];
+    return next.length === all.length ? [] : next;
+  }
+  return (selected.length === 0 ? all : selected).filter(v => v !== value);
 }
 
 export interface NodeFilterSubject {
@@ -155,4 +170,22 @@ export function toMeshtasticFilterSubject(
     role: typeof node.user?.role === 'number' ? node.user.role : parseInt(node.user?.role || '0'),
     channel: node.channel ?? -1,
   };
+}
+
+/**
+ * The Nodes list's filters past `processedNodes` (security, channel,
+ * incomplete, remote admin), shared by Classic's list and export and the
+ * Workspace Nodes table so they agree on which nodes are "in".
+ */
+export function filterNodeList(
+  nodes: DeviceInfo[],
+  f: { securityFilter: SecurityFilter; channelFilter: number | 'all'; showIncompleteNodes: boolean; filterRemoteAdminOnly: boolean },
+): DeviceInfo[] {
+  return nodes.filter(node => {
+    if (!passesSecurityFilter(isSecurityFlagged(node), f.securityFilter)) return false;
+    if (f.channelFilter !== 'all' && (node.channel ?? 0) !== f.channelFilter) return false;
+    if (!f.showIncompleteNodes && !isNodeComplete(node)) return false;
+    if (f.filterRemoteAdminOnly && !node.hasRemoteAdmin) return false;
+    return true;
+  });
 }

@@ -295,6 +295,45 @@ export const BOARDS: Board[] = [
       await page.getByRole('dialog', { name: /Neighbour link/ }).waitFor();
     },
   },
+  // Task 3.3: Nodes, its Columns picker, the filters (desktop panel, phone sheet) and Add node from URL.
+  {
+    id: 'f3-nodes',
+    size: 'desktop',
+    path: '/source/src-g2/nodes',
+    setup: async (page) => {
+      await page.getByRole('button', { name: /Columns/ }).click();
+      await page.getByText('Columns · drag to reorder').waitFor();
+    },
+  },
+  { id: 'g3-nodes', size: 'phone', path: '/source/src-g2/nodes' },
+  {
+    id: '15-10-more-filters',
+    size: 'desktop',
+    path: '/source/src-g2/nodes',
+    setup: async (page) => {
+      await page.getByRole('button', { name: /More filters/ }).click();
+      await page.getByRole('dialog', { name: /More filters/ }).getByText('Device Role').waitFor();
+    },
+  },
+  {
+    id: '15-14-filters',
+    size: 'phone',
+    path: '/source/src-g2/nodes',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Filters' }).click();
+      await page.getByRole('dialog', { name: /Filters/ }).getByText('Device Role').waitFor();
+    },
+  },
+  {
+    id: '15-15-add-from-url',
+    size: 'phone',
+    path: '/source/src-g2/nodes',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Add node from URL' }).click();
+      const dialog = page.getByRole('dialog', { name: 'Add node from URL' });
+      await dialog.getByRole('textbox').fill('https://meshtastic.org/v/#CgcI5o2q7gUSDkx5Y2FiZXR0dXMgSGlrZXIaBExZQ0gi');
+    },
+  },
 ];
 
 async function searchRelay(page: Page): Promise<void> {

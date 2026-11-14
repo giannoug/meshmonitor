@@ -2,7 +2,7 @@
  * The device map (boards Main, f2-layers, 15-09; phone g1-map, g2-layers,
  * 15-21): `/source/:id/map` on a Meshtastic-family device. The map composes
  * `BaseMap` and today's layers (`DeviceMapLayers`, shared with NodesTab); a
- * toolbar, the "On the map" list, and one right-hand panel at a time: a
+ * toolbar (its More filters is Nodes' NodeFiltersSheet), the "On the map" list, and one right-hand panel at a time: a
  * node's peek, a neighbour link's peek, or the Layers drawer. On a phone the
  * same map and data get PhoneMap's controls, and each panel is a bottom sheet.
  *
@@ -22,7 +22,6 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import L from 'leaflet';
 import { UiIcon } from '../../components/icons';
-import { AdvancedNodeFilterPopup } from '../../components/AdvancedNodeFilterPopup';
 import { BaseMap } from '../../components/map/BaseMap';
 import { Map3DView } from '../../components/map/Map3DView';
 import { DeviceMapLayers } from '../../components/map/DeviceMapLayers';
@@ -48,7 +47,6 @@ import MeasureDistanceController from '../../components/MeasureDistanceControlle
 import PacketMonitorPanel from '../../components/PacketMonitorPanel';
 import RouteSegmentTraceroutesModal from '../../components/RouteSegmentTraceroutesModal';
 import ZoomHandler from '../../components/ZoomHandler';
-import type { OverlayColors } from '../../config/overlayColors';
 import { MapProvider, useMapContext, type EnrichedNeighborInfo } from '../../contexts/MapContext';
 import { useMapViewStore } from '../../contexts/mapViewStore';
 import { useData } from '../../contexts/DataContext';
@@ -61,7 +59,6 @@ import { usePersistedNodeFilters } from '../../hooks/usePersistedNodeFilters';
 import { sourcePollQueryKey } from '../../hooks/pollQueryKey';
 import { useChannels, useNodes } from '../../hooks/useServerData';
 import { useSourceView } from '../../hooks/useSourceView';
-import type { ThemeColors } from '../../hooks/useTraceroutePaths';
 import { appBasename } from '../../init';
 import api from '../../services/api';
 import type { DbTraceroute } from '../../services/database';
@@ -78,8 +75,10 @@ import MapNodeList from './MapNodeList';
 import MapToolbar, { MapControls } from './MapToolbar';
 import NeighbourPeek, { type NeighbourLink } from './NeighbourPeek';
 import NodePeek from './NodePeek';
+import NodeFiltersSheet from '../nodes/NodeFiltersSheet';
 import PhoneMap from './PhoneMap';
 import { peekCenterTarget } from './peekCenter';
+import { themeColors } from './themeColors';
 import { useIsPhone } from '../shell/useIsPhone';
 import { markerKey, useDeviceMap } from './useDeviceMap';
 import styles from './DeviceMap.module.css';
@@ -110,23 +109,6 @@ export default function DeviceMapRoute({ sourceId, source }: DeviceMapRouteProps
 
 /** `list`: the phone's node list sheet (desktop shows the list beside the map). */
 type Panel = { kind: 'layers' } | { kind: 'list' } | { kind: 'node'; key: string } | { kind: 'link'; link: NeighbourLink } | null;
-
-/** Leaflet polylines take colours, not CSS variables: read the theme's, as App does. */
-function themeColors(overlay: OverlayColors): ThemeColors {
-  const css = getComputedStyle(document.documentElement);
-  const v = (name: string) => css.getPropertyValue(name).trim();
-  return {
-    accentAlt: v('--color-accent-alt'),
-    error: v('--color-error'),
-    accent: v('--color-accent'),
-    faint: v('--color-text-faint'),
-    tracerouteForward: overlay.tracerouteForward,
-    tracerouteReturn: overlay.tracerouteReturn,
-    mqttSegment: overlay.mqttSegment,
-    neighborLine: overlay.neighborLine,
-    snrColors: overlay.snrColors,
-  };
-}
 
 const noop = () => {};
 
@@ -464,8 +446,8 @@ function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
           />
         </div>
       )}
-      <AdvancedNodeFilterPopup
-        isOpen={showNodeFilterPopup}
+      <NodeFiltersSheet
+        open={showNodeFilterPopup}
         nodeFilters={nodeFilters}
         securityFilter={securityFilter}
         channels={channels}

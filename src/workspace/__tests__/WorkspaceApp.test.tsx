@@ -36,6 +36,7 @@ vi.mock('../chat/DmConversation', async () => ({ default: (await import('./pageS
 vi.mock('../chat/DmInbox', async () => ({ default: (await import('./pageStub')).pageStub('dm-inbox') }));
 vi.mock('../chat/PhoneHome', async () => ({ default: (await import('./pageStub')).pageStub('phone-home') }));
 vi.mock('../activity/ActivityFeed', async () => ({ default: (await import('./pageStub')).pageStub('activity') }));
+vi.mock('../nodes/NodesPage', async () => ({ default: (await import('./pageStub')).pageStub('nodes') }));
 
 /** Shows the real URL, and navigates client-side when its input changes. */
 function RealUrl() {
@@ -105,7 +106,8 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     ['/users', 'users'],
     ['/preferences/units', 'global-settings'],
     ['/server/general', 'global-settings'],
-    [`${g2}/nodes`, 'app'],
+    // Nodes is the Workspace's own table and list, with App not mounted (Task 3.3, Ruling AD).
+    [`${g2}/nodes`, 'nodes'],
     [`${g2}/settings`, 'app'],
     [`${g2}/settings/lora`, 'app'],
     [`${g2}/node/!a1b2c301`, 'app'],
@@ -122,7 +124,7 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     // A Meshtastic DM is the Workspace's own conversation, with App not mounted (Task 2.4, Ruling AD).
     [`${g2}/dm/!a1b2c301`, 'dm-conversation'],
     [`/source/${SOURCE_IDS.mqtt}/dm/!a1b2c301`, 'dm-conversation'],
-    [`/source/${SOURCE_IDS.mqtt}/nodes`, 'app'],
+    [`/source/${SOURCE_IDS.mqtt}/nodes`, 'nodes'],
     // The DM inbox is the Workspace's own (Task 2.6, Ruling AD); a desktop bare source URL keeps App.
     [`${g2}/dms`, 'dm-inbox'],
     [`/source/${SOURCE_IDS.mqtt}/dms`, 'dm-inbox'],
@@ -295,7 +297,7 @@ describe('unknown sources (Review Focus 4)', () => {
 
 describe('sockets (Ruling N)', () => {
   it.each([
-    [`${g2}/nodes`, 'app'],
+    [`${g2}/settings`, 'app'],
     [`${heltec}/nodes`, 'meshcore'],
     [`${rns}/destinations`, 'reticulum'],
     ['/overview/reports', 'reports'],
@@ -310,9 +312,9 @@ describe('sockets (Ruling N)', () => {
 
 describe('re-hosted pages stay mounted while the URL is fixed up', () => {
   it.each([
-    [`${g2}/nodes`, `${g2}/settings/lora`, `${g2}/settings/lora#config-lora`, 'app'],
-    [`${g2}/nodes`, `${g2}/configuration`, `${g2}/settings`, 'app'],
-    [`${g2}/nodes`, `${g2}/configuration#config-lora`, `${g2}/settings/lora#config-lora`, 'app'],
+    [`${g2}/channels`, `${g2}/settings/lora`, `${g2}/settings/lora#config-lora`, 'app'],
+    [`${g2}/channels`, `${g2}/configuration`, `${g2}/settings`, 'app'],
+    [`${g2}/channels`, `${g2}/configuration#config-lora`, `${g2}/settings/lora#config-lora`, 'app'],
     ['/server/general', '/server/backup', '/server/backup#settings-backup', 'global-settings'],
     ['/overview', '/overview/map', '/overview/map', 'dashboard'],
     [`${heltec}/nodes`, `${heltec}/admin`, `${heltec}/nodes`, 'meshcore'],

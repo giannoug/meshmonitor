@@ -10,7 +10,7 @@
  * already owns the protobuf definitions and the per-source permission check.
  * This is the paste-and-confirm shell around it.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../icons';
 import apiService from '../../services/api';
@@ -22,12 +22,15 @@ export interface ImportContactUrlModalProps {
   onClose: () => void;
   /** Called after a successful import so the caller can refresh its node list. */
   onImported?: (node: DeviceInfo | null, alreadyKnown: boolean) => void;
+  /** Shown above the buttons (the Workspace's "Sends nothing" line); Classic passes none. */
+  note?: ReactNode;
 }
 
 export const ImportContactUrlModal: React.FC<ImportContactUrlModalProps> = ({
   sourceId,
   onClose,
   onImported,
+  note,
 }) => {
   const { t } = useTranslation();
   const [url, setUrl] = useState('');
@@ -115,6 +118,7 @@ export const ImportContactUrlModal: React.FC<ImportContactUrlModalProps> = ({
         />
 
         {error && <div className={styles.error} role="alert">{error}</div>}
+        {note}
 
         <div className={styles.actions}>
           <button type="button" className={styles.cancelBtn} onClick={onClose} disabled={busy}>

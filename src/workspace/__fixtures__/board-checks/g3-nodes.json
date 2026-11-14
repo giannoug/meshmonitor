@@ -1,11 +1,10 @@
 {
   "must": [
     "Nodes",
-    "Search nodes",
     "Home",
-    "Favourites",
+    "Favorites",
     "Filters",
-    "Last heard"
+    "Sort: Updated"
   ],
   "absent": [
     "⌘K"

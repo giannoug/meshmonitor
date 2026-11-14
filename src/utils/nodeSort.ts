@@ -3,6 +3,19 @@ import type { SortField, SortDirection } from '../types/ui.js';
 
 export type SortKey = string | number;
 
+/** The Meshtastic node list's sort choices (Classic Nodes and the Workspace Nodes table). */
+export const MESHTASTIC_SORT_OPTIONS: { value: SortField; labelKey: string }[] = [
+  { value: 'longName', labelKey: 'nodes.sort_name' },
+  { value: 'shortName', labelKey: 'nodes.sort_short_name' },
+  { value: 'id', labelKey: 'nodes.sort_id' },
+  { value: 'lastHeard', labelKey: 'nodes.sort_updated' },
+  { value: 'uptime', labelKey: 'nodes.sort_uptime' },
+  { value: 'snr', labelKey: 'nodes.sort_signal' },
+  { value: 'battery', labelKey: 'nodes.sort_charge' },
+  { value: 'hwModel', labelKey: 'nodes.sort_hardware' },
+  { value: 'hops', labelKey: 'nodes.sort_hops' },
+];
+
 /**
  * The value a node sorts by for `field`. `hopsOf` is called only for the
  * `'hops'` field (it can be costly: in traceroute mode it scans and parses

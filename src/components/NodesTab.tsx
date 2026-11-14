@@ -5,11 +5,11 @@ import { Popup, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import type { Marker as LeafletMarker } from 'leaflet';
 import { DeviceInfo } from '../types/device';
-import { TabType, SortField } from '../types/ui';
+import { TabType } from '../types/ui';
 import { transportCutoffSec, isMqttOnlySourceType } from '../utils/nodeTransport';
 import { getNodeTypeCategory, categoryGlyphFamily, markerRoleProps } from '../utils/nodeTypeCategory';
 import { effectiveMapMaxAgeHours } from '../utils/mapAge';
-import { isSecurityFlagged } from '../utils/nodeAdvancedFilter';
+import { filterNodeList, isSecurityFlagged } from '../utils/nodeAdvancedFilter';
 import { resolveClusterZoomThreshold, resolveClusteredMapCenterTargetZoom } from '../utils/mapZoomAnimation';
 import MapAgeFilterControl from './map/MapAgeFilterControl';
 import MapAircraftDisplayControl from './map/MapAircraftDisplayControl';
@@ -33,7 +33,7 @@ import { getTilesetById } from '../config/tilesets';
 import { getEffectiveHops, getMapHoverTooltipMeta } from '../utils/nodeHops';
 import { sortNodesByField } from '../utils/nodeSort';
 import { buildNodeExportRows, NODE_EXPORT_COLUMNS, exportNodeList, type ExportColumn, type NodeExportRow } from '../utils/nodeExport';
-import { orderFavoritesFirst } from '../utils/nodeSort';
+import { MESHTASTIC_SORT_OPTIONS, orderFavoritesFirst } from '../utils/nodeSort';
 import { useNodeRoleGrouping } from '../hooks/useNodeRoleGrouping';
 import { NodeSortControls } from './nodes/NodeSortControls';
 import { ExportMenuButton } from './nodes/ExportMenuButton';
@@ -179,18 +179,6 @@ const isToday = (date: Date): boolean => {
     date.getMonth() === today.getMonth() &&
     date.getFullYear() === today.getFullYear();
 };
-
-const MESHTASTIC_SORT_OPTIONS: { value: SortField; labelKey: string }[] = [
-  { value: 'longName', labelKey: 'nodes.sort_name' },
-  { value: 'shortName', labelKey: 'nodes.sort_short_name' },
-  { value: 'id', labelKey: 'nodes.sort_id' },
-  { value: 'lastHeard', labelKey: 'nodes.sort_updated' },
-  { value: 'uptime', labelKey: 'nodes.sort_uptime' },
-  { value: 'snr', labelKey: 'nodes.sort_signal' },
-  { value: 'battery', labelKey: 'nodes.sort_charge' },
-  { value: 'hwModel', labelKey: 'nodes.sort_hardware' },
-  { value: 'hops', labelKey: 'nodes.sort_hops' },
-];
 
 const MESHTASTIC_EXPORT_COLUMNS: ExportColumn<NodeExportRow>[] = NODE_EXPORT_COLUMNS.map((c) => ({
   key: c.key,
@@ -1307,23 +1295,10 @@ const NodesTabComponent: React.FC<NodesTabProps> = ({
   // → security/channel/incomplete/remote-admin filters. Shared by the flat
   // list, the grouped list, the role distribution summary, and the CSV/HTML
   // export so they always agree on which nodes are "in".
-  const filteredNodes = useMemo(() => {
-    return processedNodes.filter(node => {
-      if (securityFilter === 'flaggedOnly') {
-        if (!isSecurityFlagged(node)) return false;
-      }
-      if (securityFilter === 'hideFlagged') {
-        if (isSecurityFlagged(node)) return false;
-      }
-      if (channelFilter !== 'all') {
-        const nodeChannel = node.channel ?? 0;
-        if (nodeChannel !== channelFilter) return false;
-      }
-      if (!showIncompleteNodes && !isNodeComplete(node)) return false;
-      if (filterRemoteAdminOnly && !node.hasRemoteAdmin) return false;
-      return true;
-    });
-  }, [processedNodes, securityFilter, channelFilter, showIncompleteNodes, filterRemoteAdminOnly]);
+  const filteredNodes = useMemo(
+    () => filterNodeList(processedNodes, { securityFilter, channelFilter, showIncompleteNodes, filterRemoteAdminOnly }),
+    [processedNodes, securityFilter, channelFilter, showIncompleteNodes, filterRemoteAdminOnly],
+  );
 
   // Favorites-first ordering, applied within whatever set it's handed — the
   // whole filtered list (flat/ungrouped) or one role group's nodes (grouped).

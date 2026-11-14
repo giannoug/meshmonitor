@@ -1,7 +1,7 @@
 /**
  * The device map's toolbar (board Main): the node filter (shared with Nodes,
- * as today's list filter), today's quick age window, More filters (today's
- * filter popup) and Layers. `MapControls` are the map's own buttons: fit all
+ * as today's list filter), today's quick age window, More filters (the
+ * NodeFiltersSheet Nodes uses, on the same filters) and Layers. `MapControls` are the map's own buttons: fit all
  * nodes and Measure Distance, both from today's Map controls panel.
  */
 import { useTranslation } from 'react-i18next';

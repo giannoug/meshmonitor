@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NodeFilters, SecurityFilter } from '../../types/ui';
-import { DEFAULT_NODE_FILTERS } from '../../utils/nodeAdvancedFilter';
+import { DEFAULT_NODE_FILTERS, toggleInSelection } from '../../utils/nodeAdvancedFilter';
 import type { Channel } from '../../types/device';
 import { ROLE_NAMES } from '../../constants';
 import './AdvancedNodeFilterPopup.css';
@@ -58,60 +58,15 @@ export const AdvancedNodeFilterPopup: React.FC<AdvancedNodeFilterPopupProps> = (
     onSecurityFilterChange?.('all');
   };
 
+  // `[]` = all selected (toggleInSelection); an unchanged list is not sent.
   const handleRoleChange = (roleNum: number, checked: boolean) => {
-    const allRoles = roleOptions.map(o => o.value);
-
-    if (checked) {
-      // If all were selected (empty array), keep it empty (already showing all)
-      if (nodeFilters.deviceRoles.length === 0) {
-        return;
-      } else {
-        // Add this role to the array
-        const newRoles = [...nodeFilters.deviceRoles, roleNum];
-        // If all are now selected, set to empty array (show all)
-        if (newRoles.length === roleOptions.length) {
-          onNodeFiltersChange({ ...nodeFilters, deviceRoles: [] });
-        } else {
-          onNodeFiltersChange({ ...nodeFilters, deviceRoles: newRoles });
-        }
-      }
-    } else {
-      // Unchecking a role
-      if (nodeFilters.deviceRoles.length === 0) {
-        // All were selected (empty array), now exclude this one
-        const newRoles = allRoles.filter((r: number) => r !== roleNum);
-        onNodeFiltersChange({ ...nodeFilters, deviceRoles: newRoles });
-      } else {
-        // Remove this role from the array
-        const newRoles = nodeFilters.deviceRoles.filter((r: number) => r !== roleNum);
-        onNodeFiltersChange({ ...nodeFilters, deviceRoles: newRoles });
-      }
-    }
+    const next = toggleInSelection(nodeFilters.deviceRoles, roleNum, checked, roleOptions.map(o => o.value));
+    if (next !== nodeFilters.deviceRoles) onNodeFiltersChange({ ...nodeFilters, deviceRoles: next });
   };
 
   const handleChannelChange = (channelId: number, checked: boolean) => {
-    const allChannels = (channels || []).map(c => c.id);
-
-    if (checked) {
-      if (nodeFilters.channels.length === 0) {
-        return;
-      } else {
-        const newChannels = [...nodeFilters.channels, channelId];
-        if (newChannels.length === (channels || []).length) {
-          onNodeFiltersChange({ ...nodeFilters, channels: [] });
-        } else {
-          onNodeFiltersChange({ ...nodeFilters, channels: newChannels });
-        }
-      }
-    } else {
-      if (nodeFilters.channels.length === 0) {
-        const newChannels = allChannels.filter((c: number) => c !== channelId);
-        onNodeFiltersChange({ ...nodeFilters, channels: newChannels });
-      } else {
-        const newChannels = nodeFilters.channels.filter((c: number) => c !== channelId);
-        onNodeFiltersChange({ ...nodeFilters, channels: newChannels });
-      }
-    }
+    const next = toggleInSelection(nodeFilters.channels, channelId, checked, (channels || []).map(c => c.id));
+    if (next !== nodeFilters.channels) onNodeFiltersChange({ ...nodeFilters, channels: next });
   };
 
   return (

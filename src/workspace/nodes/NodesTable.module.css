@@ -1,0 +1,560 @@
+/*
+ * Nodes (boards f3-nodes, g3-nodes): header, toolbar and the desktop table, or
+ * the phone list. The page fills the page column; only the table scrolls
+ * sideways when its columns outgrow it.
+ */
+.page {
+  position: fixed;
+  top: var(--app-header-height);
+  right: 0;
+  bottom: var(--app-nav-bar-height);
+  left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px 8px;
+}
+
+.page[data-phone] .header {
+  padding: 8px 12px;
+}
+
+.titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.page[data-phone] .title {
+  flex: 1;
+  font-size: 20px;
+  text-align: center;
+}
+
+.subtitle,
+.count {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 2px 0 0;
+  color: var(--color-text-subtle);
+}
+
+.button,
+.iconButton,
+.chip {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  font: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.button {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+}
+
+.iconButton {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+.page[data-phone] .iconButton {
+  width: 44px;
+  height: 44px;
+  border-color: transparent;
+  background: none;
+}
+
+.iconButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chip {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+}
+
+.page[data-phone] .chip {
+  min-height: 44px;
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.chipCount {
+  opacity: 0.8;
+  font-size: 0.9em;
+}
+
+.button:focus-visible,
+.iconButton:focus-visible,
+.chip:focus-visible,
+.sort:focus-visible,
+.name:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Today's Export menu (Classic class names; its sheet is not loaded here). */
+.export {
+  position: relative;
+}
+
+.export :global(.export-trigger-btn) {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.export :global(.export-menu) {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg-raised);
+}
+
+.export :global(.export-menu-item) {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.export :global(.export-menu-item:hover) {
+  background: var(--color-surface-hover);
+}
+
+.toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 24px 12px;
+}
+
+.page[data-phone] .toolbar {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-surface);
+}
+
+.search {
+  flex: 0 1 320px;
+  min-width: 180px;
+  min-height: 36px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg-raised);
+  color: var(--color-text-subtle);
+}
+
+.page[data-phone] .search {
+  flex: none;
+  min-height: 44px;
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  outline: none;
+}
+
+.search:focus-within {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+/* Phone: one row of chips that scrolls sideways inside itself. */
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chips > * {
+  flex: none;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* Today's sort select and direction button. */
+.sortControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sortControls select,
+.sortControls button {
+  min-height: 36px;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.sortControls select {
+  width: auto;
+  max-width: none;
+  padding: 0 8px;
+}
+
+.sortControls button {
+  width: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page[data-phone] .sortControls select,
+.page[data-phone] .sortControls button {
+  min-height: 44px;
+}
+
+.page[data-phone] .sortControls button {
+  width: 44px;
+}
+
+.listHead {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 16px;
+  color: var(--color-text-subtle);
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 24px 24px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 12px;
+  background: var(--color-bg);
+  color: var(--color-text-subtle);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 8px 12px;
+  border-top: 1px solid var(--color-surface);
+  white-space: nowrap;
+}
+
+.table tr:hover td {
+  background: var(--color-surface-hover);
+}
+
+.table tr[data-stale] td {
+  color: var(--color-text-subtle);
+}
+
+.sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.star {
+  width: 24px;
+  color: var(--color-warning);
+}
+
+.node {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--color-bg);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.names {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 8px;
+}
+
+.name {
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.name:hover {
+  text-decoration: underline;
+}
+
+.risk {
+  color: var(--color-error);
+}
+
+.id {
+  flex-basis: 100%;
+  color: var(--color-text-subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+
+.imported,
+.role {
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text-subtle);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.imported {
+  text-transform: none;
+}
+
+.role[data-router] {
+  background: var(--color-success);
+  color: var(--color-bg);
+}
+
+.battery {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bar {
+  width: 56px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--color-surface);
+}
+
+.bar > span {
+  display: block;
+  height: 100%;
+  background: var(--color-success);
+}
+
+.bar[data-low] > span {
+  background: var(--color-error);
+}
+
+.key {
+  display: inline-block;
+  max-width: 12ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Phone list */
+.list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rowTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ellipsis {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fav {
+  flex: none;
+  color: var(--color-warning);
+}
+
+.time {
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}
+
+/* Columns popover */
+.pickerWrap {
+  position: relative;
+}
+
+.picker {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  width: 260px;
+  max-height: 70vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+}
+
+.pickerTitle {
+  margin: 0 0 8px;
+  color: var(--color-text-subtle);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.picker ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.picker li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  border-radius: 8px;
+  cursor: grab;
+}
+
+.picker li[data-dragging] {
+  opacity: 0.5;
+}
+
+.picker label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.picker input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-accent);
+}
+
+.grip {
+  flex: none;
+  color: var(--color-text-faint);
+}

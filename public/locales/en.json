@@ -8686,5 +8686,16 @@
   "workspace.map.link_snr": "SNR {{snr}} dB",
   "workspace.map.no_report_back": "no report back",
   "workspace.map.not_connected": "Connect to a Meshtastic node to view node locations on the map",
-  "workspace.map.swipe_up": "Swipe up for the node page"
+  "workspace.map.swipe_up": "Swipe up for the node page",
+  "workspace.nodes.subtitle": "{{online}} online · {{known}} known · {{device}}",
+  "workspace.nodes.online": "Online",
+  "workspace.nodes.count_one": "{{count}} node",
+  "workspace.nodes.count_other": "{{count}} nodes",
+  "workspace.nodes.columns": "Columns",
+  "workspace.nodes.columns_hint": "Columns · drag to reorder",
+  "workspace.nodes.columns_keys": "Alt+Up or Alt+Down on a column moves it",
+  "workspace.nodes.col_distance": "Distance",
+  "workspace.nodes.filters_on": "{{count}} on",
+  "workspace.nodes.filters_note": "The map's More filters opens the same panel. Sends nothing on the mesh.",
+  "workspace.nodes.import_sends": "Sends nothing on the mesh; adds the node to {{device}} in MeshMonitor"
 }

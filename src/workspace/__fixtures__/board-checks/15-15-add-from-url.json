@@ -2,7 +2,6 @@
   "must": [
     "Add node from URL",
     "Paste a Meshtastic contact link",
-    "https://meshtastic.org/v/#",
     "Cancel",
     "Add node",
     "Imported",

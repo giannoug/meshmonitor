@@ -154,6 +154,8 @@ const nodes: DeviceInfo[] = [
   node(0xa1b2c307, 'Lycabettus Repeater', 'LYCR', { user: { id: '!a1b2c307', longName: 'Lycabettus Repeater',
     shortName: 'LYCR', hwModel: 9, role: '4' }, position: { latitude: 37.9819, longitude: 23.7432, altitude: 277 } }),
   node(0xa1b2c308, 'Kifisia Weather', 'KFW', { lastHeard: NOW_S - 1800 }),
+  // Added from a contact link and not heard yet (Nodes boards: the "Imported" row, 15-15).
+  node(0xa1b2c309, 'Penteli Hiker', 'PEN', { lastHeard: undefined, snr: undefined, rssi: undefined, hopsAway: undefined, importedAt: NOW_S - 300 }),
 ];
 
 function channel(id: number, name: string, role: number): Channel {
