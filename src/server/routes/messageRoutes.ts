@@ -241,8 +241,8 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
-    // Determine if this is a channel or DM message
-    const isChannelMessage = message.channel !== 0;
+    // DMs are stored with channel -1; every other value (including 0) is a channel.
+    const isChannelMessage = message.channel !== -1;
     const messageSourceId = (message as any).sourceId as string | undefined;
 
     // Check specific permission for this message type, scoped to the message's source
