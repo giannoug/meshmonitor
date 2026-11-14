@@ -24,7 +24,6 @@
  */
 
 import React, { useCallback, useMemo, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type L from 'leaflet';
 
@@ -38,7 +37,7 @@ import { useMessaging } from '../contexts/MessagingContext';
 import { useUI } from '../contexts/UIContext';
 import { useSource } from '../contexts/SourceContext';
 import { useToast } from '../components/ToastContainer';
-import { useNodes, useTelemetryNodes, setNodeFieldInCache } from './useServerData';
+import { useNodes, useTelemetryNodes } from './useServerData';
 import { useTraceroutePaths, type ThemeColors } from './useTraceroutePaths';
 import { TRACEROUTE_LOW_ZOOM } from '../utils/tracerouteSegments';
 import { isNodeComplete, getEffectivePosition } from '../utils/nodeHelpers';
@@ -46,9 +45,7 @@ import { effectiveMapMaxAgeHours } from '../utils/mapAge';
 import { resolveNodeListAgeHours } from '../utils/nodeQuickAgeFilter';
 import { useNodeQuickAgeFilter } from './useNodeQuickAgeFilter';
 import { nodePassesTransportFilter, transportCutoffSec, isMqttOnlySourceType } from '../utils/nodeTransport';
-import { logger } from '../utils/logger';
-import { favoritePendingKey, pendingFavoriteRequests } from '../utils/pendingToggles';
-import { isTxDisabledBody } from '../utils/txDisabled';
+import { useMeshtasticNodeActions } from './useMeshtasticNodeActions';
 import { isAgedOutAircraft } from '../components/map/agedOutAircraft';
 import { passesNodeFilters, toMeshtasticFilterSubject } from '../utils/nodeAdvancedFilter';
 
@@ -148,11 +145,8 @@ export function useSourceView(params: UseSourceViewParams) {
   const { sourceId, sourceType } = useSource();
   const { currentNodeId, connectionStatus } = useData();
   // nodes is sourced from the poll cache (#3962 5.4 PR8 — DataContext no
-  // longer mirrors it); queryClient is for the optimistic toggle writes
-  // below (setNodeFieldInCache), the query-cache-native replacement for the
-  // old setNodes(...) writes.
+  // longer mirrors it).
   const { nodes } = useNodes();
-  const queryClient = useQueryClient();
   const { selectedDMNode, setSelectedDMNode } = useMessaging();
   const { maxNodeAgeHours, distanceUnit, showIncompleteNodes } = useSettings();
   const {
@@ -160,7 +154,6 @@ export function useSourceView(params: UseSourceViewParams) {
     nodesNodeFilter,
     sortField,
     sortDirection,
-    setTracerouteLoading,
   } = useUI();
   // Nodes tab quick age filter (#5387): a view-only override of the Settings
   // window, applied ONLY while the Nodes tab is active (processedNodes also
@@ -206,59 +199,7 @@ export function useSourceView(params: UseSourceViewParams) {
     return connectionStatus === 'connected' || connectionStatus === 'user-disconnected';
   }, [connectionStatus]);
 
-  const handleTraceroute = useCallback(
-    async (nodeId: string, channel?: number) => {
-      if (connectionStatus !== 'connected') {
-        return;
-      }
-
-      try {
-        // Set loading state
-        setTracerouteLoading(nodeId);
-
-        // Convert nodeId to node number
-        const nodeNumStr = nodeId.replace('!', '');
-        const nodeNum = parseInt(nodeNumStr, 16);
-
-        const response = await authFetch(`${baseUrl}/api/traceroute`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ destination: nodeNum, sourceId, ...(channel !== undefined && { channel }) }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          setTracerouteLoading(null);
-          if (isTxDisabledBody(response.status, errorData)) {
-            showToast(t('tx_disabled.send_blocked_toast'), 'warning');
-          }
-          return;
-        }
-
-        logger.debug(`🗺️ Traceroute request sent to ${nodeId}`);
-
-        // Poll for traceroute results with increasing delays
-        // This provides faster UI feedback instead of waiting for the 5s poll interval
-        const pollDelays = [2000, 5000, 10000, 15000]; // 2s, 5s, 10s, 15s
-        pollDelays.forEach(delay => {
-          setTimeout(() => {
-            void refetchPoll();
-          }, delay);
-        });
-
-        // Clear loading state after 30 seconds
-        setTimeout(() => {
-          setTracerouteLoading(null);
-        }, 30000);
-      } catch (error) {
-        logger.error('Failed to send traceroute:', error);
-        setTracerouteLoading(null);
-      }
-    },
-    [connectionStatus, setTracerouteLoading, authFetch, baseUrl, sourceId, refetchPoll, showToast, t]
-  );
+  const nodeActions = useMeshtasticNodeActions({ baseUrl, authFetch, refetchPoll });
 
   const handleDeleteNode = useCallback(
     async (nodeNum: number) => {
@@ -461,123 +402,23 @@ export function useSourceView(params: UseSourceViewParams) {
     [setMapCenterTarget]
   );
 
-  // Function to toggle node favorite status
+  // traceroute/favorite/favorite-lock bodies moved to useMeshtasticNodeActions
+  // (#6365 Task 2.2); these keep the Classic signatures (node id, click event).
+  const handleTraceroute = nodeActions.byNodeId.traceroute;
+  const { toggleFavorite: toggleFavoriteNode, toggleFavoriteLock: toggleFavoriteLockNode } = nodeActions;
   const toggleFavorite = useCallback(
-    async (node: DeviceInfo, event: React.MouseEvent) => {
+    (node: DeviceInfo, event: React.MouseEvent) => {
       event.stopPropagation(); // Prevent node selection when clicking star
-
-      if (!node.user?.id) {
-        logger.error('Cannot toggle favorite: node has no user ID');
-        return;
-      }
-
-      // Prevent multiple rapid clicks on the same node (scoped to current source)
-      const favKey = favoritePendingKey(sourceId, node.nodeNum);
-      if (pendingFavoriteRequests.get(favKey) !== undefined) {
-        return;
-      }
-
-      // Store the original state before any updates
-      const originalFavoriteStatus = node.isFavorite;
-      const newFavoriteStatus = !originalFavoriteStatus;
-
-      try {
-        // Mark this request as pending with the expected new state
-        pendingFavoriteRequests.set(favKey, newFavoriteStatus);
-
-        // Optimistically update the UI by writing straight into the poll
-        // query cache. useNodes() re-derives (via applyPendingNodeOverrides)
-        // on every cache change, so this renders immediately and survives
-        // the next poll response until the server catches up.
-        setNodeFieldInCache(queryClient, sourceId, node.nodeNum, { isFavorite: newFavoriteStatus });
-
-        // Send update to backend (with device sync enabled by default)
-        const response = await authFetch(`${baseUrl}/api/nodes/${node.user.id}/favorite`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            isFavorite: newFavoriteStatus,
-            syncToDevice: true, // Enable two-way sync to Meshtastic device
-            sourceId,
-          }),
-        });
-
-        if (!response.ok) {
-          if (response.status === 403) {
-            showToast(t('toast.insufficient_permissions_favorites'), 'error');
-            // Revert to original state using the saved original value
-            setNodeFieldInCache(queryClient, sourceId, node.nodeNum, { isFavorite: originalFavoriteStatus });
-            return;
-          }
-          throw new Error('Failed to update favorite status');
-        }
-
-        const result = await response.json();
-
-        // Log the result including device sync status
-        let statusMessage = `${newFavoriteStatus ? '⭐' : '☆'} Node ${node.user.id} favorite status updated`;
-        if (result.deviceSync) {
-          if (result.deviceSync.status === 'success') {
-            statusMessage += ' (synced to device ✓)';
-          } else if (result.deviceSync.status === 'failed') {
-            // Only show error for actual failures (not firmware compatibility)
-            statusMessage += ` (device sync failed: ${result.deviceSync.error || 'unknown error'})`;
-          }
-          // 'skipped' status (e.g., pre-2.7 firmware) is not shown to user - logged on server only
-        }
-        logger.debug(statusMessage);
-      } catch (error) {
-        logger.error('Error toggling favorite:', error);
-        // Revert to original state using the saved original value
-        setNodeFieldInCache(queryClient, sourceId, node.nodeNum, { isFavorite: originalFavoriteStatus });
-        // Remove from pending on error since we reverted
-        pendingFavoriteRequests.delete(favKey);
-        showToast(t('toast.failed_update_favorite'), 'error');
-      }
-      // Note: On success, the polling logic will remove from pendingFavoriteRequests
-      // when it detects the server has caught up
+      return toggleFavoriteNode(node);
     },
-    [sourceId, queryClient, authFetch, baseUrl, showToast, t]
+    [toggleFavoriteNode]
   );
-
-  // Function to toggle node favorite lock status
   const toggleFavoriteLock = useCallback(
-    async (node: DeviceInfo, event: React.MouseEvent) => {
+    (node: DeviceInfo, event: React.MouseEvent) => {
       event.stopPropagation();
-
-      if (!node.user?.id) {
-        logger.error('Cannot toggle favorite lock: node has no user ID');
-        return;
-      }
-
-      const newLocked = !node.favoriteLocked;
-
-      try {
-        // Optimistically update the UI — write straight into the poll query
-        // cache (#3962 5.4 PR8); useNodes() picks it up on next render.
-        setNodeFieldInCache(queryClient, sourceId, node.nodeNum, { favoriteLocked: newLocked });
-
-        const response = await authFetch(`${baseUrl}/api/nodes/${node.user.id}/favorite-lock`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ locked: newLocked, sourceId }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Server returned ${response.status}`);
-        }
-
-        logger.debug(`${newLocked ? '🔒' : '🔓'} Node ${node.user.id} favorite lock set to: ${newLocked}`);
-      } catch (error) {
-        logger.error('Error toggling favorite lock:', error);
-        // Revert
-        setNodeFieldInCache(queryClient, sourceId, node.nodeNum, { favoriteLocked: !newLocked });
-        showToast(t('toast.failed_update_favorite_lock', 'Failed to update favorite lock'), 'error');
-      }
+      return toggleFavoriteLockNode(node);
     },
-    [queryClient, authFetch, baseUrl, sourceId, showToast, t]
+    [toggleFavoriteLockNode]
   );
 
   // Effective map age cap for traceroute/route-segment visibility (#3322):
@@ -712,5 +553,6 @@ export function useSourceView(params: UseSourceViewParams) {
     handleTraceroute,
     handleDeleteNode,
     handlePurgeNodeFromDevice,
+    nodeActions,
   };
 }

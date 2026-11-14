@@ -58,14 +58,11 @@ import { fetchAssetTrack } from './hooks/useAssetTracking';
 import { getPacketStats } from './services/packetApi';
 import { logger } from './utils/logger';
 import { MAX_ACCUMULATED_POSITION_FIXES, flattenAssetTrack } from './utils/positionHistoryDownsample';
-import { isTxDisabledBody } from './utils/txDisabled';
-import { resolveNeighborInfoErrorToast } from './utils/neighborInfoError';
 // generateArrowMarkers moved to useTraceroutePaths hook
 // isNodeComplete/getEffectivePosition/effectiveMapMaxAgeHours/
 // nodePassesTransportFilter/transportCutoffSec moved with processedNodes/
 // visibleNodeNums/centerMapOnNode to useSourceView (#3962 5.4 PR4)
 import { settingsToMatrix } from './utils/autoAckMatrix';
-import { applyHomoglyphOptimization } from './utils/homoglyph';
 import Sidebar from './components/Sidebar';
 import { SearchModal } from './components/SearchModal/SearchModal.js';
 import ConfigSearchHost from './components/search/ConfigSearchHost';
@@ -90,9 +87,10 @@ import { useVersionCheck } from './hooks/useVersionCheck';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePoll, type PollData } from './hooks/usePoll';
 import { useCsrfFetch } from './hooks/useCsrfFetch';
-import { useNodes, useChannels, setNodeFieldInCache } from './hooks/useServerData';
+import { useNodes, useChannels } from './hooks/useServerData';
 import { useSourceView } from './hooks/useSourceView';
 import { useMessagingView } from './hooks/useMessagingView';
+import { useMeshtasticMessageActions } from './hooks/useMeshtasticMessageActions';
 import { useNotificationNavigationHandler } from './hooks/useNotificationNavigationHandler';
 import { appBasename } from './init';
 import LoginModal from './components/LoginModal';
@@ -103,19 +101,6 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import PollErrorNotice from './components/PollErrorNotice';
 import RouteLoading from './components/RouteLoading/RouteLoading';
 
-// Pending favorite/ignored/hide-from-map toggle tracking lives in
-// src/utils/pendingToggles.ts as module-level singletons. Favorite/
-// favoriteLock (and the sweepAll/reconciliation-on-read step, now
-// applyPendingNodeOverrides) moved fully into useSourceView.ts /
-// useServerData.ts's useNodes() (#3962 5.4 PR4 + PR8); toggleIgnored/
-// toggleHideFromMap below still use pendingIgnoredRequests/
-// pendingHideFromMapRequests/favoritePendingKey directly for their
-// rapid-click guard and pending-state bookkeeping.
-import {
-  favoritePendingKey,
-  pendingIgnoredRequests,
-  pendingHideFromMapRequests,
-} from './utils/pendingToggles';
 import TracerouteHistoryModal from './components/TracerouteHistoryModal';
 import RouteSegmentTraceroutesModal from './components/RouteSegmentTraceroutesModal';
 import { hopLimitSettingValue } from './utils/hopLimitOverride';
@@ -230,9 +215,6 @@ function App() {
   // returns pendingMessagesRef/channelMessagesContainerRef/dmMessagesContainerRef
   // for the send/resend/tapback handlers below to keep using.
   const homoglyphEnabledRef = useRef<boolean>(false); // Track homoglyph setting for send handlers
-
-  // Constants for emoji tapbacks
-  const EMOJI_FLAG = 1; // Protobuf flag indicating this is a tapback/reaction
 
   // baseUrl = appBasename (imported from './init'), the deployment base
   // path. App used to hand-roll its own copy of this by walking the current
@@ -526,7 +508,6 @@ function App() {
     setSelectedDMNode,
     selectedChannel,
     setSelectedChannel,
-    setNewMessage,
     openDmWithDraft,
     openDmForCompose,
     pendingComposeFocus,
@@ -534,13 +515,10 @@ function App() {
     replyingTo,
     setReplyingTo,
     pendingMessages: _pendingMessages, // Not used directly - we use pendingMessagesRef for interval access
-    setPendingMessages,
     unreadCounts,
     setUnreadCounts,
     isChannelScrolledToBottom: _isChannelScrolledToBottom,
-    setIsChannelScrolledToBottom,
     isDMScrolledToBottom: _isDMScrolledToBottom,
-    setIsDMScrolledToBottom,
     markMessagesAsRead,
     unreadCountsData,
   } = useMessaging();
@@ -768,14 +746,6 @@ function App() {
   // newestMessageId moved into useMessagingView (#3962 5.4 PR7) — its only
   // consumer (applyPollMessages' new-message-sound detection) lives there now.
 
-  // Position exchange loading state (separate from traceroute loading)
-  const [positionLoading, setPositionLoading] = useState<string | null>(null);
-
-  // NodeInfo exchange loading state (for key exchange / user info request)
-  const [nodeInfoLoading, setNodeInfoLoading] = useState<string | null>(null);
-
-  // NeighborInfo request loading state
-  const [neighborInfoLoading, setNeighborInfoLoading] = useState<string | null>(null);
   // The viewed source's TCP port, from its own /api/config, for the
   // connection error banner (#6353). A ref: checkConnectionStatus runs from
   // timers that hold an older render's closure.
@@ -786,8 +756,6 @@ function App() {
   // and the banner showed no address until a later poll (#4173 review L21).
   const nodeHostRef = useRef<string>('');
 
-  // Telemetry request loading state
-  const [telemetryRequestLoading, setTelemetryRequestLoading] = useState<string | null>(null);
 
   // playNotificationSound moved into useMessagingView (#3962 5.4 PR7) — its
   // only consumer (applyPollMessages) lives there now.
@@ -945,6 +913,7 @@ function App() {
     handleTraceroute,
     handleDeleteNode,
     handlePurgeNodeFromDevice,
+    nodeActions,
   } = useSourceView({
     baseUrl,
     authFetch,
@@ -973,6 +942,38 @@ function App() {
     dmMessagesContainerRef,
     applyPollMessages,
   } = useMessagingView();
+
+  // Per-request spinners for the node requests (#6365 Task 2.2: the state
+  // moved into useMeshtasticNodeActions with the handlers that set it).
+  const {
+    position: positionLoading,
+    nodeInfo: nodeInfoLoading,
+    neighborInfo: neighborInfoLoading,
+    telemetry: telemetryRequestLoading,
+  } = nodeActions.loading;
+
+  // Message send/resend/tapback/delete/purge bodies (#6365 Task 2.2).
+  const {
+    sendChannelMessage,
+    sendDirectMessage,
+    sendTapback,
+    resend,
+    deleteMessage,
+    purgeChannelMessages,
+    sendBell,
+    sendPosition,
+  } = useMeshtasticMessageActions({
+    baseUrl,
+    authFetch,
+    refetchPoll,
+    setMessages,
+    setChannelMessages,
+    pendingMessagesRef,
+    channelMessagesContainerRef,
+    dmMessagesContainerRef,
+    localNodeIdRef,
+    homoglyphEnabledRef,
+  });
 
   // Load configuration and check connection status on startup
   useEffect(() => {
@@ -2061,253 +2062,20 @@ function App() {
 
   // handleTraceroute moved to useSourceView (#3962 5.4 PR4)
 
-  const handleExchangePosition = async (nodeId: string, channel?: number) => {
-    if (connectionStatus !== 'connected') {
-      return;
-    }
+  // Node request bodies live in useMeshtasticNodeActions (#6365 Task 2.2);
+  // Classic calls them by node id.
+  const handleExchangePosition = nodeActions.byNodeId.exchangePosition;
+  const handleExchangeNodeInfo = nodeActions.byNodeId.exchangeNodeInfo;
+  const handleRequestNeighborInfo = nodeActions.byNodeId.requestNeighborInfo;
+  const handleRequestTelemetry = nodeActions.byNodeId.requestTelemetry;
 
-    // Prevent duplicate requests (debounce logic)
-    if (positionLoading === nodeId) {
-      logger.debug(`📍 Position exchange already in progress for ${nodeId}`);
-      return;
-    }
+  // Send/resend/tapback/delete/purge bodies live in useMeshtasticMessageActions
+  // (#6365 Task 2.2); these wrappers read the compose draft and reply target.
 
-    try {
-      // Set loading state using dedicated position loading state
-      setPositionLoading(nodeId);
-
-      // Convert nodeId to node number for backend
-      const nodeNumStr = nodeId.replace('!', '');
-      const nodeNum = parseInt(nodeNumStr, 16);
-
-      // Use direct fetch with CSRF token (consistent with other message endpoints)
-      const response = await authFetch(`${baseUrl}/api/position/request`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ destination: nodeNum, sourceId: sourceId || undefined, ...(channel !== undefined && { channel }) }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        setPositionLoading(null);
-        if (isTxDisabledBody(response.status, errorData)) {
-          showToast(t(isMeshCoreSource ? 'meshcore.receive_only.blocked_toast' : 'tx_disabled.send_blocked_toast'), 'warning');
-        }
-        return;
-      }
-
-      logger.debug(`📍 Position request sent to ${nodeId}`);
-
-      // Trigger a poll to refresh messages immediately
-      setTimeout(() => {
-        // The poll will run and fetch the new system message
-        // We use a small delay to ensure the backend has finished writing to DB
-      }, 500);
-
-      // Clear loading state after 30 seconds
-      setTimeout(() => {
-        setPositionLoading(null);
-      }, 30000);
-    } catch (error) {
-      logger.error('Failed to send position request:', error);
-      setPositionLoading(null);
-    }
-  };
-
-  const handleExchangeNodeInfo = async (nodeId: string, channel?: number) => {
-    if (connectionStatus !== 'connected') {
-      return;
-    }
-
-    // Prevent duplicate requests (debounce logic)
-    if (nodeInfoLoading === nodeId) {
-      logger.debug(`🔑 NodeInfo exchange already in progress for ${nodeId}`);
-      return;
-    }
-
-    try {
-      // Set loading state
-      setNodeInfoLoading(nodeId);
-
-      // Convert nodeId to node number for backend
-      const nodeNumStr = nodeId.replace('!', '');
-      const nodeNum = parseInt(nodeNumStr, 16);
-
-      // Use direct fetch with CSRF token
-      const response = await authFetch(`${baseUrl}/api/nodeinfo/request`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ destination: nodeNum, sourceId: sourceId || undefined, ...(channel !== undefined && { channel }) }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        setNodeInfoLoading(null);
-        if (isTxDisabledBody(response.status, errorData)) {
-          showToast(t(isMeshCoreSource ? 'meshcore.receive_only.blocked_toast' : 'tx_disabled.send_blocked_toast'), 'warning');
-        }
-        return;
-      }
-
-      logger.debug(`🔑 NodeInfo request sent to ${nodeId}`);
-
-      // Clear loading state after 30 seconds
-      setTimeout(() => {
-        setNodeInfoLoading(null);
-      }, 30000);
-    } catch (error) {
-      logger.error('Failed to send nodeinfo request:', error);
-      setNodeInfoLoading(null);
-    }
-  };
-
-  const handleRequestNeighborInfo = async (nodeId: string) => {
-    if (connectionStatus !== 'connected') {
-      return;
-    }
-
-    // Prevent duplicate requests (debounce logic)
-    if (neighborInfoLoading === nodeId) {
-      logger.debug(`🏠 NeighborInfo request already in progress for ${nodeId}`);
-      return;
-    }
-
-    try {
-      // Set loading state
-      setNeighborInfoLoading(nodeId);
-
-      let response: Response;
-      if (sourceType === 'meshcore' && sourceId) {
-        const normalized = nodeId.toLowerCase();
-        if (!/^[0-9a-f]{64}$/.test(normalized)) {
-          logger.warn(`🏠 Invalid MeshCore publicKey: ${nodeId.substring(0, 16)}…`);
-          setNeighborInfoLoading(null);
-          return;
-        }
-        response = await authFetch(`${baseUrl}/api/sources/${sourceId}/meshcore/neighbors/request`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ publicKey: normalized }),
-        });
-        logger.debug(`🏠 MeshCore neighbors request sent for ${normalized.substring(0, 16)}…`);
-      } else {
-        // Meshtastic: convert hex nodeId to numeric destination
-        const nodeNumStr = nodeId.replace('!', '');
-        const nodeNum = parseInt(nodeNumStr, 16);
-        response = await authFetch(`${baseUrl}/api/neighborinfo/request`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ destination: nodeNum, sourceId: sourceId || undefined }),
-        });
-        logger.debug(`🏠 NeighborInfo request sent to ${nodeId}`);
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        setNeighborInfoLoading(null);
-        if (isTxDisabledBody(response.status, errorData)) {
-          showToast(t(isMeshCoreSource ? 'meshcore.receive_only.blocked_toast' : 'tx_disabled.send_blocked_toast'), 'warning');
-        } else {
-          // #4568: every other rejection — 403 (node is multi-hop, so not
-          // eligible) and 429 (rate limited) chief among them — used to fall
-          // straight through to `return` with no toast. The spinner cleared
-          // correctly, but on a LAN the round trip is milliseconds, so the
-          // button just flashed and the user was told nothing.
-          const toast = resolveNeighborInfoErrorToast(response.status, errorData, t('errors.unknown'));
-          showToast(t(toast.key, toast.params ?? {}), toast.variant);
-        }
-        return;
-      }
-
-      // Clear loading state after 30 seconds
-      setTimeout(() => {
-        setNeighborInfoLoading(null);
-      }, 30000);
-    } catch (error) {
-      logger.error('Failed to send neighborinfo request:', error);
-      setNeighborInfoLoading(null);
-    }
-  };
-
-  const handleRequestTelemetry = async (nodeId: string, telemetryType: 'device' | 'environment' | 'airQuality' | 'power') => {
-    if (connectionStatus !== 'connected') {
-      return;
-    }
-
-    // Prevent duplicate requests (debounce logic)
-    if (telemetryRequestLoading === nodeId) {
-      logger.debug(`📊 Telemetry request already in progress for ${nodeId}`);
-      return;
-    }
-
-    try {
-      // Set loading state
-      setTelemetryRequestLoading(nodeId);
-
-      // Convert nodeId to node number for backend
-      const nodeNumStr = nodeId.replace('!', '');
-      const nodeNum = parseInt(nodeNumStr, 16);
-
-      // Use direct fetch with CSRF token. Pass sourceId so the request is routed
-      // through the correct source's manager AND the destination channel is looked
-      // up on that source (issue #3573) — omitting it let the backend cross-source
-      // match a wrong channel and send the request unanswerably.
-      const response = await authFetch(`${baseUrl}/api/telemetry/request`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ destination: nodeNum, telemetryType, sourceId: sourceId || undefined }),
-      });
-
-      if (!response.ok) {
-        const detail = await response.json().catch(() => ({}));
-        if (isTxDisabledBody(response.status, detail)) {
-          setTelemetryRequestLoading(null);
-          showToast(t(isMeshCoreSource ? 'meshcore.receive_only.blocked_toast' : 'tx_disabled.send_blocked_toast'), 'warning');
-          return;
-        }
-        throw new Error(detail.error || `Telemetry request failed (${response.status})`);
-      }
-
-      logger.debug(`📊 Telemetry request (${telemetryType}) sent to ${nodeId}`);
-
-      // Clear loading state after 30 seconds
-      setTimeout(() => {
-        setTelemetryRequestLoading(null);
-      }, 30000);
-    } catch (error) {
-      // The throw above and a genuine network failure both land here, and this
-      // used to only log — so a rejected telemetry request cleared its spinner
-      // and told the user nothing: the same silent-failure shape fixed for
-      // neighbor info in #4568. Unlike that endpoint there is no 403/429 to
-      // explain specially — the server answers 400 (validation), 503 (not
-      // connected) or 500 — so its own message is the most specific thing
-      // available and gets surfaced directly.
-      logger.error('Failed to send telemetry request:', error);
-      setTelemetryRequestLoading(null);
-      showToast(
-        t('toast.telemetry_request_failed', {
-          error: error instanceof Error ? error.message : t('errors.network'),
-        }),
-        'error',
-      );
-    }
-  };
-
-  const handleSendDirectMessage = async (destinationNodeId: string) => {
-    const newMessage = composeDraftStore.get();
-    if (!newMessage.trim() || connectionStatus !== 'connected') {
-      return;
-    }
-
-    // Extract replyId from replyingTo message if present.
-    // Message ID format is `${sourceId}_${nodeNum}_${packetId}` — the packetId
-    // is always the last segment, so use slice(-1) to be robust to format changes.
+  // Extract replyId from replyingTo message if present.
+  // Message ID format is `${sourceId}_${nodeNum}_${packetId}` — the packetId
+  // is always the last segment, so use slice(-1) to be robust to format changes.
+  const replyingToPacketId = (): number | undefined => {
     let replyId: number | undefined = undefined;
     if (replyingTo) {
       const idParts = replyingTo.id.split('_');
@@ -2315,193 +2083,20 @@ function App() {
         replyId = parseInt(idParts[idParts.length - 1], 10);
       }
     }
-
-    // Create a temporary message ID for immediate display
-    const tempId = `temp_dm_${Date.now()}_${Math.random()}`;
-    // Use localNodeIdRef for immediate access (bypasses React state delay)
-    const nodeId = localNodeIdRef.current || currentNodeId || 'me';
-    // Apply homoglyph optimization to match what the backend will store,
-    // so dedup text comparison works correctly (#2027)
-    const displayText = homoglyphEnabledRef.current ? applyHomoglyphOptimization(newMessage) : newMessage;
-    const sentMessage: MeshMessage = {
-      id: tempId,
-      from: nodeId,
-      to: destinationNodeId,
-      fromNodeId: nodeId,
-      toNodeId: destinationNodeId,
-      text: displayText,
-      channel: -1, // -1 indicates a direct message
-      timestamp: new Date(),
-      isLocalMessage: true,
-      acknowledged: false,
-      portnum: 1, // Text message
-      replyId: replyId,
-    };
-
-    // Add message to local state immediately for instant feedback
-    setMessages(prev => [...prev, sentMessage]);
-
-    // Add to pending acknowledgments
-    // Update ref immediately (before React batches the state update) so processPollData
-    // can always find the pending message even if a WebSocket event arrives before React commits
-    pendingMessagesRef.current = new Map(pendingMessagesRef.current).set(tempId, sentMessage);
-    setPendingMessages(pendingMessagesRef.current);
-
-    // Scroll to bottom after sending message
-    setTimeout(() => {
-      if (dmMessagesContainerRef.current) {
-        dmMessagesContainerRef.current.scrollTop = dmMessagesContainerRef.current.scrollHeight;
-        setIsDMScrolledToBottom(true);
-      }
-    }, 50);
-
-    // Clear the input and reply state
-    const messageText = newMessage;
-    setNewMessage('');
-    setReplyingTo(null);
-
-    try {
-      const response = await authFetch(`${baseUrl}/api/messages/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: messageText,
-          channel: 0, // Backend may expect channel 0 for DMs
-          destination: destinationNodeId,
-          replyId: replyId,
-          sourceId: sourceId || undefined,
-        }),
-      });
-
-      if (response.ok) {
-        logger.debug('Direct message sent successfully');
-        // The message will be updated when we receive the acknowledgment from backend
-      } else {
-        logger.error('Failed to send direct message');
-        // Remove the message from local state if sending failed
-        setMessages(prev => prev.filter(msg => msg.id !== tempId));
-        setError('Failed to send direct message');
-      }
-    } catch (error) {
-      logger.error('Error sending direct message:', error);
-      // Remove the message from local state if sending failed
-      setMessages(prev => prev.filter(msg => msg.id !== tempId));
-      setError(`Failed to send direct message: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    return replyId;
   };
 
-  const handleSendTapback = async (emoji: string, originalMessage: MeshMessage) => {
-    if (connectionStatus !== 'connected') {
-      setError('Cannot send reaction: not connected to mesh network');
-      return;
-    }
+  const handleSendDirectMessage = (destinationNodeId: string) =>
+    sendDirectMessage(destinationNodeId, composeDraftStore.get(), replyingToPacketId());
 
-    // Extract replyId from original message.
-    // Message ID format is `${sourceId}_${nodeNum}_${packetId}` — the packetId
-    // is always the last segment, so use slice(-1) to be robust to format changes.
-    const idParts = originalMessage.id.split('_');
-    if (idParts.length < 2) {
-      setError('Cannot send reaction: invalid message format');
-      return;
-    }
-    const replyId = parseInt(idParts[idParts.length - 1], 10);
-
-    // Validate replyId is a valid number
-    if (isNaN(replyId) || replyId < 0) {
-      setError('Cannot send reaction: invalid message ID');
-      return;
-    }
-
-    // Determine if this is a direct message or channel message
-    const isDirectMessage = originalMessage.channel === -1;
-
-    try {
-      let requestBody;
-
-      if (isDirectMessage) {
-        // For DMs: send to the other party in the conversation
-        // If the message is from someone else, reply to them
-        // If the message is from me, send to the original recipient
-        // Use localNodeIdRef for immediate access (bypasses React state delay)
-        const nodeId = localNodeIdRef.current || currentNodeId;
-        const toNodeId = originalMessage.fromNodeId === nodeId ? originalMessage.toNodeId : originalMessage.fromNodeId;
-
-        requestBody = {
-          text: emoji,
-          destination: toNodeId, // Server expects 'destination' not 'toNodeId'
-          replyId: replyId,
-          emoji: EMOJI_FLAG,
-          sourceId: sourceId || undefined,
-        };
-      } else {
-        // For channel messages: use channel
-        requestBody = {
-          text: emoji,
-          channel: originalMessage.channel,
-          replyId: replyId,
-          emoji: EMOJI_FLAG,
-          sourceId: sourceId || undefined,
-        };
-      }
-
-      const response = await authFetch(`${baseUrl}/api/messages/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (response.ok) {
-        // Refresh messages to show the new tapback
-        setTimeout(() => refetchPoll(), 500);
-      } else {
-        const errorData = await response.json();
-        if (isTxDisabledBody(response.status, errorData)) {
-          showToast(t(isMeshCoreSource ? 'meshcore.receive_only.blocked_toast' : 'tx_disabled.send_blocked_toast'), 'warning');
-          return;
-        }
-        setError(`Failed to send reaction: ${errorData.error || 'Unknown error'}`);
-      }
-    } catch (err) {
-      setError(`Failed to send reaction: ${err instanceof Error ? err.message : 'Network error'}`);
-    }
-  };
+  const handleSendTapback = (emoji: string, originalMessage: MeshMessage) => sendTapback(originalMessage, emoji);
 
   const handleDeleteMessage = async (message: MeshMessage) => {
     if (!window.confirm(t('messages.confirm_delete'))) {
       return;
     }
 
-    try {
-      const response = await authFetch(`${baseUrl}/api/messages/${message.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        showToast(t('toast.message_deleted'), 'success');
-        // Update local state to remove the message
-        setMessages(prev => prev.filter(m => m.id !== message.id));
-        setChannelMessages(prev => ({
-          ...prev,
-          [message.channel]: (prev[message.channel] || []).filter(m => m.id !== message.id),
-        }));
-        void refetchPoll();
-      } else {
-        const errorData = await response.json();
-        showToast(t('toast.failed_delete_message', { error: errorData.message || t('errors.unknown') }), 'error');
-      }
-    } catch (err) {
-      showToast(
-        t('toast.failed_delete_message', { error: err instanceof Error ? err.message : t('errors.network') }),
-        'error'
-      );
-    }
+    await deleteMessage(message.id, message.channel);
   };
 
   const handlePurgeChannelMessages = async (channelId: number) => {
@@ -2514,34 +2109,7 @@ function App() {
       return;
     }
 
-    try {
-      const response = await authFetch(`${baseUrl}/api/messages/channels/${channelId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ sourceId }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        showToast(t('toast.purged_messages_channel', { count: data.deletedCount, channel: channelName }), 'success');
-        // Update local state
-        setChannelMessages(prev => ({
-          ...prev,
-          [channelId]: [],
-        }));
-        void refetchPoll();
-      } else {
-        const errorData = await response.json();
-        showToast(t('toast.failed_purge_messages', { error: errorData.message || t('errors.unknown') }), 'error');
-      }
-    } catch (err) {
-      showToast(
-        t('toast.failed_purge_messages', { error: err instanceof Error ? err.message : t('errors.network') }),
-        'error'
-      );
-    }
+    await purgeChannelMessages(channelId);
   };
 
   const handlePurgeDirectMessages = async (nodeNum: number) => {
@@ -2597,30 +2165,7 @@ function App() {
       return;
     }
 
-    try {
-      const response = await authFetch(`${baseUrl}/api/messages/nodes/${nodeNum}/traceroutes`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ sourceId }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        showToast(t('toast.purged_traceroutes', { count: data.deletedCount, node: nodeName }), 'success');
-        // Refresh data from backend to ensure consistency
-        void refetchPoll();
-      } else {
-        const errorData = await response.json();
-        showToast(t('toast.failed_purge_traceroutes', { error: errorData.message || t('errors.unknown') }), 'error');
-      }
-    } catch (err) {
-      showToast(
-        t('toast.failed_purge_traceroutes', { error: err instanceof Error ? err.message : t('errors.network') }),
-        'error'
-      );
-    }
+    await nodeActions.purgeNodeData(nodeNum, { what: 'traceroutes' });
   };
 
   const handlePurgeNodeTelemetry = async (nodeNum: number) => {
@@ -2635,30 +2180,7 @@ function App() {
       return;
     }
 
-    try {
-      const response = await authFetch(`${baseUrl}/api/messages/nodes/${nodeNum}/telemetry`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ sourceId }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        showToast(t('toast.purged_telemetry', { count: data.deletedCount, node: nodeName }), 'success');
-        // Refresh data from backend to ensure consistency
-        void refetchPoll();
-      } else {
-        const errorData = await response.json();
-        showToast(t('toast.failed_purge_telemetry', { error: errorData.message || t('errors.unknown') }), 'error');
-      }
-    } catch (err) {
-      showToast(
-        t('toast.failed_purge_telemetry', { error: err instanceof Error ? err.message : t('errors.network') }),
-        'error'
-      );
-    }
+    await nodeActions.purgeNodeData(nodeNum, { what: 'telemetry' });
   };
 
   const handlePurgePositionHistory = async (nodeNum: number) => {
@@ -2673,400 +2195,29 @@ function App() {
       return;
     }
 
-    try {
-      const response = await authFetch(`${baseUrl}/api/messages/nodes/${nodeNum}/position-history`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ sourceId }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        showToast(t('toast.purged_position_history', { count: data.deletedCount, node: nodeName }), 'success');
-        void refetchPoll();
-      } else {
-        const errorData = await response.json();
-        showToast(t('toast.failed_purge_position_history', { error: errorData.message || t('errors.unknown') }), 'error');
-      }
-    } catch (err) {
-      showToast(
-        t('toast.failed_purge_position_history', { error: err instanceof Error ? err.message : t('errors.network') }),
-        'error'
-      );
-    }
+    await nodeActions.purgeNodeData(nodeNum, { what: 'positionHistory' });
   };
 
   // handleDeleteNode + handlePurgeNodeFromDevice moved to useSourceView
   // (#3962 5.4 PR4)
 
-  const handlePositionOverrideSave = async (
-    nodeNum: number,
-    data: { enabled: boolean; latitude?: number; longitude?: number; altitude?: number }
-  ) => {
-    const node = nodes.find(n => n.nodeNum === nodeNum);
-    const nodeId = node?.user?.id;
-    if (!nodeId) {
-      throw new Error('Node not found');
-    }
+  const handlePositionOverrideSave = nodeActions.overridePosition;
 
-    const response = await authFetch(`${baseUrl}/api/nodes/${nodeId}/position-override`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ ...data, sourceId }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to save position override');
-    }
-
-    showToast(t('position_override.save_success'), 'success');
-    // Refresh data to get updated position
-    void refetchPoll();
-  };
-
-  const handleSendMessage = async (channel: number = 0) => {
-    const newMessage = composeDraftStore.get();
-    if (!newMessage.trim() || connectionStatus !== 'connected') {
-      return;
-    }
-
-    // Use channel ID directly - no mapping needed
-    const messageChannel = channel;
-
-    // Extract replyId from replyingTo message if present.
-    // Message ID format is `${sourceId}_${nodeNum}_${packetId}` — the packetId
-    // is always the last segment, so use slice(-1) to be robust to format changes.
-    let replyId: number | undefined = undefined;
-    if (replyingTo) {
-      const idParts = replyingTo.id.split('_');
-      if (idParts.length >= 2) {
-        replyId = parseInt(idParts[idParts.length - 1], 10);
-      }
-    }
-
-    // Create a temporary message ID for immediate display
-    const tempId = `temp_${Date.now()}_${Math.random()}`;
-    // Use localNodeIdRef for immediate access (bypasses React state delay)
-    const nodeId = localNodeIdRef.current || currentNodeId || 'me';
-    // Apply homoglyph optimization to match what the backend will store,
-    // so dedup text comparison works correctly (#2027)
-    const displayText = homoglyphEnabledRef.current ? applyHomoglyphOptimization(newMessage) : newMessage;
-    const sentMessage: MeshMessage = {
-      id: tempId,
-      from: nodeId,
-      to: '!ffffffff', // Broadcast
-      fromNodeId: nodeId,
-      toNodeId: '!ffffffff',
-      text: displayText,
-      channel: messageChannel,
-      timestamp: new Date(),
-      isLocalMessage: true,
-      acknowledged: false,
-      replyId: replyId,
-    };
-
-    // Add message to local state immediately
-    setMessages(prev => [...prev, sentMessage]);
-    setChannelMessages(prev => ({
-      ...prev,
-      [messageChannel]: [...(prev[messageChannel] || []), sentMessage],
-    }));
-
-    // Add to pending acknowledgments
-    console.log(`📤 Adding message to pending acknowledgments:`, {
-      tempId,
-      text: sentMessage.text,
-      from: sentMessage.from,
-      fromNodeId: sentMessage.fromNodeId,
-      channel: sentMessage.channel,
-    });
-    // Update ref immediately (before React batches the state update) so processPollData
-    // can always find the pending message even if a WebSocket event arrives before React commits
-    pendingMessagesRef.current = new Map(pendingMessagesRef.current).set(tempId, sentMessage);
-    console.log(`📊 Pending messages map size after add: ${pendingMessagesRef.current.size}`);
-    setPendingMessages(pendingMessagesRef.current);
-
-    // Scroll to bottom after sending message
-    setTimeout(() => {
-      if (channelMessagesContainerRef.current) {
-        channelMessagesContainerRef.current.scrollTop = channelMessagesContainerRef.current.scrollHeight;
-        setIsChannelScrolledToBottom(true);
-      }
-    }, 50);
-
-    // Clear the input and reply state
-    const messageText = newMessage;
-    setNewMessage('');
-    setReplyingTo(null);
-
-    try {
-      const response = await authFetch(`${baseUrl}/api/messages/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: messageText,
-          channel: messageChannel,
-          replyId: replyId,
-          sourceId: sourceId || undefined,
-        }),
-      });
-
-      if (response.ok) {
-        // The message was sent successfully
-        // We'll wait for it to appear in the backend data to confirm acknowledgment
-        setTimeout(() => refetchPoll(), 1000);
-      } else {
-        const errorData = await response.json();
-
-        // Remove the message from local state if sending failed
-        setMessages(prev => prev.filter(msg => msg.id !== tempId));
-        setChannelMessages(prev => ({
-          ...prev,
-          [channel]: prev[channel]?.filter(msg => msg.id !== tempId) || [],
-        }));
-        setPendingMessages(prev => {
-          const updated = new Map(prev);
-          updated.delete(tempId);
-          pendingMessagesRef.current = updated; // Update ref
-          return updated;
-        });
-
-        if (isTxDisabledBody(response.status, errorData)) {
-          showToast(t(isMeshCoreSource ? 'meshcore.receive_only.blocked_toast' : 'tx_disabled.send_blocked_toast'), 'warning');
-          return;
-        }
-        setError(`Failed to send message: ${errorData.error}`);
-      }
-    } catch (err) {
-      setError(`Failed to send message: ${err instanceof Error ? err.message : 'Unknown error'}`);
-
-      // Remove the message from local state if sending failed
-      setMessages(prev => prev.filter(msg => msg.id !== tempId));
-      setChannelMessages(prev => ({
-        ...prev,
-        [channel]: prev[channel]?.filter(msg => msg.id !== tempId) || [],
-      }));
-      setPendingMessages(prev => {
-        const updated = new Map(prev);
-        updated.delete(tempId);
-        pendingMessagesRef.current = updated; // Update ref
-        return updated;
-      });
-    }
-  };
+  const handleSendMessage = (channel: number = 0) =>
+    sendChannelMessage(channel, composeDraftStore.get(), replyingToPacketId());
 
   // Send a bell character (0x07) on a channel, optionally prepended to current text
-  const handleSendBell = async (channel: number, currentText: string) => {
-    if (connectionStatus !== 'connected') return;
-
-    const bellText = currentText.trim() ? `\x07${currentText}` : '\x07';
-    setNewMessage('');
-
-    try {
-      const response = await authFetch(`${baseUrl}/api/messages/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: bellText, channel, sourceId: sourceId || undefined }),
-      });
-
-      if (response.ok) {
-        setTimeout(() => refetchPoll(), 1000);
-      } else {
-        const errorData = await response.json();
-        if (isTxDisabledBody(response.status, errorData)) {
-          showToast(t(isMeshCoreSource ? 'meshcore.receive_only.blocked_toast' : 'tx_disabled.send_blocked_toast'), 'warning');
-          return;
-        }
-        setError(`Failed to send bell: ${errorData.error}`);
-      }
-    } catch (err) {
-      setError(`Failed to send bell: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    }
-  };
+  const handleSendBell = (channel: number, currentText: string) => sendBell({ channel, text: currentText });
 
   // Send a bell character (0x07) as a direct message
-  const handleSendBellDM = async (destinationNodeId: string, currentText: string) => {
-    if (connectionStatus !== 'connected') return;
-
-    const bellText = currentText.trim() ? `\x07${currentText}` : '\x07';
-    setNewMessage('');
-
-    try {
-      const response = await authFetch(`${baseUrl}/api/messages/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: bellText, channel: 0, destination: destinationNodeId, sourceId: sourceId || undefined }),
-      });
-
-      if (response.ok) {
-        logger.debug('Bell DM sent successfully');
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        if (isTxDisabledBody(response.status, errorData)) {
-          showToast(t(isMeshCoreSource ? 'meshcore.receive_only.blocked_toast' : 'tx_disabled.send_blocked_toast'), 'warning');
-          return;
-        }
-        setError('Failed to send bell DM');
-      }
-    } catch (err) {
-      setError(`Failed to send bell DM: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    }
-  };
+  const handleSendBellDM = (destinationNodeId: string, currentText: string) =>
+    sendBell({ nodeId: destinationNodeId, text: currentText });
 
   // Broadcast local node's position on a channel
-  const handleSendPosition = async (channel: number) => {
-    if (connectionStatus !== 'connected') return;
-
-    try {
-      const response = await authFetch(`${baseUrl}/api/position/request`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // Name the source this view is on. Without it the server broadcasts
-        // through the primary source's radio, whichever source is open.
-        body: JSON.stringify({ destination: 4294967295, channel, sourceId: sourceId || undefined }),
-      });
-
-      if (response.ok) {
-        setTimeout(() => refetchPoll(), 1000);
-      } else {
-        const errorData = await response.json();
-        if (isTxDisabledBody(response.status, errorData)) {
-          showToast(t(isMeshCoreSource ? 'meshcore.receive_only.blocked_toast' : 'tx_disabled.send_blocked_toast'), 'warning');
-          return;
-        }
-        setError(`Failed to send position: ${errorData.error}`);
-      }
-    } catch (err) {
-      setError(`Failed to send position: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    }
-  };
+  const handleSendPosition = sendPosition;
 
   // Resend a message (for own messages)
-  const handleResendMessage = async (message: MeshMessage) => {
-    if (!message.text?.trim() || connectionStatus !== 'connected') {
-      return;
-    }
-
-    // Determine if this is a DM or channel message
-    const isDM = message.channel === -1;
-    const messageChannel = message.channel;
-    const destinationNodeId = message.to || message.toNodeId;
-
-    // Create a temporary message ID for immediate display
-    const tempId = `temp_${Date.now()}_${Math.random()}`;
-    const nodeId = localNodeIdRef.current || currentNodeId || 'me';
-    const sentMessage: MeshMessage = {
-      id: tempId,
-      from: nodeId,
-      to: isDM ? destinationNodeId : '!ffffffff',
-      fromNodeId: nodeId,
-      toNodeId: isDM ? destinationNodeId : '!ffffffff',
-      text: message.text,
-      channel: messageChannel,
-      timestamp: new Date(),
-      isLocalMessage: true,
-      acknowledged: false,
-      portnum: isDM ? 1 : undefined,
-    };
-
-    // Add message to local state immediately
-    if (isDM) {
-      setMessages(prev => [...prev, sentMessage]);
-    } else {
-      setMessages(prev => [...prev, sentMessage]);
-      setChannelMessages(prev => ({
-        ...prev,
-        [messageChannel]: [...(prev[messageChannel] || []), sentMessage],
-      }));
-    }
-
-    // Add to pending acknowledgments
-    setPendingMessages(prev => {
-      const updated = new Map(prev).set(tempId, sentMessage);
-      pendingMessagesRef.current = updated;
-      return updated;
-    });
-
-    // Scroll to bottom after sending
-    setTimeout(() => {
-      if (isDM) {
-        if (dmMessagesContainerRef.current) {
-          dmMessagesContainerRef.current.scrollTop = dmMessagesContainerRef.current.scrollHeight;
-        }
-      } else {
-        if (channelMessagesContainerRef.current) {
-          channelMessagesContainerRef.current.scrollTop = channelMessagesContainerRef.current.scrollHeight;
-          setIsChannelScrolledToBottom(true);
-        }
-      }
-    }, 50);
-
-    try {
-      // Use the same endpoint for both DMs and channel messages
-      // DMs include a destination parameter, channel messages include a channel parameter
-      const endpoint = `${baseUrl}/api/messages/send`;
-      const body = isDM
-        ? { text: message.text, destination: destinationNodeId, sourceId: sourceId || undefined }
-        : { text: message.text, channel: messageChannel, sourceId: sourceId || undefined };
-
-      const response = await authFetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      if (response.ok) {
-        setTimeout(() => refetchPoll(), 1000);
-      } else {
-        const errorData = await response.json();
-
-        // Remove the message from local state if sending failed
-        setMessages(prev => prev.filter(msg => msg.id !== tempId));
-        if (!isDM) {
-          setChannelMessages(prev => ({
-            ...prev,
-            [messageChannel]: prev[messageChannel]?.filter(msg => msg.id !== tempId) || [],
-          }));
-        }
-        setPendingMessages(prev => {
-          const updated = new Map(prev);
-          updated.delete(tempId);
-          pendingMessagesRef.current = updated;
-          return updated;
-        });
-
-        if (isTxDisabledBody(response.status, errorData)) {
-          showToast(t(isMeshCoreSource ? 'meshcore.receive_only.blocked_toast' : 'tx_disabled.send_blocked_toast'), 'warning');
-          return;
-        }
-        setError(`Failed to resend message: ${errorData.error}`);
-      }
-    } catch (err) {
-      setError(`Failed to resend message: ${err instanceof Error ? err.message : 'Unknown error'}`);
-
-      // Remove the message from local state if sending failed
-      setMessages(prev => prev.filter(msg => msg.id !== tempId));
-      if (!isDM) {
-        setChannelMessages(prev => ({
-          ...prev,
-          [messageChannel]: prev[messageChannel]?.filter(msg => msg.id !== tempId) || [],
-        }));
-      }
-      setPendingMessages(prev => {
-        const updated = new Map(prev);
-        updated.delete(tempId);
-        pendingMessagesRef.current = updated;
-        return updated;
-      });
-    }
-  };
+  const handleResendMessage = resend;
 
   // Use imported helpers with current nodes state
   const getNodeName = (nodeId: string): string => {
@@ -3121,154 +2272,16 @@ function App() {
   // PR4) — toggleIgnored/toggleHideFromMap below are messages-tab-only
   // (not in the NodesTab census) and stay here until PR7.
 
-  // Function to toggle node ignored status
-  const toggleIgnored = async (node: DeviceInfo, event: React.MouseEvent) => {
+  // toggleIgnored/toggleHideFromMap bodies live in useMeshtasticNodeActions
+  // (#6365 Task 2.2); the click must not also select the node.
+  const toggleIgnored = (node: DeviceInfo, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent node selection when clicking ignore button
-
-    if (!node.user?.id) {
-      logger.error('Cannot toggle ignored: node has no user ID');
-      return;
-    }
-
-    // Prevent multiple rapid clicks on the same node (scoped to current source)
-    const ignKey = favoritePendingKey(sourceId, node.nodeNum);
-    if (pendingIgnoredRequests.get(ignKey) !== undefined) {
-      return;
-    }
-
-    // Store the original state before any updates
-    const originalIgnoredStatus = node.isIgnored;
-    const newIgnoredStatus = !originalIgnoredStatus;
-
-    try {
-      // Mark this request as pending with the expected new state
-      pendingIgnoredRequests.set(ignKey, newIgnoredStatus);
-
-      // Optimistically update the UI by writing straight into the poll
-      // query cache (#3962 5.4 PR8) — useNodes() re-derives via
-      // applyPendingNodeOverrides on every cache change.
-      setNodeFieldInCache(queryClient, sourceId, node.nodeNum, { isIgnored: newIgnoredStatus });
-
-      // Send update to backend (with device sync enabled by default)
-      const response = await authFetch(`${baseUrl}/api/nodes/${node.user.id}/ignored`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          isIgnored: newIgnoredStatus,
-          syncToDevice: true, // Enable two-way sync to Meshtastic device
-          sourceId,
-        }),
-      });
-
-      if (!response.ok) {
-        if (response.status === 403) {
-          showToast(t('toast.insufficient_permissions_ignored'), 'error');
-          // Revert to original state using the saved original value
-          setNodeFieldInCache(queryClient, sourceId, node.nodeNum, { isIgnored: originalIgnoredStatus });
-          return;
-        }
-        throw new Error('Failed to update ignored status');
-      }
-
-      const result = await response.json();
-
-      // Log the result including device sync status
-      let statusMessage = `${newIgnoredStatus ? '🚫' : '✅'} Node ${node.user.id} ignored status updated`;
-      if (result.deviceSync) {
-        if (result.deviceSync.status === 'success') {
-          statusMessage += ' (synced to device ✓)';
-        } else if (result.deviceSync.status === 'failed') {
-          // Only show error for actual failures (not firmware compatibility)
-          statusMessage += ` (device sync failed: ${result.deviceSync.error || 'unknown error'})`;
-        }
-        // 'skipped' status (e.g., pre-2.7 firmware) is not shown to user - logged on server only
-      }
-      logger.debug(statusMessage);
-    } catch (error) {
-      logger.error('Error toggling ignored:', error);
-      // Revert to original state using the saved original value
-      setNodeFieldInCache(queryClient, sourceId, node.nodeNum, { isIgnored: originalIgnoredStatus });
-      // Remove from pending on error since we reverted
-      pendingIgnoredRequests.delete(ignKey);
-      showToast(t('toast.failed_update_ignored'), 'error');
-    }
-    // Note: On success, the polling logic will remove from pendingIgnoredRequests
-    // when it detects the server has caught up
+    return nodeActions.toggleIgnored(node);
   };
 
-  // Toggle the per-node "Hide from Map" flag (issue #3549). Display-only: the
-  // node stays visible everywhere except map markers. Mirrors toggleIgnored's
-  // optimistic-update + per-source pending-request pattern, minus device sync.
-  //
-  // #4137: App.tsx is only ever mounted per-source (via SourceProvider under
-  // /source/:sourceId/*) — there is no separate "unified" caller of this
-  // toggle today. But since mergeNodesAcrossSources now ORs hideFromMap across
-  // sources for every cross-source consumer (Dashboard, Map Analysis, the
-  // unified node list — see mergeNodesAcrossSources.ts), a node stays hidden
-  // there forever unless EVERY source that ever hid it gets cleared. A
-  // per-source-only clear reproduces the exact "can't un-hide" bug reported
-  // in #4137. This is the only hide/show entry point in the UI, so it always
-  // converges the flag across every source for this nodeNum (allSources:
-  // true) rather than only the row for the currently-viewed source.
-  // sourceId is still sent and still required server-side — it remains the
-  // permission anchor for the write, just not the update scope.
-  const toggleHideFromMap = async (node: DeviceInfo, event: React.MouseEvent) => {
+  const toggleHideFromMap = (node: DeviceInfo, event: React.MouseEvent) => {
     event.stopPropagation();
-
-    if (!node.user?.id) {
-      logger.error('Cannot toggle hideFromMap: node has no user ID');
-      return;
-    }
-
-    const hfmKey = favoritePendingKey(sourceId, node.nodeNum);
-    if (pendingHideFromMapRequests.get(hfmKey) !== undefined) {
-      return;
-    }
-
-    const originalStatus = Boolean(node.hideFromMap);
-    const newStatus = !originalStatus;
-
-    try {
-      pendingHideFromMapRequests.set(hfmKey, newStatus);
-
-      // Optimistically update the UI by writing straight into the poll
-      // query cache (#3962 5.4 PR8) — useNodes() re-derives via
-      // applyPendingNodeOverrides on every cache change.
-      setNodeFieldInCache(queryClient, sourceId, node.nodeNum, { hideFromMap: newStatus });
-
-      const response = await authFetch(`${baseUrl}/api/nodes/${node.user.id}/hide-from-map`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          hideFromMap: newStatus,
-          sourceId,
-          allSources: true,
-        }),
-      });
-
-      if (!response.ok) {
-        if (response.status === 403) {
-          showToast(t('toast.insufficient_permissions_hide_from_map', 'You do not have permission to change map visibility'), 'error');
-          setNodeFieldInCache(queryClient, sourceId, node.nodeNum, { hideFromMap: originalStatus });
-          pendingHideFromMapRequests.delete(hfmKey);
-          return;
-        }
-        throw new Error('Failed to update hideFromMap status');
-      }
-
-      logger.debug(`🗺️ Node ${node.user.id} hideFromMap → ${newStatus}`);
-    } catch (error) {
-      logger.error('Error toggling hideFromMap:', error);
-      setNodeFieldInCache(queryClient, sourceId, node.nodeNum, { hideFromMap: originalStatus });
-      pendingHideFromMapRequests.delete(hfmKey);
-      showToast(t('toast.failed_update_hide_from_map', 'Failed to update map visibility'), 'error');
-    }
-    // Note: On success, the polling logic will remove from pendingHideFromMapRequests
-    // when it detects the server has caught up
+    return nodeActions.toggleHideFromMap(node);
   };
 
   // Function to handle sender icon clicks
