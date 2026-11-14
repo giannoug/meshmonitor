@@ -1,0 +1,80 @@
+/* The node page's Overview (boards f4-node, g4-node) and the facts cards other tabs reuse. */
+.overview {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.stat {
+  margin: 0;
+  padding: 16px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+}
+
+.stat dt {
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}
+
+.stat dd {
+  margin: 0;
+}
+
+.value {
+  margin-top: 4px;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.sub {
+  margin-top: 4px;
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}
+
+.sections {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.mapCard {
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+}
+
+.mapFoot {
+  margin: 12px 4px 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--color-text-subtle);
+}
+
+/* Phone (g4-node): two stat columns; Position before Radio. */
+.overview[data-phone] .stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.overview[data-phone] .sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.overview[data-phone] .position {
+  order: -1;
+}

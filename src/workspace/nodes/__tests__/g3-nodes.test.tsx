@@ -37,9 +37,9 @@ describe('g3-nodes', () => {
   it('a row opens the node page', async () => {
     renderChat(route, { phone: true });
     fireEvent.click(await within(await list()).findByRole('button', { name: /Kifisia Rooftop/ }));
-    // Until Task 3.4's node page, the node page URL shows today's node details (App at Classic's messages).
-    expect(await screen.findByTestId('page-app')).toBeInTheDocument();
-    expect(screen.getByTestId('seen-location')).toHaveTextContent(`${g2}/messages`);
+    // The Workspace node page (Task 3.4), with App not mounted.
+    expect(await screen.findByRole('heading', { level: 1, name: 'Kifisia Rooftop' }, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('page-app')).toBeNull();
   });
 
   it('a row reads hops, battery and distance, and an import says it was not heard yet', async () => {

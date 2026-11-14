@@ -141,11 +141,18 @@ const nodes: DeviceInfo[] = [
   // The DM boards' node (10-01, 10-07): a router that reports itself unmessageable, with a key
   // mismatch, a tracked asset, and not in Station G2's device database.
   node(0xa1b2c301, 'Kifisia Rooftop', 'KFR', { user: { id: '!a1b2c301', longName: 'Kifisia Rooftop', shortName: 'KFR',
-    hwModel: 43, role: '2' }, hopsAway: 2, channel: 0, isUnmessagable: true, keyMismatchDetected: true,
+    hwModel: 43, role: '2', publicKey: 'Kx4pZb0v1cS9mQ2yR7tW3eLh8uN6aJdF0gPi5oVk9w2Q=' }, hopsAway: 2, channel: 0,
+    isUnmessagable: true, keyMismatchDetected: true,
     asset: { retentionDays: 365 }, position: { latitude: 38.0742, longitude: 23.8113, altitude: 290 },
-    deviceMetrics: { batteryLevel: 88, voltage: 4.02, channelUtilization: 19, airUtilTx: 1.2 } }),
-  node(0xa1b2c302, 'Athens Rover', 'ROVR', { lastHeard: NOW_S - 600, hopsAway: 2,
-    position: { latitude: 37.9755, longitude: 23.7348 }, deviceMetrics: { batteryLevel: 14, voltage: 3.48 } }),
+    deviceMetrics: { batteryLevel: 88, voltage: 4.02, channelUtilization: 19, airUtilTx: 1.2, uptimeSeconds: 533_000 },
+    // The node page's Admin and Overview (f4, 15-03): firmware, first heard, a low-entropy key, remote admin, a note.
+    firmwareVersion: '2.7.15', firstHeard: NOW_S - 70 * 86_400, keyIsLowEntropy: true, isStoreForwardServer: true,
+    hasRemoteAdmin: true, lastRemoteAdminCheck: NOW_MS - 7_200_000,
+    notes: 'Antenna swapped to the 5 dBi on 3 Nov. Roof access via the building manager.' }),
+  // A tracked, moving asset on firmware 2.8 that has stopped sending telemetry (node page Position, 15-02).
+  node(0xa1b2c302, 'Athens Rover', 'ROVR', { lastHeard: NOW_S - 600, hopsAway: 2, isMobile: true, asset: { retentionDays: 30 },
+    firmwareVersion: '2.8.0', positionTimestamp: NOW_MS - 120_000, telemetryTimestamp: NOW_MS - 2 * 86_400_000,
+    position: { latitude: 37.9755, longitude: 23.7348, altitude: 164 }, deviceMetrics: { batteryLevel: 14, voltage: 3.48 } }),
   node(0xa1b2c303, 'Glyfada Beach', 'GLYF', { position: { latitude: 37.8627, longitude: 23.7536 } }),
   node(0xa1b2c304, 'Piraeus Base', 'PIRB', { position: { latitude: 37.9420, longitude: 23.6465 } }),
   node(0xa1b2c305, 'Marousi Mobile', 'MARM', { lastHeard: NOW_S - 5400, hopsAway: 3 }),
@@ -228,10 +235,27 @@ const translation = {
   provider: 'fixture',
 };
 
-const telemetry: TelemetryData[] = [0, 1, 2, 3].map((i) => ({
-  nodeId: '!a1b2c301', nodeNum: 0xa1b2c301, telemetryType: 'batteryLevel',
-  timestamp: NOW_MS - i * 3_600_000, value: 88 + i, unit: '%', createdAt: NOW_MS - i * 3_600_000,
-}));
+/** Kifisia Rooftop's last four hours (the node page's Telemetry tab, f5). */
+const telemetry: TelemetryData[] = ([
+  ['batteryLevel', 88, 1, '%'],
+  ['voltage', 4.02, 0.01, 'V'],
+  ['channelUtilization', 12, 2, '%'],
+  ['temperature', 14, 1, '°C'],
+] as const).flatMap(([telemetryType, base, step, unit]) => [0, 1, 2, 3].map((i) => ({
+  nodeId: '!a1b2c301', nodeNum: 0xa1b2c301, telemetryType,
+  timestamp: NOW_MS - i * 3_600_000, value: base + i * step, unit, createdAt: NOW_MS - i * 3_600_000,
+})));
+
+/**
+ * `GET /api/assets/:nodeNum/track` for Athens Rover (15-02): one gap segment of 16 fixes up the
+ * Piraeus–Marousi line over the last four hours, oldest first.
+ */
+const roverTrack = {
+  nodeNum: 0xa1b2c302, retentionDays: 30, hours: 720, windowStartMs: NOW_MS - 30 * 86_400_000, totalFixes: 16,
+  segments: [Array.from({ length: 16 }, (_, i) => ({
+    latitude: 37.93 + i * 0.006, longitude: 23.66 + i * 0.006, timestamp: NOW_MS - (16 - i) * 15 * 60_000,
+  }))],
+};
 
 /**
  * Station G2 ↔ Kifisia Rooftop via Hymettus Relay (the DM's traceroute strip), newest first. The
@@ -331,6 +355,11 @@ const neighborInfo: Array<EnrichedNeighborInfo & { reverseSnr: number | null; re
     nodeId: '!a1b2c302', nodeName: 'Athens Rover', neighborNodeId: '!a1b2c304', neighborName: 'Piraeus Base',
     bidirectional: false, reverseSnr: null, reverseTimestamp: null, transportClass: 'mqtt',
     nodeLatitude: 37.9755, nodeLongitude: 23.7348, neighborLatitude: 37.9420, neighborLongitude: 23.6465 },
+  // Kifisia Rooftop's own NeighborInfo report (the node page's Links tab, 15-04).
+  { nodeNum: 0xa1b2c301, neighborNodeNum: 0xa1b2c306, snr: -2, timestamp: NOW_MS - 540_000, createdAt: NOW_MS - 540_000,
+    nodeId: '!a1b2c301', nodeName: 'Kifisia Rooftop', neighborNodeId: '!a1b2c306', neighborName: 'Hymettus Relay',
+    bidirectional: true, reverseSnr: 4.5, reverseTimestamp: NOW_MS - 360_000, transportClass: 'rf',
+    nodeLatitude: 38.0742, nodeLongitude: 23.8113, neighborLatitude: 37.9497, neighborLongitude: 23.8037 },
 ];
 
 /** `GET /api/poll?sourceId=src-g2`: a full (non-delta) reply. */
@@ -360,6 +389,7 @@ export const athensFixture = {
   channels,
   messages,
   telemetry,
+  roverTrack,
   unreadCounts,
   unreadBySource,
   poll,

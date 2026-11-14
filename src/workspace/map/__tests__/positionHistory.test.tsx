@@ -24,7 +24,7 @@ const NOW = Date.now();
 const fixes = [0, 1, 2, 3].map((i) => ({ latitude: 37.96 + i * 0.005, longitude: 23.72 + i * 0.005, timestamp: NOW - (60 - i * 15) * 60_000 }));
 const fixtures = {
   // Athens Rover is a mobile node here, so selecting it loads its history.
-  'GET /api/poll': () => ({ ...athensFixture.poll, nodes: athensFixture.poll.nodes!.map((n) => (n.nodeNum === ROVER ? { ...n, isMobile: true } : n)) }),
+  'GET /api/poll': () => ({ ...athensFixture.poll, nodes: athensFixture.poll.nodes!.map((n) => (n.nodeNum === ROVER ? { ...n, isMobile: true, asset: undefined } : n)) }),
   // One page, then the empty page that ends the walk back.
   'GET /api/nodes/:id/position-history': (url: URL) => (url.searchParams.has('before') ? [] : fixes),
 };

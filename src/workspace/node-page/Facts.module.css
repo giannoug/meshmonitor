@@ -1,0 +1,46 @@
+/* The node page's facts cards (boards f4, 15-02, 15-03): heading, bordered rows. */
+.section {
+  min-width: 0;
+}
+
+.heading {
+  margin: 0 0 8px;
+  color: var(--color-text-subtle);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.facts {
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+  overflow: hidden;
+}
+
+.fact {
+  min-height: 52px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 20px;
+}
+
+.fact + .fact {
+  border-top: 1px solid var(--color-border);
+}
+
+.fact dt {
+  color: var(--color-text-subtle);
+}
+
+.fact dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}

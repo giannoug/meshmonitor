@@ -1,0 +1,24 @@
+/*
+ * The node page (boards f4, g4): it fills the page column and scrolls as one,
+ * so the phone header can collapse as it scrolls away.
+ */
+.page {
+  position: fixed;
+  top: var(--app-header-height);
+  right: 0;
+  bottom: var(--app-nav-bar-height);
+  left: var(--sidebar-width);
+  overflow-y: auto;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.body {
+  max-width: 1400px;
+  box-sizing: border-box;
+  padding: 24px 40px 40px;
+}
+
+.page[data-phone] .body {
+  padding: 16px 16px 24px;
+}

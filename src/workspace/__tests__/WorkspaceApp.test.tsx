@@ -37,6 +37,7 @@ vi.mock('../chat/DmInbox', async () => ({ default: (await import('./pageStub')).
 vi.mock('../chat/PhoneHome', async () => ({ default: (await import('./pageStub')).pageStub('phone-home') }));
 vi.mock('../activity/ActivityFeed', async () => ({ default: (await import('./pageStub')).pageStub('activity') }));
 vi.mock('../nodes/NodesPage', async () => ({ default: (await import('./pageStub')).pageStub('nodes') }));
+vi.mock('../node-page/NodePage', async () => ({ default: (await import('./pageStub')).pageStub('node-page') }));
 
 /** Shows the real URL, and navigates client-side when its input changes. */
 function RealUrl() {
@@ -110,8 +111,11 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     [`${g2}/nodes`, 'nodes'],
     [`${g2}/settings`, 'app'],
     [`${g2}/settings/lora`, 'app'],
-    [`${g2}/node/!a1b2c301`, 'app'],
-    [`${g2}/node/!a1b2c301/telemetry`, 'app'],
+    // A node is the Workspace's own node page, with App not mounted (Task 3.4, Ruling AD).
+    [`${g2}/node/!a1b2c301`, 'node-page'],
+    [`${g2}/node/!a1b2c301/telemetry`, 'node-page'],
+    [`/source/${SOURCE_IDS.mqtt}/node/!a1b2c301/links`, 'node-page'],
+    [`${heltec}/node/n1`, 'meshcore'],
     // Activity is the Workspace's own feed on a Meshtastic-family device (Task 2.8, Ruling AD); MeshCore keeps its page.
     [`${g2}/activity`, 'activity'],
     [`/source/${SOURCE_IDS.mqtt}/activity`, 'activity'],

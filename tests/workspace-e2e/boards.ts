@@ -334,7 +334,93 @@ export const BOARDS: Board[] = [
       await dialog.getByRole('textbox').fill('https://meshtastic.org/v/#CgcI5o2q7gUSDkx5Y2FiZXR0dXMgSGlrZXIaBExZQ0gi');
     },
   },
+  // Task 3.4: the node page. Kifisia Rooftop, and Athens Rover (a tracked asset) for Position.
+  { id: 'f4-node', size: 'desktop', path: '/source/src-g2/node/!a1b2c301', setup: (page) => nodeHeading(page, 'Kifisia Rooftop') },
+  {
+    id: 'f5-telemetry',
+    size: 'desktop',
+    path: '/source/src-g2/node/!a1b2c301/telemetry',
+    setup: async (page) => {
+      await page.getByText(/Battery Level/).first().waitFor();
+    },
+  },
+  { id: 'g4-node', size: 'phone', path: '/source/src-g2/node/!a1b2c301', setup: (page) => nodeHeading(page, 'Kifisia Rooftop') },
+  {
+    id: 'g5-links',
+    size: 'phone',
+    path: '/source/src-g2/node/!a1b2c301/links',
+    setup: async (page) => {
+      await page.getByText(/Last traced/).waitFor();
+    },
+  },
+  {
+    id: '15-02-position',
+    size: 'desktop',
+    path: '/source/src-g2/node/!a1b2c302/position',
+    setup: async (page) => {
+      await page.getByTestId('asset-playback-bar').waitFor();
+    },
+  },
+  {
+    id: '15-03-admin',
+    size: 'desktop',
+    path: '/source/src-g2/node/!a1b2c301/admin',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Create QR code' }).click();
+      await page.getByRole('button', { name: /Copy URL/ }).waitFor();
+    },
+  },
+  {
+    id: '15-04-traceroute-history',
+    size: 'desktop',
+    path: '/source/src-g2/node/!a1b2c301/links',
+    setup: async (page) => {
+      await page.getByText(/Showing 4 traceroute/).waitFor();
+    },
+  },
+  {
+    // The phone boards draw the header collapsed to one bar, as after a scroll.
+    id: '15-12-position',
+    size: 'phone',
+    path: '/source/src-g2/node/!a1b2c302/position',
+    setup: async (page) => {
+      await page.getByTestId('asset-playback-bar').waitFor();
+      await collapseNodeHeader(page);
+    },
+  },
+  {
+    id: '15-16-admin',
+    size: 'phone',
+    path: '/source/src-g2/node/!a1b2c301/admin',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Create QR code' }).click();
+      await page.getByRole('button', { name: /Copy URL/ }).waitFor();
+      await collapseNodeHeader(page);
+    },
+  },
+  {
+    id: '15-17-traceroute-history',
+    size: 'phone',
+    path: '/source/src-g2/node/!a1b2c301/links',
+    setup: async (page) => {
+      await page.getByText(/Showing 4 traceroute/).waitFor();
+      await collapseNodeHeader(page);
+    },
+  },
 ];
+
+async function nodeHeading(page: Page, name: string): Promise<void> {
+  await page.getByRole('heading', { level: 1, name }).waitFor();
+}
+
+/** Scroll the node page until its full header has slid under the bar, and wait for the one-bar header. */
+async function collapseNodeHeader(page: Page): Promise<void> {
+  await page.getByTestId('node-bar').evaluate((bar) => {
+    const header = bar.nextElementSibling as HTMLElement;
+    bar.parentElement!.scrollTop = header.offsetTop + header.offsetHeight - bar.offsetHeight + 8;
+  });
+  await page.locator('[data-testid="node-bar"][data-collapsed]').waitFor();
+}
 
 async function searchRelay(page: Page): Promise<void> {
   const dialog = page.getByRole('dialog', { name: 'Search Messages' });

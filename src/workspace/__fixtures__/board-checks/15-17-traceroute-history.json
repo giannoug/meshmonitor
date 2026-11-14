@@ -1,7 +1,7 @@
 {
   "must": [
     "Links",
-    "Traceroute history",
+    "Traceroute History",
     "From",
     "To",
     "Show failed traceroutes",
@@ -9,10 +9,10 @@
     "Return",
     "dB",
     "km",
-    "COPY",
+    "Copy",
     "Both",
     "No response",
-    "Neighbours",
+    "Neighbor Info",
     "Purge"
   ],
   "absent": [],

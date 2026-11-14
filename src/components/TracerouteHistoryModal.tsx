@@ -9,7 +9,7 @@ import { formatTracerouteRoute } from '../utils/traceroute';
 import Modal from './common/Modal';
 import { UiIcon } from './icons';
 
-interface TracerouteHistoryModalProps {
+export interface TracerouteHistoryListProps {
   fromNodeNum: number;
   toNodeNum: number;
   fromNodeName: string;
@@ -17,6 +17,9 @@ interface TracerouteHistoryModalProps {
   nodes: DeviceInfo[];
   /** Active source to scope history to. When null/undefined, history is unscoped (legacy single-source views). */
   sourceId?: string | null;
+}
+
+interface TracerouteHistoryModalProps extends TracerouteHistoryListProps {
   onClose: () => void;
 }
 
@@ -24,14 +27,18 @@ interface TracerouteWithHops extends DbTraceroute {
   hopCount: number;
 }
 
-const TracerouteHistoryModal: React.FC<TracerouteHistoryModalProps> = ({
+/**
+ * The history itself (#6365): Show failed traceroutes, then each run's forward
+ * and return path with SNR and distance. TracerouteHistoryModal shows it in a
+ * Modal; the Workspace node page's Links tab shows it in a card.
+ */
+export const TracerouteHistoryList: React.FC<TracerouteHistoryListProps> = ({
   fromNodeNum,
   toNodeNum,
   fromNodeName,
   toNodeName,
   nodes,
   sourceId,
-  onClose,
 }) => {
   const { t } = useTranslation();
   const [traceroutes, setTraceroutes] = useState<TracerouteWithHops[]>([]);
@@ -100,14 +107,7 @@ const TracerouteHistoryModal: React.FC<TracerouteHistoryModalProps> = ({
   }, [traceroutes, showFailedTraceroutes]);
 
   return (
-    <Modal
-      isOpen={true}
-      onClose={onClose}
-      title={t('traceroute_history.title')}
-      maxWidth="900px"
-      style={{ maxHeight: '80vh' }}
-    >
-      <div style={{ overflowY: 'auto', maxHeight: 'calc(80vh - 100px)' }}>
+      <>
         <div style={{ marginBottom: '1.5rem' }}>
           <strong>{t('traceroute_history.from')}:</strong> {fromNodeName} <UiIcon name="forward" size={14} /> <strong>{t('traceroute_history.to')}:</strong> {toNodeName}
         </div>
@@ -201,6 +201,22 @@ const TracerouteHistoryModal: React.FC<TracerouteHistoryModalProps> = ({
             })}
           </div>
         )}
+      </>
+  );
+};
+
+const TracerouteHistoryModal: React.FC<TracerouteHistoryModalProps> = ({ onClose, ...props }) => {
+  const { t } = useTranslation();
+  return (
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={t('traceroute_history.title')}
+      maxWidth="900px"
+      style={{ maxHeight: '80vh' }}
+    >
+      <div style={{ overflowY: 'auto', maxHeight: 'calc(80vh - 100px)' }}>
+        <TracerouteHistoryList {...props} />
       </div>
     </Modal>
   );

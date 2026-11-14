@@ -70,7 +70,7 @@ describe('g1-map', () => {
     fireEvent.pointerDown(peek, { clientY: 600, pointerId: 1 });
     fireEvent.pointerUp(peek, { clientY: 480, pointerId: 1 });
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Kifisia Rooftop' })).toBeNull());
-    expect(await screen.findByTestId('page-app')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Kifisia Rooftop' }, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it('a tap, a short drag or a swipe down does not leave the map', async () => {

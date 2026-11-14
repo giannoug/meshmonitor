@@ -1,17 +1,15 @@
 {
   "must": [
     "Position",
-    "Show position history",
+    "Show Position History",
     "Points only",
     "Duration",
     "Oldest",
     "Newest",
-    "12 of 16",
-    "Playback speed",
     "Trail up to cursor",
     "Follow",
     "Override",
-    "Use this custom position",
+    "this custom position will be used instead",
     "Accuracy",
     "GPS",
     "opt-in on Meshtastic 2.8+"

@@ -71,7 +71,7 @@ export default function NodePeek({ node, sourceId, onClose }: NodePeekProps) {
   const signedIn = authStatus?.authenticated === true;
   const canMessage = !!node.user?.id && hasPermission('messages', 'read', { sourceId });
   const protocol = sourceType === 'mqtt_bridge' || sourceType === 'mqtt_broker' ? 'mqtt' : 'meshtastic';
-  const openNodePage = () => void navigate(nodePage, { state: { focusDmNodeId: nodeId } });
+  const openNodePage = () => void navigate(nodePage);
 
   const stat = (label: string, value: ReactNode) => (
     <div>
@@ -112,7 +112,7 @@ export default function NodePeek({ node, sourceId, onClose }: NodePeekProps) {
     </Link>
   );
   const openPage = (
-    <Link className={styles.open} to={nodePage} state={{ focusDmNodeId: nodeId }}>
+    <Link className={styles.open} to={nodePage}>
       {t('workspace.map.open_node_page')}
       <UiIcon name="chevronRight" size={16} />
     </Link>

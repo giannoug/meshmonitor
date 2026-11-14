@@ -38,11 +38,13 @@ export interface TracerouteStripDProps {
   localName: string;
   nodeName: string;
   nodes: DeviceInfo[];
-  /** A hop on the strip was opened: the caller opens that node's DM. */
+  /** A hop on the strip was opened: the caller opens that node's DM (or page). */
   onOpenNode(nodeId: string): void;
+  /** False where the history is already on the page (the node page's Links tab). */
+  showHistory?: boolean;
 }
 
-export default function TracerouteStripD({ sourceId, localNodeNum, nodeNum, localName, nodeName, nodes, onOpenNode }: TracerouteStripDProps) {
+export default function TracerouteStripD({ sourceId, localNodeNum, nodeNum, localName, nodeName, nodes, onOpenNode, showHistory = true }: TracerouteStripDProps) {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
   const { timeFormat, dateFormat, distanceUnit, nodeHopsCalculation } = useSettings();
@@ -124,7 +126,7 @@ export default function TracerouteStripD({ sourceId, localNodeNum, nodeNum, loca
             {noData && !pending && ` (${t('messages.traceroute_failed')})`}
           </span>
         )}
-        {localNodeNum != null && (
+        {showHistory && localNodeNum != null && (
           <button type="button" className={styles.button} onClick={() => setHistoryOpen(true)}>
             <UiIcon name="time" size={16} /> {t('messages.history_button')}
           </button>

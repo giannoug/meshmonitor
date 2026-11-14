@@ -93,7 +93,7 @@ export default function NodesTable({ sourceId, nodes, columns, ctx, sortField, s
                   <span className={styles.node}>
                     <span className={styles.avatar} style={avatarStyle(node)} aria-hidden="true">{shortLabel(node)}</span>
                     <span className={styles.names}>
-                      <Link className={styles.name} to={`${base}/node/${encodeURIComponent(nodeId)}`} state={{ focusDmNodeId: nodeId }}>
+                      <Link className={styles.name} to={`${base}/node/${encodeURIComponent(nodeId)}`}>
                         {nodeNameOf(node)}
                       </Link>
                       {isSecurityFlagged(node) && (

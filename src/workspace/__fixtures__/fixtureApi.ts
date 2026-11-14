@@ -41,7 +41,17 @@ const defaults: Record<string, FixtureHandler> = {
       .map((r) => ({ ...r, id: r.id!, channel: 0, participation: 'endpoint', hopCount: r.hopCount }));
     return { success: true, data: { entries } };
   },
-  'GET /api/traceroutes/history/:from/:to': () => A.traceroutes,
+  // The stored history, plus a run that got no reply (Show failed traceroutes, 15-04).
+  'GET /api/traceroutes/history/:from/:to': () => [
+    ...A.traceroutes,
+    { ...A.traceroutes[0], id: 38, route: 'null', routeBack: 'null', snrTowards: 'null', snrBack: 'null', hopCount: 0,
+      timestamp: A.traceroutes[2].timestamp - 3_600_000, createdAt: A.traceroutes[2].timestamp - 3_600_000 },
+  ],
+  // Share contact on the node page's Admin tab (15-03): today's QR, built on request.
+  'GET /api/nodes/:nodeNum/contact-url': () => ({ success: true, data: { url: 'https://meshtastic.org/v/#CgcSBUtpZmlzaWE' } }),
+  // Athens Rover's tracked-asset trail (15-02).
+  'GET /api/assets/:nodeNum/track': (url) =>
+    Number(url.pathname.split('/')[3]) === A.roverTrack.nodeNum ? { success: true, data: A.roverTrack } : undefined,
   'GET /api/nodes/identity-changes': () => ({ success: true, data: { detections: [] } }),
   // The MQTT mirror reads the same mesh as Station G2.
   'GET /api/poll': (url) => {

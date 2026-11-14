@@ -3,13 +3,10 @@
     "Ask the node",
     "Organise",
     "Data",
-    "Custom",
-    "Battery level",
+    "Battery Level",
     "Voltage",
-    "Channel utilisation",
-    "Temperature",
-    "On Dashboard",
-    "Add to Dashboard"
+    "Channel Utilization",
+    "Temperature"
   ],
   "absent": [
     "Exchange"

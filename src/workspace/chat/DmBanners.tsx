@@ -30,9 +30,11 @@ export interface DmBannersProps {
   sentDirectMessageCount: number;
   /** null: no unmessageable banner (today's dmReadOnlyReason is not 'unmessageable'). */
   onMessageAnyway: (() => void) | null;
+  /** False: no device-database banner (the node page's Admin tab, which is not about sending). */
+  showDeviceDb?: boolean;
 }
 
-export default function DmBanners({ sourceId, node, sentDirectMessageCount, onMessageAnyway }: DmBannersProps) {
+export default function DmBanners({ sourceId, node, sentDirectMessageCount, onMessageAnyway, showDeviceDb = true }: DmBannersProps) {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
   const { showToast } = useToast();
@@ -72,7 +74,7 @@ export default function DmBanners({ sourceId, node, sentDirectMessageCount, onMe
   );
 
   const otherKeyIssue = !node.keyMismatchDetected && (node.keyIsLowEntropy || node.duplicateKeyDetected || node.keySecurityIssueDetails);
-  const notOnDevice = deviceNodeNums.size > 0 && !deviceNodeNums.has(node.nodeNum);
+  const notOnDevice = showDeviceDb && deviceNodeNums.size > 0 && !deviceNodeNums.has(node.nodeNum);
   const mitigatable = isDeviceDbWarningMitigatable(node);
 
   return (

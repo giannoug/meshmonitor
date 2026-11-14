@@ -42,8 +42,7 @@ export default function DmHeader(props: DmHeaderProps) {
   const navigate = useNavigate();
   const base = `/source/${encodeURIComponent(sourceId)}`;
   const nodePage = `${base}/node/${encodeURIComponent(nodeId)}`;
-  // The node page is today's (re-hosted) Messages tab, opened on this node.
-  const openNodePage = () => void navigate(nodePage, { state: { focusDmNodeId: nodeId } });
+  const openNodePage = () => void navigate(nodePage);
   const short = node?.user?.shortName?.trim() || nodeId.slice(-4);
   const role = node?.user?.role != null && String(node.user.role) !== '0' ? getDeviceRoleName(node.user.role) : null;
   const hops = node?.hopsAway;
@@ -67,7 +66,7 @@ export default function DmHeader(props: DmHeaderProps) {
       </span>
       <div className={threadStyles.titles}>
         <h1 className={threadStyles.title}>
-          <Link className={styles.name} to={nodePage} state={{ focusDmNodeId: nodeId }}>
+          <Link className={styles.name} to={nodePage}>
             {name}
             <UiIcon name="chevronRight" size={16} />
           </Link>

@@ -1,0 +1,148 @@
+/* The node page's Admin tab (boards 15-03, 15-16): notices, notes and asset tracking beside remote admin, sharing and the key facts. */
+.admin {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.admin[data-phone] {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.issue {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-warning);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+}
+
+.issue p {
+  margin: 0;
+}
+
+.card,
+.remote {
+  padding: 16px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+}
+
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.notes {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  resize: vertical;
+}
+
+.cardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.primary {
+  min-height: 36px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin[data-phone] .primary {
+  min-height: 44px;
+}
+
+.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.primary:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.readOnly {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.error {
+  color: var(--color-error);
+  font-size: 14px;
+}
+
+.remote {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--color-text);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sub {
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}
+
+.state[data-state='yes'] {
+  color: var(--color-success);
+}
+
+.key {
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+}
+
+/* Today's parts keep their own look; this only spaces them. */
+.classic {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

@@ -101,9 +101,7 @@ export function useMessageActions(opts: UseMessageActionsOptions) {
       dateFormat={opts.dateFormat}
       onNodeClick={(nodeId) => {
         setDetails(null);
-        void navigate(`/source/${encodeURIComponent(opts.sourceId)}/node/${encodeURIComponent(nodeId)}`, {
-          state: { focusDmNodeId: nodeId },
-        });
+        void navigate(`/source/${encodeURIComponent(opts.sourceId)}/node/${encodeURIComponent(nodeId)}`);
       }}
       onClose={() => setDetails(null)}
     />

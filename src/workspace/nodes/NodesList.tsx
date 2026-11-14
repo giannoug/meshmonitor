@@ -64,7 +64,7 @@ export default function NodesList({ sourceId, nodes, ctx }: NodesListProps) {
               style={{ transform: `translateY(${start}px)` }}
             >
               <TwoLineRow
-                onClick={() => void navigate(`${base}/node/${encodeURIComponent(nodeId)}`, { state: { focusDmNodeId: nodeId } })}
+                onClick={() => void navigate(`${base}/node/${encodeURIComponent(nodeId)}`)}
                 leading={<span className={styles.avatar} style={avatarStyle(node)} aria-hidden="true">{shortLabel(node)}</span>}
                 title={
                   <span className={styles.rowTitle}>

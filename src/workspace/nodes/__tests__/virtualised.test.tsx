@@ -69,6 +69,6 @@ describe('Nodes on a large mesh', () => {
     late.focus();
     expect(late).toHaveFocus();
     fireEvent.click(late);
-    expect(await screen.findByTestId('page-app')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Bulk 300' }, { timeout: 5000 })).toBeInTheDocument();
   });
 });

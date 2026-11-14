@@ -41,6 +41,7 @@ import {
 } from '../routes';
 import { OverviewRehost, Redirect, Rehost } from '../rehost/pages';
 import { useHashTarget } from '../rehost/useHashTarget';
+import type { NodeTab } from '../node-page/NodePage';
 import { useIsPhone } from '../shell/useIsPhone';
 import styles from './WorkspaceSource.module.css';
 
@@ -71,6 +72,9 @@ const MAP_PATH = /^map\/?$/;
 const NodesPage = lazy(() => import('../nodes/NodesPage.tsx'));
 /** `nodes`: the Workspace Nodes table and list (Task 3.3). */
 const NODES_PATH = /^nodes\/?$/;
+/** `node/<id>[/<tab>]`: the Workspace node page (Task 3.4). */
+const NodePage = lazy(() => import('../node-page/NodePage.tsx'));
+const NODE_PATH = /^node\/([^/]+)(?:\/(telemetry|links|position|admin))?\/?$/;
 
 export default function WorkspaceSource() {
   const { t } = useTranslation();
@@ -178,6 +182,22 @@ export default function WorkspaceSource() {
     return (
       <Rehost>
         <NodesPage key={sourceId} sourceId={sourceId} source={source} />
+      </Rehost>
+    );
+  }
+
+  const nodePage = source && splat.match(NODE_PATH);
+  if (nodePage) {
+    const nodeId = nodePage[1];
+    return (
+      <Rehost>
+        <NodePage
+          key={`${sourceId}/${nodeId}`}
+          sourceId={sourceId}
+          source={source}
+          nodeId={nodeId}
+          tab={(nodePage[2] as NodeTab | undefined) ?? 'overview'}
+        />
       </Rehost>
     );
   }

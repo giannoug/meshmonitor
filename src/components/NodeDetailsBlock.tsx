@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DeviceInfo } from '../types/device';
-import { formatLocationSource, getHardwareModelName, parseNodeId } from '../utils/nodeHelpers';
+import { getHardwareModelName, parseNodeId } from '../utils/nodeHelpers';
 import { getDeviceRoleName } from '../utils/deviceRole';
 import { getHardwareImageUrl } from '../utils/hardwareImages';
 import { formatRelativeTime } from '../utils/datetime';
 import { getEffectiveHops } from '../utils/nodeHops';
-import { formatUncertaintyRadius, precisionBitsToAccuracyMeters } from '../utils/distance';
-import { hasAccuracyCell } from '../utils/precisionOffset';
+import { nodePositionSource } from '../utils/nodePositionSource';
+import { MAX_NODE_NOTES_LENGTH, useNodeNotesDraft } from '../hooks/useNodeNotesDraft';
 import { TimeFormat, DateFormat, useSettings } from '../contexts/SettingsContext';
 import { useMapContext } from '../contexts/MapContext';
 import { useChannels, useDeviceConfig } from '../hooks/useServerData';
@@ -69,8 +69,6 @@ interface NodeDetailsBlockProps {
   canOpenRemoteAdmin?: boolean;
 }
 
-const MAX_NODE_NOTES_LENGTH = 2000;
-
 const NodeDetailsBlock: React.FC<NodeDetailsBlockProps> = ({ node, timeFormat = '24', dateFormat = 'MM/DD/YYYY', canEditNotes = false, onSaveNotes, canEditChannel = false, onSaveChannel, sourceId, assetTracking, canOpenRemoteAdmin = false }) => {
   const { t } = useTranslation();
   const { channels } = useChannels();
@@ -83,18 +81,9 @@ const NodeDetailsBlock: React.FC<NodeDetailsBlockProps> = ({ node, timeFormat = 
     return stored === 'true';
   });
 
-  // #3921: editable free-text notes. Draft is kept in local state and only
-  // persisted on Save; it re-syncs whenever the selected node (or its stored
-  // note) changes.
+  // #3921: editable free-text notes (useNodeNotesDraft).
   const nodeNum = node?.nodeNum;
-  const storedNotes = node?.notes ?? '';
-  const [notesDraft, setNotesDraft] = useState<string>(storedNotes);
-  // Baseline the draft is compared against for the "dirty" check. It tracks the
-  // last-persisted value locally so the Save button settles immediately after a
-  // successful save, even before the polled `nodes` prop catches up.
-  const [notesBaseline, setNotesBaseline] = useState<string>(storedNotes);
-  const [notesSaving, setNotesSaving] = useState(false);
-  const [notesError, setNotesError] = useState<string | null>(null);
+  const { storedNotes, notesDraft, setNotesDraft, notesSaving, notesError, notesDirty, handleSaveNotes } = useNodeNotesDraft(node, onSaveNotes);
 
   // #4110: the derived signal-trend badge fetches its own data (SignalTrendBadge).
   const nodeIdForTrend = node?.user?.id
@@ -104,119 +93,12 @@ const NodeDetailsBlock: React.FC<NodeDetailsBlockProps> = ({ node, timeFormat = 
     localStorage.setItem('nodeDetailsCollapsed', isCollapsed.toString());
   }, [isCollapsed]);
 
-  // Re-sync draft/baseline whenever the selected node or its stored note changes.
-  useEffect(() => {
-    setNotesDraft(storedNotes);
-    setNotesBaseline(storedNotes);
-    setNotesError(null);
-  }, [nodeNum, storedNotes]);
-
   if (!node) {
     return null;
   }
 
-  const notesDirty = notesDraft !== notesBaseline;
-
-  // Where the displayed lat/lon actually came from (#4432). Priority matches
-  // enhanceNodeForClient: override wins, then a real GPS fix, then a
-  // trilaterated estimate. Plain derivation rather than a hook — it sits after
-  // the `!node` guard and is cheap.
-  const positionSource: {
-    kind: 'override' | 'estimated' | 'gps';
-    label: string;
-    tooltip: string;
-    accuracy: string | null;
-    /**
-     * True only when the position is known to carry no error bar — NOT merely
-     * when `accuracy` is null (#4498).
-     *
-     * `hasAccuracyCell` is false for three different reasons: full precision
-     * (bits >= 32), an override, and unset/zero precision bits. The first two
-     * are genuinely exact; the third means the device never told us how precise
-     * the fix was. Labelling all three "Exact" would assert something we don't
-     * know, so the unknown case still renders nothing.
-     */
-    exact: boolean;
-  } = node.positionIsOverride
-    ? {
-        kind: 'override',
-        label: t('node_details.position_source_override', 'Override'),
-        tooltip: t(
-          'node_details.position_source_override_tooltip',
-          'Manually set position. Not reported by the device.',
-        ),
-        // A user placed this pin exactly where they meant it — no error bar.
-        accuracy: null,
-        exact: true,
-      }
-    : node.positionIsEstimated
-      ? {
-          kind: 'estimated',
-          label: t('node_details.position_source_estimated', 'Estimated'),
-          tooltip: t(
-            'node_details.position_source_estimated_tooltip',
-            'Estimated from traceroute and neighbor observations. This node has never reported a GPS position.',
-          ),
-          accuracy: formatUncertaintyRadius(
-            node.positionEstimateUncertaintyKm != null
-              ? node.positionEstimateUncertaintyKm * 1000
-              : null,
-            distanceUnit,
-          ),
-          exact: false,
-        }
-      : {
-          kind: 'gps',
-          // Name the actual source when the device reported one (#4498). The
-          // protobuf's LocSource has been decoded and stored since #4176, but
-          // PR #4188 wired it only into the map popups — this card kept showing
-          // a generic "GPS" for a manually-entered fix as readily as an
-          // internal one. formatLocationSource returns null for LOC_UNSET or an
-          // absent value, so nodes that never reported a source keep the exact
-          // pre-#4498 wording.
-          label:
-            formatLocationSource(node.positionLocationSource) ??
-            t('node_details.position_source_gps', 'GPS'),
-          tooltip:
-            formatLocationSource(node.positionLocationSource) !== null
-              ? t(
-                  'node_details.position_source_gps_tooltip_sourced',
-                  'Position reported by the device ({{source}}).',
-                  { source: formatLocationSource(node.positionLocationSource) },
-                )
-              : t(
-                  'node_details.position_source_gps_tooltip',
-                  'Position reported by the device.',
-                ),
-          // Only imprecise fixes (1..31 bits) have a meaningful error bar; full
-          // precision and unset both fall through to no radius. hasAccuracyCell
-          // is the same gate the map uses to draw its accuracy square.
-          accuracy:
-            node.positionPrecisionBits != null &&
-            hasAccuracyCell(node.positionPrecisionBits, node.positionIsOverride)
-              ? formatUncertaintyRadius(
-                  precisionBitsToAccuracyMeters(node.positionPrecisionBits),
-                  distanceUnit,
-                )
-              : null,
-          // >= 32 bits is a full-precision fix. null/0 means the device didn't
-          // report precision at all — unknown, not exact.
-          exact: node.positionPrecisionBits != null && node.positionPrecisionBits >= 32,
-        };
-
-  const handleSaveNotes = async () => {
-    if (!onSaveNotes || notesSaving || !notesDirty) return;
-    setNotesSaving(true);
-    setNotesError(null);
-    try {
-      await onSaveNotes(notesDraft);
-      setNotesBaseline(notesDraft);
-    } catch (err) {
-      setNotesError(err instanceof Error ? err.message : t('node_details.notes_error', 'Failed to save notes'));
-    } finally {
-      setNotesSaving(false);
-    }
-  };
+  // Where the displayed lat/lon actually came from (#4432, nodePositionSource).
+  const positionSource = nodePositionSource(node, t, distanceUnit);
 
   /**
    * Get battery level indicator class based on percentage

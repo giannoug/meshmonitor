@@ -1,13 +1,11 @@
 {
   "must": [
     "Position",
-    "Show position history",
+    "Show Position History",
     "Points only",
     "Duration",
     "Oldest",
     "Newest",
-    "12 of 16",
-    "Playback speed",
     "Trail up to cursor",
     "Follow",
     "Override",
