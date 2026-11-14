@@ -14,6 +14,8 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORT}`,
     browserName: 'chromium',
+    // A request the PWA service worker makes skips page.route and reaches the preview server (502).
+    serviceWorkers: 'block',
     launchOptions: executablePath ? { executablePath } : {},
   },
   webServer: {

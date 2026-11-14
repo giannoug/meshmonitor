@@ -144,7 +144,7 @@ describe('DeviceSidebar', () => {
     expect(within(side).getByText('Connected · !a1b2c300')).toBeInTheDocument();
     const links = within(side).getAllByRole('link').map((a) => [a.textContent, a.getAttribute('href')]);
     expect(links).toEqual([
-      ['Map', '/source/src-g2/nodes'],
+      ['Map', '/source/src-g2/map'],
       ['Nodes12 online', '/source/src-g2/nodes'],
       ['Dashboard', '/source/src-g2/dashboard'],
       ['Automation', '/source/src-g2/automation'],

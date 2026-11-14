@@ -2,20 +2,17 @@
   "must": [
     "Analysis",
     "Layers",
-    "BASE MAP",
+    "Base map",
     "Tiles",
-    "Max age",
-    "Cluster nearby nodes",
-    "Estimated positions",
-    "LINKS",
-    "Route segments",
-    "Heard by other devices",
-    "ANALYSIS",
-    "OVERLAYS",
-    "Position history",
+    "Map age filter",
+    "Show Estimated Positions",
+    "Links",
+    "Show Route Segments",
+    "Show Cross-Source Links",
+    "Overlays",
+    "Show Position History",
     "Waypoints",
-    "Ducting forecast",
-    "Find a node on the map"
+    "Ducting"
   ],
   "absent": [
     "Add source"

@@ -40,6 +40,8 @@ describe('classicFallback', () => {
     ['/source/abc/node/123/telemetry', '/source/abc/messages'],
     ['/source/abc/dm/123', '/source/abc/messages'],
     ['/source/abc/channel/0', '/source/abc/channels'],
+    // The device map (Task 3.1): Classic's Nodes tab, which holds the map.
+    ['/source/abc/map', '/source/abc/nodes'],
     // The DM inbox (Task 2.6): Classic's DM tab.
     ['/source/abc/dms', '/source/abc/messages'],
     ['/source/abc/activity', '/source/abc/'],

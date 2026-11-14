@@ -69,10 +69,8 @@ import { useResizable } from '../hooks/useResizable';
 import { resolveNodeSidebarMaxWidth, resolveNodeSidebarRenderWidth, isMobileLayout, NODE_SIDEBAR_MIN_WIDTH_PX } from '../utils/sidebarWidth';
 import ZoomHandler from './ZoomHandler';
 import MapPositionHandler from './MapPositionHandler';
-import PolarGridOverlay from './PolarGridOverlay.js';
-import GeoJsonOverlay from './GeoJsonOverlay';
-import { NodeMarkersLayer, type NodeMarkerDescriptor } from './map/layers/NodeMarkersLayer';
-import { NodeMarkerCluster } from './map/layers/NodeMarkerCluster';
+import type { NodeMarkerDescriptor } from './map/layers/NodeMarkersLayer';
+import { DeviceMapLayers, computeNeighborLinkStyle } from './map/DeviceMapLayers';
 import { ImportContactUrlModal } from './nodes/ImportContactUrlModal';
 import importContactStyles from './nodes/ImportContactUrlModal.module.css';
 import MeasureDistanceController from './MeasureDistanceController';
@@ -97,7 +95,7 @@ import { NodeDetailsButton } from './NodeDetailsButton';
 import nodeRowStyles from './NodeRowActions.module.css';
 import nodeStatusStyles from './NodeStatusLine.module.css';
 import listHeaderStyles from './NodesListHeader.module.css';
-import { NeighborLinksLayer, type NeighborLinkDescriptor } from './map/layers/NeighborLinksLayer';
+import type { NeighborLinkDescriptor } from './map/layers/NeighborLinksLayer';
 import { CrossSourceLinksLayer } from './map/layers/CrossSourceLinksLayer';
 import { TracerouteConfirmedLinksLayer } from './map/layers/TracerouteConfirmedLinksLayer';
 import DuctingLayer from './map/layers/DuctingLayer';
@@ -106,8 +104,8 @@ import { PacketFlightsControl } from './map/PacketFlightsControl';
 import { PacketFlightsLayer } from './map/layers/PacketFlightsLayer';
 import type { FlightNodeEntry, PacketFlightStats } from '../utils/packetFlightEdges';
 import subToggleStyles from './map/MapSubToggle.module.css';
-import { AccuracyRegionsLayer, type AccuracyRegionDescriptor } from './map/layers/AccuracyRegionsLayer';
-import { EstimatedPositionRadiiLayer, type EstimatedPositionRadius } from './map/layers/EstimatedPositionRadiiLayer';
+import type { AccuracyRegionDescriptor } from './map/layers/AccuracyRegionsLayer';
+import type { EstimatedPositionRadius } from './map/layers/EstimatedPositionRadiiLayer';
 import { NodeCard } from './map/popups/NodeCard';
 import { IdentityItems, SignalItems, LastHeardFooter, TracerouteBody, NodeActions, type NodeActionSpec } from './map/popups/sections';
 import { toNodeCardModel, type NodeCardModel } from './map/popups/nodeCardModel';
@@ -215,59 +213,9 @@ const DistanceDisplay = React.memo<{
   );
 });
 
-// Separate components for traceroutes that can update independently
-// These prevent marker re-renders when only the traceroute paths change
-// Renamed from TraceroutePathsLayer/SelectedTracerouteLayer (#4047 Phase 7
-// WP13) — those names shadowed the shared `map/layers/TraceroutePathsLayer`;
-// these are thin pass-through wrappers of pre-built nodes, not that layer.
-const TraceroutePathsContainer = React.memo<{ paths: React.ReactNode; enabled: boolean }>(
-  ({ paths }) => {
-    return <>{paths}</>;
-  }
-);
-
-const SelectedTracerouteContainer = React.memo<{ traceroute: React.ReactNode; enabled: boolean }>(
-  ({ traceroute }) => {
-    return <>{traceroute}</>;
-  }
-);
-
-/**
- * NodesTab's neighbor-link SNR encoding (#4047 Phase 7 WP11): a 4-tier
- * weight/opacity table plus a uniform amber color (`overlayColors.neighborLine`),
- * unlike the shared `NeighborLinksLayer`'s other consumers, which use the
- * continuous `snrToNeighborOpacity` curve (`utils/neighborLinks.ts`) — the two
- * are deliberately NOT unified (spec §4.1: "NodesTab uses a different 4-tier
- * SNR→weight/opacity table — that stays in the NodesTab adapter"). Direction
- * arrows are unidirectional-only, matching the shared layer's `arrows` gate.
- * Extracted as a pure function (module-scope, exported) so this table and the
- * arrow gate can be pinned with a unit test independent of the full
- * component render.
- */
-// eslint-disable-next-line react-refresh/only-export-components -- #4047 pure helper co-located with its only consumer for adapter unit testing; not a component
-export function computeNeighborLinkStyle(
-  snr: number | null,
-  isBidirectional: boolean,
-  lineColor: string,
-): { pathOptions: L.PathOptions; arrows?: { color: string } } {
-  let weight: number;
-  let opacity: number;
-  if (snr != null) {
-    if (snr > 10) { weight = 4; opacity = 0.85; }
-    else if (snr >= 0) { weight = 3; opacity = 0.6; }
-    else { weight = 2; opacity = 0.4; }
-  } else { weight = 2; opacity = 0.3; }
-
-  return {
-    pathOptions: {
-      color: lineColor,
-      weight,
-      opacity,
-      dashArray: isBidirectional ? undefined : '5, 5',
-    },
-    arrows: isBidirectional ? undefined : { color: lineColor },
-  };
-}
+// computeNeighborLinkStyle moved with the layers it styles (#6365); re-exported for its callers.
+// eslint-disable-next-line react-refresh/only-export-components -- #6365 re-export of a pure helper kept for NodesTab.test
+export { computeNeighborLinkStyle };
 
 /**
  * Traceroute run-button gating for the map node popup (epic #4294 Phase 2).
@@ -3301,45 +3249,19 @@ const NodesTabComponent: React.FC<NodesTabProps> = ({
                   formatTooltip={aircraftTrailLayer.formatTooltip}
                 />
               )}
-              {resolvedClusterZoomThreshold != null ? (
-                <NodeMarkerCluster disableClusteringAtZoom={resolvedClusterZoomThreshold}>
-                  <NodeMarkersLayer markers={nodeMarkers} onOmsClick={onOmsClick} />
-                </NodeMarkerCluster>
-              ) : (
-                <NodeMarkersLayer markers={nodeMarkers} onOmsClick={onOmsClick} />
-              )}
-
-              {/* Uncertainty circles for estimated positions. The "Show
-                  Accuracy" map toggle governs the radius (issue #3271
-                  follow-up) — turning it off declutters the circles while the
-                  estimated-node markers stay under "Show Estimated Positions".
-                  Both are required so a circle never renders without its
-                  marker. Shared with the MeshCore map (#6260 WP5). */}
-              <EstimatedPositionRadiiLayer radii={estimatedRadii} />
-
-              {/* Position accuracy regions — shared layer (#4047 Phase 7 WP11),
-                  hop-colored `pathOptions` computed in the `accuracyRegions`
-                  adapter above (ties visually to the hop-colored marker; NOT
-                  the shared layer's canonical gray default). */}
-              <AccuracyRegionsLayer regions={accuracyRegions} />
-
-              {showPolarGrid && ownNodePosition && (
-                <PolarGridOverlay center={ownNodePosition} />
-              )}
-
-              <GeoJsonOverlay layers={geoJsonLayers} />
-
-              {/* Draw traceroute paths (independent layer) */}
-              <TraceroutePathsContainer paths={traceroutePathsElements} enabled={showPaths} />
-
-              {/* Draw selected node traceroute (independent layer) */}
-              <SelectedTracerouteContainer traceroute={selectedNodeTraceroute} enabled={showRoute} />
-
-              {/* Neighbor info connections — shared layer (#4047 Phase 7 WP11),
-                  descriptors built in the `neighborLinks` adapter above
-                  (4-tier SNR pathOptions, hover-dim className, unidirectional
-                  arrows, popup). */}
-              <NeighborLinksLayer links={neighborLinks} />
+              <DeviceMapLayers
+                mapState={{ showPolarGrid, showPaths, showRoute }}
+                nodes={nodeMarkers}
+                onOmsClick={onOmsClick}
+                clusterZoomThreshold={resolvedClusterZoomThreshold}
+                estimatedRadii={estimatedRadii}
+                accuracyRegions={accuracyRegions}
+                ownNodePosition={ownNodePosition}
+                geoJsonLayers={geoJsonLayers}
+                traceroutePaths={traceroutePathsElements}
+                selectedTraceroute={selectedNodeTraceroute}
+                neighborLinks={neighborLinks}
+              />
 
               {/* Cross-source "heard here" edges (#5561): this source's radio
                   heard by, or hearing, another of our sources. Mounted only

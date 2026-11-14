@@ -222,6 +222,39 @@ export const BOARDS: Board[] = [
       await page.getByRole('dialog', { name: /Activity/ }).getByText(/replied in #LongFast/).waitFor();
     },
   },
+  // Task 3.1: the device map, its node peek, the Layers drawer and the neighbour link peek.
+  {
+    id: 'Main',
+    size: 'desktop',
+    path: '/source/src-g2/map',
+    setup: async (page) => {
+      await page.getByRole('list', { name: 'On the map' }).getByRole('button', { name: /Kifisia Rooftop/ }).click();
+      await page.getByRole('complementary', { name: 'Kifisia Rooftop' }).waitFor();
+    },
+  },
+  {
+    id: 'f2-layers',
+    size: 'desktop',
+    path: '/source/src-g2/map',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Layers' }).click();
+      await page.getByTestId('layers-drawer').getByText('Ducting').waitFor();
+    },
+  },
+  {
+    // The board also draws a one-way link's hover card; built one at a time (D9c), the shot shows the peek.
+    id: '15-09-neighbour-peek',
+    size: 'desktop',
+    path: '/source/src-g2/map',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Layers' }).click();
+      await page.getByRole('switch', { name: 'Show Neighbor Info' }).click();
+      await page.getByTestId('layers-drawer').getByRole('button', { name: 'Close' }).click();
+      await page.getByRole('button', { name: 'Hide the node list' }).click();
+      await page.locator('path.neighbor-line').first().click({ force: true });
+      await page.getByRole('complementary', { name: 'Neighbour link' }).waitFor();
+    },
+  },
 ];
 
 async function searchRelay(page: Page): Promise<void> {

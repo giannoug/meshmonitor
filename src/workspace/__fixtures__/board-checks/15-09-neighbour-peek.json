@@ -1,7 +1,5 @@
 {
   "must": [
-    "↔",
-    "→",
     "Bidirectional",
     "One-way",
     "Transport",

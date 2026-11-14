@@ -16,6 +16,7 @@ import type { UnreadCountsData } from '../../hooks/useUnreadCounts';
 import type { Channel, DeviceInfo } from '../../types/device';
 import type { MessageEvent } from '../../types/message';
 import type { ActivityItem } from '../../types/activity';
+import type { EnrichedNeighborInfo } from '../../contexts/MapContext';
 
 export const SOURCE_IDS = {
   g2: 'src-g2',
@@ -114,6 +115,8 @@ const settings: Record<string, string> = {
   defaultLayout: 'classic',
   offerWorkspaceBanner: 'true',
   defaultMeshtasticSourceId: SOURCE_IDS.g2,
+  // The device map's Layers drawer offers Ducting only once an admin has turned it on (f2-layers).
+  ductingOverlayEnabled: 'true',
 };
 
 /** `GET /api/admin/layout-usage` (r4 "Who uses which"). */
@@ -313,6 +316,21 @@ const unreadBySource: UnreadBySourceData = {
   sources: { [SOURCE_IDS.g2]: { directMessages: 1 }, [SOURCE_IDS.heltec]: { directMessages: 2 } },
 };
 
+/**
+ * `GET /api/sources/src-g2/neighbor-info` (15-09), as the server enriches it: Hymettus Relay and
+ * Kifisia Rooftop hear each other over RF; Athens Rover hears Piraeus Base over MQTT, one way.
+ */
+const neighborInfo: Array<EnrichedNeighborInfo & { reverseSnr: number | null; reverseTimestamp: number | null }> = [
+  { nodeNum: 0xa1b2c306, neighborNodeNum: 0xa1b2c301, snr: 4.5, timestamp: NOW_MS - 360_000, createdAt: NOW_MS - 360_000,
+    nodeId: '!a1b2c306', nodeName: 'Hymettus Relay', neighborNodeId: '!a1b2c301', neighborName: 'Kifisia Rooftop',
+    bidirectional: true, reverseSnr: -2, reverseTimestamp: NOW_MS - 540_000, transportClass: 'rf',
+    nodeLatitude: 37.9497, nodeLongitude: 23.8037, neighborLatitude: 38.0742, neighborLongitude: 23.8113 },
+  { nodeNum: 0xa1b2c302, neighborNodeNum: 0xa1b2c304, snr: -6.5, timestamp: NOW_MS - 1_320_000, createdAt: NOW_MS - 1_320_000,
+    nodeId: '!a1b2c302', nodeName: 'Athens Rover', neighborNodeId: '!a1b2c304', neighborName: 'Piraeus Base',
+    bidirectional: false, reverseSnr: null, reverseTimestamp: null, transportClass: 'mqtt',
+    nodeLatitude: 37.9755, nodeLongitude: 23.7348, neighborLatitude: 37.9420, neighborLongitude: 23.6465 },
+];
+
 /** `GET /api/poll?sourceId=src-g2`: a full (non-delta) reply. */
 const poll: PollData = {
   connection: { connected: true, nodeResponsive: true, configuring: false, userDisconnected: false },
@@ -351,4 +369,5 @@ export const athensFixture = {
   translation,
   searchResults,
   activity,
+  neighborInfo,
 };

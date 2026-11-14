@@ -1,0 +1,405 @@
+/*
+ * The device map (boards Main, f2-layers, 15-09): the map fills the page
+ * column; the toolbar, the "On the map" list, the right-hand panel and the
+ * map buttons float over it.
+ */
+.page {
+  position: fixed;
+  top: var(--app-header-height);
+  right: 0;
+  bottom: var(--app-nav-bar-height);
+  left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.mapArea {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Leaflet's zoom buttons move to the bottom right, above the map buttons, clear of the list. */
+.mapArea :global(.leaflet-top.leaflet-left) {
+  top: auto;
+  left: auto;
+  right: 16px;
+  bottom: 136px;
+}
+
+/* Above Leaflet's panes and controls; only the floating parts take the pointer. */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  pointer-events: none;
+}
+
+.overlay > *,
+.columns > *,
+.foot > * {
+  pointer-events: auto;
+}
+
+.columns > .spacer,
+.foot > .spacer,
+.toolbar > .spacer {
+  pointer-events: none;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toolbar > * {
+  pointer-events: auto;
+}
+
+.search {
+  flex: 0 1 360px;
+  min-width: 200px;
+  min-height: 44px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--color-surface);
+  border-radius: 10px;
+  background: var(--color-bg-raised);
+  color: var(--color-text-subtle);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  outline: none;
+}
+
+.search:focus-within {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.chip {
+  min-height: 40px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+button.chip:hover {
+  background: var(--color-surface-hover);
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.chip:focus-visible,
+.control:focus-visible,
+.row:focus-visible,
+.iconButton:focus-visible,
+.listOpen:focus-visible,
+.listFoot:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.columns {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.panel {
+  width: 420px;
+  max-width: 45%;
+  max-height: 100%;
+  display: flex;
+}
+
+.panel:empty {
+  display: none;
+}
+
+/* The node peek sits where the panel does. */
+.peekSlot {
+  position: absolute;
+  z-index: 1001;
+  top: 76px;
+  right: 16px;
+  width: 420px;
+  max-width: 45%;
+  max-height: calc(100% - 92px);
+  display: flex;
+}
+
+.list {
+  width: 400px;
+  max-width: 40%;
+  max-height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-surface);
+  border-radius: 14px;
+  background: var(--color-bg-raised);
+  overflow: hidden;
+}
+
+.listHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 12px 20px;
+  border-bottom: 1px solid var(--color-surface);
+}
+
+.listTitle {
+  flex: 1;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.count {
+  font-weight: 400;
+  color: var(--color-text-subtle);
+}
+
+.iconButton {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: var(--color-surface-hover);
+}
+
+.listOpen {
+  align-self: flex-start;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--color-surface);
+  border-radius: 10px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rows {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  width: 100%;
+  min-height: 64px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 20px;
+  border: 0;
+  border-bottom: 1px solid var(--color-surface);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:hover,
+.row[aria-current='true'] {
+  background: var(--color-surface-hover);
+}
+
+.avatar {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--color-bg);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rowText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.rowName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.ellipsis {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--color-success);
+  color: var(--color-bg);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.rowLine,
+.time {
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}
+
+.time {
+  flex: none;
+}
+
+.listFoot {
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-top: 1px solid var(--color-surface);
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.foot {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.hint {
+  margin: 0;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid var(--color-surface);
+  border-radius: 999px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+}
+
+.hint[data-raised] {
+  margin-bottom: 44px;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control {
+  width: 52px;
+  height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-surface);
+  border-radius: 10px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.control[aria-pressed='true'] {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.control:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.packets {
+  flex: none;
+  height: 35%;
+  min-height: 150px;
+  border-top: 1px solid var(--color-surface);
+  overflow: hidden;
+}
+
+.empty {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1002;
+  margin: 0;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+  color: var(--color-text-subtle);
+}

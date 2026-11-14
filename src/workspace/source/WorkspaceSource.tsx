@@ -7,7 +7,8 @@
  *   (`classicSourceLocation`), since it picks its tab from the path. A
  *   channel (`channel/<n>[/beacons]`) is the Workspace's own ChannelThread,
  *   a DM (`dm/<nodeId>`) its own DmConversation, the DM inbox (`dms`) its
- *   DmInbox, Activity (`activity`) its ActivityFeed (Task 2.8), and the bare
+ *   DmInbox, Activity (`activity`) its ActivityFeed (Task 2.8), the device map
+ *   (`map`) its DeviceMap (Task 3.1), and the bare
  *   source URL on a phone its PhoneHome (Task 2.6), with
  *   App not mounted (Ruling AD: one owner of the message state per screen).
  *   A desktop bare source URL keeps the re-hosted App.
@@ -64,6 +65,9 @@ const DMS_PATH = /^dms\/?$/;
 const ActivityFeed = lazy(() => import('../activity/ActivityFeed.tsx'));
 /** `activity`: the Workspace Activity feed (Task 2.8). */
 const ACTIVITY_PATH = /^activity\/?$/;
+const DeviceMap = lazy(() => import('../map/DeviceMap.tsx'));
+/** `map`: the Workspace device map (Task 3.1). */
+const MAP_PATH = /^map\/?$/;
 
 export default function WorkspaceSource() {
   const { t } = useTranslation();
@@ -155,6 +159,14 @@ export default function WorkspaceSource() {
     return (
       <Rehost>
         <ActivityFeed key={sourceId} sourceId={sourceId} source={source} />
+      </Rehost>
+    );
+  }
+
+  if (source && MAP_PATH.test(splat)) {
+    return (
+      <Rehost>
+        <DeviceMap key={sourceId} sourceId={sourceId} source={source} />
       </Rehost>
     );
   }

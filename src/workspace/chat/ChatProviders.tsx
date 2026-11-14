@@ -1,6 +1,7 @@
 /**
  * The providers App mounts for itself, under the source's own SourceProvider
- * and socket, for a Workspace conversation screen (Ruling AD). UIProvider and
+ * and socket, for a Workspace screen App is not mounted on (Ruling AD): a
+ * conversation, or the device map (`nodes`). UIProvider and
  * useMessagingView read the tab from the location, so they are handed
  * Classic's location for the tab (`channels` or `messages`), as
  * WorkspaceSource does for App.
@@ -19,7 +20,7 @@ import { appBasename } from '../../init';
 export interface ChatProvidersProps {
   sourceId: string;
   source: DashboardSource;
-  classicTab: 'channels' | 'messages';
+  classicTab: 'channels' | 'messages' | 'nodes';
   children: ReactNode;
 }
 

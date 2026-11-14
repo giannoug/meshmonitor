@@ -259,6 +259,11 @@ function MeshtasticMenus(props: NodeActionMenusProps) {
     }
   };
   const organise: Item[] = [
+    // Today's Center on Map (shown when the node has a position, no gate): the device map, on this node (Ruling AJ).
+    ...(node.position?.latitude != null && node.position?.longitude != null
+      ? [{ id: 'center', icon: 'target' as const, label: t('messages.center_on_map', 'Center on Map'),
+          run: () => void navigate(`/source/${encodeURIComponent(sourceId)}/map`, { state: { focusNodeId: nodeId } }) }]
+      : []),
     { id: 'favorite', icon: node.isFavorite ? 'favorite' : 'favoriteOff', label: t(node.isFavorite ? 'nodes.remove_favorite' : 'nodes.add_favorite'),
       reason: nodesWrite, run: () => void actions.toggleFavorite(node) },
     { id: 'lock', icon: node.favoriteLocked ? 'unlock' : 'encrypted',

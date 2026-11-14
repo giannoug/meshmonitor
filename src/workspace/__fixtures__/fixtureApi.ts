@@ -74,6 +74,9 @@ const defaults: Record<string, FixtureHandler> = {
     success: true,
     data: { items: url.searchParams.has('before') ? [] : (A.activity[url.pathname.split('/')[3]] ?? []), nextBefore: null },
   }),
+  // The device map (Main, f2-layers, 15-09): Station G2's neighbour links; no GeoJSON layers.
+  'GET /api/sources/:id/neighbor-info': (url) => (url.pathname.split('/')[3] === SOURCE_IDS.g2 ? A.neighborInfo : []),
+  'GET /api/geojson/layers': () => [],
   'GET /api/telemetry/:nodeId': (url) => {
     const nodeId = decodeURIComponent(url.pathname.split('/')[3]);
     return A.telemetry.filter((row) => row.nodeId === nodeId);

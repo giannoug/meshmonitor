@@ -69,7 +69,8 @@ function PhoneHome({ sourceId, sourceType }: { sourceId: string; sourceType: str
         )}
         <nav className={styles.tiles} aria-label={t('workspace.home.tools_label')}>
           {tiles.flatMap(({ key, icon, label }) => {
-            const to = tab(key);
+            // shortcut: the phone map is Task 3.2; until then Map opens today's Nodes tab, as before.
+            const to = tab(key === 'map' ? 'nodes' : key);
             return to
               ? [
                   <Link key={key} to={to} className={styles.tile}>

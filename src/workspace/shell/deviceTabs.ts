@@ -11,9 +11,9 @@ import type { ResourceType } from '../../types/permission';
 import { useChannelDatabaseEntries } from '../chat/useChannelDatabaseEntries';
 import type { WorkspaceSource } from './useWorkspaceSources';
 
-/** Tab per tool row, by source type; null: the type has no such tab. Meshtastic `dms` is the Workspace inbox (Task 2.6). */
+/** Tab per tool row, by source type; null: the type has no such tab. Meshtastic `dms` is the Workspace inbox (Task 2.6), `map` the Workspace device map (Task 3.1). */
 export const TOOL_TABS: Record<'meshtastic' | 'meshcore' | 'reticulum', Record<string, string | null>> = {
-  meshtastic: { map: 'nodes', nodes: 'nodes', dashboard: 'dashboard', automation: 'automation', config: 'settings', tools: 'info', channels: 'channels', dms: 'dms' },
+  meshtastic: { map: 'map', nodes: 'nodes', dashboard: 'dashboard', automation: 'automation', config: 'settings', tools: 'info', channels: 'channels', dms: 'dms' },
   meshcore: { map: 'nodes', nodes: 'nodes', dashboard: 'telemetry', automation: 'automations', config: 'configuration', tools: 'info', channels: 'channels', dms: 'dms' },
   reticulum: { map: 'map', nodes: 'destinations', dashboard: null, automation: null, config: 'configuration', tools: 'info', channels: null, dms: 'dms' },
 };
