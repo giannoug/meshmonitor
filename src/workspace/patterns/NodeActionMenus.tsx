@@ -5,9 +5,9 @@
  * button per group, opening on that group's tab (`buttons`, the phone map
  * peek, s15n5), or cards (`tiles`, the node page in section 15).
  *
- * - Every item calls today's request through `useMeshtasticNodeActions` (or,
- *   for the three purges the hook does not hold, the same request App and
- *   useSourceView send). Nothing retries, and nothing sends without a click.
+ * - Every item calls today's request through `useMeshtasticNodeActions`, or
+ *   opens its dialog sheet (`node-page/dialogs/`, one at a time, D9c), which
+ *   sends today's request. Nothing retries, and nothing sends without a click.
  * - Each ask shows its Sends line. Exchange NodeInfo and Exchange Position go
  *   on the node's channel (today's server default, sent explicitly), never as
  *   a PKI DM (CLAUDE.md, key repair).
@@ -16,21 +16,18 @@
  * - MQTT mirrors have no Ask the node; Reticulum has no asks; MeshCore's asks
  *   are listed, off until MeshCore chat comes to the Workspace (Phase 7).
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { UiIcon, type UiIconName } from '../../components/icons';
-import { CopyNodeInfoModal } from '../../components/CopyNodeInfoModal';
-import { NodeIdentityMergeDialog } from '../../components/NodeIdentityMergeDialog';
-import { PositionOverrideModal } from '../../components/PositionOverrideModal';
 import { useToast } from '../../components/ToastContainer';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { useSource } from '../../contexts/SourceContext';
 import { useUI } from '../../contexts/UIContext';
 import { useCsrfFetch } from '../../hooks/useCsrfFetch';
-import { useMeshtasticNodeActions, type TelemetryRequestType } from '../../hooks/useMeshtasticNodeActions';
+import { useMeshtasticNodeActions } from '../../hooks/useMeshtasticNodeActions';
 import { useNodeIdentityChanges } from '../../hooks/useNodeIdentityChanges';
 import { sourcePollQueryKey } from '../../hooks/pollQueryKey';
 import { useChannels } from '../../hooks/useServerData';
@@ -39,9 +36,12 @@ import { appBasename } from '../../init';
 import type { DeviceInfo } from '../../types/device';
 import type { ResourceType } from '../../types/permission';
 import { AIRCRAFT_EXCLUDED_SOURCE_TYPES, aircraftMarkActions } from '../../utils/aircraftClassification';
-import { useShellDevices } from '../shell/shellDevices';
+import CopyNodeInfoSheet from '../node-page/dialogs/CopyNodeInfoSheet';
+import MergeIdentitySheet from '../node-page/dialogs/MergeIdentitySheet';
+import OverridePositionSheet from '../node-page/dialogs/OverridePositionSheet';
+import PurgeDataSheet from '../node-page/dialogs/PurgeDataSheet';
+import RequestTelemetrySheet from '../node-page/dialogs/RequestTelemetrySheet';
 import { useIsPhone } from '../shell/useIsPhone';
-import ConfirmSheet from './ConfirmSheet';
 import SendsLine from './SendsLine';
 import Sheet from './Sheet';
 import styles from './NodeActionMenus.module.css';
@@ -133,8 +133,6 @@ function MeshtasticMenus(props: NodeActionMenusProps) {
   const { connectionStatus } = useData();
   const { tracerouteLoading } = useUI();
   const { channels } = useChannels();
-  const { sources } = useShellDevices();
-  const deviceName = sources.find((s) => s.id === sourceId)?.name ?? '';
   const { isTxDisabled } = useTxStatus({ baseUrl: appBasename, sourceId });
   const csrfFetch = useCsrfFetch();
   const queryClient = useQueryClient();
@@ -165,8 +163,9 @@ function MeshtasticMenus(props: NodeActionMenusProps) {
   const [infoChannel, setInfoChannel] = useState<number | ''>(nodeChannel);
   const [positionChannel, setPositionChannel] = useState<number | ''>(nodeChannel);
   const [scanning, setScanning] = useState(false);
-  const [telemetryOpen, setTelemetryOpen] = useState(false);
-  const [dialog, setDialog] = useState<'override' | 'copy' | 'merge' | 'purge' | null>(null);
+  const gatesId = useId();
+  // One dialog sheet at a time (D9c).
+  const [dialog, setDialog] = useState<'telemetry' | 'override' | 'copy' | 'merge' | 'purge' | null>(null);
   const [allSources, setAllSources] = useState(false);
 
   // Asks: permission, then TX disabled (today's tooltip), then the link.
@@ -216,7 +215,7 @@ function MeshtasticMenus(props: NodeActionMenusProps) {
       sends: t('workspace.node_menu.sends_telemetry'),
       reason: askReason('messages'),
       busy: actions.loading.telemetry === nodeId,
-      run: () => setTelemetryOpen(true),
+      run: () => setDialog('telemetry'),
     },
     {
       id: 'neighbors',
@@ -297,15 +296,39 @@ function MeshtasticMenus(props: NodeActionMenusProps) {
   const asSuccessor = bySuccessorNodeNum.get(node.nodeNum);
   const detection = asSuccessor ?? byPredecessorNodeNum.get(node.nodeNum);
   const data: Item[] = [
-    { id: 'override', icon: 'location', label: t('messages.override_position'), reason: nodesWrite, run: () => setDialog('override') },
-    { id: 'copy', icon: 'copy', label: t('nodes.copy_nodeinfo_title'), reason: nodesWrite ?? needs('nodes', 'read'), run: () => setDialog('copy') },
-    { id: 'merge', icon: 'identity', label: t('nodes.identity_change_merge_button'),
+    { id: 'override', icon: 'location', label: t('messages.override_position'), hint: t('workspace.node_menu.override_hint'),
+      reason: nodesWrite, run: () => setDialog('override') },
+    { id: 'copy', icon: 'copy', label: t('nodes.copy_nodeinfo_title'), hint: t('workspace.node_menu.copy_hint'),
+      reason: nodesWrite ?? needs('nodes', 'read'), run: () => setDialog('copy') },
+    { id: 'merge', icon: 'identity', label: t('nodes.identity_change_merge_button'), hint: t('workspace.node_menu.merge_hint'),
       reason: !canMerge ? t('workspace.node_menu.admins_only') : !detection ? t('workspace.node_menu.no_merge_pair') : undefined,
       run: () => setDialog('merge') },
-    { id: 'purge', icon: 'delete', label: t('messages.purge_data'), reason: needs('messages'), danger: true, run: () => setDialog('purge') },
+    { id: 'purge', icon: 'delete', label: t('messages.purge_data'), hint: t('workspace.node_menu.purge_hint'),
+      reason: needs('messages'), danger: true, run: () => setDialog('purge') },
   ];
 
   const groups: Groups = { ...(protocol !== 'mqtt' && { ask }), organise, data };
+  // Board 15-01: today's gates in words, under Data in the desktop menu.
+  const gates: Array<[string, string]> = [
+    ['traceroute:write', [t('messages.traceroute_button'), t('messages.request_neighbor_info')].join(', ')],
+    ['messages:write', [t('messages.exchange_node_info'), t('messages.exchange_position'), t('messages.request_telemetry'), t('messages.purge_data')].join(', ')],
+    ['settings:write', t('messages.scan_for_admin')],
+    ['nodes:write', t('workspace.node_menu.gates_nodes', {
+      organise: t('workspace.node_menu.organise'), override: t('messages.override_position'), copy: t('nodes.copy_nodeinfo_title'),
+    })],
+    [t('workspace.node_menu.gates_admins'), t('nodes.identity_change_merge_button')],
+  ];
+  const gatesCard = props.variant === 'menus' && protocol !== 'mqtt' ? (
+    <section className={styles.gates} role="note" aria-labelledby={gatesId}>
+      <h3 id={gatesId} className={styles.gatesTitle}>{t('workspace.node_menu.gates_title')}</h3>
+      <p className={styles.hint}>{t('workspace.node_menu.gates_intro')}</p>
+      <ul className={styles.gatesList}>
+        {gates.map(([perm, what]) => (
+          <li key={perm}><code>{perm}</code> · {what}</li>
+        ))}
+      </ul>
+    </section>
+  ) : null;
   const extra = showAllSources ? (
     <label className={styles.check}>
       <input type="checkbox" checked={allSources} disabled={!!nodesWrite} onChange={(e) => setAllSources(e.target.checked)} />
@@ -315,44 +338,21 @@ function MeshtasticMenus(props: NodeActionMenusProps) {
 
   return (
     <>
-      <MenusView {...props} groups={groups} organiseExtra={extra} />
-      <TelemetrySheet
-        open={telemetryOpen}
+      <MenusView {...props} groups={groups} extras={{ organise: extra, data: gatesCard }} />
+      <RequestTelemetrySheet
+        open={dialog === 'telemetry'}
         nodeName={name}
         busy={actions.loading.telemetry === nodeId}
-        onClose={() => setTelemetryOpen(false)}
+        onClose={() => setDialog(null)}
         onPick={(type) => {
-          setTelemetryOpen(false);
+          setDialog(null);
           void actions.requestTelemetry(node.nodeNum, type);
         }}
       />
-      {dialog === 'override' && (
-        <PositionOverrideModal
-          isOpen
-          selectedNode={node}
-          onClose={() => setDialog(null)}
-          onSave={actions.overridePosition}
-          getNodeName={() => name}
-        />
-      )}
-      <CopyNodeInfoModal
-        isOpen={dialog === 'copy'}
-        nodeNum={node.nodeNum}
-        currentNode={{
-          longName: node.user?.longName,
-          shortName: node.user?.shortName,
-          hwModel: node.user?.hwModel,
-          role: node.user?.role != null ? Number(node.user.role) : null,
-          publicKey: node.user?.publicKey,
-          macaddr: node.user?.macaddr,
-          hasPKC: node.user?.hasPKC,
-          firmwareVersion: node.user?.firmwareVersion,
-        }}
-        onClose={() => setDialog(null)}
-        onCopied={() => setDialog(null)}
-      />
+      <OverridePositionSheet open={dialog === 'override'} node={node} nodeName={name} onClose={() => setDialog(null)} onSave={actions.overridePosition} />
+      <CopyNodeInfoSheet open={dialog === 'copy'} sourceId={sourceId} node={node} onClose={() => setDialog(null)} />
       {dialog === 'merge' && detection && (
-        <NodeIdentityMergeDialog
+        <MergeIdentitySheet
           sourceId={sourceId}
           fromNodeNum={detection.predecessor.nodeNum}
           toNodeNum={detection.successor.nodeNum}
@@ -361,67 +361,31 @@ function MeshtasticMenus(props: NodeActionMenusProps) {
           onClose={() => setDialog(null)}
         />
       )}
-      <PurgeSheet
+      <PurgeDataSheet
         open={dialog === 'purge'}
+        sourceId={sourceId}
         node={node}
-        nodeName={name}
-        deviceName={deviceName}
         onClose={() => setDialog(null)}
-        onPurge={async (choice) => {
-          const shortName = node.user?.shortName || node.user?.longName || `Node ${node.nodeNum}`;
-          if (choice.messages) {
-            const res = await csrfFetch(`${appBasename}/api/messages/direct-messages/${node.nodeNum}`, jsonInit('DELETE', { sourceId }));
-            const body = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(t('toast.failed_purge_messages', { error: body.message || t('errors.unknown') }));
-            showToast(t('toast.purged_messages_dm', { count: body.deletedCount, node: shortName }), 'success');
-            onMessagesPurged?.();
-          }
-          for (const what of ['traceroutes', 'telemetry', 'positionHistory'] as const) {
-            if (choice[what]) await actions.purgeNodeData(node.nodeNum, { what });
-          }
-          if (choice.node !== 'keep') {
-            const device = choice.node === 'device';
-            const res = await csrfFetch(
-              `${appBasename}/api/messages/nodes/${node.nodeNum}${device ? '/purge-from-device' : ''}`,
-              jsonInit(device ? 'POST' : 'DELETE', { sourceId }),
-            );
-            const body = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(t(device ? 'toast.failed_purge_node_device' : 'toast.failed_delete_node', { error: body.message || t('errors.unknown') }));
-            showToast(
-              t(device ? 'toast.purged_node_device' : 'toast.deleted_node', {
-                node: shortName, messages: body.messagesDeleted, traceroutes: body.traceroutesDeleted, telemetry: body.telemetryDeleted,
-              }),
-              'success',
-            );
-            void refetchPoll();
-            setDialog(null);
-            void navigate(`/source/${encodeURIComponent(sourceId)}`);
-            return;
-          }
-          setDialog(null);
-        }}
+        purgeNodeData={actions.purgeNodeData}
+        refetchPoll={refetchPoll}
+        onMessagesPurged={onMessagesPurged}
       />
     </>
   );
 }
 
-const jsonInit = (method: string, body: unknown): RequestInit => ({
-  method,
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(body),
-});
-
 interface MenusViewProps extends NodeActionMenusProps {
   groups: Groups;
-  organiseExtra?: ReactNode;
+  /** Shown after a group's items. */
+  extras?: Partial<Record<GroupKey, ReactNode>>;
 }
 
 /** The three groups in the requested shape. */
-function MenusView({ variant, node, groups, organiseExtra, onOpenNodePage }: MenusViewProps) {
+function MenusView({ variant, node, groups, extras, onOpenNodePage }: MenusViewProps) {
   const { t } = useTranslation();
   const keys = (Object.keys(GROUP_LABELS) as GroupKey[]).filter((k) => groups[k]);
   const list = (key: GroupKey, done?: () => void) => (
-    <ItemList label={t(GROUP_LABELS[key])} items={groups[key]!} extra={key === 'organise' ? organiseExtra : null} onDone={done} />
+    <ItemList label={t(GROUP_LABELS[key])} items={groups[key]!} extra={extras?.[key]} onDone={done} />
   );
 
   if (variant === 'tiles') {
@@ -600,128 +564,5 @@ function ChannelOptions() {
         </option>
       ))}
     </>
-  );
-}
-
-/** TelemetryRequestModal's four types, in a Sheet. */
-function TelemetrySheet({ open, nodeName, busy, onClose, onPick }: {
-  open: boolean;
-  nodeName: string;
-  busy: boolean;
-  onClose(): void;
-  onPick(type: TelemetryRequestType): void;
-}) {
-  const { t } = useTranslation();
-  const types: Array<{ type: TelemetryRequestType; icon: UiIconName; key: string }> = [
-    { type: 'device', icon: 'companion', key: 'device' },
-    { type: 'environment', icon: 'sensor', key: 'environment' },
-    { type: 'airQuality', icon: 'airQuality', key: 'air_quality' },
-    { type: 'power', icon: 'zap', key: 'power' },
-  ];
-  return (
-    <Sheet open={open} onClose={onClose} title={t('messages.request_telemetry')}>
-      <div className={styles.sheetBody}>
-        <p className={styles.hint}>{t('messages.select_telemetry_type', { nodeName })}</p>
-        {types.map(({ type, icon, key }) => (
-          <button key={type} type="button" className={styles.itemButton} disabled={busy} onClick={() => onPick(type)}>
-            <UiIcon name={icon} size={18} />
-            <span className={styles.itemText}>
-              <span className={styles.itemLabel}>{t(`messages.telemetry_type_${key}`)}</span>
-              <span className={styles.hint}>{t(`messages.telemetry_type_${key}_desc`)}</span>
-            </span>
-          </button>
-        ))}
-        <SendsLine>{t('workspace.node_menu.sends_telemetry')}</SendsLine>
-      </div>
-    </Sheet>
-  );
-}
-
-interface PurgeChoice {
-  messages: boolean;
-  traceroutes: boolean;
-  telemetry: boolean;
-  positionHistory: boolean;
-  node: 'keep' | 'local' | 'device';
-}
-
-/** PurgeDataModal's choices in one plain confirm (s10n2): today's four purges and two deletes, no typed word. */
-function PurgeSheet({ open, node, nodeName, deviceName, onClose, onPurge }: {
-  open: boolean;
-  node: DeviceInfo;
-  nodeName: string;
-  deviceName: string;
-  onClose(): void;
-  onPurge(choice: PurgeChoice): Promise<void>;
-}) {
-  const { t } = useTranslation();
-  const empty: PurgeChoice = { messages: false, traceroutes: false, telemetry: false, positionHistory: false, node: 'keep' };
-  const [choice, setChoice] = useState(empty);
-  const [busy, setBusy] = useState(false);
-  useEffect(() => {
-    if (open) setChoice(empty);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 reset on open only; `empty` is a fresh literal
-  }, [open]);
-  const picked = choice.messages || choice.traceroutes || choice.telemetry || choice.positionHistory || choice.node !== 'keep';
-  const boxes = [
-    ['messages', 'purgeModal.purgeMessages'],
-    ['traceroutes', 'purgeModal.purgeTraceroutes'],
-    ['telemetry', 'purgeModal.purgeTelemetry'],
-    ['positionHistory', 'purgeModal.purgePositionHistory'],
-  ] as const;
-  const radios = [
-    ['keep', t('workspace.node_menu.purge_keep')],
-    ['local', t('purgeModal.deleteLocal')],
-    ['device', t('purgeModal.deleteDevice')],
-  ] as const;
-
-  return (
-    <ConfirmSheet
-      open={open}
-      title={t('purgeModal.title', { nodeName })}
-      confirmLabel={t('workspace.chat.purge')}
-      danger
-      busy={busy}
-      confirmDisabled={!picked}
-      onCancel={onClose}
-      onConfirm={async () => {
-        setBusy(true);
-        try {
-          await onPurge(choice);
-        } finally {
-          setBusy(false);
-        }
-      }}
-      body={
-        <div className={styles.purge}>
-          <p>{t('purgeModal.warning')}</p>
-          <fieldset className={styles.fieldset}>
-            <legend className={styles.legend}>{t('workspace.chat.purge')}</legend>
-            {boxes.map(([key, label]) => (
-              <label key={key} className={styles.check}>
-                <input type="checkbox" checked={choice[key]} onChange={(e) => setChoice({ ...choice, [key]: e.target.checked })} />
-                {t(label)}
-              </label>
-            ))}
-          </fieldset>
-          <fieldset className={styles.fieldset}>
-            <legend className={styles.legend}>{t('purgeModal.deleteNodeTitle')}</legend>
-            <p className={styles.hint}>{t('purgeModal.deleteNodeDescription')}</p>
-            {radios.map(([value, label]) => (
-              <label key={value} className={styles.check}>
-                <input type="radio" name="purge-node" checked={choice.node === value} onChange={() => setChoice({ ...choice, node: value })} />
-                {label}
-              </label>
-            ))}
-            {choice.node === 'device' && <SendsLine>{t('workspace.node_menu.purge_device_sends', { device: deviceName })}</SendsLine>}
-          </fieldset>
-          {node.asset && (
-            <p className={styles.asset} role="alert">
-              <UiIcon name="alert" size={16} /> {t('purgeModal.assetWarning')}
-            </p>
-          )}
-        </div>
-      }
-    />
   );
 }

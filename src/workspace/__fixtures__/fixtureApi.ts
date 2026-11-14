@@ -53,6 +53,11 @@ const defaults: Record<string, FixtureHandler> = {
   'GET /api/assets/:nodeNum/track': (url) =>
     Number(url.pathname.split('/')[3]) === A.roverTrack.nodeNum ? { success: true, data: A.roverTrack } : undefined,
   'GET /api/nodes/identity-changes': () => ({ success: true, data: { detections: [] } }),
+  // The node dialogs (15-05, 15-06): Kifisia Rooftop as Athens MQTT heard it, its saved position
+  // override, and the merge dry run (unverified pairing, too large to undo).
+  'GET /api/nodes/:nodeNum/copy-candidates': () => ({ success: true, data: { candidates: A.copyCandidates, target: null } }),
+  'GET /api/nodes/:nodeId/position-override': () => ({ enabled: true, latitude: 38.0741, longitude: 23.8112, altitude: 310, isPrivate: true }),
+  'POST /api/nodes/identity-changes/merge/preview': () => ({ success: true, data: A.mergePreview }),
   // The MQTT mirror reads the same mesh as Station G2.
   'GET /api/poll': (url) => {
     const sourceId = url.searchParams.get('sourceId');

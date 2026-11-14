@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import Modal from '../common/Modal';
-import { useResolvedSourceId } from '../../hooks/useResolvedSourceId';
-import apiService from '../../services/api';
+import { usePositionOverrideForm, type PositionOverrideValue as PositionOverride } from '../../hooks/usePositionOverrideForm';
 import { NumberInput } from '../common/NumberInput';
 import { NumberInputScope } from '../common/NumberInputScope';
-import { useNumberInputScope } from '../common/numberInputScopeContext';
 import './PositionOverrideModal.css';
 
 interface Node {
@@ -15,14 +13,6 @@ interface Node {
     longName?: string;
     shortName?: string;
   };
-}
-
-interface PositionOverride {
-  enabled: boolean;
-  latitude?: number;
-  longitude?: number;
-  altitude?: number;
-  isPrivate?: boolean;
 }
 
 interface PositionOverrideModalProps {
@@ -51,138 +41,16 @@ export const PositionOverrideModal: React.FC<PositionOverrideModalProps> = ({
   protocol = 'meshtastic',
 }) => {
   const { t } = useTranslation();
-  const sourceId = useResolvedSourceId();
-  const [enabled, setEnabled] = useState(false);
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [latitude, setLatitude] = useState<string>('');
-  const [longitude, setLongitude] = useState<string>('');
-  const [altitude, setAltitude] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Validation state
-  const [latError, setLatError] = useState<string | null>(null);
-  const [lngError, setLngError] = useState<string | null>(null);
-  const numberScope = useNumberInputScope();
-
-  // Track if we've loaded data for current modal session to prevent poll refresh from resetting
-  const loadedForNodeRef = useRef<string | null>(null);
-
-  // Extract node ID to use as stable dependency
-  const nodeId = selectedNode?.user?.id;
-
-  // Load current override when modal opens (only once per modal session)
-  useEffect(() => {
-    // Defer until the sourceId resolves — the endpoint now requires it.
-    if (isOpen && nodeId && sourceId && loadedForNodeRef.current !== nodeId) {
-      loadedForNodeRef.current = nodeId;
-      setLoading(true);
-      setError(null);
-      const load = protocol === 'meshcore'
-        ? apiService
-          .get<{ data: PositionOverride }>(
-            `/api/sources/${encodeURIComponent(sourceId)}/meshcore/nodes/${encodeURIComponent(nodeId)}/position-override`,
-          )
-          .then((body) => body.data)
-        : apiService.get<PositionOverride>(
-          `/api/nodes/${nodeId}/position-override?sourceId=${encodeURIComponent(sourceId)}`,
-        );
-      load
-        .then((data) => {
-          setEnabled(data.enabled);
-          setIsPrivate(data.isPrivate ?? false);
-          setLatitude(data.latitude?.toString() ?? '');
-          setLongitude(data.longitude?.toString() ?? '');
-          setAltitude(data.altitude?.toString() ?? '');
-        })
-        .catch(err => {
-          console.error('Error loading position override:', err);
-          // Reset to defaults if load fails
-          setEnabled(false);
-          setIsPrivate(false);
-          setLatitude('');
-          setLongitude('');
-          setAltitude('');
-        })
-        .finally(() => setLoading(false));
-    }
-    // Reset the ref when modal closes so it reloads on next open
-    if (!isOpen) {
-      loadedForNodeRef.current = null;
-    }
-  }, [isOpen, nodeId, sourceId, protocol]);
-
-  // Reset error state when values change
-  useEffect(() => {
-    setError(null);
-  }, [enabled, latitude, longitude, altitude, isPrivate]);
+  const {
+    enabled, setEnabled, isPrivate, setIsPrivate, latitude, longitude, altitude, setAltitude, loading, saving, error,
+    latError, lngError, numberScope, handleSave, handleLatitudeChange, handleLongitudeChange, saveDisabled,
+  } = usePositionOverrideForm({
+    isOpen, nodeId: selectedNode?.user?.id, nodeNum: selectedNode?.nodeNum, onSave, onClose, protocol,
+  });
 
   if (!selectedNode) return null;
 
   const nodeName = selectedNode.user?.id ? getNodeName(selectedNode.user.id) : '';
-
-  const validateLatitude = (value: string): boolean => {
-    const num = parseFloat(value);
-    if (isNaN(num) || num < -90 || num > 90) {
-      setLatError(t('position_override.latitude_error'));
-      return false;
-    }
-    setLatError(null);
-    return true;
-  };
-
-  const validateLongitude = (value: string): boolean => {
-    const num = parseFloat(value);
-    if (isNaN(num) || num < -180 || num > 180) {
-      setLngError(t('position_override.longitude_error'));
-      return false;
-    }
-    setLngError(null);
-    return true;
-  };
-
-  const handleSave = async () => {
-    // #5649: a blank or out-of-range coordinate is never stored.
-    if (numberScope.invalid) return;
-    setError(null);
-
-    // Validate if enabled
-    if (enabled) {
-      const latValid = validateLatitude(latitude);
-      const lngValid = validateLongitude(longitude);
-      if (!latValid || !lngValid) {
-        return;
-      }
-    }
-
-    setSaving(true);
-    try {
-      await onSave(selectedNode.nodeNum, {
-        enabled,
-        latitude: enabled ? parseFloat(latitude) : undefined,
-        longitude: enabled ? parseFloat(longitude) : undefined,
-        altitude: enabled && altitude ? parseFloat(altitude) : undefined,
-        isPrivate: enabled ? isPrivate : undefined,
-      });
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save position override');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // NumberInput emits only numbers inside min/max, so a change clears the error.
-  const handleLatitudeChange = (value: number) => {
-    setLatitude(String(value));
-    setLatError(null);
-  };
-
-  const handleLongitudeChange = (value: number) => {
-    setLongitude(String(value));
-    setLngError(null);
-  };
 
   return (
     <Modal
@@ -323,7 +191,7 @@ export const PositionOverrideModal: React.FC<PositionOverrideModalProps> = ({
             <button
               className="save-btn"
               onClick={handleSave}
-              disabled={saving || numberScope.invalid || (enabled && (latError !== null || lngError !== null))}
+              disabled={saveDisabled}
             >
               {saving ? t('common.saving') : t('common.save')}
             </button>

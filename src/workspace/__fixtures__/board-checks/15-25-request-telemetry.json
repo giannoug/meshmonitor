@@ -1,9 +1,9 @@
 {
   "must": [
-    "Request telemetry",
+    "Request Telemetry",
     "Device",
     "Environment",
-    "Air quality",
+    "Air Quality",
     "Power",
     "Sends 1 telemetry request",
     "Request"

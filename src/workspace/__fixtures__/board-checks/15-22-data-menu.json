@@ -2,10 +2,10 @@
   "must": [
     "Node actions",
     "Data",
-    "Override position",
+    "Override Position",
     "Copy NodeInfo",
-    "Merge identity",
-    "Purge data",
+    "Merge history…",
+    "Purge Data",
     "Needs nodes:write",
     "Admins only",
     "Needs messages:write"

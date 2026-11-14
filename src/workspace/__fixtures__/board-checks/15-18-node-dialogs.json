@@ -1,17 +1,16 @@
 {
   "must": [
-    "Purge data for Kifisia Rooftop",
+    "Purge Data for Kifisia Rooftop",
     "cannot be undone",
-    "All messages",
+    "Purge All Messages",
     "Traceroutes",
     "Telemetry",
-    "Position history",
+    "Purge Position History",
     "Keep the node",
-    "Delete node",
-    "Purge from device and database",
+    "Delete Node",
+    "Purge from Device AND Database",
     "tracked asset",
-    "Sends",
-    "Purge 60 items"
+    "Sends"
   ],
   "absent": [
     "shown together"

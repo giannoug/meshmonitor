@@ -1,0 +1,10 @@
+.title { display: inline-flex; align-items: center; gap: 10px; }
+.titleIcon { color: var(--color-danger); flex-shrink: 0; }
+.purge { padding: 0 20px 8px; display: flex; flex-direction: column; gap: 12px; }
+.purge p { margin: 0; }
+.fieldset { margin: 0; padding: 0; border: 0; }
+.legend { margin-bottom: 4px; font-size: 13px; font-weight: 700; color: var(--color-text-subtle); }
+.boxes { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); column-gap: 12px; }
+.check { min-height: 44px; display: flex; align-items: center; gap: 10px; color: var(--color-text); cursor: pointer; }
+.hint { font-size: 13px; color: var(--color-text-subtle); }
+.asset { display: flex; align-items: flex-start; gap: 8px; color: var(--color-warning); }

@@ -1,9 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
 import { UiIcon } from './icons';
-import apiService from '../services/api';
-import type { MergePreview, MergeResult } from '../types/nodeIdentityChange';
+import { isMergeDropAction, mergeActionLabel, useNodeIdentityMerge } from '../hooks/useNodeIdentityMerge';
+import type { MergeResult } from '../types/nodeIdentityChange';
 import styles from './NodeIdentityMergeDialog.module.css';
 
 /**
@@ -44,11 +42,6 @@ export interface NodeIdentityMergeDialogProps {
   onMerged?: (result: MergeResult) => void;
 }
 
-function errorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error && error.message) return error.message;
-  return fallback;
-}
-
 export function NodeIdentityMergeDialog({
   sourceId,
   fromNodeNum,
@@ -59,59 +52,8 @@ export function NodeIdentityMergeDialog({
   onMerged,
 }: NodeIdentityMergeDialogProps) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
-
-  const [preview, setPreview] = useState<MergePreview | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [merging, setMerging] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [acknowledged, setAcknowledged] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    apiService
-      .previewNodeIdentityMerge(sourceId, fromNodeNum, toNodeNum)
-      .then((result) => {
-        if (!cancelled) setPreview(result);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(errorMessage(err, t('nodes.merge_preview_failed', 'Could not preview the merge.')));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [sourceId, fromNodeNum, toNodeNum, t]);
-
-  const handleMerge = useCallback(async () => {
-    setMerging(true);
-    setError(null);
-    try {
-      const result = await apiService.mergeNodeIdentities(sourceId, fromNodeNum, toNodeNum, {
-        acknowledgeNoUndo: acknowledged,
-      });
-      // The node list, the detection report and the merge history are all stale
-      // now — a node row has just disappeared.
-      await queryClient.invalidateQueries({ queryKey: ['nodeIdentityChanges', sourceId] });
-      await queryClient.invalidateQueries({ queryKey: ['nodeIdentityMerges', sourceId] });
-      await queryClient.invalidateQueries({ queryKey: ['nodes'] });
-      onMerged?.(result);
-      onClose();
-    } catch (err) {
-      setError(errorMessage(err, t('nodes.merge_failed', 'The merge failed. Nothing was changed.')));
-    } finally {
-      setMerging(false);
-    }
-  }, [sourceId, fromNodeNum, toNodeNum, acknowledged, queryClient, onMerged, onClose, t]);
-
-  const needsAcknowledgement = preview !== null && !preview.undoable;
-  const canMerge = preview !== null && !merging && (!needsAcknowledgement || acknowledged);
+  const { preview, loading, merging, error, acknowledged, setAcknowledged, needsAcknowledgement, canMerge, handleMerge } =
+    useNodeIdentityMerge({ sourceId, fromNodeNum, toNodeNum, onClose, onMerged });
 
   return (
     <div className={styles.backdrop} role="presentation" onClick={onClose}>
@@ -207,11 +149,7 @@ export function NodeIdentityMergeDialog({
                   </thead>
                   <tbody>
                     {preview.entries.map((entry, index) => {
-                      const drops =
-                        entry.action === 'dropCollision' ||
-                        entry.action === 'dropSelfLoop' ||
-                        entry.action === 'dropRow' ||
-                        entry.action === 'deleteNodeRow';
+                      const drops = isMergeDropAction(entry.action);
                       return (
                         <tr key={`${entry.table}-${entry.column}-${index}`}>
                           <td className={styles.tableName}>{entry.table}</td>
@@ -314,31 +252,6 @@ export function NodeIdentityMergeDialog({
       </div>
     </div>
   );
-}
-
-/** Plain-language label for a plan action. Machine names never reach the operator. */
-function mergeActionLabel(
-  action: MergePreview['entries'][number]['action'],
-  t: ReturnType<typeof useTranslation>['t'],
-): string {
-  switch (action) {
-    case 'rekey':
-      return t('nodes.merge_action_rekey', 'Move to new node number');
-    case 'moveRow':
-      return t('nodes.merge_action_move_row', 'Move to new node number');
-    case 'dropCollision':
-      return t('nodes.merge_action_drop_collision', 'Remove duplicate');
-    case 'dropSelfLoop':
-      return t('nodes.merge_action_drop_self', 'Remove (node would be its own neighbour)');
-    case 'dropRow':
-      return t('nodes.merge_action_drop_row', 'Remove (the surviving node already has one)');
-    case 'deleteNodeRow':
-      return t('nodes.merge_action_delete_node', 'Remove the retired node entry');
-    case 'patchNodeRow':
-      return t('nodes.merge_action_patch_node', 'Carry over to the surviving node');
-    default:
-      return action;
-  }
 }
 
 export default NodeIdentityMergeDialog;

@@ -105,7 +105,7 @@ describe('Ask the node (Meshtastic)', () => {
     const menu = await openMenu('Ask the node');
     fireEvent.click(menu.getByRole('button', { name: /^Request Telemetry/ }));
     const sheet = within(await screen.findByRole('dialog', { name: 'Request Telemetry' }));
-    expect(sheet.getByText('Sends 1 telemetry request for the type you pick')).toBeInTheDocument();
+    expect(sheet.getByText('Sends 1 telemetry request')).toBeInTheDocument();
     fireEvent.click(sheet.getByRole('button', { name: /^Environment Metrics/ }));
     await waitFor(() => expect(posted('/api/telemetry/request')).toHaveLength(1));
     expect(JSON.parse(String(posted('/api/telemetry/request')[0][1]!.body))).toMatchObject({ destination: KIF, telemetryType: 'environment' });

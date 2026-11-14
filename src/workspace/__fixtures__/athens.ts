@@ -17,6 +17,7 @@ import type { Channel, DeviceInfo } from '../../types/device';
 import type { MessageEvent } from '../../types/message';
 import type { ActivityItem } from '../../types/activity';
 import type { EnrichedNeighborInfo } from '../../contexts/MapContext';
+import type { MergePreview } from '../../types/nodeIdentityChange';
 
 export const SOURCE_IDS = {
   g2: 'src-g2',
@@ -150,6 +151,8 @@ const nodes: DeviceInfo[] = [
     // The node page's Admin and Overview (f4, 15-03): firmware, first heard, a low-entropy key, remote admin, a note.
     firmwareVersion: '2.7.15', firstHeard: NOW_S - 70 * 86_400, keyIsLowEntropy: true, isStoreForwardServer: true,
     hasRemoteAdmin: true, lastRemoteAdminCheck: NOW_MS - 7_200_000,
+    // The node menus' Aircraft items (15-01, 15-11): not an aircraft by altitude, with a manual mark to clear.
+    likelyAircraft: false, aircraftManualMark: 'not_aircraft',
     notes: 'Antenna swapped to the 5 dBi on 3 Nov. Roof access via the building manager.' }),
   // A tracked, moving asset on firmware 2.8 that has stopped sending telemetry (node page Position, 15-02).
   node(0xa1b2c302, 'Athens Rover', 'ROVR', { lastHeard: NOW_S - 600, hopsAway: 2, isMobile: true, asset: { retentionDays: 30 },
@@ -378,6 +381,31 @@ const poll: PollData = {
   deviceNodeNums: [0xa1b2c300],
 };
 
+/** Kifisia Rooftop as Athens MQTT heard it: the Copy NodeInfo donor (15-05). */
+const copyCandidates = [{
+  sourceId: SOURCE_IDS.mqtt, sourceName: 'Athens MQTT', sourceType: 'mqtt_broker',
+  node: { nodeNum: 0xa1b2c301, nodeId: '!a1b2c301', longName: 'Kifisia Rooftop', shortName: 'KIF', hwModel: 4, role: 2,
+    macaddr: null, publicKey: 'Kx4pZb0v1cS9mQ2yR7tW3eLh8uN6aJdF0gPi5oVk9w2Q=', hasPKC: true, firmwareVersion: '2.7.15',
+    updatedAt: NOW_MS - 360_000, lastHeard: NOW_S - 360 },
+  fieldsFilled: 7, totalFields: 8,
+}];
+
+/** The merge dry run for Kifisia's renumbering (15-06, 15-19): a manual pairing, too large to undo. */
+const mergePreview: MergePreview = {
+  sourceId: SOURCE_IDS.g2, fromNodeNum: 0x7e01b2c4, toNodeNum: 0xa1b2c301, fromNodeId: '!7e01b2c4', toNodeId: '!a1b2c301',
+  entries: [
+    { table: 'messages', column: 'fromNodeNum', action: 'rekey', rows: 412 },
+    { table: 'telemetry', column: 'nodeNum', action: 'rekey', rows: 18_904 },
+    { table: 'positions', column: 'nodeNum', action: 'rekey', rows: 2_153 },
+    { table: 'neighbor_info', column: 'neighborNum', action: 'dropCollision', rows: 2 },
+    { table: 'nodes', column: 'nodeNum', action: 'deleteNodeRow', rows: 1 },
+  ],
+  totalRowsRekeyed: 21_469, totalRowsDropped: 3, journalPkCount: 0, undoable: false,
+  undoBlockedReason: 'Too many rows to journal', notRekeyed: [{ table: 'estimated_positions', reason: 'Global by design; regenerated on the next run.' }],
+  warnings: ['The retired node was last heard 5 days ago; anything it sends from now on gets a new entry.'],
+  detectionBasis: 'manual',
+};
+
 export const athensFixture = {
   sources,
   statuses,
@@ -404,4 +432,6 @@ export const athensFixture = {
   searchResults,
   activity,
   neighborInfo,
+  copyCandidates,
+  mergePreview,
 };

@@ -410,16 +410,98 @@ export const BOARDS: Board[] = [
       await collapseNodeHeader(page);
     },
   },
+  // Task 3.5: the node menus and dialogs. Boards that draw several menus or dialogs at once are built one
+  // at a time (D9c): each shot shows one, and Vitest checks the rest.
+  {
+    // 15-01 draws the three menus open; the shot shows Data, with its "Who can use these" card.
+    id: '15-01-node-menus',
+    size: 'desktop',
+    path: '/source/src-g2/node/!a1b2c301',
+    setup: async (page) => {
+      await nodeHeading(page, 'Kifisia Rooftop');
+      await page.getByRole('button', { name: 'Data', exact: true }).click();
+      await page.getByRole('note', { name: 'Who can use these' }).waitFor();
+    },
+  },
+  {
+    // 15-05 draws four dialogs; the shot shows Copy NodeInfo.
+    id: '15-05-node-dialogs',
+    size: 'desktop',
+    path: '/source/src-g2/node/!a1b2c301',
+    setup: async (page) => {
+      await nodeHeading(page, 'Kifisia Rooftop');
+      await page.getByRole('button', { name: 'Data', exact: true }).click();
+      await page.getByRole('button', { name: /^Copy NodeInfo/ }).click();
+      await page.getByRole('dialog', { name: 'Copy NodeInfo' }).getByText('Incoming').waitFor();
+    },
+  },
+  {
+    id: '15-06-identity-merge',
+    size: 'desktop',
+    path: '/source/src-g2/node/!a1b2c301/admin',
+    setup: async (page) => {
+      await showRenumbering(page);
+      await page.getByRole('button', { name: /Merge history…/ }).click();
+      await page.getByRole('dialog', { name: 'Merge node history' }).getByText('Rows moved:').waitFor();
+    },
+  },
+  { id: '15-11-node-menus', size: 'phone', path: '/source/src-g2/node/!a1b2c301', setup: (page) => openNodeTile(page, 'Organise') },
+  {
+    id: '15-18-node-dialogs',
+    size: 'phone',
+    path: '/source/src-g2/node/!a1b2c301',
+    setup: async (page) => {
+      await openNodeTile(page, 'Data');
+      await page.getByRole('button', { name: /^Purge Data/ }).click();
+      const sheet = page.getByRole('dialog', { name: 'Purge Data for Kifisia Rooftop' });
+      await sheet.getByRole('checkbox', { name: 'Purge All Messages' }).check();
+      await sheet.getByRole('checkbox', { name: 'Purge Traceroutes' }).check();
+    },
+  },
+  {
+    id: '15-19-identity-merge',
+    size: 'phone',
+    path: '/source/src-g2/node/!a1b2c301',
+    setup: async (page) => {
+      await serveRenumbering(page);
+      await openNodeTile(page, 'Data');
+      await page.getByRole('button', { name: /^Merge history…/ }).click();
+      await page.getByRole('dialog', { name: 'Merge node history' }).getByText('Rows moved:').waitFor();
+    },
+  },
+  { id: '15-22-data-menu', size: 'phone', path: '/source/src-g2/node/!a1b2c301', setup: (page) => openNodeTile(page, 'Data') },
+  {
+    id: '15-25-request-telemetry',
+    size: 'phone',
+    path: '/source/src-g2/node/!a1b2c301',
+    setup: async (page) => {
+      await openNodeTile(page, 'Ask the node');
+      await page.getByRole('button', { name: /^Request Telemetry/ }).click();
+      await page.getByRole('dialog', { name: 'Request Telemetry' }).waitFor();
+    },
+  },
 ];
 
-/** Kifisia Rooftop's detected renumbering (15-03 / 15-16's notice), served for this shot, then the page reloads. */
-async function showRenumbering(page: Page): Promise<void> {
+/** Kifisia Rooftop's detected renumbering, served for this shot, then the page reloads. */
+async function serveRenumbering(page: Page): Promise<void> {
   await page.route((url) => url.pathname.endsWith('/api/nodes/identity-changes'), (route) =>
     route.fulfill({ json: renumberedFixtures['GET /api/nodes/identity-changes']() }),
   );
   await page.reload();
   await page.waitForLoadState('networkidle');
+}
+
+/** As serveRenumbering, on the Admin tab: waits for 15-03 / 15-16's notice. */
+async function showRenumbering(page: Page): Promise<void> {
+  await serveRenumbering(page);
   await page.getByRole('button', { name: /Merge history…/ }).waitFor();
+}
+
+/** The phone node page's tile, opening the Node actions sheet on that tab. */
+async function openNodeTile(page: Page, name: 'Ask the node' | 'Organise' | 'Data'): Promise<void> {
+  await nodeHeading(page, 'Kifisia Rooftop');
+  await page.getByRole('button', { name, exact: true }).click();
+  await page.getByRole('dialog', { name: /Node actions/ }).waitFor();
 }
 
 async function nodeHeading(page: Page, name: string): Promise<void> {

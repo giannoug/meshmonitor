@@ -1,9 +1,9 @@
-import { useContext, useState } from 'react';
+import { useContext, useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from './icons';
 import { useNodeIdentityChanges } from '../hooks/useNodeIdentityChanges';
 import { AuthContext } from '../contexts/AuthContext';
-import { NodeIdentityMergeDialog } from './NodeIdentityMergeDialog';
+import { NodeIdentityMergeDialog, type NodeIdentityMergeDialogProps } from './NodeIdentityMergeDialog';
 import styles from './NodeIdentityChangeNotice.module.css';
 import mergeStyles from './NodeIdentityMergeDialog.module.css';
 
@@ -38,6 +38,8 @@ export interface NodeIdentityChangeNoticeProps {
   nodeNum: number | null | undefined;
   /** The source the node belongs to. Detection never crosses sources. */
   sourceId: string | null | undefined;
+  /** What Merge history… opens; default NodeIdentityMergeDialog (the Workspace passes its sheet). */
+  mergeDialog?: ComponentType<NodeIdentityMergeDialogProps>;
 }
 
 function formatDuration(seconds: number, t: ReturnType<typeof useTranslation>['t']): string {
@@ -47,7 +49,7 @@ function formatDuration(seconds: number, t: ReturnType<typeof useTranslation>['t
   return t('nodes.identity_change_hours', '{{count}} hours', { count: hours });
 }
 
-export function NodeIdentityChangeNotice({ nodeNum, sourceId }: NodeIdentityChangeNoticeProps) {
+export function NodeIdentityChangeNotice({ nodeNum, sourceId, mergeDialog: MergeDialog = NodeIdentityMergeDialog }: NodeIdentityChangeNoticeProps) {
   const { t } = useTranslation();
   const { bySuccessorNodeNum, byPredecessorNodeNum } = useNodeIdentityChanges(sourceId);
   // The raw context, not `useAuth()`: that hook throws outside an AuthProvider,
@@ -163,7 +165,7 @@ export function NodeIdentityChangeNotice({ nodeNum, sourceId }: NodeIdentityChan
         )}
       </div>
       {mergeOpen && sourceId && (
-        <NodeIdentityMergeDialog
+        <MergeDialog
           sourceId={sourceId}
           fromNodeNum={detection.predecessor.nodeNum}
           toNodeNum={detection.successor.nodeNum}

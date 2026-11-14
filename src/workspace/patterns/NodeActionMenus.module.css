@@ -237,46 +237,35 @@
   color: var(--color-accent-text);
 }
 
-.sheetBody {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 0 16px 16px;
+.gates {
+  margin-top: 8px;
+  padding: 12px 16px 4px;
+  border-top: 1px solid var(--color-border);
 }
 
-.purge {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 0 20px 8px;
-}
-
-.purge p {
-  margin: 0;
-}
-
-.fieldset {
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.fieldset .check {
-  padding: 0;
-}
-
-.legend {
-  margin-bottom: 4px;
+.gatesTitle {
+  margin: 0 0 4px;
   font-size: 13px;
   font-weight: 700;
   color: var(--color-text-subtle);
 }
 
-.asset {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  color: var(--color-warning);
+.gatesList {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.gatesList li {
+  padding: 6px 0;
+  border-top: 1px solid var(--color-surface);
+}
+
+.gatesList code {
+  color: var(--color-text);
+  font-family: var(--font-mono, monospace);
 }
 
 /* Phone targets (useIsPhone): rows ≥52 px, buttons ≥44 px. */

@@ -1,9 +1,9 @@
 {
   "must": [
-    "Request telemetry",
+    "Request Telemetry",
     "Device",
     "Environment",
-    "Air quality",
+    "Air Quality",
     "Power",
     "Copy NodeInfo",
     "Copy from source",
@@ -11,13 +11,13 @@
     "Current",
     "Incoming",
     "Push to NodeDB",
-    "Position override",
+    "Position Override",
     "Use this custom position",
-    "Private position",
+    "Private Position",
     "Latitude",
     "Longitude",
     "Altitude",
-    "Purge data for Kifisia Rooftop",
+    "Purge Data for Kifisia Rooftop",
     "cannot be undone",
     "Sends"
   ],

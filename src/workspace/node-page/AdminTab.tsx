@@ -36,6 +36,7 @@ import { formatRelativeTime } from '../../utils/datetime';
 import DmBanners from '../chat/DmBanners';
 import { nodeIdOf, nodeNameOf } from '../nodes/nodeColumns';
 import SendsLine from '../patterns/SendsLine';
+import MergeIdentitySheet from './dialogs/MergeIdentitySheet';
 import { useIsPhone } from '../shell/useIsPhone';
 import { Fact, Facts } from './Facts';
 import styles from './AdminTab.module.css';
@@ -86,7 +87,7 @@ export default function AdminTab({ sourceId, node, messages }: AdminTabProps) {
   return (
     <div className={styles.admin} data-phone={isPhone || undefined}>
       <div className={styles.column}>
-        <NodeIdentityChangeNotice nodeNum={node.nodeNum} sourceId={sourceId} />
+        <NodeIdentityChangeNotice nodeNum={node.nodeNum} sourceId={sourceId} mergeDialog={MergeIdentitySheet} />
         <DmBanners sourceId={sourceId} node={node} sentDirectMessageCount={sentToNode} onMessageAnyway={null} showDeviceDb={false} />
         {(node.keyIsLowEntropy || sharedWith.length > 0) && (
           <div className={styles.issue} role="note">
