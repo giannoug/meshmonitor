@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { UiIcon } from '../../components/icons';
 import { MessageDetailsBody } from '../../components/diagnostics/MessageDetailsModal';
-import type { RelayCandidateNode } from '../../components/diagnostics/RelayCandidateList';
+import { toRelayCandidateNodes } from '../../components/diagnostics/relayCandidateNodes';
 import type { DateFormat, TimeFormat } from '../../contexts/SettingsContext';
 import apiService from '../../services/api';
 import type { DeviceInfo } from '../../types/device';
@@ -49,20 +49,7 @@ export default function MessageDetailsPanel(props: MessageDetailsPanelProps) {
     enabled: wantStats,
     staleTime: 60_000,
   });
-  // Classic's mapping (ChannelsTab / MessagesTab `mappedNodes`).
-  const candidates: RelayCandidateNode[] = props.nodes.map((node) => {
-    const s = stats?.[node.nodeNum];
-    return {
-      nodeNum: node.nodeNum,
-      nodeId: node.user?.id || `!${node.nodeNum.toString(16).padStart(8, '0')}`,
-      longName: node.user?.longName || `Node ${node.nodeNum}`,
-      shortName: node.user?.shortName || node.nodeNum.toString(16).padStart(8, '0').slice(-4),
-      hopsAway: node.hopsAway,
-      role: typeof node.user?.role === 'string' ? parseInt(node.user.role, 10) : node.user?.role,
-      avgDirectRssi: s?.avgRssi,
-      heardDirectly: s !== undefined,
-    };
-  });
+  const candidates = toRelayCandidateNodes(props.nodes, stats);
 
   useEffect(() => {
     asideRef.current?.focus();

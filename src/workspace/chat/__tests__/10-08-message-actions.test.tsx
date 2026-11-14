@@ -134,6 +134,34 @@ describe('10-08-message-actions', () => {
     expect(JSON.parse(String(sent()[0][1]!.body))).toMatchObject({ text: '👍', emoji: 1, replyId: 8 });
   });
 
+  it('a long-press opens the sheet on release, and its click sends nothing (no tapback from the chip under the finger)', async () => {
+    await openDm();
+    const chip = within(rowOf(OURS)).getByRole('button', { name: /👍/ });
+    vi.useFakeTimers();
+    try {
+      fireEvent.pointerDown(chip, { pointerType: 'touch' });
+      vi.advanceTimersByTime(500);
+      // Still pressed: nothing mounts under the finger.
+      expect(screen.queryByRole('dialog')).toBeNull();
+      fireEvent.pointerUp(chip, { pointerType: 'touch' });
+      fireEvent.click(chip);
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(await screen.findByRole('dialog', { name: /^You · / })).toBeInTheDocument();
+    expect(sent()).toHaveLength(0);
+  });
+
+  it('a short tap on a chip still sends 1 tapback', async () => {
+    await openDm();
+    const chip = within(rowOf(OURS)).getByRole('button', { name: /👍/ });
+    fireEvent.pointerDown(chip, { pointerType: 'touch' });
+    fireEvent.pointerUp(chip, { pointerType: 'touch' });
+    fireEvent.click(chip);
+    await waitFor(() => expect(sent()).toHaveLength(1));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it('the row keeps a keyboard way in: Message actions opens the sheet', async () => {
     await openDm();
     fireEvent.click(within(rowOf(THEIRS)).getByRole('button', { name: 'Message actions' }));
@@ -173,6 +201,16 @@ describe('message actions on a channel (desktop hover bar)', () => {
     expect(row.getByRole('button', { name: 'Reply' })).toHaveAttribute('title', 'Needs channel_0:write');
     fireEvent.click(row.getByRole('button', { name: 'More actions' }));
     expect(row.getByRole('button', { name: /^Delete/ })).toBeDisabled();
+  });
+
+  it('without channel_0:write, Translate is off with the reason, as Classic (its actions sit behind write)', async () => {
+    renderChat(channel, {
+      permissions: { bySource: { [SOURCE_IDS.g2]: { channel_0: { read: true, write: false }, messages: { read: true, write: true } } } } as never,
+    });
+    await screen.findByText('Glyfada Beach checking in');
+    const translate = within(rowOf('Glyfada Beach checking in')).getByRole('button', { name: 'Translate message' });
+    expect(translate).toBeDisabled();
+    expect(translate).toHaveAttribute('title', 'Needs channel_0:write');
   });
 
   it('Translate shows the translation under the message (POST /api/translate, nothing on the mesh)', async () => {

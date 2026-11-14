@@ -75,7 +75,8 @@ export function messageActionItems(ctx: MessageActionContext, msg: MeshMessage, 
   const items: MessageActionItem[] = [];
   if (ctx.canSend && !mine) items.push({ kind: 'reply', reason: ctx.writeReason });
   if (ctx.canSend) items.push({ kind: 'react', reason: ctx.sendReason, sends: ctx.sendsTapback });
-  if (ctx.canTranslate && msg.text) items.push({ kind: 'translate' });
+  // As Classic: per-message Translate sits with the other actions, behind write.
+  if (ctx.canTranslate && msg.text) items.push({ kind: 'translate', reason: ctx.writeReason });
   if (ctx.canSend && mine) items.push({ kind: 'resend', reason: ctx.sendReason, sends: ctx.sendsResend });
   items.push({ kind: 'details' });
   if (msg.text) items.push({ kind: 'copy' });

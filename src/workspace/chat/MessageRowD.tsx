@@ -86,41 +86,68 @@ function MessageRowDImpl(props: MessageRowDProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [sheet, setSheet] = useState(false);
-  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // A long-press ends in a click on the text; that click must not toggle the signal line.
-  const pressed = useRef(false);
+  // Long-press (phone): the sheet opens on release, never under the finger, and the release's
+  // click is swallowed for the whole row (a chip under the finger must not send).
+  const press = useRef<{ timer: ReturnType<typeof setTimeout> | null; held: boolean; menu: boolean; touch: boolean }>({
+    timer: null,
+    held: false,
+    menu: false,
+    touch: false,
+  });
+  const swallowClick = useRef(false);
   const time = formatMessageTime(new Date(msg.timestamp), props.timeFormat, props.dateFormat);
   const items = messageActionItems(props.actionContext, msg, mine);
   const react = items.find((i) => i.kind === 'react');
   const chipsSend = !!react && !react.reason;
 
-  const cancelPress = () => {
-    if (pressTimer.current) clearTimeout(pressTimer.current);
-    pressTimer.current = null;
+  const resetPress = () => {
+    if (press.current.timer) clearTimeout(press.current.timer);
+    press.current = { ...press.current, timer: null, held: false, menu: false };
   };
   useEffect(() => () => {
-    if (pressTimer.current) clearTimeout(pressTimer.current);
+    if (press.current.timer) clearTimeout(press.current.timer);
   }, []);
-  const openSheet = () => {
-    cancelPress();
-    pressed.current = true;
-    setSheet(true);
-  };
   const pressProps = props.phone
     ? {
         onPointerDown: (e: PointerEvent) => {
-          cancelPress();
-          pressed.current = false;
-          if (e.pointerType === 'mouse') return;
-          pressTimer.current = setTimeout(openSheet, LONG_PRESS_MS);
+          resetPress();
+          swallowClick.current = false;
+          press.current.touch = e.pointerType !== 'mouse';
+          if (!press.current.touch) return;
+          press.current.timer = setTimeout(() => {
+            press.current.held = true;
+          }, LONG_PRESS_MS);
         },
-        onPointerUp: cancelPress,
-        onPointerLeave: cancelPress,
-        onPointerCancel: cancelPress,
-        // The browser's own long-press (and a right-click).
+        onPointerUp: () => {
+          const open = press.current.held;
+          resetPress();
+          if (open) {
+            swallowClick.current = true;
+            setSheet(true);
+          }
+        },
+        onPointerLeave: resetPress,
+        // The browser took the gesture (scroll, or its own long-press): no click follows.
+        onPointerCancel: () => {
+          const open = press.current.menu;
+          resetPress();
+          if (open) setSheet(true);
+        },
+        // The browser's long-press (Android) waits for the release; a right-click opens at once.
         onContextMenu: (e: MouseEvent) => {
           e.preventDefault();
-          openSheet();
+          if (press.current.touch) {
+            press.current.held = true;
+            press.current.menu = true;
+          } else {
+            setSheet(true);
+          }
+        },
+        onClickCapture: (e: MouseEvent) => {
+          if (!swallowClick.current) return;
+          swallowClick.current = false;
+          e.preventDefault();
+          e.stopPropagation();
         },
       }
     : {};
@@ -145,13 +172,7 @@ function MessageRowDImpl(props: MessageRowDProps) {
   }
 
   const text = (
-    <div
-      className={styles.text}
-      onClick={() => {
-        if (pressed.current) pressed.current = false;
-        else setOpen((o) => !o);
-      }}
-    >
+    <div className={styles.text} onClick={() => setOpen((o) => !o)}>
       {renderMessageWithLinks(msg.text, props.mentionOptions)}
     </div>
   );
