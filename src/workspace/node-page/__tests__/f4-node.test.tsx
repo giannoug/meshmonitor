@@ -57,6 +57,23 @@ describe('f4-node', () => {
     expect(screen.getByText('# LongFast · RF')).toBeInTheDocument();
   });
 
+  it('the Overview carries the rest of today\'s node details: status, noise floor, signal trend, coverage, remote-admin metadata', async () => {
+    renderChat(kifisia);
+    await heading();
+    const radio = within(await screen.findByRole('region', { name: 'Radio' }));
+    expect(radio.getByText('Noise Floor')).toBeInTheDocument();
+    expect(radio.getByText('-112 dBm')).toBeInTheDocument();
+    expect(await radio.findByText('Signal Trend')).toBeInTheDocument();
+    expect(radio.getByText(/Degrading/)).toBeInTheDocument();
+    expect(radio.getByRole('link', { name: /Show coverage/ })).toBeInTheDocument();
+    const identity = within(screen.getByRole('region', { name: 'Identity & security' }));
+    expect(identity.getByText('Status')).toBeInTheDocument();
+    expect(identity.getByText('Roof relay, solar')).toBeInTheDocument();
+    for (const label of ['Remote Firmware', 'Has WiFi', 'Has Bluetooth', 'Has Ethernet', 'Can Shutdown']) {
+      expect(identity.getByText(label)).toBeInTheDocument();
+    }
+  });
+
   it('opening the page transmits nothing: every request is a read', async () => {
     renderChat(kifisia);
     await heading();

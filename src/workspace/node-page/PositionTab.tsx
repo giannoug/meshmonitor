@@ -1,7 +1,7 @@
 /**
  * The node page's Position tab (boards 15-02, 15-12): the node's map with its
  * position history (today's trail and, for a tracked asset, today's playback
- * bar), today's 2.8 opt-in notice and estimate rationale; beside it the
+ * bar), today's 2.8 opt-in notice, estimate rationale and GNSS sky view; beside it the
  * history switches (MapContext's, saved to the user's map preferences as on
  * the device map, so the trail shows on both, s15n0), the position facts
  * (today's source and accuracy, `nodePositionSource`) and the override,
@@ -10,6 +10,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Firmware28SilenceNotice } from '../../components/Firmware28SilenceNotice';
+import { NodeSkyView } from '../../components/gnss/NodeSkyView';
 import { UiIcon } from '../../components/icons';
 import { PositionHistoryHoursSlider } from '../../components/map/PositionHistoryHoursSlider';
 import PositionEstimateRationaleBox from '../../components/PositionEstimateRationaleBox';
@@ -23,7 +24,7 @@ import { Fact, FactCard, Facts } from './Facts';
 import NodeMap from './NodeMap';
 import styles from './PositionTab.module.css';
 
-export default function PositionTab({ node, mapNodes }: { node: DeviceInfo; mapNodes: DeviceInfo[] }) {
+export default function PositionTab({ sourceId, node, mapNodes }: { sourceId: string; node: DeviceInfo; mapNodes: DeviceInfo[] }) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const map = useMapContext();
@@ -50,6 +51,8 @@ export default function PositionTab({ node, mapNodes }: { node: DeviceInfo; mapN
         {node.positionIsEstimated && pos?.latitude != null && pos.longitude != null && (
           <PositionEstimateRationaleBox nodeNum={node.nodeNum} distanceUnit={distanceUnit} timeFormat={timeFormat} dateFormat={dateFormat} />
         )}
+        {/* Today's GNSS sky view: collapsed, it reads nothing until opened. */}
+        <NodeSkyView node={node} sourceId={sourceId} />
       </div>
       <div className={styles.side}>
         <FactCard title={t('workspace.node.history')}>

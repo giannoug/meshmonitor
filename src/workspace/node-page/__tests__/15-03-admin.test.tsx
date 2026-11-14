@@ -5,9 +5,8 @@
  * details: the renumbering notice with Merge history…, the key warnings with
  * Clear, Notes, Asset tracking, Remote admin (its link into remote admin),
  * Share contact and the key, PKI, channel, Store & Forward and first-heard
- * facts. It shows only to whoever may open today's remote admin (an admin,
- * RemoteAdminLink's gate); anyone else gets no Admin tab, and its URL shows
- * the Overview.
+ * facts. The tab shows to anyone who can read the node (Ruling BE); each part
+ * keeps Classic's own gate, and only the link into remote admin needs an admin.
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
@@ -24,17 +23,9 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
 
 const route = `${kifisia}/admin`;
-/** A signed-in operator with full rights on Station G2 but not an admin. */
-const operator = {
-  permissions: {
-    bySource: {
-      [SOURCE_IDS.g2]: {
-        nodes: { read: true, write: true }, messages: { read: true, write: true },
-        settings: { read: true, write: true }, security: { read: true, write: true }, traceroute: { read: true, write: true },
-      },
-    },
-  },
-};
+/** Signed-in non-admins on Station G2: one with nodes:write, one who can only read. */
+const writer = { permissions: { bySource: { [SOURCE_IDS.g2]: { nodes: { read: true, write: true }, messages: { read: true, write: false } } } } };
+const reader = { permissions: { bySource: { [SOURCE_IDS.g2]: { nodes: { read: true, write: false }, messages: { read: true, write: false } } } } };
 
 describe('15-03-admin', () => {
   it('15-03-admin shows the board', async () => {
@@ -45,22 +36,38 @@ describe('15-03-admin', () => {
     expectBoard('15-03-admin', container);
   });
 
-  it('an admin (today\'s remote-admin gate) gets the Admin tab and the link into remote admin', async () => {
-    renderChat(kifisia);
-    await screen.findByRole('heading', { level: 1, name: 'Kifisia Rooftop' }, { timeout: 5000 });
-    fireEvent.click(screen.getByRole('link', { name: 'Admin' }));
-    const remote = await screen.findByRole('link', { name: 'Open remote admin for Kifisia Rooftop' });
+  it('an admin sees everything: the link into remote admin, editable notes and channel, asset tracking', async () => {
+    renderChat(route);
+    const remote = await screen.findByRole('link', { name: 'Open remote admin for Kifisia Rooftop' }, { timeout: 5000 });
     const href = new URL(remote.getAttribute('href')!, 'http://localhost');
     expect(href.pathname).toBe(`${g2}/admin`);
     expect(href.searchParams.get('node')).toBe('!a1b2c301');
+    expect(screen.getByRole('textbox', { name: 'Notes' })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Track this node as an asset' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create QR code' })).toBeInTheDocument();
   });
 
-  it('a non-admin gets no Admin tab, and the Admin URL shows the Overview', async () => {
-    renderChat(route, operator);
+  it('a non-admin with nodes:write gets the Admin tab and edits notes, but no link into remote admin', async () => {
+    renderChat(kifisia, writer);
     await screen.findByRole('heading', { level: 1, name: 'Kifisia Rooftop' }, { timeout: 5000 });
-    expect(screen.queryByRole('link', { name: 'Admin' })).toBeNull();
-    expect(await screen.findByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.queryByText('Notes')).toBeNull();
+    fireEvent.click(screen.getByRole('link', { name: 'Admin' }));
+    expect(await screen.findByRole('textbox', { name: 'Notes' })).not.toBeDisabled();
+    expect(within(screen.getByRole('region', { name: 'Notes' })).getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    expect(screen.getByText('Remote Admin')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Open remote admin/ })).toBeNull();
+    // Asset tracking needs settings:write: today's read-only line.
+    expect(screen.queryByRole('switch', { name: 'Track this node as an asset' })).toBeNull();
+  });
+
+  it('a read-only viewer sees the note and the channel, with no edit controls', async () => {
+    renderChat(route, reader);
+    const notes = within(await screen.findByRole('region', { name: 'Notes' }, { timeout: 5000 }));
+    expect(notes.getByText(/Antenna swapped to the 5 dBi/)).toBeInTheDocument();
+    expect(notes.queryByRole('textbox')).toBeNull();
+    expect(notes.queryByRole('button', { name: 'Save' })).toBeNull();
+    expect(screen.getByText('0 (LongFast)')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Open remote admin/ })).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'Track this node as an asset' })).toBeNull();
   });
 
   it('Save stores the note in MeshMonitor for this device, and sends nothing', async () => {

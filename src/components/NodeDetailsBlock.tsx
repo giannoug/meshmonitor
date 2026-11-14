@@ -7,6 +7,7 @@ import { getHardwareImageUrl } from '../utils/hardwareImages';
 import { formatRelativeTime } from '../utils/datetime';
 import { getEffectiveHops } from '../utils/nodeHops';
 import { nodePositionSource } from '../utils/nodePositionSource';
+import { parseRemoteAdminMetadata } from '../utils/remoteAdminMetadata';
 import { MAX_NODE_NOTES_LENGTH, useNodeNotesDraft } from '../hooks/useNodeNotesDraft';
 import { TimeFormat, DateFormat, useSettings } from '../contexts/SettingsContext';
 import { useMapContext } from '../contexts/MapContext';
@@ -616,7 +617,7 @@ const NodeDetailsBlock: React.FC<NodeDetailsBlockProps> = ({ node, timeFormat = 
         {/* Remote Admin Metadata */}
         {node.hasRemoteAdmin && node.remoteAdminMetadata && (() => {
           try {
-            const metadata = JSON.parse(node.remoteAdminMetadata);
+            const metadata = parseRemoteAdminMetadata(node.remoteAdminMetadata)!;
             return (
               <>
                 {metadata.firmwareVersion && (

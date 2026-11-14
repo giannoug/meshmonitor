@@ -4,6 +4,7 @@
  */
 import type { Page } from '@playwright/test';
 import { athensFixture } from '../../src/workspace/__fixtures__/athens';
+import { renumberedFixtures } from '../../src/workspace/node-page/__tests__/nodePageFixtures';
 
 export interface Board {
   id: string;
@@ -366,6 +367,7 @@ export const BOARDS: Board[] = [
     size: 'desktop',
     path: '/source/src-g2/node/!a1b2c301/admin',
     setup: async (page) => {
+      await showRenumbering(page);
       await page.getByRole('button', { name: 'Create QR code' }).click();
       await page.getByRole('button', { name: /Copy URL/ }).waitFor();
     },
@@ -393,6 +395,7 @@ export const BOARDS: Board[] = [
     size: 'phone',
     path: '/source/src-g2/node/!a1b2c301/admin',
     setup: async (page) => {
+      await showRenumbering(page);
       await page.getByRole('button', { name: 'Create QR code' }).click();
       await page.getByRole('button', { name: /Copy URL/ }).waitFor();
       await collapseNodeHeader(page);
@@ -408,6 +411,16 @@ export const BOARDS: Board[] = [
     },
   },
 ];
+
+/** Kifisia Rooftop's detected renumbering (15-03 / 15-16's notice), served for this shot, then the page reloads. */
+async function showRenumbering(page: Page): Promise<void> {
+  await page.route((url) => url.pathname.endsWith('/api/nodes/identity-changes'), (route) =>
+    route.fulfill({ json: renumberedFixtures['GET /api/nodes/identity-changes']() }),
+  );
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: /Merge history…/ }).waitFor();
+}
 
 async function nodeHeading(page: Page, name: string): Promise<void> {
   await page.getByRole('heading', { level: 1, name }).waitFor();

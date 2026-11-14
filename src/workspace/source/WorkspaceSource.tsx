@@ -74,7 +74,8 @@ const NodesPage = lazy(() => import('../nodes/NodesPage.tsx'));
 const NODES_PATH = /^nodes\/?$/;
 /** `node/<id>[/<tab>]`: the Workspace node page (Task 3.4). */
 const NodePage = lazy(() => import('../node-page/NodePage.tsx'));
-const NODE_PATH = /^node\/([^/]+)(?:\/(telemetry|links|position|admin))?\/?$/;
+const NODE_PATH = /^node\/([^/]+)(?:\/([^/]+))?\/?$/;
+const NODE_TABS: readonly string[] = ['telemetry', 'links', 'position', 'admin'];
 
 export default function WorkspaceSource() {
   const { t } = useTranslation();
@@ -189,16 +190,21 @@ export default function WorkspaceSource() {
   const nodePage = source && splat.match(NODE_PATH);
   if (nodePage) {
     const nodeId = nodePage[1];
+    const segment = nodePage[2];
+    const known = !segment || NODE_TABS.includes(segment);
+    // An unknown tab shows the Overview, and the URL follows.
     return (
-      <Rehost>
-        <NodePage
-          key={`${sourceId}/${nodeId}`}
-          sourceId={sourceId}
-          source={source}
-          nodeId={nodeId}
-          tab={(nodePage[2] as NodeTab | undefined) ?? 'overview'}
-        />
-      </Rehost>
+      <Redirect to={known ? null : `${base}/node/${encodeURIComponent(nodeId)}`}>
+        <Rehost>
+          <NodePage
+            key={`${sourceId}/${nodeId}`}
+            sourceId={sourceId}
+            source={source}
+            nodeId={nodeId}
+            tab={known && segment ? (segment as NodeTab) : 'overview'}
+          />
+        </Rehost>
+      </Redirect>
     );
   }
 

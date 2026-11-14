@@ -144,7 +144,9 @@ const nodes: DeviceInfo[] = [
     hwModel: 43, role: '2', publicKey: 'Kx4pZb0v1cS9mQ2yR7tW3eLh8uN6aJdF0gPi5oVk9w2Q=' }, hopsAway: 2, channel: 0,
     isUnmessagable: true, keyMismatchDetected: true,
     asset: { retentionDays: 365 }, position: { latitude: 38.0742, longitude: 23.8113, altitude: 290 },
-    deviceMetrics: { batteryLevel: 88, voltage: 4.02, channelUtilization: 19, airUtilTx: 1.2, uptimeSeconds: 533_000 },
+    deviceMetrics: { batteryLevel: 88, voltage: 4.02, channelUtilization: 19, airUtilTx: 1.2, uptimeSeconds: 533_000, noiseFloor: -112 },
+    nodeStatus: 'Roof relay, solar',
+    remoteAdminMetadata: JSON.stringify({ firmwareVersion: '2.7.15.567b8ea', hasWifi: true, hasBluetooth: true, hasEthernet: false, canShutdown: true }),
     // The node page's Admin and Overview (f4, 15-03): firmware, first heard, a low-entropy key, remote admin, a note.
     firmwareVersion: '2.7.15', firstHeard: NOW_S - 70 * 86_400, keyIsLowEntropy: true, isStoreForwardServer: true,
     hasRemoteAdmin: true, lastRemoteAdminCheck: NOW_MS - 7_200_000,

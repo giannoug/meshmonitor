@@ -32,4 +32,16 @@ describe('f5-telemetry', () => {
     fireEvent.click(within(range).getByRole('button', { name: '7d' }));
     expect(within(range).getByRole('button', { name: '7d' })).toHaveAttribute('aria-pressed', 'true');
   });
+
+  it('draws Classic\'s other node charts under it: Smart Hops, Link Quality and the packet-type distribution', async () => {
+    renderChat(`${kifisia}/telemetry`);
+    await screen.findByText(/Battery Level/, {}, { timeout: 5000 });
+    expect(await screen.findByText('Smart Hops Analysis')).toBeInTheDocument();
+    expect(await screen.findByText('Link Quality Analysis')).toBeInTheDocument();
+    expect(await screen.findByText('Packet Type Distribution (24h)')).toBeInTheDocument();
+    const calls = vi.mocked(fetch).mock.calls.map(([u]) => String(u));
+    expect(calls.some((u) => u.includes('/api/telemetry/!a1b2c301/smarthops'))).toBe(true);
+    expect(calls.some((u) => u.includes('/api/telemetry/!a1b2c301/linkquality'))).toBe(true);
+    expect(calls.some((u) => u.includes(`/api/packets/stats/distribution`) && u.includes(`from_node=${0xa1b2c301}`))).toBe(true);
+  });
 });

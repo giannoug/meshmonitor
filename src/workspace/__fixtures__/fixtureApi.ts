@@ -87,6 +87,30 @@ const defaults: Record<string, FixtureHandler> = {
   // The device map (Main, f2-layers, 15-09): Station G2's neighbour links; no GeoJSON layers.
   'GET /api/sources/:id/neighbor-info': (url) => (url.pathname.split('/')[3] === SOURCE_IDS.g2 ? A.neighborInfo : []),
   'GET /api/geojson/layers': () => [],
+  // Today's other node charts and the signal trend (the node page's Telemetry tab and Overview, f4 / f5).
+  'GET /api/telemetry/:nodeId/smarthops': () => ({
+    success: true,
+    data: [0, 1, 2, 3].map((i) => ({ timestamp: Date.now() - i * 3_600_000, minHops: 1, maxHops: 2, avgHops: 1.5 })),
+  }),
+  'GET /api/telemetry/:nodeId/linkquality': () => ({
+    success: true,
+    data: [0, 1, 2, 3].map((i) => ({ timestamp: Date.now() - i * 3_600_000, quality: 7 + (i % 2) })),
+  }),
+  'GET /api/telemetry/:nodeId/signal-trend': () => ({
+    success: true,
+    data: {
+      trend: 'degrading', basis: 'rssi', snr: null, noiseFloor: null, noiseFloorRising: false,
+      rssi: { recent: -98, baseline: -92, delta: -6, recentCount: 40, baselineCount: 280, unit: 'dBm' },
+    },
+  }),
+  'GET /api/packets/stats/distribution': () => ({
+    enabled: true, total: 64, byDevice: [],
+    byType: [
+      { portnum: 3, portnum_name: 'POSITION_APP', count: 28 },
+      { portnum: 67, portnum_name: 'TELEMETRY_APP', count: 22 },
+      { portnum: 1, portnum_name: 'TEXT_MESSAGE_APP', count: 14 },
+    ],
+  }),
   'GET /api/telemetry/:nodeId': (url) => {
     const nodeId = decodeURIComponent(url.pathname.split('/')[3]);
     return A.telemetry.filter((row) => row.nodeId === nodeId);

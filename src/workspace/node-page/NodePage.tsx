@@ -2,9 +2,9 @@
  * The node page (boards f4-node, f5-telemetry, g4-node, g5-links, 15-02…15-04,
  * 15-12, 15-16, 15-17; note ds1): `/source/:id/node/:nodeId[/<tab>]` on a
  * Meshtastic-family device. NodeHeader (the node, Message and the three node
- * menus, the tabs) over one tab: Overview, Telemetry, Links, Position, and
- * Admin for whoever may open today's remote admin (an admin: the gate of
- * RemoteAdminLink and the Admin Commands route). Desktop and phone share this
+ * menus, the tabs) over one tab: Overview, Telemetry, Links, Position and
+ * Admin. Every tab shows to anyone who can read the node (Ruling BE); each
+ * part inside keeps Classic's own gate. Desktop and phone share this
  * one data path; the tabs lay themselves out per width.
  *
  * One owner per screen (Ruling AD): App is not mounted. The page runs the
@@ -17,9 +17,7 @@
  * controls (NodeActionMenus) with its own gate, Sends line and confirm.
  */
 import { useCallback, useEffect, useMemo } from 'react';
-import { Navigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../../contexts/AuthContext';
 import { MapProvider, useMapContext } from '../../contexts/MapContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import type { DashboardSource } from '../../hooks/useDashboardData';
@@ -68,7 +66,6 @@ const noop = () => {};
 function NodePage({ sourceId, nodeId, tab }: { sourceId: string; nodeId: string; tab: NodeTab }) {
   const isPhone = useIsPhone();
   const { pollData, view: messaging } = useChatRuntime(-1);
-  const { authStatus } = useAuth();
   const { setTraceroutes, setSelectedNodeId, selectedNodeId } = useMapContext();
   const settings = useSettings();
   const { nodes, isLoading } = useNodes();
@@ -99,9 +96,6 @@ function NodePage({ sourceId, nodeId, tab }: { sourceId: string; nodeId: string;
   usePositionHistory({ selectedNodeId, nodes, baseUrl: appBasename, sourceId, authFetch });
 
   const node = nodes.find((n) => n.user?.id === nodeId);
-  // Today's remote-admin gate (App's Admin Commands route, RemoteAdminLink's `canOpenRemoteAdmin`).
-  const canAdmin = authStatus?.user?.isAdmin === true;
-  const base = `/source/${encodeURIComponent(sourceId)}/node/${encodeURIComponent(nodeId)}`;
 
   if (!node) {
     return (
@@ -110,16 +104,15 @@ function NodePage({ sourceId, nodeId, tab }: { sourceId: string; nodeId: string;
       </div>
     );
   }
-  if (tab === 'admin' && !canAdmin) return <Navigate to={base} replace />;
 
   return (
     <div className={styles.page} data-phone={isPhone || undefined}>
-      <NodeHeader sourceId={sourceId} node={node} tab={tab} showAdmin={canAdmin} />
+      <NodeHeader sourceId={sourceId} node={node} tab={tab} />
       <div className={styles.body}>
         {tab === 'overview' && <OverviewTab sourceId={sourceId} node={node} mapNodes={view.processedNodes} />}
-        {tab === 'telemetry' && <TelemetryTab nodeId={nodeId} />}
+        {tab === 'telemetry' && <TelemetryTab sourceId={sourceId} node={node} />}
         {tab === 'links' && <LinksTab sourceId={sourceId} node={node} />}
-        {tab === 'position' && <PositionTab node={node} mapNodes={view.processedNodes} />}
+        {tab === 'position' && <PositionTab sourceId={sourceId} node={node} mapNodes={view.processedNodes} />}
         {tab === 'admin' && <AdminTab sourceId={sourceId} node={node} messages={messaging.messages} />}
       </div>
     </div>

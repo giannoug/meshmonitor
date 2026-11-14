@@ -49,4 +49,10 @@ describe('15-02-position', () => {
     expect(screen.getByRole('slider', { name: 'Position history duration' })).toBeInTheDocument();
     expect(screen.getByText('Override Position')).toBeInTheDocument();
   });
+
+  it('carries today\'s GNSS sky view, collapsed until opened', async () => {
+    renderChat(route);
+    await screen.findByTestId('asset-playback-bar', {}, { timeout: 5000 });
+    expect(screen.getByRole('button', { name: /GNSS Sky View/ })).toHaveAttribute('aria-expanded', 'false');
+  });
 });

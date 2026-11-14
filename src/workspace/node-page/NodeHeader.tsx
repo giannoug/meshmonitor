@@ -31,7 +31,6 @@ export interface NodeHeaderProps {
   sourceId: string;
   node: DeviceInfo;
   tab: NodeTab;
-  showAdmin: boolean;
 }
 
 /** The phone bar's height (NodeHeader.module.css `.bar`). */
@@ -45,7 +44,7 @@ const TABS: Array<[NodeTab, string]> = [
   ['admin', 'workspace.node.tab_admin'],
 ];
 
-export default function NodeHeader({ sourceId, node, tab, showAdmin }: NodeHeaderProps) {
+export default function NodeHeader({ sourceId, node, tab }: NodeHeaderProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const { authStatus, hasPermission } = useAuth();
@@ -102,7 +101,7 @@ export default function NodeHeader({ sourceId, node, tab, showAdmin }: NodeHeade
   );
   const tabs = (
     <nav className={styles.tabs} aria-label={name}>
-      {TABS.filter(([key]) => key !== 'admin' || showAdmin).map(([key, label]) => (
+      {TABS.map(([key, label]) => (
         <Link key={key} className={styles.tab} to={key === 'overview' ? page : `${page}/${key}`} aria-current={key === tab ? 'page' : undefined}>
           {t(label)}
         </Link>

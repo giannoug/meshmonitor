@@ -1,11 +1,12 @@
 /**
- * The node page's Admin tab (boards 15-03, 15-16; ds4), for whoever may open
- * today's remote admin (NodePage gates it). Today's parts from the DM's node
- * details, each with its own gate: the renumbering notice and Merge history…
+ * The node page's Admin tab (boards 15-03, 15-16; ds4), for anyone who can
+ * read the node (Ruling BE). Today's parts from the DM's node details, each
+ * with Classic's own gate (MessagesTab's NodeDetailsBlock wiring): the renumbering notice and Merge history…
  * (NodeIdentityChangeNotice), the key warnings with Clear (DmBanners, today's
  * KeyMismatchWarning) and the security-issue details, Notes (nodes:write;
  * saved in MeshMonitor), Asset tracking (settings:write), Remote admin (its
- * link into today's Admin Commands, RemoteAdminLink), Share contact, and the
+ * link into today's Admin Commands for an admin only, RemoteAdminLink's
+ * `canOpenRemoteAdmin`), Share contact, and the
  * key, PKI, channel (editable with nodes:write), Store & Forward and
  * first-heard facts. Nothing here sends on the mesh.
  */
@@ -52,7 +53,7 @@ export default function AdminTab({ sourceId, node, messages }: AdminTabProps) {
   const notesId = useId();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
-  const { hasPermission } = useAuth();
+  const { hasPermission, authStatus } = useAuth();
   const { currentNodeId } = useData();
   const { nodes } = useNodes();
   const { channels } = useChannels();
@@ -139,7 +140,13 @@ export default function AdminTab({ sourceId, node, messages }: AdminTabProps) {
         </div>
       </div>
       <div className={styles.column}>
-        <RemoteAdminLink nodeId={node.user?.id ?? ''} nodeName={name} sourceId={sourceId} enabled={node.hasRemoteAdmin === true && !!node.user?.id}>
+        <RemoteAdminLink
+          nodeId={node.user?.id ?? ''}
+          nodeName={name}
+          sourceId={sourceId}
+          // App's Admin Commands gate, as NodeDetailsBlock's `canOpenRemoteAdmin` (only for an available node).
+          enabled={authStatus?.user?.isAdmin === true && node.hasRemoteAdmin === true && !!node.user?.id}
+        >
           <div className={styles.remote}>
             <span className={styles.text}>
               <span className={styles.title}>{t('node_details.remote_admin')}</span>
@@ -148,7 +155,7 @@ export default function AdminTab({ sourceId, node, messages }: AdminTabProps) {
                 {checked && ` · ${checked}`}
               </span>
             </span>
-            {node.hasRemoteAdmin && <UiIcon name="chevronRight" size={18} />}
+            {authStatus?.user?.isAdmin === true && node.hasRemoteAdmin && <UiIcon name="chevronRight" size={18} />}
           </div>
         </RemoteAdminLink>
         {node.user && node.nodeNum > 0 && node.nodeNum < 0xffffffff && (

@@ -141,6 +141,13 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     await expectPage(page);
   });
 
+  it('a node URL with an unknown tab shows the node page and moves to its Overview', async () => {
+    renderAt(`${g2}/node/!a1b2c301/bogus`);
+    await expectPage('node-page');
+    await waitFor(() => expect(realUrl()).toBe(`${g2}/node/!a1b2c301`));
+    expect(screen.queryByTestId('page-app')).toBeNull();
+  });
+
   it('Activity does not mount the re-hosted App (one owner per screen)', async () => {
     renderAt(`${g2}/activity`);
     await expectPage('activity');
