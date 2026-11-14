@@ -297,6 +297,7 @@ const BOOLEAN_PREF_FIELDS = [
   'notifyOnWaypoint',
   'notifyOnMention',
   'notifyOnAutoTrace',
+  'notifyOnReply',
   'notifyOnServerEvents',
   'prefixWithNodeName',
 ] as const;

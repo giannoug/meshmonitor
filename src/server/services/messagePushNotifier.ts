@@ -21,6 +21,7 @@ import { logger } from '../../utils/logger.js';
 import { renderMessageNotification, type MessageTemplateContext } from '../../utils/notificationTemplate.js';
 import { packetDedupKey } from './notificationDedup.js';
 import { extractPacketIdFromRowId } from '../utils/messageRowId.js';
+import { notifyMeshtasticActivity } from './meshtasticActivityNotifier.js';
 
 /**
  * The subset of a message row this notifier reads. Structurally satisfied by
@@ -41,6 +42,8 @@ export interface NotifiableMessage {
   viaMqtt?: boolean | null;
   /** Meshtastic tapback flag: 1 marks a reaction (#5720). */
   emoji?: number | null;
+  /** Packet id this message answers; drives the reply push (#6365). */
+  replyId?: number | null;
 }
 
 export interface MessagePushInput {
@@ -252,6 +255,10 @@ export async function sendMessagePushNotification(input: MessagePushInput): Prom
       logger.debug('⏭️  Skipping push notification for message from one of our own nodes');
       return;
     }
+
+    // Reply / mention push (#6365). Runs first so its dedup claim wins: a
+    // recipient it reaches gets no second notification for the message.
+    await notifyMeshtasticActivity({ sourceId, message: { ...message, text: messageText } });
 
     // Get sender info
     const fromNode = await databaseService.nodes.getNode(message.fromNodeNum);

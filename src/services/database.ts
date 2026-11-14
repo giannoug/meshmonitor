@@ -2058,6 +2058,11 @@ class DatabaseService {
     return q.protocol === 'meshcore' ? this.activity.listMeshcore(q) : this.activity.listMeshtastic(q);
   }
 
+  /** Whether a Meshtastic `replyId` points at one of our messages (#6365); see ActivityRepository. */
+  async isReplyToOwnMeshtasticMessageAsync(sourceId: string, ownNodeNum: number, replyId: number): Promise<boolean> {
+    return this.activity.isReplyToOwnMeshtastic(sourceId, ownNodeNum, replyId);
+  }
+
   async searchMessagesAsync(options: {
     query: string;
     caseSensitive?: boolean;

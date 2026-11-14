@@ -250,6 +250,7 @@ import { migration as addNotificationTextMaxMigration, runMigration229Postgres, 
 import { migration as addMeshcoreMessageSenderNameOverrideMigration, runMigration231Postgres, runMigration231Mysql } from '../server/migrations/231_add_meshcore_message_sender_name_override.js';
 import { migration as addNotifyOnAutoTraceMigration, runMigration232Postgres, runMigration232Mysql } from '../server/migrations/232_add_notify_on_auto_trace.js';
 import { migration as addUserPreferencesMigration, runMigration233Postgres, runMigration233Mysql } from '../server/migrations/233_add_user_preferences.js';
+import { migration as addNotifyOnReplyMigration, runMigration234Postgres, runMigration234Mysql } from '../server/migrations/234_add_notify_on_reply.js';
 import { migration as refileMeshcoreMqttSlotChannelsMigration, runMigration228Postgres, runMigration228Mysql } from '../server/migrations/228_refile_meshcore_mqtt_slot_channels.js';
 import { migration as meshcoreNeighborWatchMigration, runMigration230Postgres, runMigration230Mysql } from '../server/migrations/230_add_meshcore_neighbor_watch.js';
 
@@ -3755,4 +3756,18 @@ registry.register({
   sqlite: (db) => addUserPreferencesMigration.up(db),
   postgres: (client) => runMigration233Postgres(client),
   mysql: (pool) => runMigration233Mysql(pool),
+});
+
+// ---------------------------------------------------------------------------
+// Migration 234: notify_on_reply (#6365). PER-SOURCE (user_notification_preferences
+// row). Opt-in push for a reply to one of the source's own Meshtastic messages.
+// ---------------------------------------------------------------------------
+
+registry.register({
+  number: 234,
+  name: 'add_notify_on_reply',
+  settingsKey: 'migration_234_add_notify_on_reply',
+  sqlite: (db) => addNotifyOnReplyMigration.up(db),
+  postgres: (client) => runMigration234Postgres(client),
+  mysql: (pool) => runMigration234Mysql(pool),
 });

@@ -31,10 +31,12 @@ export interface NotificationPreferenceDefaults {
   lowBatteryVoltageThreshold: number;
   notifyOnServerEvents: boolean;
   notifyOnWaypoint: boolean;
-  /** MeshCore `@[Name]` mentions of the source's own node. Opt-in. */
+  /** Mentions of the source's own node: MeshCore `@[Name]`, Meshtastic `@!id` (#6365). Opt-in. */
   notifyOnMention: boolean;
   /** Automatic MeshCore traces / path discoveries (M3). Opt-in. */
   notifyOnAutoTrace: boolean;
+  /** Replies to the source's own Meshtastic messages (#6365). Opt-in. */
+  notifyOnReply: boolean;
   waypointRadiusKm: number;
   waypointCenterLat: number | null;
   waypointCenterLon: number | null;
@@ -80,6 +82,7 @@ export function defaultNotificationPreferences(): NotificationPreferenceDefaults
     notifyOnWaypoint: false,
     notifyOnMention: false,
     notifyOnAutoTrace: false,
+    notifyOnReply: false,
     waypointRadiusKm: 10,
     waypointCenterLat: null,
     waypointCenterLon: null,

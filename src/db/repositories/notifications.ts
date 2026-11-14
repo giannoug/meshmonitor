@@ -56,6 +56,7 @@ export interface NotificationPreferences {
   notifyOnWaypoint: boolean;
   notifyOnMention: boolean;
   notifyOnAutoTrace: boolean;
+  notifyOnReply: boolean;
   waypointRadiusKm: number;
   /** Explicit centre for the radius. NULL on both means "this source's own node". */
   waypointCenterLat: number | null;
@@ -330,6 +331,7 @@ export class NotificationsRepository extends BaseRepository {
       notifyOnWaypoint: prefs.notifyOnWaypoint,
       notifyOnMention: prefs.notifyOnMention,
       notifyOnAutoTrace: prefs.notifyOnAutoTrace,
+      notifyOnReply: prefs.notifyOnReply,
       waypointRadiusKm: prefs.waypointRadiusKm,
       waypointCenterLat: prefs.waypointCenterLat,
       waypointCenterLon: prefs.waypointCenterLon,
@@ -1400,6 +1402,7 @@ export class NotificationsRepository extends BaseRepository {
       notifyOnWaypoint: boolOr(row.notifyOnWaypoint, d.notifyOnWaypoint),
       notifyOnMention: boolOr(row.notifyOnMention, d.notifyOnMention),
       notifyOnAutoTrace: boolOr(row.notifyOnAutoTrace, d.notifyOnAutoTrace),
+      notifyOnReply: boolOr(row.notifyOnReply, d.notifyOnReply),
       waypointRadiusKm: row.waypointRadiusKm != null ? Number(row.waypointRadiusKm) : d.waypointRadiusKm,
       waypointCenterLat: row.waypointCenterLat != null ? Number(row.waypointCenterLat) : null,
       waypointCenterLon: row.waypointCenterLon != null ? Number(row.waypointCenterLon) : null,

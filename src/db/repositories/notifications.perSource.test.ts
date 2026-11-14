@@ -183,6 +183,7 @@ describe('NotificationsRepository — per-source isolation (#4020)', () => {
       ['notifyOnWaypoint', true, false],
       ['notifyOnMention', true, false],
       ['notifyOnAutoTrace', true, false],
+      ['notifyOnReply', true, false],
       ['waypointRadiusKm', 42, 9],
       ['waypointCenterLat', 12.5, null],
       ['waypointCenterLon', -45.25, null],

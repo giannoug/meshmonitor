@@ -57,6 +57,10 @@ export const ACTIVITY_SCAN_ROWS = 2000;
 
 const EMPTY: ActivityPage = { items: [], nextBefore: null };
 
+/** Row id of our message a Meshtastic `replyId` points at: same id rule as the views (messageReplies). */
+const ownMessageId = (sourceId: string, ownNodeNum: number, replyId: unknown) =>
+  `${sourceId}_${ownNodeNum}_${Number(replyId)}`;
+
 /** Collapsed reaction id: prefixed so it can never equal a message id. */
 const reactionItemId = (targetId: string) => `reaction:${targetId}`;
 
@@ -129,21 +133,14 @@ export class ActivityRepository extends BaseRepository {
       .limit(ACTIVITY_SCAN_ROWS)) as Array<Record<string, any>>; // eslint-disable-line @typescript-eslint/no-explicit-any -- dialect-union row
     if (rows.length === 0) return EMPTY;
 
-    // Our message a replyId points at: same id rule as the views (messageReplies).
-    const targetIdOf = (replyId: unknown) => (replyId ? `${q.sourceId}_${q.ownNodeNum}_${Number(replyId)}` : null);
+    const targetIdOf = (replyId: unknown) => (replyId ? ownMessageId(q.sourceId, q.ownNodeNum, replyId) : null);
     const wanted = [...new Set(rows.map((r) => targetIdOf(r.replyId)).filter((id): id is string => id !== null))];
     const targets = new Map<string, string>();
     if (wanted.length > 0) {
       const found = await this.db
         .select({ id: t.id, text: t.text })
         .from(t)
-        .where(and(
-          scoped,
-          inArray(t.id, wanted),
-          eq(t.fromNodeNum, q.ownNodeNum),
-          // #2584: a spoofed row claiming our node is never ours.
-          or(isNull(t.spoofSuspected), eq(t.spoofSuspected, false)),
-        ));
+        .where(and(scoped, inArray(t.id, wanted), this.ownMeshtasticMessage(q.ownNodeNum)));
       for (const f of found) targets.set(f.id, f.text);
     }
 
@@ -191,6 +188,30 @@ export class ActivityRepository extends BaseRepository {
 
     const kept = items.filter((i) => i.kind !== 'reaction' || groups.has(i.targetMessageId!));
     return toPage(kept, q.limit, rows.length, Number(rows[rows.length - 1].timestamp));
+  }
+
+  /**
+   * Whether `replyId` points at one of our messages on `sourceId`: the rule the
+   * feed's reply items use, so the reply push (#6365 Task 2.9) agrees with it.
+   */
+  async isReplyToOwnMeshtastic(sourceId: string, ownNodeNum: number, replyId: number): Promise<boolean> {
+    const { messages: t } = this.tables;
+    const found = await this.db
+      .select({ id: t.id })
+      .from(t)
+      .where(and(
+        this.withSourceScope(t, sourceId),
+        eq(t.id, ownMessageId(sourceId, ownNodeNum, replyId)),
+        this.ownMeshtasticMessage(ownNodeNum),
+      ))
+      .limit(1);
+    return found.length > 0;
+  }
+
+  /** Sent by our node. #2584: a spoofed row claiming our node is never ours. */
+  private ownMeshtasticMessage(ownNodeNum: number): SQL {
+    const { messages: t } = this.tables;
+    return and(eq(t.fromNodeNum, ownNodeNum), or(isNull(t.spoofSuspected), eq(t.spoofSuspected, false))) as SQL;
   }
 
   async listMeshcore(q: MeshcoreActivityQuery): Promise<ActivityPage> {

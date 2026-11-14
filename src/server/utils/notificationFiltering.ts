@@ -37,6 +37,12 @@ export interface NotificationMuteVenue {
   channelId?: number;
   /** DM / room mute key. Without it a DM venue cannot be muted. */
   muteKey?: string;
+  /**
+   * Meshtastic message venue (#6365 reply/mention push): the recipient must
+   * also be able to read it under the message-list rule
+   * (`resolveMessageReadAccess`; a DM is channel -1).
+   */
+  meshtasticReadGate?: boolean;
 }
 
 export interface MutedChannel {
@@ -65,10 +71,12 @@ export interface NotificationPreferences {
   notifyOnServerEvents: boolean;
   /** Waypoint arrival alerts (#4750) — see the repository's mirror of this type. */
   notifyOnWaypoint: boolean;
-  /** MeshCore `@[Name]` mentions of the source's own node. */
+  /** Mentions of the source's own node: MeshCore `@[Name]`, Meshtastic `@!id` (#6365). */
   notifyOnMention: boolean;
   /** Automatic MeshCore traces / path discoveries (M3). */
   notifyOnAutoTrace: boolean;
+  /** Replies to the source's own Meshtastic messages (#6365). */
+  notifyOnReply: boolean;
   waypointRadiusKm: number;
   waypointCenterLat: number | null;
   waypointCenterLon: number | null;
@@ -163,9 +171,29 @@ export async function messageReadableByUserAsync(
   return canUserSeeKeyAsync(userId, keyFingerprint);
 }
 
+/** The `GET /api/messages` read rule for one Meshtastic venue. Fails closed. */
+async function canReadMeshtasticVenueAsync(
+  userId: number,
+  sourceId: string | undefined,
+  venue: NotificationMuteVenue,
+): Promise<boolean> {
+  try {
+    // Lazy, like canUserSeeKeyAsync: the read-access module pulls in the auth middleware.
+    const { resolveMessageReadAccess } = await import('./messageReadAccess.js');
+    const user = await databaseService.findUserByIdAsync(userId);
+    if (!user) return false;
+    const access = await resolveMessageReadAccess(user, sourceId);
+    return access.canReadChannel(venue.isDirectMessage ? -1 : (venue.channelId ?? -1));
+  } catch (error) {
+    logger.error(`Failed channel read check for user ${userId} on source ${sourceId}:`, error);
+    return false;
+  }
+}
+
 /**
  * Event-broadcast gate (`broadcastToPreferenceUsers`): the payload's key
- * fingerprint and venue mute, if it carries them. A mute wins over a mention.
+ * fingerprint, Meshtastic venue read rule and venue mute, if it carries them.
+ * A mute wins over a mention.
  * `prefs` is the recipient's row for the source when the caller has it.
  * True = drop for this user.
  */
@@ -175,6 +203,9 @@ export async function payloadBlockedForUserAsync(
   payload: { keyFingerprint?: string | null; muteVenue?: NotificationMuteVenue },
 ): Promise<boolean> {
   if (payload.keyFingerprint && !(await canUserSeeKeyAsync(userId, payload.keyFingerprint))) {
+    return true;
+  }
+  if (payload.muteVenue?.meshtasticReadGate && !(await canReadMeshtasticVenueAsync(userId, sourceId, payload.muteVenue))) {
     return true;
   }
   if (payload.muteVenue) {
@@ -265,6 +296,7 @@ async function readLegacyPreferencesBlobAsync(userId: number): Promise<Notificat
       notifyOnWaypoint: boolOr(oldPrefs.notifyOnWaypoint, d.notifyOnWaypoint),
       notifyOnMention: boolOr(oldPrefs.notifyOnMention, d.notifyOnMention),
       notifyOnAutoTrace: boolOr(oldPrefs.notifyOnAutoTrace, d.notifyOnAutoTrace),
+      notifyOnReply: boolOr(oldPrefs.notifyOnReply, d.notifyOnReply),
       waypointRadiusKm: numOr(oldPrefs.waypointRadiusKm, d.waypointRadiusKm),
       waypointCenterLat: typeof oldPrefs.waypointCenterLat === 'number' ? oldPrefs.waypointCenterLat : null,
       waypointCenterLon: typeof oldPrefs.waypointCenterLon === 'number' ? oldPrefs.waypointCenterLon : null,

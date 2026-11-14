@@ -64,10 +64,12 @@ export const userNotificationPreferencesSqlite = sqliteTable('user_notification_
   // radius so a user hears about their own area rather than the whole mesh.
   // A NULL centre means "use this source's own node position".
   notifyOnWaypoint: integer('notify_on_waypoint', { mode: 'boolean' }).default(false),
-  // MeshCore @[Name] mentions of the source's own node. Opt-in.
+  // Mentions of the source's own node: MeshCore @[Name], Meshtastic @!id (#6365). Opt-in.
   notifyOnMention: integer('notify_on_mention', { mode: 'boolean' }).default(false),
   // Automatic MeshCore traces / path discoveries (M3). Opt-in.
   notifyOnAutoTrace: integer('notify_on_auto_trace', { mode: 'boolean' }).default(false),
+  // Replies to the source's own Meshtastic messages (#6365, D13). Opt-in.
+  notifyOnReply: integer('notify_on_reply', { mode: 'boolean' }).default(false),
   waypointRadiusKm: real('waypoint_radius_km').default(10),
   waypointCenterLat: real('waypoint_center_lat'),
   waypointCenterLon: real('waypoint_center_lon'),
@@ -112,6 +114,7 @@ export const userNotificationPreferencesPostgres = pgTable('user_notification_pr
   notifyOnWaypoint: pgBoolean('notifyOnWaypoint').default(false),
   notifyOnMention: pgBoolean('notifyOnMention').default(false),
   notifyOnAutoTrace: pgBoolean('notifyOnAutoTrace').default(false),
+  notifyOnReply: pgBoolean('notifyOnReply').default(false),
   waypointRadiusKm: pgDouble('waypointRadiusKm').default(10),
   waypointCenterLat: pgDouble('waypointCenterLat'),
   waypointCenterLon: pgDouble('waypointCenterLon'),
@@ -185,6 +188,7 @@ export const userNotificationPreferencesMysql = mysqlTable('user_notification_pr
   notifyOnWaypoint: myBoolean('notifyOnWaypoint').default(false),
   notifyOnMention: myBoolean('notifyOnMention').default(false),
   notifyOnAutoTrace: myBoolean('notifyOnAutoTrace').default(false),
+  notifyOnReply: myBoolean('notifyOnReply').default(false),
   waypointRadiusKm: myDouble('waypointRadiusKm').default(10),
   waypointCenterLat: myDouble('waypointCenterLat'),
   waypointCenterLon: myDouble('waypointCenterLon'),
