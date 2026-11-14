@@ -13,13 +13,13 @@
  * of *pending* offers, but the button stays once anything has been heard — a
  * user who muted every beacon still needs a way back to un-mute one.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../icons/UiIcon';
 import BeaconJoinDialog from './BeaconJoinDialog';
 import BeaconsModal from './BeaconsModal';
 import { useBeaconOffers } from './useBeaconOffers';
-import { JOINABLE_SLOTS, type PendingAccept, type PublicBeaconOffer } from './types';
+import { useBeaconJoin } from './useBeaconJoin';
 import styles from './Beacons.module.css';
 
 export interface BeaconsPanelProps {
@@ -40,47 +40,14 @@ export default function BeaconsPanel({
 }: BeaconsPanelProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState<PendingAccept | null>(null);
-  const [busy, setBusy] = useState(false);
 
   const beacons = useBeaconOffers(sourceId);
   const { setListOpen, pendingCount, totalCount, countUnknown, offers } = beacons;
-
-  const occupiedBySlot = useMemo(() => {
-    const map = new Map<number, string>();
-    for (const c of channels ?? []) {
-      if (c.name) map.set(c.id, c.name);
-    }
-    return map;
-  }, [channels]);
+  // The join step (slot, accept, cancel) is shared with the Workspace Beacons page (#6365).
+  const { pending, setPending, busy, occupiedBySlot, run, startJoin, confirmAccept, cancel } = useBeaconJoin(channels, beacons);
 
   const openList = useCallback(() => { setListOpen(true); setOpen(true); }, [setListOpen]);
   const closeList = useCallback(() => { setOpen(false); setListOpen(false); }, [setListOpen]);
-
-  /** Wrap a write so a failure cannot leave the row's buttons permanently disabled. */
-  const run = useCallback(async (fn: () => Promise<void>) => {
-    setBusy(true);
-    try {
-      await fn();
-    } catch {
-      // The hook has already surfaced the message on `beacons.error`.
-    } finally {
-      setBusy(false);
-    }
-  }, []);
-
-  const startJoin = useCallback((offer: PublicBeaconOffer) => {
-    const free = JOINABLE_SLOTS.find((s) => !occupiedBySlot.has(s));
-    setPending({ offer, slot: free ?? JOINABLE_SLOTS[0] });
-  }, [occupiedBySlot]);
-
-  const confirmAccept = useCallback(async (overwrite: boolean) => {
-    if (!pending) return;
-    await run(async () => {
-      await beacons.accept(pending.offer.nodeNum, pending.slot, overwrite);
-      setPending(null);
-    });
-  }, [beacons, pending, run]);
 
   // The button appears the moment anything has been heard, and disappears only
   // when the table is genuinely EMPTY for this source. Two things it must not
@@ -130,7 +97,7 @@ export default function BeaconsPanel({
           occupiedBySlot={occupiedBySlot}
           busy={busy}
           onSlotChange={(slot) => setPending({ ...pending, slot })}
-          onCancel={() => { setPending(null); beacons.clearError(); }}
+          onCancel={cancel}
           onConfirm={(overwrite) => void confirmAccept(overwrite)}
         />
       )}

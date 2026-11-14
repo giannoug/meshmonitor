@@ -1,13 +1,25 @@
 /** Small pure helpers the chat files share. */
 import type { TFunction } from 'i18next';
+import type { ChannelDatabaseEntry } from '../../services/api';
 import type { Channel } from '../../types/device';
+import { CHANNEL_DB_OFFSET } from '../../utils/channelReadAccess';
 import type { MeshMessage } from '../../types/message';
 import { pskEncryptionStatus } from '../../utils/publicChannel';
 
-/** A channel's name as Classic's Channels tab shows it (displayName, then name, then "Primary" / "Channel N"). */
-export function channelLabel(t: TFunction, channel: Channel | undefined, id: number): string {
+/**
+ * A channel's name as Classic's Channels tab shows it: displayName, then name,
+ * then a Channel Database entry's name for 100+, then "Primary" / "Channel N".
+ */
+export function channelLabel(
+  t: TFunction,
+  channel: Channel | undefined,
+  id: number,
+  dbEntries: ReadonlyArray<Pick<ChannelDatabaseEntry, 'id' | 'name'>> = [],
+): string {
   if (channel?.displayName?.trim()) return channel.displayName;
   if (channel?.name?.trim()) return channel.name;
+  const entry = id >= CHANNEL_DB_OFFSET ? dbEntries.find((e) => e.id === id - CHANNEL_DB_OFFSET) : undefined;
+  if (entry) return entry.name;
   return id === 0 ? t('channels.primary') : t('channels.channel_fallback', { channelNum: id });
 }
 

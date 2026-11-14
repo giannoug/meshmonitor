@@ -46,6 +46,7 @@ import { appBasename } from '../../init';
 import apiService from '../../services/api';
 import type { MeshMessage } from '../../types/message';
 import type { ResourceType } from '../../types/permission';
+import { CHANNEL_DB_OFFSET, canReadChannel } from '../../utils/channelReadAccess';
 import { buildResponseIndex, repliedMessageFor, tapbacksFor } from '../../components/messages/messageRowSupport';
 import { getMessageDateSeparator, shouldShowDateSeparator } from '../../utils/datetime';
 import { mentionCandidatesFromNodes } from '../../utils/mentionCandidates';
@@ -63,10 +64,8 @@ import Composer from './Composer';
 import MessageRowD, { type MessageActionKind } from './MessageRowD';
 import ReadOnlyNote from './ReadOnlyNote';
 import { channelLabel, heardToday, replyIdOf } from './channelLabel';
+import { useChannelDatabaseEntries } from './useChannelDatabaseEntries';
 import styles from './ChannelThread.module.css';
-
-/** Channel Database (server-decrypted) channels start here; they are read-only. */
-const CHANNEL_DB_OFFSET = 100;
 
 export interface ChannelThreadRouteProps {
   sourceId: string;
@@ -201,10 +200,17 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
   const isBridge = sourceType === 'mqtt_bridge';
   const isMqtt = isBridge || sourceType === 'mqtt_broker';
   const scope = { sourceId: sourceId ?? undefined };
-  const canRead = isBridge || hasPermission(`channel_${channel}` as ResourceType, 'read', scope);
+  // Classic's gate: a Channel Database channel (100+) needs its entry in the viewer's list.
+  const dbChannel = channel >= CHANNEL_DB_OFFSET;
+  const { entries: dbEntries, isPending: dbPending } = useChannelDatabaseEntries(dbChannel && !isBridge);
+  const canRead = canReadChannel(channel, {
+    mqttReadOnly: isBridge,
+    channelDatabaseEntries: dbEntries,
+    hasPermission: (resource, action) => hasPermission(resource, action, scope),
+  });
   const canWrite = hasPermission(`channel_${channel}` as ResourceType, 'write', scope);
   const config = channels.find((c) => c.id === channel);
-  const name = channelLabel(t, config, channel);
+  const name = channelLabel(t, config, channel, dbEntries);
   const messageStyle = prefs['workspace.messageStyle'] === 'bubbles' ? 'bubbles' : 'rows';
   const signalDetail = prefs['workspace.signalDetail'] === 'always' ? 'always' : 'hover';
   const hopLimit = typeof deviceConfig?.lora?.hopLimit === 'number' ? deviceConfig.lora.hopLimit : undefined;
@@ -361,7 +367,7 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
     </header>
   );
 
-  const thread = !canRead ? (
+  const thread = dbPending ? null : !canRead ? (
     <p className={styles.empty}>{t('workspace.chat.not_available')}</p>
   ) : (
     <>

@@ -8,11 +8,12 @@
  * button into "Replace and join" in red with today's warning. Joining writes a
  * channel slot on the radio over the connection; it sends nothing on the mesh.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import { BeaconsList } from '../../components/beacons/BeaconsModal';
-import { JOINABLE_SLOTS, type PendingAccept, type PublicBeaconOffer } from '../../components/beacons/types';
+import { JOINABLE_SLOTS } from '../../components/beacons/types';
+import { useBeaconJoin } from '../../components/beacons/useBeaconJoin';
 import type { UseBeaconOffers } from '../../components/beacons/useBeaconOffers';
 import SendsLine from '../patterns/SendsLine';
 import Sheet from '../patterns/Sheet';
@@ -30,10 +31,11 @@ export interface BeaconsPageProps {
 
 export default function BeaconsPage({ beacons, deviceName, channels, canWrite, nodeName }: BeaconsPageProps) {
   const { t } = useTranslation();
-  const [pending, setPending] = useState<PendingAccept | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const occupied = useMemo(() => new Map(channels.filter((c) => c.name).map((c) => [c.id, c.name])), [channels]);
+  // Today's join step, shared with Classic's BeaconsPanel.
+  const { pending, setPending, busy, occupiedBySlot: occupied, run, startJoin, confirmAccept, cancel } = useBeaconJoin(
+    channels,
+    beacons,
+  );
 
   // The list loads only while it is on screen, as with today's modal.
   const { setListOpen } = beacons;
@@ -42,24 +44,7 @@ export default function BeaconsPage({ beacons, deviceName, channels, canWrite, n
     return () => setListOpen(false);
   }, [setListOpen]);
 
-  const run = async (fn: () => Promise<void>) => {
-    setBusy(true);
-    try {
-      await fn();
-    } catch {
-      // useBeaconOffers has put the message on `beacons.error`.
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const startJoin = (offer: PublicBeaconOffer) =>
-    setPending({ offer, slot: JOINABLE_SLOTS.find((s) => !occupied.has(s)) ?? JOINABLE_SLOTS[0] });
   const occupant = pending ? occupied.get(pending.slot) : undefined;
-  const cancel = () => {
-    setPending(null);
-    beacons.clearError();
-  };
 
   return (
     <div className={styles.page}>
@@ -97,12 +82,7 @@ export default function BeaconsPage({ beacons, deviceName, channels, canWrite, n
                   className={occupant ? `${styles.go} ${styles.danger}` : styles.go}
                   disabled={busy}
                   aria-busy={busy || undefined}
-                  onClick={() =>
-                    void run(async () => {
-                      await beacons.accept(pending.offer.nodeNum, pending.slot, Boolean(occupant));
-                      setPending(null);
-                    })
-                  }
+                  onClick={() => void confirmAccept(Boolean(occupant))}
                 >
                   {occupant ? t('beacons.confirm_replace') : t('beacons.confirm_join')}
                 </button>

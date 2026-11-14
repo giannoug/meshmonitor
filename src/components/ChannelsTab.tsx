@@ -38,6 +38,7 @@ import { useViewTranslations } from '../hooks/useViewTranslations';
 // Default PSK value (publicly known key - not truly secure) — shared
 // definition lives in utils/publicChannel.ts (#4705).
 import { pskEncryptionStatus } from '../utils/publicChannel';
+import { canReadChannel } from '../utils/channelReadAccess';
 import { useSource } from '../contexts/SourceContext';
 import { sourceTypeMeshProtocol } from '../utils/meshProtocol';
 import { ChannelMessageRow } from './messages/ChannelMessageRow';
@@ -591,30 +592,9 @@ export default function ChannelsTab({
           return false;
         }
 
-        // MQTT-bridge sources ingest packets from many distinct Meshtastic
-        // configs, so the channel slot index isn't bounded to 0-7 — we routinely
-        // see slots like 8/31 from upstream nodes with custom configs. The
-        // standard permission set only models channel_0..channel_7, so the
-        // usual gate would hide any slot >= 8 (and silently drop their
-        // messages). In the bridge mirror we already require the user has
-        // opened the bridge dashboard, so surface every channel we've heard.
-        if (mqttReadOnly) {
-          return true;
-        }
-
-        // Check permissions: Channel Database channels (>= 100) use channel database permissions,
-        // device channels (0-7) use standard channel permissions
-        if (ch >= CHANNEL_DB_OFFSET) {
-          // Channel Database channels are accessible if the entry exists in channelDatabaseEntries
-          const channelDbId = ch - CHANNEL_DB_OFFSET;
-          if (!channelDatabaseEntries.some(entry => entry.id === channelDbId)) {
-            return false;
-          }
-        } else if (!hasPermission(`channel_${ch}` as ResourceType, 'read')) {
-          return false;
-        }
-
-        return true;
+        // The bridge mirror, Channel Database entries and channel_N:read
+        // (utils/channelReadAccess.ts, shared with the Workspace, #6365).
+        return canReadChannel(ch, { mqttReadOnly, channelDatabaseEntries, hasPermission });
       })
       .sort((a, b) => a - b);
   };

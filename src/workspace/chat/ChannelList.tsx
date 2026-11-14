@@ -7,8 +7,8 @@
  * sidebar never adds a poll) and the unread counts the shell already polls
  * for the open device. Which channels show follows Classic's Channels tab:
  * configured slots that are not Disabled, plus any channel a message arrived
- * on, minus the DM pseudo-channel, each gated on `channel_N:read` (an MQTT
- * bridge mirror lists every channel it heard, as today).
+ * on, minus the DM pseudo-channel, each gated by `canReadChannel` (channel_N:read;
+ * a Channel Database channel needs its entry; an MQTT bridge lists all).
  */
 import { useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
@@ -19,8 +19,9 @@ import { appBasename } from '../../init';
 import { sourcePollQueryKey } from '../../hooks/pollQueryKey';
 import type { PollData } from '../../hooks/usePoll';
 import { useUnreadCounts } from '../../hooks/useUnreadCounts';
-import type { ResourceType } from '../../types/permission';
+import { CHANNEL_DB_OFFSET, canReadChannel } from '../../utils/channelReadAccess';
 import { channelLabel } from './channelLabel';
+import { useChannelDatabaseEntries } from './useChannelDatabaseEntries';
 import styles from './ChannelList.module.css';
 
 interface ChannelListProps {
@@ -40,24 +41,31 @@ export default function ChannelList({ sourceId, sourceType, onNavigate }: Channe
     enabled: authStatus?.authenticated === true,
   });
 
-  const ids = useMemo(() => {
+  const heard = useMemo(() => {
     const configs = poll?.channels ?? [];
     const set = new Set<number>(configs.map((c) => c.id));
     for (const m of poll?.messages ?? []) set.add(m.channel);
-    return [...set]
-      .filter((id) => id !== -1 && configs.find((c) => c.id === id)?.role !== 0)
-      .filter(
-        (id) =>
-          sourceType === 'mqtt_bridge' || hasPermission(`channel_${id}` as ResourceType, 'read', { sourceId }),
-      )
-      .sort((a, b) => a - b);
-  }, [poll, sourceType, hasPermission, sourceId]);
+    return [...set].filter((id) => id !== -1 && configs.find((c) => c.id === id)?.role !== 0).sort((a, b) => a - b);
+  }, [poll]);
+  // Channel Database entries are read only when a server-decrypted channel was heard.
+  const { entries } = useChannelDatabaseEntries(heard.some((id) => id >= CHANNEL_DB_OFFSET));
+  const ids = useMemo(
+    () =>
+      heard.filter((id) =>
+        canReadChannel(id, {
+          mqttReadOnly: sourceType === 'mqtt_bridge',
+          channelDatabaseEntries: entries,
+          hasPermission: (resource, action) => hasPermission(resource, action, { sourceId }),
+        }),
+      ),
+    [heard, sourceType, entries, hasPermission, sourceId],
+  );
 
   return (
     <ul className={styles.list}>
       {ids.map((id) => {
         const count = unread?.channels[id] ?? 0;
-        const name = channelLabel(t, poll?.channels?.find((c) => c.id === id), id);
+        const name = channelLabel(t, poll?.channels?.find((c) => c.id === id), id, entries);
         return (
           <li key={id}>
             <NavLink

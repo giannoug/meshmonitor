@@ -4,8 +4,8 @@
  *
  * - `device`: header (device name, status line), the device's tools, then
  *   Channels and Direct messages. A Meshtastic-family device lists its
- *   channels (Task 2.3); other types, and Direct messages until Task 2.4,
- *   link to today's tabs.
+ *   channels and DM conversations (Task 2.3); other types link to today's
+ *   tabs. "Message a node" still opens today's DM tab.
  * - `settings` / `server` / `you`: the categories of the re-hosted settings
  *   pages, as links to their Workspace URLs (Phases 5 and 6 rebuild them).
  * - `overview`: the all-devices tools (note ds3).
@@ -28,6 +28,7 @@ import { PREFERENCE_CATEGORIES } from '../routes';
 import SidebarSection from './SidebarSection';
 import { isMeshtasticFamily, statusLabel, useDeviceTab } from './deviceTabs';
 import ChannelList from '../chat/ChannelList';
+import DmList from '../chat/DmList';
 import type { WorkspaceSource } from './useWorkspaceSources';
 import styles from './DeviceSidebar.module.css';
 
@@ -150,6 +151,7 @@ export default function DeviceSidebar({ mode, sourceId, source, onNavigate }: De
       )}
       {dms && (
         <SidebarSection title={t('workspace.shell.direct_messages')}>
+          {isMeshtasticFamily(source.type) && <DmList sourceId={source.id} onNavigate={onNavigate} />}
           {list([{ to: dms, label: t('workspace.shell.message_a_node'), icon: 'plus' }])}
         </SidebarSection>
       )}
