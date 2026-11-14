@@ -35,6 +35,9 @@ import { PacketFlightsLayer } from '../../components/map/layers/PacketFlightsLay
 import DuctingLayer from '../../components/map/layers/DuctingLayer';
 import { LocalMarkers } from '../../components/map/layers/MapMarkersLayer';
 import { useAircraftTrailLayer } from '../../components/map/useAircraftTrailLayer';
+import { usePositionTrail } from '../../components/map/usePositionTrail';
+import { AssetPlaybackBar } from '../../components/map/AssetPlaybackBar';
+import { usePositionHistory } from '../../hooks/usePositionHistory';
 import DashboardWaypoints from '../../components/Dashboard/DashboardWaypoints';
 import DashboardAtakContacts from '../../components/Dashboard/DashboardAtakContacts';
 import DashboardNodePopup from '../../components/Dashboard/DashboardNodePopup';
@@ -174,6 +177,10 @@ function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
     if (neighbours) setNeighborInfo(neighbours);
   }, [neighbours, setNeighborInfo]);
 
+  // The selected mobile node's trail, loaded and drawn as on today's Nodes map.
+  usePositionHistory({ selectedNodeId: map.selectedNodeId, nodes, baseUrl: appBasename, sourceId, authFetch });
+  const trail = usePositionTrail(nodes);
+
   const [panel, setPanel] = useState<Panel>(null);
   const data = useDeviceMap({
     processedNodes: view.processedNodes,
@@ -204,6 +211,8 @@ function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
     listAgeHours: data.listAgeHours,
     capFromQuickFilter: quickAgeHours != null,
     packetFlightsStats: flightStats,
+    positionHistoryLegend: trail.positionHistoryLegendData,
+    trailThinnedHint: trail.assetTrailThinnedHint,
   });
   const trails = useAircraftTrailLayer({ drawnNodes: data.visibleMapNodes, mode: { kind: 'source', sourceId }, available: !effective3D });
   const [measureActive, setMeasureActive] = useState(false);
@@ -342,7 +351,19 @@ function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
               <PacketFlightsLayer sourceIds={sourceIds} nodes={data.flightNodes} maxPerSecond={map.packetFlightRate} onStatsChange={setFlightStats} />
             )}
             {map.showDucting && <DuctingLayer hoursAhead={map.ductingHoursAhead} />}
+            {trail.positionHistoryElements}
           </BaseMap>
+        )}
+        {!effective3D && trail.showAssetPlayback && map.selectedNodeId && (
+          <AssetPlaybackBar
+            fixes={trail.filteredPositionHistory}
+            map={leaflet}
+            resetKey={map.selectedNodeId}
+            timeFormat={settings.timeFormat}
+            dateFormat={settings.dateFormat}
+            distanceUnit={settings.distanceUnit}
+            onTrailCursorChange={trail.setPlaybackTrailCursor}
+          />
         )}
         {isLoading && <MapLoadingOverlay />}
 

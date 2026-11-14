@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { shouldShowAssetPlayback } from '../utils/trackPlayback';
 
 const dir = dirname(fileURLToPath(import.meta.url));
-const nodesTab = readFileSync(join(dir, 'NodesTab.tsx'), 'utf8');
+const nodesTab = ['NodesTab.tsx', join('map', 'usePositionTrail.tsx')].map((f) => readFileSync(join(dir, f), 'utf8')).join('\n');
 
 describe('shouldShowAssetPlayback', () => {
   const base = { isAsset: true, assetTrackLoaded: true, showPositionHistory: true, fixCount: 2 };

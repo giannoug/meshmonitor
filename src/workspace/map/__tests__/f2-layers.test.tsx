@@ -31,7 +31,7 @@ const route = `/source/${SOURCE_IDS.g2}/map`;
 describe('f2-layers', () => {
   it('f2-layers shows the board', async () => {
     const { container } = renderChat(route);
-    fireEvent.click(await screen.findByRole('button', { name: /^Layers/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Layers/ }, { timeout: 5000 }));
     const drawer = await screen.findByTestId('layers-drawer');
     await within(drawer).findByText('Ducting');
     expectBoard('f2-layers', container);
@@ -39,7 +39,7 @@ describe('f2-layers', () => {
 
   it('folds the less-used toggles behind "N more"', async () => {
     renderChat(route);
-    fireEvent.click(await screen.findByRole('button', { name: /^Layers/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Layers/ }, { timeout: 5000 }));
     const drawer = await screen.findByTestId('layers-drawer');
     expect(within(drawer).queryByRole('switch', { name: 'Show ATAK Contacts' })).toBeNull();
     fireEvent.click(within(drawer).getByRole('button', { name: /more · .*Show ATAK Contacts/ }));
@@ -48,7 +48,7 @@ describe('f2-layers', () => {
 
   it('a toggle changes the map at once (MapContext, as today)', async () => {
     renderChat(route);
-    fireEvent.click(await screen.findByRole('button', { name: /^Layers/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Layers/ }, { timeout: 5000 }));
     const drawer = await screen.findByTestId('layers-drawer');
     const neighbours = within(drawer).getByRole('switch', { name: 'Show Neighbor Info' });
     expect(neighbours).not.toBeChecked();

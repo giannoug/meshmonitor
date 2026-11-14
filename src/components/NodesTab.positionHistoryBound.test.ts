@@ -21,8 +21,8 @@ import {
 } from '../utils/positionHistoryDownsample';
 
 const dir = dirname(fileURLToPath(import.meta.url));
-const nodesTab = readFileSync(join(dir, 'NodesTab.tsx'), 'utf8');
-const app = readFileSync(join(dir, '..', 'App.tsx'), 'utf8');
+const nodesTab = readFileSync(join(dir, 'map', 'usePositionTrail.tsx'), 'utf8');
+const app = readFileSync(join(dir, '..', 'hooks', 'usePositionHistory.ts'), 'utf8');
 
 /** The memo that builds the trail's Polyline/Popup elements. */
 function segmentBuilderSource(): string {

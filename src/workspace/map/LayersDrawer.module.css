@@ -213,3 +213,10 @@
   color: var(--color-text);
   font: inherit;
 }
+
+/* The position-history slider and the thinned hint under their toggle. */
+.subRow {
+  padding: 4px 16px 8px;
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}

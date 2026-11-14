@@ -17,7 +17,8 @@ import MapAircraftDisplayControl from '../../components/map/MapAircraftDisplayCo
 import { DuctingControl } from '../../components/map/DuctingControl';
 import { PacketFlightsControl } from '../../components/map/PacketFlightsControl';
 import { TilesetSelector } from '../../components/TilesetSelector';
-import MapLegend from '../../components/MapLegend';
+import MapLegend, { type PositionHistoryData } from '../../components/MapLegend';
+import { PositionHistoryHoursSlider } from '../../components/map/PositionHistoryHoursSlider';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMapContext } from '../../contexts/MapContext';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -47,6 +48,10 @@ export interface DeviceLayerParams {
   listAgeHours: number;
   capFromQuickFilter: boolean;
   packetFlightsStats: PacketFlightStats | null;
+  /** The trail's time span for the legend (`usePositionTrail`). */
+  positionHistoryLegend?: PositionHistoryData;
+  /** "Showing N of M fixes (thinned)" for a tracked asset (`usePositionTrail`). */
+  trailThinnedHint?: string | null;
 }
 
 /** A browser setting NodesTab keeps under the same key. */
@@ -165,7 +170,7 @@ export function useDeviceLayerGroups(p: DeviceLayerParams) {
     toggle('legend', t('workspace.map.legend'), showLegend, setShowLegend, {
       disabled: p.effective3D,
       title: off3D,
-      children: !p.effective3D && <MapLegend unmappedCount={unmappedCount} showRoleMarkers embedded />,
+      children: !p.effective3D && <MapLegend positionHistory={p.positionHistoryLegend} unmappedCount={unmappedCount} showRoleMarkers embedded />,
     }),
   ];
 
@@ -243,6 +248,12 @@ export function useDeviceLayerGroups(p: DeviceLayerParams) {
       children: (
         <ul className={styles.subList}>
           <SubToggle label={t('map.positionHistoryPointsOnly', 'Points only (no line)')} checked={m.positionHistoryPointsOnly} onChange={m.setPositionHistoryPointsOnly} />
+          {m.positionHistory.length > 1 && (
+            <li className={styles.subRow}>
+              <PositionHistoryHoursSlider positionHistory={m.positionHistory} hours={m.positionHistoryHours} onChange={m.setPositionHistoryHours} />
+            </li>
+          )}
+          {p.trailThinnedHint && <li className={styles.subRow}>{p.trailThinnedHint}</li>}
         </ul>
       ),
     }),

@@ -54,10 +54,9 @@ import { usePersistedNodeFilters } from './hooks/usePersistedNodeFilters';
 import { getHashTabRedirectTarget, getRetiredTabRedirectTarget } from './utils/tabHashRedirect';
 import { ResourceType } from './types/permission';
 import api, { type ChannelDatabaseEntry } from './services/api';
-import { fetchAssetTrack } from './hooks/useAssetTracking';
+import { usePositionHistory } from './hooks/usePositionHistory';
 import { getPacketStats } from './services/packetApi';
 import { logger } from './utils/logger';
-import { MAX_ACCUMULATED_POSITION_FIXES, flattenAssetTrack } from './utils/positionHistoryDownsample';
 // generateArrowMarkers moved to useTraceroutePaths hook
 // isNodeComplete/getEffectivePosition/effectiveMapMaxAgeHours/
 // nodePassesTransportFilter/transportCutoffSec moved with processedNodes/
@@ -68,7 +67,6 @@ import { SearchModal } from './components/SearchModal/SearchModal.js';
 import ConfigSearchHost from './components/search/ConfigSearchHost';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { MapProvider, useMapContext } from './contexts/MapContext';
-import type { PositionHistoryItem } from './contexts/MapContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { MessagingProvider, useMessaging } from './contexts/MessagingContext';
 import { useComposeDraftStore } from './contexts/composeDraftStore';
@@ -333,8 +331,6 @@ function App() {
     traceroutes,
     setTraceroutes,
     setNeighborInfo,
-    setPositionHistory,
-    setPositionHistoryTotalFixes,
     selectedNodeId,
     setSelectedNodeId,
   } = useMapContext();
@@ -1315,109 +1311,8 @@ function App() {
     }
   }, [connectionStatus, sourceId]);
 
-  // Signature of the asset track last put on the map (#5354 Phase 2), so a
-  // node poll that returns the same (cached) track doesn't redraw 2,000 points.
-  const assetTrackSignatureRef = useRef<string | null>(null);
-
-  // Fetch position history when a mobile node is selected
-  useEffect(() => {
-    if (!selectedNodeId) {
-      assetTrackSignatureRef.current = null;
-      setPositionHistoryTotalFixes(null);
-      setPositionHistory([]);
-      return;
-    }
-
-    const selectedNode = nodes.find(n => n.user?.id === selectedNodeId);
-    if (!selectedNode || !selectedNode.isMobile) {
-      assetTrackSignatureRef.current = null;
-      setPositionHistoryTotalFixes(null);
-      setPositionHistory([]);
-      return;
-    }
-
-    let cancelled = false;
-
-    // Tracked asset (#5354 Phase 2): one request for the server-thinned trail
-    // across the whole retention window, instead of the paged loop and its
-    // 5,000-fix cap. The server returns at most 2,000 points in gap segments.
-    if (selectedNode.asset) {
-      const nodeNum = selectedNode.nodeNum;
-      const fetchAssetTrail = async () => {
-        try {
-          const track = await fetchAssetTrack(nodeNum);
-          if (cancelled) return;
-          const items = flattenAssetTrack(track.segments);
-          const last = items.length > 0 ? items[items.length - 1].timestamp : 0;
-          const signature = `${nodeNum}|${track.totalFixes}|${items.length}|${last}`;
-          if (signature === assetTrackSignatureRef.current) return;
-          assetTrackSignatureRef.current = signature;
-          setPositionHistoryTotalFixes(track.totalFixes);
-          setPositionHistory(items);
-        } catch (error) {
-          if (!cancelled) logger.error('Error fetching asset track:', error);
-        }
-      };
-      void fetchAssetTrail();
-      return () => { cancelled = true; };
-    }
-    assetTrackSignatureRef.current = null;
-    setPositionHistoryTotalFixes(null);
-
-    // Progressively load the ENTIRE position history in bounded pages (#3791).
-    // The server caps each response at 1500 telemetry rows (~300 fixes), so we
-    // walk backwards in time using the oldest fix of each page as a `before`
-    // cursor, appending until a page comes back empty. State is updated after
-    // every page so the trail fills in progressively rather than all at once.
-    const fetchAllPositionHistory = async () => {
-      const accumulated: PositionHistoryItem[] = [];
-      let beforeCursor: number | undefined;
-      const MAX_PAGES = 50; // safety bound (~15k fixes) against a runaway loop
-
-
-      try {
-        for (let page = 0; page < MAX_PAGES; page++) {
-          const params = new URLSearchParams();
-          if (sourceId) params.set('sourceId', sourceId);
-          if (beforeCursor !== undefined) params.set('before', String(beforeCursor));
-          const qs = params.toString();
-          const response = await authFetch(
-            `${baseUrl}/api/nodes/${selectedNodeId}/position-history${qs ? `?${qs}` : ''}`
-          );
-          if (cancelled) return;
-          if (!response.ok) break;
-
-          const pageItems: PositionHistoryItem[] = await response.json();
-          if (cancelled) return;
-          if (pageItems.length === 0) break; // reached the start of history
-
-          // Server returns fixes oldest-first; prepend each older page so the
-          // accumulated array stays chronological as we page back in time.
-          accumulated.unshift(...pageItems);
-          setPositionHistory([...accumulated]);
-
-          // Next page: strictly older than the oldest fix just received. A
-          // boundary fix split by the row cap is always older than this, so it
-          // re-assembles on the next page without duplicating an emitted fix.
-          // Stop paging once we hold enough (#4743) — see the constant's comment.
-          if (accumulated.length >= MAX_ACCUMULATED_POSITION_FIXES) break;
-
-          const oldest = pageItems[0].timestamp;
-          if (beforeCursor !== undefined && oldest >= beforeCursor) break; // no-progress guard
-          beforeCursor = oldest;
-
-          // Gentle pacing so we neither hammer the server nor block rendering.
-          await new Promise(resolve => setTimeout(resolve, 150));
-          if (cancelled) return;
-        }
-      } catch (error) {
-        if (!cancelled) logger.error('Error fetching position history:', error);
-      }
-    };
-
-    void fetchAllPositionHistory();
-    return () => { cancelled = true; };
-  }, [selectedNodeId, nodes, baseUrl, sourceId]);
+  // Fetch position history when a mobile node is selected (shared with the Workspace device map, #6365).
+  usePositionHistory({ selectedNodeId, nodes, baseUrl, sourceId, authFetch });
 
   // Open popup for selected node
   useEffect(() => {
