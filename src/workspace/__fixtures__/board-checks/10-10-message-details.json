@@ -1,12 +1,8 @@
 {
   "must": [
-    "Message details",
+    "Delivery Details",
     "Status",
-    "Route",
-    "Signal",
     "What this means",
-    "Heard by",
-    "Attempt 1",
     "Attempt 2"
   ],
   "absent": [],

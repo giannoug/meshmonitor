@@ -125,6 +125,20 @@
   cursor: pointer;
 }
 
+/* The conversation, with Message details docked beside it on desktop (board 10-02). */
+.split {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .messages {
   flex: 1;
   min-height: 0;

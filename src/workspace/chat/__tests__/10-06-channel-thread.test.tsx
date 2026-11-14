@@ -38,9 +38,10 @@ describe('10-06-channel-thread', () => {
   it('Send posts today\'s request: the text on the channel, with the reply id', async () => {
     renderChat(route, { phone: true });
     await screen.findByText('Glyfada Beach checking in');
-    // Reply to Glyfada Beach (packet 3).
+    // Reply to Glyfada Beach (packet 3), from the message's actions sheet (a long-press; Task 2.5).
     const row = screen.getByText('Glyfada Beach checking in').closest('[data-message-id]') as HTMLElement;
-    fireEvent.click(within(row).getByRole('button', { name: 'Reply' }));
+    fireEvent.contextMenu(row);
+    fireEvent.click(within(await screen.findByRole('dialog', { name: /^Glyfada Beach · / })).getByRole('button', { name: /^Reply/ }));
     expect(await screen.findByText('Replying to Glyfada Beach')).toBeInTheDocument();
     const box = screen.getByRole('combobox');
     fireEvent.change(box, { target: { value: 'Heading out at 11' } });

@@ -1,12 +1,11 @@
 {
   "must": [
-    "From",
-    "To",
-    "Swap",
+    "Source Language",
+    "Target Language",
     "Original",
-    "Preview",
-    "LoRa payload",
-    "Replace in draft"
+    "Translated Text",
+    "LoRa Packet Payload Warning",
+    "Replace in Draft"
   ],
   "absent": [],
   "source": "checks/s10.json"

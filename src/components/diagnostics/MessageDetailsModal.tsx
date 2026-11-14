@@ -230,17 +230,22 @@ const MeshtasticHeardByRow: React.FC<{ entry: MeshtasticHeardByEntry }> = ({ ent
   );
 };
 
-const MessageDetailsModal: React.FC<Props> = ({
+type BodyProps = Omit<Props, 'onClose'>;
+
+/**
+ * The details content (status, sections, relay candidates, propagation,
+ * timeline) without the modal shell, so the Workspace's side panel and sheet
+ * render the same thing (#6365 Task 2.5, Rule X).
+ */
+export const MessageDetailsBody: React.FC<BodyProps> = ({
   protocol,
   direction,
   sourceId,
   message,
   nodes,
   onNodeClick,
-  onClose,
 }) => {
   const { t } = useTranslation();
-  const { contentRef, onKeyDown } = useDialogA11y(onClose);
   const isSent = direction === 'sent';
   // The event timeline is only ever written during our own send lifecycle, so
   // for a received message it is always empty — skip the fetch entirely by
@@ -251,8 +256,6 @@ const MessageDetailsModal: React.FC<Props> = ({
     protocol === 'meshtastic'
       ? describeMeshtasticDelivery(message as MeshMessage, direction)
       : describeMeshCoreDelivery(message as MeshCoreMessage, direction);
-
-  const protocolLabel = PROTOCOL_LABEL[protocol];
 
   // Propagation (heard-by) is only meaningful for channel sends — an
   // outgoing DM has no self-echo re-flood to correlate against (Meshtastic:
@@ -277,6 +280,135 @@ const MessageDetailsModal: React.FC<Props> = ({
     isLoading: mtHeardByLoading,
     isError: mtHeardByError,
   } = useMeshtasticHeardBy(sourceId, isMeshtasticChannelMessage ? message.id : '');
+
+  return (
+    <>
+      {/* Delivery status + plain-language meaning are outbound-only. */}
+      {isSent && (
+        <>
+          <div className={styles.statusRow}>
+            <span className={`${styles.statusPill} ${TONE_CLASS[description.tone]}`}>
+              {t(description.statusKey)}
+            </span>
+          </div>
+
+          <section className={styles.section}>
+            <h5>{t('delivery_details.meaning_title', 'What this means')}</h5>
+            <p className={styles.meaning}>{t(description.meaningKey)}</p>
+          </section>
+        </>
+      )}
+
+      {description.sections.map((section) => (
+        <section key={section.titleKey} className={styles.section}>
+          <h5>{t(section.titleKey)}</h5>
+          {section.fields.map((field) => (
+            <FieldRow key={field.labelKey} field={field} />
+          ))}
+        </section>
+      ))}
+
+      {/* "Who relayed this?" candidate list — received Meshtastic only. */}
+      {!isSent && protocol === 'meshtastic' && nodes && onNodeClick && (
+        <RelayCandidateList
+          relayNode={mtMessage?.relayNode}
+          ackFromNode={mtMessage?.ackFromNode}
+          nodes={nodes}
+          messageRssi={mtMessage?.rxRssi}
+          onNodeClick={onNodeClick}
+        />
+      )}
+
+      {showPropagation && (
+        <section className={styles.section}>
+          <h5>{t('delivery_details.section.propagation', 'Propagation (Heard By)')}</h5>
+          <p className={styles.propagationSubtitle}>
+            {t(
+              'delivery_details.heard_by.subtitle',
+              'Observed by MeshMonitor through repeater re-flood correlation. This confirms the packet propagated through parts of the mesh — it is NOT recipient-specific proof of delivery.',
+            )}
+          </p>
+          {isMeshtasticChannelMessage ? (
+            mtHeardByLoading ? (
+              <p className={styles.propagationEmpty}>
+                {t('delivery_details.heard_by.loading', 'Checking observed propagation…')}
+              </p>
+            ) : mtHeardByError ? (
+              <p className={styles.propagationEmpty}>
+                {t('delivery_details.heard_by.error', 'Heard-by data unavailable')}
+              </p>
+            ) : mtHeardBy.length === 0 ? (
+              <p className={styles.propagationEmpty}>
+                {t('delivery_details.heard_by.none', 'No re-flood observed')}
+              </p>
+            ) : (
+              <ul className={styles.heardByList}>
+                {mtHeardBy.map((entry) => (
+                  <MeshtasticHeardByRow key={`${entry.relayByte}-${entry.heardAt}`} entry={entry} />
+                ))}
+              </ul>
+            )
+          ) : heardBy.length === 0 ? (
+            <p className={styles.propagationEmpty}>
+              {t('delivery_details.heard_by.none', 'No re-flood observed')}
+            </p>
+          ) : (
+            <ul className={styles.heardByList}>
+              {heardBy.map((entry) => (
+                <li key={entry.hash} className={styles.heardByItem}>
+                  <span className={styles.heardByName}>{entry.name || entry.hash}</span>
+                  {typeof entry.snr === 'number' && (
+                    <span className={styles.heardBySnr}> ({entry.snr} dB)</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {/* Send-lifecycle timeline is outbound-only (empty for received). */}
+      {isSent && (
+      <section className={styles.section}>
+        <h5>{t('delivery_details.timeline.title', 'Timeline')}</h5>
+        {isLoading ? (
+          <p className={styles.timelineState}>
+            {t('delivery_details.timeline.loading', 'Loading timeline…')}
+          </p>
+        ) : isError ? (
+          <p className={styles.timelineState}>
+            {t('delivery_details.timeline.error', 'Timeline unavailable')}
+          </p>
+        ) : events.length === 0 ? (
+          <p className={styles.timelineState}>
+            {t('delivery_details.timeline.empty', 'No timeline recorded')}
+          </p>
+        ) : (
+          <ol className={styles.timelineList}>
+            {events.map((event) => (
+              <TimelineRow key={event.id} event={event} />
+            ))}
+          </ol>
+        )}
+      </section>
+      )}
+    </>
+  );
+};
+
+const MessageDetailsModal: React.FC<Props> = ({
+  protocol,
+  direction,
+  sourceId,
+  message,
+  nodes,
+  onNodeClick,
+  onClose,
+}) => {
+  const { t } = useTranslation();
+  const { contentRef, onKeyDown } = useDialogA11y(onClose);
+  const isSent = direction === 'sent';
+  const protocolLabel = PROTOCOL_LABEL[protocol];
 
   return (
     <div className={styles.overlay} onClick={onClose} role="presentation">
@@ -309,115 +441,14 @@ const MessageDetailsModal: React.FC<Props> = ({
         </div>
 
         <div className={styles.body}>
-          {/* Delivery status + plain-language meaning are outbound-only. */}
-          {isSent && (
-            <>
-              <div className={styles.statusRow}>
-                <span className={`${styles.statusPill} ${TONE_CLASS[description.tone]}`}>
-                  {t(description.statusKey)}
-                </span>
-              </div>
-
-              <section className={styles.section}>
-                <h5>{t('delivery_details.meaning_title', 'What this means')}</h5>
-                <p className={styles.meaning}>{t(description.meaningKey)}</p>
-              </section>
-            </>
-          )}
-
-          {description.sections.map((section) => (
-            <section key={section.titleKey} className={styles.section}>
-              <h5>{t(section.titleKey)}</h5>
-              {section.fields.map((field) => (
-                <FieldRow key={field.labelKey} field={field} />
-              ))}
-            </section>
-          ))}
-
-          {/* "Who relayed this?" candidate list — received Meshtastic only. */}
-          {!isSent && protocol === 'meshtastic' && nodes && onNodeClick && (
-            <RelayCandidateList
-              relayNode={mtMessage?.relayNode}
-              ackFromNode={mtMessage?.ackFromNode}
-              nodes={nodes}
-              messageRssi={mtMessage?.rxRssi}
-              onNodeClick={onNodeClick}
-            />
-          )}
-
-          {showPropagation && (
-            <section className={styles.section}>
-              <h5>{t('delivery_details.section.propagation', 'Propagation (Heard By)')}</h5>
-              <p className={styles.propagationSubtitle}>
-                {t(
-                  'delivery_details.heard_by.subtitle',
-                  'Observed by MeshMonitor through repeater re-flood correlation. This confirms the packet propagated through parts of the mesh — it is NOT recipient-specific proof of delivery.',
-                )}
-              </p>
-              {isMeshtasticChannelMessage ? (
-                mtHeardByLoading ? (
-                  <p className={styles.propagationEmpty}>
-                    {t('delivery_details.heard_by.loading', 'Checking observed propagation…')}
-                  </p>
-                ) : mtHeardByError ? (
-                  <p className={styles.propagationEmpty}>
-                    {t('delivery_details.heard_by.error', 'Heard-by data unavailable')}
-                  </p>
-                ) : mtHeardBy.length === 0 ? (
-                  <p className={styles.propagationEmpty}>
-                    {t('delivery_details.heard_by.none', 'No re-flood observed')}
-                  </p>
-                ) : (
-                  <ul className={styles.heardByList}>
-                    {mtHeardBy.map((entry) => (
-                      <MeshtasticHeardByRow key={`${entry.relayByte}-${entry.heardAt}`} entry={entry} />
-                    ))}
-                  </ul>
-                )
-              ) : heardBy.length === 0 ? (
-                <p className={styles.propagationEmpty}>
-                  {t('delivery_details.heard_by.none', 'No re-flood observed')}
-                </p>
-              ) : (
-                <ul className={styles.heardByList}>
-                  {heardBy.map((entry) => (
-                    <li key={entry.hash} className={styles.heardByItem}>
-                      <span className={styles.heardByName}>{entry.name || entry.hash}</span>
-                      {typeof entry.snr === 'number' && (
-                        <span className={styles.heardBySnr}> ({entry.snr} dB)</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          )}
-
-          {/* Send-lifecycle timeline is outbound-only (empty for received). */}
-          {isSent && (
-          <section className={styles.section}>
-            <h5>{t('delivery_details.timeline.title', 'Timeline')}</h5>
-            {isLoading ? (
-              <p className={styles.timelineState}>
-                {t('delivery_details.timeline.loading', 'Loading timeline…')}
-              </p>
-            ) : isError ? (
-              <p className={styles.timelineState}>
-                {t('delivery_details.timeline.error', 'Timeline unavailable')}
-              </p>
-            ) : events.length === 0 ? (
-              <p className={styles.timelineState}>
-                {t('delivery_details.timeline.empty', 'No timeline recorded')}
-              </p>
-            ) : (
-              <ol className={styles.timelineList}>
-                {events.map((event) => (
-                  <TimelineRow key={event.id} event={event} />
-                ))}
-              </ol>
-            )}
-          </section>
-          )}
+          <MessageDetailsBody
+            protocol={protocol}
+            direction={direction}
+            sourceId={sourceId}
+            message={message}
+            nodes={nodes}
+            onNodeClick={onNodeClick}
+          />
         </div>
       </div>
     </div>

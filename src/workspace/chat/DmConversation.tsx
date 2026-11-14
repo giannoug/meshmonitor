@@ -29,6 +29,7 @@ import { useTxStatus } from '../../hooks/useTxStatus';
 import { useViewTranslations } from '../../hooks/useViewTranslations';
 import { appBasename } from '../../init';
 import type { MeshMessage } from '../../types/message';
+import { STANDARD_LANGUAGES } from '../../types/translation';
 import { buildResponseIndex, repliedMessageFor, tapbacksFor } from '../../components/messages/messageRowSupport';
 import { computeMessagesReadOnlyState } from '../../components/messagesReadOnlyState';
 import { getMessageDateSeparator, shouldShowDateSeparator } from '../../utils/datetime';
@@ -45,7 +46,9 @@ import ChatProviders from './ChatProviders';
 import Composer from './Composer';
 import DmBanners from './DmBanners';
 import DmHeader from './DmHeader';
-import MessageRowD, { type MessageActionKind } from './MessageRowD';
+import MessageRowD, { type RowTranslationActions } from './MessageRowD';
+import type { MessageActionContext } from './messageActions';
+import { useMessageActions } from './useMessageActions';
 import ReadOnlyNote from './ReadOnlyNote';
 import TracerouteStripD from './TracerouteStripD';
 import { replyIdOf } from './channelLabel';
@@ -127,7 +130,10 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
   );
   const responses = useMemo(() => buildResponseIndex(rows), [rows]);
   const translationIds = useMemo(() => rows.filter((m) => !!m.text).map((m) => m.id), [rows]);
-  const { translationSettings, translatedMessages, dismissTranslation } = useViewTranslations(sourceId, translationIds);
+  const { translationSettings, viewerLang, translatedMessages, translateMessage, dismissTranslation } = useViewTranslations(
+    sourceId,
+    translationIds,
+  );
   const mentionOptions = useMemo(
     () => ({
       resolveNodeName: (id: string) => {
@@ -152,15 +158,45 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
     // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 isMine is recreated each render; its input is currentNodeId
   }, [rows, pinnedFirstUnread, currentNodeId]);
 
-  const onAction = useCallback(
-    (kind: MessageActionKind, msg: MeshMessage) => {
-      if (kind === 'reply') {
-        setReplyingTo(msg);
-        inputRef.current?.focus();
-      }
-    },
-    [setReplyingTo],
+  // Today's gates (MessagesTab): messages:write for reply, react, resend and delete; no sends on an
+  // MQTT mirror; off while TX is disabled or the device is disconnected.
+  const canWrite = hasPermission('messages', 'write', scope);
+  const actionContext = useMemo<MessageActionContext>(() => {
+    const writeReason = canWrite ? undefined : t('workspace.node_menu.needs', { permission: 'messages:write' });
+    return {
+      canSend: !isMqtt,
+      writeReason,
+      sendReason:
+        writeReason ??
+        (isTxDisabled ? t('tx_disabled.control_tooltip') : connectionStatus !== 'connected' ? t('source.status_disconnected') : undefined),
+      deleteReason: writeReason,
+      canTranslate: translationSettings.canTranslate,
+      translateHint: t('workspace.chat.translate_hint', {
+        language: STANDARD_LANGUAGES.find((l) => l.code === viewerLang)?.name ?? viewerLang,
+      }),
+      sendsTapback: t('workspace.chat.sends_tapback_dm', { name }),
+      sendsResend: t('workspace.chat.sends_resend_dm', { name }),
+    };
+  }, [t, canWrite, isMqtt, isTxDisabled, connectionStatus, translationSettings.canTranslate, viewerLang, name]);
+  const translationActions = useMemo<RowTranslationActions>(
+    () => ({ dismiss: dismissTranslation, translate: translationSettings.canTranslate ? translateMessage : undefined }),
+    [dismissTranslation, translateMessage, translationSettings.canTranslate],
   );
+  const messageActions = useMessageActions({
+    actions,
+    translate: (id, text) => void translateMessage(id, text),
+    onReply: (msg) => {
+      setReplyingTo(msg);
+      inputRef.current?.focus();
+    },
+    isMine,
+    sourceId: sid,
+    nodes,
+    phone: isPhone,
+    sendsTapback: actionContext.sendsTapback,
+    timeFormat,
+    dateFormat,
+  });
   const dropMessages = useCallback(
     () => view.setMessages((prev) => prev.filter((m) => !(m.fromNodeId === nodeId || m.toNodeId === nodeId))),
     [view, nodeId],
@@ -174,7 +210,6 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
     );
   }
 
-  const canWrite = hasPermission('messages', 'write', scope);
   // Today's rule (MessagesTab): MQTT always hides the log; "Message anyway" lifts only the self-report.
   const { dmReadOnly, dmReadOnlyReason } = computeMessagesReadOnlyState({
     mqttReadOnly: isMqtt,
@@ -207,85 +242,92 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
         dateFormat={dateFormat}
         onMessagesPurged={dropMessages}
       />
-      <div className={dmStyles.top} data-fill={!showLog || undefined}>
-        {node && (
-          <DmBanners
-            sourceId={sid}
-            node={node}
-            sentDirectMessageCount={rows.filter(isMine).length}
-            onMessageAnyway={dmReadOnlyReason === 'unmessageable' ? () => setOverrides((prev) => new Set(prev).add(nodeId)) : null}
-          />
-        )}
-        {peerNum != null && (
-          <TracerouteStripD
-            sourceId={sid}
-            localNodeNum={localNodeNum}
-            nodeNum={peerNum}
-            localName={currentNodeId ? nodeName(currentNodeId) : ''}
-            nodeName={name}
-            nodes={nodes}
-            onOpenNode={openDm}
-          />
-        )}
-      </div>
-      {showLog && (
-        <div className={styles.messages} ref={view.dmMessagesContainerRef} role="log" aria-label={name}>
-          {rows.length === 0 && <p className={styles.empty}>{t('workspace.state.empty')}</p>}
-          {rows.map((msg, i) => {
-            if (isTapbackMessage(msg)) return null;
-            const date = new Date(msg.timestamp);
-            const prev = i > 0 ? new Date(rows[i - 1].timestamp) : null;
-            const replied = repliedMessageFor(responses, msg);
-            return (
-              <MessageRowD
-                key={msg.id}
-                message={msg}
-                style={messageStyle}
-                signalDetail={signalDetail}
-                mine={isMine(msg)}
-                senderName={nodeName(msg.from)}
-                senderShort={nodeShort(msg.from)}
-                heardVia={deviceName}
-                reactions={tapbacksFor(responses, msg)}
-                replied={replied}
-                repliedName={replied ? nodeShort(replied.from) : undefined}
-                showUnreadDivider={unreadAnchorId === msg.id}
-                dateSeparator={shouldShowDateSeparator(prev, date) ? getMessageDateSeparator(date, dateFormat) : null}
-                translation={translatedMessages[msg.id]}
-                onDismissTranslation={() => dismissTranslation(msg.id)}
-                timeFormat={timeFormat}
-                dateFormat={dateFormat}
-                mentionOptions={mentionOptions}
-                canReply={canWrite}
-                onAction={onAction}
+      <div className={styles.split}>
+        <div className={styles.column}>
+          <div className={dmStyles.top} data-fill={!showLog || undefined}>
+            {node && (
+              <DmBanners
+                sourceId={sid}
+                node={node}
+                sentDirectMessageCount={rows.filter(isMine).length}
+                onMessageAnyway={dmReadOnlyReason === 'unmessageable' ? () => setOverrides((prev) => new Set(prev).add(nodeId)) : null}
               />
-            );
-          })}
+            )}
+            {peerNum != null && (
+              <TracerouteStripD
+                sourceId={sid}
+                localNodeNum={localNodeNum}
+                nodeNum={peerNum}
+                localName={currentNodeId ? nodeName(currentNodeId) : ''}
+                nodeName={name}
+                nodes={nodes}
+                onOpenNode={openDm}
+              />
+            )}
+          </div>
+          {showLog && (
+            <div className={styles.messages} ref={view.dmMessagesContainerRef} role="log" aria-label={name}>
+              {rows.length === 0 && <p className={styles.empty}>{t('workspace.state.empty')}</p>}
+              {rows.map((msg, i) => {
+                if (isTapbackMessage(msg)) return null;
+                const date = new Date(msg.timestamp);
+                const prev = i > 0 ? new Date(rows[i - 1].timestamp) : null;
+                const replied = repliedMessageFor(responses, msg);
+                return (
+                  <MessageRowD
+                    key={msg.id}
+                    message={msg}
+                    style={messageStyle}
+                    signalDetail={signalDetail}
+                    mine={isMine(msg)}
+                    senderName={nodeName(msg.from)}
+                    senderShort={nodeShort(msg.from)}
+                    heardVia={deviceName}
+                    reactions={tapbacksFor(responses, msg)}
+                    replied={replied}
+                    repliedName={replied ? nodeShort(replied.from) : undefined}
+                    showUnreadDivider={unreadAnchorId === msg.id}
+                    dateSeparator={shouldShowDateSeparator(prev, date) ? getMessageDateSeparator(date, dateFormat) : null}
+                    translation={translatedMessages[msg.id]}
+                    translationActions={translationActions}
+                    timeFormat={timeFormat}
+                    dateFormat={dateFormat}
+                    mentionOptions={mentionOptions}
+                    actionContext={actionContext}
+                    phone={isPhone}
+                    onAction={messageActions.onAction}
+                  />
+                );
+              })}
+            </div>
+          )}
+          {isMqtt ? (
+            <ReadOnlyNote
+              kind="mqtt"
+              deviceName={deviceName}
+              openOn={radioDevice && { name: radioDevice.name, to: `/source/${encodeURIComponent(radioDevice.id)}/dm/${encodeURIComponent(nodeId)}` }}
+            />
+          ) : (
+            showLog && canWrite && connectionStatus === 'connected' && (
+              <Composer
+                target={{ kind: 'dm', nodeId, name }}
+                disabledReason={isTxDisabled ? t('tx_disabled.control_tooltip') : undefined}
+                onSend={(text, replyTo) => void actions.sendDirectMessage(nodeId, text, replyIdOf(replyTo))}
+                onBell={(text) => void actions.sendBell({ nodeId, text })}
+                hopLimit={hopLimit}
+                replyName={replyingTo ? nodeName(replyingTo.from) : undefined}
+                canTranslate={translationSettings.canTranslate}
+                translateLanguages={{ target: translationSettings.defaultOutgoingLanguage, source: translationSettings.defaultLanguage }}
+                mentionCandidates={mentionCandidates}
+                homoglyphEnabled={homoglyph}
+                inputRef={inputRef}
+              />
+            )
+          )}
         </div>
-      )}
-      {isMqtt ? (
-        <ReadOnlyNote
-          kind="mqtt"
-          deviceName={deviceName}
-          openOn={radioDevice && { name: radioDevice.name, to: `/source/${encodeURIComponent(radioDevice.id)}/dm/${encodeURIComponent(nodeId)}` }}
-        />
-      ) : (
-        showLog && canWrite && connectionStatus === 'connected' && (
-          <Composer
-            target={{ kind: 'dm', nodeId, name }}
-            disabledReason={isTxDisabled ? t('tx_disabled.control_tooltip') : undefined}
-            onSend={(text, replyTo) => void actions.sendDirectMessage(nodeId, text, replyIdOf(replyTo))}
-            onBell={(text) => void actions.sendBell({ nodeId, text })}
-            hopLimit={hopLimit}
-            replyName={replyingTo ? nodeName(replyingTo.from) : undefined}
-            canTranslate={translationSettings.canTranslate}
-            translateLanguages={{ target: translationSettings.defaultOutgoingLanguage, source: translationSettings.defaultLanguage }}
-            mentionCandidates={mentionCandidates}
-            homoglyphEnabled={homoglyph}
-            inputRef={inputRef}
-          />
-        )
-      )}
+        {messageActions.panel}
+      </div>
+      {messageActions.sheets}
     </section>
   );
 }

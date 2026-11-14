@@ -14,6 +14,7 @@ import type { TelemetryData } from '../../hooks/useTelemetry';
 import type { UnreadBySourceData } from '../../hooks/useUnreadBySource';
 import type { UnreadCountsData } from '../../hooks/useUnreadCounts';
 import type { Channel, DeviceInfo } from '../../types/device';
+import type { MessageEvent } from '../../types/message';
 
 export const SOURCE_IDS = {
   g2: 'src-g2',
@@ -186,7 +187,34 @@ const messages: RawMessage[] = [
     [12, 'Thanks!', 5, undefined],
   ] as const).map(([n, text, ago, deliveryState]) =>
     message(n, 0xa1b2c300, KIFISIA, -1, text, ago, { deliveryState, isLocalMessage: true, wantAck: true })),
+  // Kifisia's 👍 on "Running one now" (10-02's reaction chip).
+  message(13, 0xa1b2c301, '!a1b2c300', -1, '👍', 1410, { replyId: 8, emoji: 1 }),
 ];
+
+/**
+ * The stored send timeline of "Running one now" (10-02 / 10-10): no ACK on the first
+ * attempt, the queue's retry (attempt 2), then the destination's ACK.
+ */
+const RUNNING_ID = `${SOURCE_IDS.g2}_${0xa1b2c300}_8`;
+const sentAt = (NOW_S - 1440) * 1000;
+const messageEvents: MessageEvent[] = ([
+  ['submitted', 'observed', 0, null],
+  ['sent_to_radio', 'observed', 1_000, null],
+  ['timeout', 'inferred', 30_000, null],
+  ['retry', 'observed', 66_000, JSON.stringify({ attempt: 2 })],
+  ['confirmed', 'reported', 72_000, null],
+] as const).map(([eventType, provenance, after, detail], i) => ({
+  id: i + 1, sourceId: SOURCE_IDS.g2, messageId: RUNNING_ID, eventType, provenance, detail,
+  timestamp: sentAt + after, createdAt: sentAt + after,
+}));
+
+/** POST /api/translate: 10-09's preview, over one LoRa packet. */
+const translation = {
+  translatedText:
+    'Τρέχω ένα τώρα, θα πρέπει να είναι 2 βήματα μέσω Χαλανδρίου, μετά θα δοκιμάσω τον αναμεταδότη του Υμηττού το μεσημέρι',
+  targetLanguage: 'el',
+  provider: 'fixture',
+};
 
 const telemetry: TelemetryData[] = [0, 1, 2, 3].map((i) => ({
   nodeId: '!a1b2c301', nodeNum: 0xa1b2c301, telemetryType: 'batteryLevel',
@@ -267,4 +295,6 @@ export const athensFixture = {
   beaconOffers,
   firstUnread,
   traceroutes,
+  messageEvents,
+  translation,
 };

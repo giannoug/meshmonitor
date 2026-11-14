@@ -59,6 +59,14 @@ const defaults: Record<string, FixtureHandler> = {
     const status = A.statuses[url.searchParams.get('sourceId') ?? SOURCE_IDS.g2];
     return status && { ...A.poll.connection, connected: status.connected };
   },
+  // Message details (10-02 / 10-10): the stored send timeline; heard-by is for channel sends only.
+  'GET /api/sources/:id/messages/:messageId/events': (url) => ({
+    success: true,
+    data: { events: A.messageEvents.filter((e) => e.messageId === decodeURIComponent(url.pathname.split('/')[5])) },
+  }),
+  'GET /api/sources/:id/messages/:messageId/heard-by': () => ({ success: true, data: { heardBy: [] } }),
+  'GET /api/direct-neighbors': () => ({}),
+  'POST /api/translate': () => ({ success: true, data: A.translation }),
   'GET /api/telemetry/:nodeId': (url) => {
     const nodeId = decodeURIComponent(url.pathname.split('/')[3]);
     return A.telemetry.filter((row) => row.nodeId === nodeId);

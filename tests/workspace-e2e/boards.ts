@@ -3,6 +3,7 @@
  * board adds its entry here (board protocol step BP6).
  */
 import type { Page } from '@playwright/test';
+import { athensFixture } from '../../src/workspace/__fixtures__/athens';
 
 export interface Board {
   id: string;
@@ -97,4 +98,88 @@ export const BOARDS: Board[] = [
       await page.getByRole('dialog', { name: /Kifisia Rooftop/ }).getByRole('tab', { name: 'Ask the node' }).waitFor();
     },
   },
+  // Task 2.5: message actions, details, translate and the emoji picker, on the Kifisia Rooftop DM.
+  {
+    id: '10-02-message-details',
+    size: 'desktop',
+    path: '/source/src-g2/dm/!a1b2c301',
+    setup: async (page) => {
+      await openDm(page);
+      const ours = page.locator('[data-message-id]', { hasText: 'Running one now' });
+      await ours.hover();
+      await ours.getByRole('button', { name: 'More actions' }).click();
+      await ours.getByRole('button', { name: /^Details/ }).click();
+      await page.getByRole('complementary', { name: 'Delivery Details' }).getByText('Attempt 2').waitFor();
+    },
+  },
+  {
+    id: '10-08-message-actions',
+    size: 'phone',
+    path: '/source/src-g2/dm/!a1b2c301',
+    setup: async (page) => {
+      await openDm(page);
+      await page.locator('[data-message-id]', { hasText: 'Running one now' }).click({ button: 'right' });
+      await page.getByRole('dialog', { name: /^You · / }).waitFor();
+    },
+  },
+  {
+    id: '10-09-translate',
+    size: 'phone',
+    path: '/source/src-g2/dm/!a1b2c301',
+    setup: async (page) => {
+      await openDm(page);
+      await page.locator('textarea').fill('Running one now, should be 2 hops via Halandri, then I will try the Hymettus relay at noon');
+      await page.getByRole('button', { name: 'Translate', exact: true }).click();
+      const sheet = page.getByRole('dialog', { name: 'Translate Outgoing Message' });
+      await sheet.getByRole('button', { name: 'Translate', exact: true }).click();
+      await sheet.getByText('LoRa Packet Payload Warning').waitFor();
+    },
+  },
+  {
+    id: '10-10-message-details',
+    size: 'phone',
+    path: '/source/src-g2/dm/!a1b2c301',
+    setup: async (page) => {
+      await openDm(page);
+      await page.locator('[data-message-id]', { hasText: 'Running one now' }).click({ button: 'right' });
+      await page.getByRole('dialog', { name: /^You · / }).getByRole('button', { name: /^Details/ }).click();
+      await page.getByRole('dialog', { name: 'Delivery Details' }).getByText('Attempt 2').waitFor();
+    },
+  },
+  {
+    id: '18-05-emoji-picker',
+    size: 'desktop',
+    path: '/source/src-g2/dm/!a1b2c301',
+    setup: async (page) => {
+      await openDm(page);
+      const theirs = page.locator('[data-message-id]', { hasText: 'Can you run a traceroute to me?' });
+      await theirs.hover();
+      await theirs.getByRole('button', { name: 'React', exact: true }).click();
+      await page.getByRole('dialog', { name: 'React with an emoji' }).getByRole('button', { name: 'Custom emoji' }).click();
+    },
+  },
+  {
+    // The set saved in Appearance replaces the defaults: served for this shot, then the page reloads.
+    id: '18-06-emoji-picker',
+    size: 'phone',
+    path: '/source/src-g2/dm/!a1b2c301',
+    setup: async (page) => {
+      const saved = [['👍', 'Thumbs up'], ['❤️', 'Heart'], ['😂', 'Laugh'], ['😮', 'Wow'], ['👋', 'Wave']].map(([emoji, title]) => ({ emoji, title }));
+      await page.route((url) => url.pathname.endsWith('/api/settings'), (route) =>
+        route.fulfill({ json: { ...athensFixture.settings, customTapbackEmojis: JSON.stringify(saved) } }),
+      );
+      await page.reload();
+      await page.waitForLoadState('networkidle');
+      await openDm(page);
+      await page.locator('[data-message-id]', { hasText: 'Can you run a traceroute to me?' }).click({ button: 'right' });
+      await page.getByRole('dialog', { name: /^Kifisia Rooftop · / }).getByRole('button', { name: /Custom/ }).click();
+      await page.getByRole('dialog', { name: 'React with an emoji' }).getByRole('button', { name: 'Custom emoji' }).click();
+    },
+  },
 ];
+
+/** Past the unmessageable banner, to the conversation. */
+async function openDm(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Message anyway' }).click();
+  await page.getByText('Running one now').waitFor();
+}

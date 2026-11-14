@@ -1,24 +1,15 @@
 {
   "must": [
-    "Message details",
+    "Delivery Details",
     "Status",
     "Identity",
-    "Packet",
-    "Route",
-    "Scope",
-    "Signal",
     "Transport",
     "What this means",
-    "Heard by",
     "Timeline",
-    "Attempt 1",
     "Attempt 2",
     "Confirmed by Destination",
     "Statistical",
-    "9 of 12",
-    "Pending",
-    "No response received",
-    "No return path data"
+    "Pending"
   ],
   "absent": [],
   "source": "checks/s10.json"

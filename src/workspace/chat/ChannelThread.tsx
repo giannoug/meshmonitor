@@ -39,6 +39,7 @@ import { useViewTranslations } from '../../hooks/useViewTranslations';
 import { appBasename } from '../../init';
 import type { MeshMessage } from '../../types/message';
 import type { ResourceType } from '../../types/permission';
+import { STANDARD_LANGUAGES } from '../../types/translation';
 import { CHANNEL_DB_OFFSET, canReadChannel } from '../../utils/channelReadAccess';
 import { buildResponseIndex, repliedMessageFor, tapbacksFor } from '../../components/messages/messageRowSupport';
 import { getMessageDateSeparator, shouldShowDateSeparator } from '../../utils/datetime';
@@ -55,7 +56,9 @@ import ChatProviders from './ChatProviders';
 import ChannelHeaderMenu from './ChannelHeaderMenu';
 import ChannelInfoSheet from './ChannelInfoSheet';
 import Composer from './Composer';
-import MessageRowD, { type MessageActionKind } from './MessageRowD';
+import MessageRowD, { type RowTranslationActions } from './MessageRowD';
+import type { MessageActionContext } from './messageActions';
+import { useMessageActions } from './useMessageActions';
 import ReadOnlyNote from './ReadOnlyNote';
 import { channelLabel, heardToday, replyIdOf } from './channelLabel';
 import { useChannelDatabaseEntries } from './useChannelDatabaseEntries';
@@ -167,7 +170,10 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
   }, [all, isBridge, showMqttMessages, channel]);
   const responses = useMemo(() => buildResponseIndex(all), [all]);
   const translationIds = useMemo(() => rows.filter((m) => !!m.text).map((m) => m.id), [rows]);
-  const { translationSettings, translatedMessages, dismissTranslation } = useViewTranslations(sourceId, translationIds);
+  const { translationSettings, viewerLang, translatedMessages, translateMessage, dismissTranslation } = useViewTranslations(
+    sourceId,
+    translationIds,
+  );
   const mentionOptions = useMemo(
     () => ({
       resolveNodeName: (id: string) => {
@@ -198,15 +204,44 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
     // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 isMine is recreated each render; its input is currentNodeId
   }, [rows, pinnedFirstUnread, currentNodeId]);
 
-  const onAction = useCallback(
-    (kind: MessageActionKind, msg: MeshMessage) => {
-      if (kind === 'reply') {
-        setReplyingTo(msg);
-        inputRef.current?.focus();
-      }
-    },
-    [setReplyingTo],
+  // Today's gates (ChannelsTab): channel_N:write for reply, react, resend and delete; sends on a device
+  // channel only, never on an MQTT mirror; off while TX is disabled or the device is disconnected.
+  const actionContext = useMemo<MessageActionContext>(() => {
+    const writeReason = canWrite ? undefined : t('workspace.node_menu.needs', { permission: `channel_${channel}:write` });
+    return {
+      canSend: channel < CHANNEL_DB_OFFSET && !isMqtt,
+      writeReason,
+      sendReason:
+        writeReason ??
+        (isTxDisabled ? t('tx_disabled.control_tooltip') : connectionStatus !== 'connected' ? t('source.status_disconnected') : undefined),
+      deleteReason: writeReason,
+      canTranslate: translationSettings.canTranslate,
+      translateHint: t('workspace.chat.translate_hint', {
+        language: STANDARD_LANGUAGES.find((l) => l.code === viewerLang)?.name ?? viewerLang,
+      }),
+      sendsTapback: t('workspace.chat.sends_tapback_channel', { channel: name }),
+      sendsResend: t('workspace.chat.sends_resend_channel', { channel: name }),
+    };
+  }, [t, canWrite, channel, isMqtt, isTxDisabled, connectionStatus, translationSettings.canTranslate, viewerLang, name]);
+  const translationActions = useMemo<RowTranslationActions>(
+    () => ({ dismiss: dismissTranslation, translate: translationSettings.canTranslate ? translateMessage : undefined }),
+    [dismissTranslation, translateMessage, translationSettings.canTranslate],
   );
+  const messageActions = useMessageActions({
+    actions,
+    translate: (id, text) => void translateMessage(id, text),
+    onReply: (msg) => {
+      setReplyingTo(msg);
+      inputRef.current?.focus();
+    },
+    isMine,
+    sourceId: sourceId ?? '',
+    nodes,
+    phone: isPhone,
+    sendsTapback: actionContext.sendsTapback,
+    timeFormat,
+    dateFormat,
+  });
 
   const beaconsPending = beacons.totalCount > 0 || beacons.countUnknown ? beacons.pendingCount : null;
   const muted = isChannelMuted(channel);
@@ -281,68 +316,72 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
   const thread = dbPending ? null : !canRead ? (
     <p className={styles.empty}>{t('workspace.chat.not_available')}</p>
   ) : (
-    <>
-      <div className={styles.messages} ref={view.channelMessagesContainerRef} role="log" aria-label={`# ${name}`}>
-        {rows.length === 0 && <p className={styles.empty}>{t('channels.no_messages_yet')}</p>}
-        {rows.map((msg, i) => {
-          if (isTapbackMessage(msg)) return null;
-          const date = new Date(msg.timestamp);
-          const prev = i > 0 ? new Date(rows[i - 1].timestamp) : null;
-          const replied = repliedMessageFor(responses, msg);
-          return (
-            <MessageRowD
-              key={msg.id}
-              message={msg}
-              style={messageStyle}
-              signalDetail={signalDetail}
-              mine={isMine(msg)}
-              senderName={nodeName(msg.from)}
-              senderShort={nodeShort(msg.from)}
-              heardVia={deviceName}
-              reactions={tapbacksFor(responses, msg)}
-              replied={replied}
-              repliedName={replied ? nodeShort(replied.from) : undefined}
-              showUnreadDivider={unreadAnchorId === msg.id}
-              dateSeparator={shouldShowDateSeparator(prev, date) ? getMessageDateSeparator(date, dateFormat) : null}
-              translation={translatedMessages[msg.id]}
-              onDismissTranslation={() => dismissTranslation(msg.id)}
-              timeFormat={timeFormat}
-              dateFormat={dateFormat}
-              mentionOptions={mentionOptions}
-              canReply={canWrite && channel < CHANNEL_DB_OFFSET && !isMqtt}
-              onAction={onAction}
-            />
-          );
-        })}
+    <div className={styles.split}>
+      <div className={styles.column}>
+        <div className={styles.messages} ref={view.channelMessagesContainerRef} role="log" aria-label={`# ${name}`}>
+          {rows.length === 0 && <p className={styles.empty}>{t('channels.no_messages_yet')}</p>}
+          {rows.map((msg, i) => {
+            if (isTapbackMessage(msg)) return null;
+            const date = new Date(msg.timestamp);
+            const prev = i > 0 ? new Date(rows[i - 1].timestamp) : null;
+            const replied = repliedMessageFor(responses, msg);
+            return (
+              <MessageRowD
+                key={msg.id}
+                message={msg}
+                style={messageStyle}
+                signalDetail={signalDetail}
+                mine={isMine(msg)}
+                senderName={nodeName(msg.from)}
+                senderShort={nodeShort(msg.from)}
+                heardVia={deviceName}
+                reactions={tapbacksFor(responses, msg)}
+                replied={replied}
+                repliedName={replied ? nodeShort(replied.from) : undefined}
+                showUnreadDivider={unreadAnchorId === msg.id}
+                dateSeparator={shouldShowDateSeparator(prev, date) ? getMessageDateSeparator(date, dateFormat) : null}
+                translation={translatedMessages[msg.id]}
+                translationActions={translationActions}
+                timeFormat={timeFormat}
+                dateFormat={dateFormat}
+                mentionOptions={mentionOptions}
+                actionContext={actionContext}
+                phone={isPhone}
+                onAction={messageActions.onAction}
+              />
+            );
+          })}
+        </div>
+        {isMqtt ? (
+          <ReadOnlyNote
+            kind="mqtt"
+            deviceName={deviceName}
+            openOn={radioDevice && { name: radioDevice.name, to: `/source/${encodeURIComponent(radioDevice.id)}/channel/0` }}
+          />
+        ) : canWrite && channel < CHANNEL_DB_OFFSET && connectionStatus === 'connected' ? (
+          <Composer
+            target={{ kind: 'channel', channel, name }}
+            disabledReason={isTxDisabled ? t('tx_disabled.control_tooltip') : undefined}
+            onSend={(text, replyTo) => void actions.sendChannelMessage(channel, text, replyIdOf(replyTo))}
+            onBell={(text) => void actions.sendBell({ channel, text })}
+            onSendPosition={() => void actions.sendPosition(channel)}
+            hopLimit={hopLimit}
+            replyName={replyingTo ? nodeName(replyingTo.from) : undefined}
+            canTranslate={translationSettings.canTranslate}
+            translateLanguages={{
+              target: translationSettings.defaultOutgoingLanguage,
+              source: translationSettings.defaultLanguage,
+            }}
+            mentionCandidates={mentionCandidates}
+            homoglyphEnabled={homoglyph}
+            inputRef={inputRef}
+          />
+        ) : (
+          !signedIn && <ReadOnlyNote kind="guest" />
+        )}
       </div>
-      {isMqtt ? (
-        <ReadOnlyNote
-          kind="mqtt"
-          deviceName={deviceName}
-          openOn={radioDevice && { name: radioDevice.name, to: `/source/${encodeURIComponent(radioDevice.id)}/channel/0` }}
-        />
-      ) : canWrite && channel < CHANNEL_DB_OFFSET && connectionStatus === 'connected' ? (
-        <Composer
-          target={{ kind: 'channel', channel, name }}
-          disabledReason={isTxDisabled ? t('tx_disabled.control_tooltip') : undefined}
-          onSend={(text, replyTo) => void actions.sendChannelMessage(channel, text, replyIdOf(replyTo))}
-          onBell={(text) => void actions.sendBell({ channel, text })}
-          onSendPosition={() => void actions.sendPosition(channel)}
-          hopLimit={hopLimit}
-          replyName={replyingTo ? nodeName(replyingTo.from) : undefined}
-          canTranslate={translationSettings.canTranslate}
-          translateLanguages={{
-            target: translationSettings.defaultOutgoingLanguage,
-            source: translationSettings.defaultLanguage,
-          }}
-          mentionCandidates={mentionCandidates}
-          homoglyphEnabled={homoglyph}
-          inputRef={inputRef}
-        />
-      ) : (
-        !signedIn && <ReadOnlyNote kind="guest" />
-      )}
-    </>
+      {messageActions.panel}
+    </div>
   );
 
   return (
@@ -372,6 +411,7 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
         onPurge={() => actions.purgeChannelMessages(channel)}
         actions={isPhone ? menuActions : undefined}
       />
+      {messageActions.sheets}
     </section>
   );
 }

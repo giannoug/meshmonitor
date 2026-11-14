@@ -7,12 +7,11 @@
  *   its text and the message being replied to.
  * - `disabledReason` (TX disabled): every control stays visible but off, with
  *   the reason as its tooltip and as a note under the box.
- * - Translate opens today's TranslateModal (Task 2.5 replaces it).
+ * - Translate opens the translate sheet (today's TranslateModal content, board 10-09).
  */
 import { useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import MessageComposeInput from '../../components/MessageComposeInput';
-import { TranslateModal } from '../../components/translation/TranslateModal';
 import { UiIcon } from '../../components/icons';
 import { useComposeDraftStore } from '../../contexts/composeDraftStore';
 import { useMessaging } from '../../contexts/MessagingContext';
@@ -21,6 +20,7 @@ import type { MentionCandidate } from '../../utils/mentions';
 import { scrollInputIntoView } from '../../utils/scrollInputIntoView';
 import SendsLine from '../patterns/SendsLine';
 import { useIsPhone } from '../shell/useIsPhone';
+import TranslateComposerSheet from './TranslateComposerSheet';
 import styles from './Composer.module.css';
 
 export type ComposerTarget =
@@ -137,8 +137,7 @@ export default function Composer(props: ComposerProps) {
       {disabledReason && <p className={styles.reason} role="note">{disabledReason}</p>}
       <SendsLine>{sends}</SendsLine>
       {translateOpen && (
-        <TranslateModal
-          isOpen
+        <TranslateComposerSheet
           onClose={() => setTranslateOpen(false)}
           initialText={draft.get()}
           defaultTargetLanguage={props.translateLanguages?.target}

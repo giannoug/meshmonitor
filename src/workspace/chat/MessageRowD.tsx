@@ -8,12 +8,16 @@
  * - Ours carry the ack state in words (Pending / Delivered / Confirmed /
  *   Failed / Timed out), with today's status text as the tooltip.
  *
- * Message actions arrive through `onAction`. This task wires Reply; the hover
- * bar, the phone's long-press sheet and the other kinds are Task 2.5's.
- * Reaction chips are shown, not tappable: a tap sends a tapback, which needs
- * its Sends line (2.5).
+ * Message actions (Task 2.5) go out through `onAction`: on desktop the hover
+ * bar (shown on hover and on keyboard focus), on the phone a long-press (or
+ * the row's "Message actions" button, for keyboards) opens the actions sheet.
+ * A reaction chip sends the same tapback when React is on, with its Sends line.
+ *
+ * Memoized by value (`messageRowPropsEqual`): the screen keeps `onAction`,
+ * `actionContext` and `translationActions` stable, and the per-render
+ * reaction arrays compare by content.
  */
-import { memo, useState, type ReactNode } from 'react';
+import { memo, useEffect, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MeshMessage } from '../../types/message';
 import type { DateFormat, TimeFormat } from '../../contexts/SettingsContext';
@@ -24,9 +28,24 @@ import { TranslatedMessage, type TranslatedMessageState } from '../../components
 import { formatMessageTime } from '../../utils/datetime';
 import { getMeshtasticDeliveryState } from '../../utils/deliveryDiagnostics/status';
 import { renderMessageWithLinks, type MentionRenderOptions } from '../../utils/linkRenderer';
+import { messageRowPropsEqual } from '../../components/messages/messageRowSupport';
+import SendsLine from '../patterns/SendsLine';
+import MessageActionsSheet from './MessageActionsSheet';
+import MessageHoverBar from './MessageHoverBar';
+import { messageActionItems, type MessageActionContext, type MessageActionKind } from './messageActions';
 import styles from './MessageRowD.module.css';
 
-export type MessageActionKind = 'reply' | 'react' | 'translate' | 'resend' | 'details' | 'copy' | 'delete';
+export type { MessageActionKind } from './messageActions';
+
+/** How long a press opens the actions sheet on the phone. */
+const LONG_PRESS_MS = 500;
+
+/** Inline translation controls (stable object from the screen). */
+export interface RowTranslationActions {
+  dismiss(id: string): void;
+  /** Retry or change language; absent when the viewer may not translate. */
+  translate?(id: string, text: string, lang?: string): void;
+}
 export type MessageStyle = 'rows' | 'bubbles';
 export type SignalDetail = 'hover' | 'always';
 
@@ -45,12 +64,15 @@ export interface MessageRowDProps {
   showUnreadDivider: boolean;
   dateSeparator: string | null;
   translation?: TranslatedMessageState;
-  onDismissTranslation?: () => void;
+  translationActions?: RowTranslationActions;
   timeFormat: TimeFormat;
   dateFormat: DateFormat;
   mentionOptions: MentionRenderOptions;
-  canReply: boolean;
-  onAction(kind: MessageActionKind, message: MeshMessage): void;
+  actionContext: MessageActionContext;
+  /** Phone: long-press sheet; else the hover bar. */
+  phone: boolean;
+  /** `emoji` with `react` sends that tapback; without it, the picker opens. */
+  onAction(kind: MessageActionKind, message: MeshMessage, emoji?: string): void;
 }
 
 /** A stable avatar colour per node, from the categorical device tokens. */
@@ -63,7 +85,45 @@ function MessageRowDImpl(props: MessageRowDProps) {
   const { message: msg, style, signalDetail, mine, senderName, senderShort, onAction } = props;
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [sheet, setSheet] = useState(false);
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // A long-press ends in a click on the text; that click must not toggle the signal line.
+  const pressed = useRef(false);
   const time = formatMessageTime(new Date(msg.timestamp), props.timeFormat, props.dateFormat);
+  const items = messageActionItems(props.actionContext, msg, mine);
+  const react = items.find((i) => i.kind === 'react');
+  const chipsSend = !!react && !react.reason;
+
+  const cancelPress = () => {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  };
+  useEffect(() => () => {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+  }, []);
+  const openSheet = () => {
+    cancelPress();
+    pressed.current = true;
+    setSheet(true);
+  };
+  const pressProps = props.phone
+    ? {
+        onPointerDown: (e: PointerEvent) => {
+          cancelPress();
+          pressed.current = false;
+          if (e.pointerType === 'mouse') return;
+          pressTimer.current = setTimeout(openSheet, LONG_PRESS_MS);
+        },
+        onPointerUp: cancelPress,
+        onPointerLeave: cancelPress,
+        onPointerCancel: cancelPress,
+        // The browser's own long-press (and a right-click).
+        onContextMenu: (e: MouseEvent) => {
+          e.preventDefault();
+          openSheet();
+        },
+      }
+    : {};
 
   const ack = mine ? getMeshtasticDeliveryState(msg) : null;
   const ackLabel = ack && (
@@ -85,7 +145,13 @@ function MessageRowDImpl(props: MessageRowDProps) {
   }
 
   const text = (
-    <div className={styles.text} onClick={() => setOpen((o) => !o)}>
+    <div
+      className={styles.text}
+      onClick={() => {
+        if (pressed.current) pressed.current = false;
+        else setOpen((o) => !o);
+      }}
+    >
       {renderMessageWithLinks(msg.text, props.mentionOptions)}
     </div>
   );
@@ -104,25 +170,43 @@ function MessageRowDImpl(props: MessageRowDProps) {
   const extras = (
     <>
       <LinkPreview text={msg.text} />
-      {props.translation && props.onDismissTranslation && (
-        <TranslatedMessage state={props.translation} onDismiss={props.onDismissTranslation} />
+      {props.translation && props.translationActions && (
+        <TranslatedMessage
+          state={props.translation}
+          onDismiss={() => props.translationActions!.dismiss(msg.id)}
+          onRetry={props.translationActions.translate && (() => props.translationActions!.translate!(msg.id, msg.text))}
+          onChangeTargetLang={
+            props.translationActions.translate && ((lang) => props.translationActions!.translate!(msg.id, msg.text, lang))
+          }
+        />
       )}
       {signal.length > 0 && <p className={styles.signal}>{signal.join(' · ')}</p>}
       {props.reactions.length > 0 && (
-        <div className={styles.reactions}>
-          {props.reactions.map((r) => (
-            <span key={r.id} className={styles.chip}>{r.text}</span>
-          ))}
-        </div>
+        <>
+          <div className={styles.reactions}>
+            {props.reactions.map((r) =>
+              chipsSend ? (
+                <button key={r.id} type="button" className={styles.chip} title={react?.sends} onClick={() => onAction('react', msg, r.text)}>
+                  {r.text}
+                </button>
+              ) : (
+                <span key={r.id} className={styles.chip}>{r.text}</span>
+              ),
+            )}
+          </div>
+          {chipsSend && <SendsLine>{t('workspace.chat.sends_chip')}</SendsLine>}
+        </>
       )}
     </>
   );
-  const actions = props.canReply && !mine && (
+  const actions = props.phone ? (
+    <button type="button" className={styles.sheetButton} onClick={() => setSheet(true)}>
+      <UiIcon name="more" size={18} />
+      {t('workspace.chat.message_actions')}
+    </button>
+  ) : (
     <div className={styles.actions}>
-      <button type="button" className={styles.action} onClick={() => onAction('reply', msg)} title={t('channels.reply_button_title')}>
-        <UiIcon name="reply" size={15} />
-        <span className={styles.srOnly}>{t('workspace.chat.reply')}</span>
-      </button>
+      <MessageHoverBar message={msg} items={items} onAction={onAction} />
     </div>
   );
   const avatar = (
@@ -141,7 +225,9 @@ function MessageRowDImpl(props: MessageRowDProps) {
         data-mine={mine || undefined}
         data-detail={signalDetail}
         data-open={open || undefined}
+        data-phone={props.phone || undefined}
         data-message-id={msg.id}
+        {...pressProps}
       >
         {style === 'rows' ? (
           <>
@@ -175,9 +261,19 @@ function MessageRowDImpl(props: MessageRowDProps) {
           </>
         )}
       </div>
+      {sheet && (
+        <MessageActionsSheet
+          message={msg}
+          title={`${mine ? t('workspace.chat.you') : senderName} · ${time}`}
+          items={items}
+          translateHint={props.actionContext.translateHint}
+          onAction={onAction}
+          onClose={() => setSheet(false)}
+        />
+      )}
     </>
   );
 }
 
-const MessageRowD = memo(MessageRowDImpl);
+const MessageRowD = memo(MessageRowDImpl, messageRowPropsEqual);
 export default MessageRowD;
