@@ -331,6 +331,11 @@
   white-space: nowrap;
 }
 
+.table td.gap {
+  padding: 0;
+  border: 0;
+}
+
 .table tr:hover td {
   background: var(--color-surface-hover);
 }
@@ -458,14 +463,25 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-/* Phone list */
+/* Phone list: a scroller holding a list as tall as all rows, with the drawn rows placed in it. */
 .list {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+}
+
+.rows {
+  position: relative;
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
 }
 
 .rowTitle {

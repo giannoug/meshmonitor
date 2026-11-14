@@ -13,12 +13,15 @@ import { expectBoard } from '../../test/boardChecks';
 import { SOURCE_IDS } from '../../__fixtures__/athens';
 import { prefsFixture } from '../../__fixtures__/prefsFixture';
 import { renderChat } from '../../chat/__tests__/renderChat';
+import { withRowLayout } from './rowLayout';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
   WebSocketProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
+
+withRowLayout();
 
 const g2 = `/source/${SOURCE_IDS.g2}`;
 const route = `${g2}/nodes`;

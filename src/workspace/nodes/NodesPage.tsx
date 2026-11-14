@@ -110,8 +110,11 @@ function Nodes({ sourceId, deviceName }: { sourceId: string; deviceName: string 
 
   const traceroutes = pollData?.traceroutes as unknown as Traceroutes;
   const currentNodeNum = currentNodeId ? parseNodeId(currentNodeId) : null;
-  const hopsOf = (node: DeviceInfo) =>
-    node.user?.id === currentNodeId ? 0 : getEffectiveHops(node, settings.nodeHopsCalculation, traceroutes, currentNodeNum);
+  const { nodeHopsCalculation, distanceUnit, timeFormat, dateFormat } = settings;
+  const hopsOf = useCallback(
+    (node: DeviceInfo) => (node.user?.id === currentNodeId ? 0 : getEffectiveHops(node, nodeHopsCalculation, traceroutes, currentNodeNum)),
+    [currentNodeId, nodeHopsCalculation, traceroutes, currentNodeNum],
+  );
 
   // Today's Nodes list: processedNodes, its own filters, then favourites first by the chosen sort.
   const listed = useMemo(() => {
@@ -122,28 +125,28 @@ function Nodes({ sourceId, deviceName }: { sourceId: string; deviceName: string 
       filterRemoteAdminOnly: ui.filterRemoteAdminOnly,
     });
     return orderFavoritesFirst(filtered, (list) => sortNodesByField(list, ui.sortField, ui.sortDirection, hopsOf));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 hopsOf reads only the values listed
-  }, [view.processedNodes, ui.securityFilter, ui.channelFilter, settings.showIncompleteNodes, ui.filterRemoteAdminOnly, ui.sortField, ui.sortDirection, traceroutes, currentNodeId, settings.nodeHopsCalculation]);
+  }, [view.processedNodes, ui.securityFilter, ui.channelFilter, settings.showIncompleteNodes, ui.filterRemoteAdminOnly, ui.sortField, ui.sortDirection, hopsOf]);
 
-  const now = Date.now();
-  const inScope: Record<Scope, (n: DeviceInfo) => boolean> = {
-    all: () => true,
-    online: (n) => isHeardRecently(n.lastHeard, now),
-    favorites: (n) => !!n.isFavorite,
-    direct: (n) => hopsOf(n) === 0,
-  };
-  const shown = listed.filter(inScope[scope]);
-  const countOf = (s: Scope) => listed.filter(inScope[s]).length;
-  const onlineTotal = nodes.filter((n) => isHeardRecently(n.lastHeard, now)).length;
+  // Each chip's rows, worked out once per list change (a direct check can scan the traceroutes).
+  const scoped = useMemo(() => {
+    const now = Date.now();
+    const online = listed.filter((n) => isHeardRecently(n.lastHeard, now));
+    return {
+      all: listed,
+      online,
+      favorites: listed.filter((n) => !!n.isFavorite),
+      direct: listed.filter((n) => hopsOf(n) === 0),
+    } satisfies Record<Scope, DeviceInfo[]>;
+  }, [listed, hopsOf]);
+  const shown = scoped[scope];
+  const countOf = (s: Scope) => scoped[s].length;
+  const onlineTotal = useMemo(() => nodes.filter((n) => isHeardRecently(n.lastHeard)).length, [nodes]);
 
-  const ctx: CellContext = {
-    t,
-    hopsOf,
-    home: nodes.find((n) => n.user?.id === currentNodeId),
-    distanceUnit: settings.distanceUnit,
-    timeFormat: settings.timeFormat,
-    dateFormat: settings.dateFormat,
-  };
+  const home = useMemo(() => nodes.find((n) => n.user?.id === currentNodeId), [nodes, currentNodeId]);
+  const ctx = useMemo<CellContext>(
+    () => ({ t, hopsOf, home, distanceUnit, timeFormat, dateFormat }),
+    [t, hopsOf, home, distanceUnit, timeFormat, dateFormat],
+  );
   const onSort = (field: SortField) => (field === ui.sortField ? ui.setSortDirection(ui.sortDirection === 'asc' ? 'desc' : 'asc') : ui.setSortField(field));
   const sort = (
     <NodeSortControls
@@ -157,11 +160,11 @@ function Nodes({ sourceId, deviceName }: { sourceId: string; deviceName: string 
   );
   const exportNodes = (format: 'csv' | 'html') => {
     const rows = buildNodeExportRows(shown, {
-      nodeHopsCalculation: settings.nodeHopsCalculation,
+      nodeHopsCalculation,
       traceroutes,
       currentNodeNum,
       currentNodeId,
-      formatLastHeard: (s) => formatDateTime(new Date(s * 1000), settings.timeFormat, settings.dateFormat),
+      formatLastHeard: (s) => formatDateTime(new Date(s * 1000), timeFormat, dateFormat),
     });
     exportNodeList(format, EXPORT_COLUMNS, rows, { filenamePrefix: 'meshmonitor-nodes' });
   };
@@ -190,7 +193,6 @@ function Nodes({ sourceId, deviceName }: { sourceId: string; deviceName: string 
   );
   // Today's quick age window sits beside the count, as on Classic's Nodes header.
   const age = <NodeQuickAgeFilter settingsHours={settings.maxNodeAgeHours} />;
-  // shortcut: every row renders (Classic virtualises its list); add useVirtualizer if a large mesh lags.
   const body = !view.shouldShowData() && !isLoading && nodes.length === 0
     ? <StateView kind="empty" title={t('workspace.map.not_connected')} />
     : shown.length === 0

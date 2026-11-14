@@ -7,7 +7,9 @@
  */
 import { useState, type ReactNode } from 'react';
 import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
+import { useToast } from '../../components/ToastContainer';
 import { useAuth } from '../../contexts/AuthContext';
 import type { DeviceInfo } from '../../types/device';
 import type { SortField } from '../../types/ui';
@@ -16,6 +18,7 @@ import { formatRelativeTime } from '../../utils/datetime';
 import { getDistanceToNode } from '../../utils/distance';
 import { getHardwareModelName } from '../../utils/nodeHelpers';
 import { formatDuration } from '../../utils/telemetryFormat';
+import { logger } from '../../utils/logger';
 import { useUserPreferences } from '../prefs/useUserPreferences';
 import styles from './NodesTable.module.css';
 
@@ -124,6 +127,8 @@ const known = new Set(NODE_COLUMNS.map((c) => c.id));
 
 /** The visible columns in order, saved to the signed-in user's preferences (a guest's last the page). */
 export function useNodeColumns(): [string[], (next: string[]) => void] {
+  const { t } = useTranslation();
+  const { showToast } = useToast();
   const { authStatus } = useAuth();
   const signedIn = authStatus?.authenticated === true;
   const { prefs, setPref } = useUserPreferences({ enabled: signedIn });
@@ -133,8 +138,11 @@ export function useNodeColumns(): [string[], (next: string[]) => void] {
   const columns = (signedIn ? stored : local) ?? DEFAULT_COLUMNS;
   const set = (next: string[]) => {
     if (!signedIn) return setLocal(next);
-    // A failed save rolls the preference back, so the column visibly returns.
-    setPref(COLUMNS_PREF, next).catch(() => {});
+    // A failed save rolls the preference back (the column returns) and says so, as the Layout page.
+    setPref(COLUMNS_PREF, next).catch((error: unknown) => {
+      logger.error('Failed to save the Nodes columns:', error);
+      showToast(t('common.save_failed'), 'error');
+    });
   };
   return [columns, set];
 }
