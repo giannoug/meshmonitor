@@ -7,9 +7,8 @@
  * unread counts the shell already polls, so it adds no request. The caller
  * shows it only where Classic shows DMs (`messages:read` on the device).
  *
- * shortcut: `/dm/:nodeId` re-hosts Classic's Messages tab, which opens the
- * conversation from `focusDmNodeId` once per mount; a second row clicked while
- * it is mounted only changes the URL. Task 2.4's DM thread replaces it.
+ * Each row has the board's presence dot: heard in the last 2 hours, the same
+ * window as the shell's "N online" count.
  */
 import { useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
@@ -20,6 +19,7 @@ import { appBasename } from '../../init';
 import { sourcePollQueryKey } from '../../hooks/pollQueryKey';
 import type { PollData } from '../../hooks/usePoll';
 import { useUnreadCounts } from '../../hooks/useUnreadCounts';
+import { isHeardRecently } from './channelLabel';
 import styles from './ChannelList.module.css';
 
 interface DmListProps {
@@ -49,10 +49,9 @@ export default function DmList({ sourceId, onNavigate }: DmListProps) {
     return [...latest].sort((a, b) => b[1] - a[1]).map(([id]) => id);
   }, [poll]);
 
-  const nameOf = (id: string) => {
-    const node = poll?.nodes?.find((n) => n.user?.id === id);
-    return node?.user?.longName || node?.user?.shortName || id;
-  };
+  const nodeOf = (id: string) => poll?.nodes?.find((n) => n.user?.id === id);
+  const nameOf = (id: string) => nodeOf(id)?.user?.longName || nodeOf(id)?.user?.shortName || id;
+  const lastHeardOf = (id: string) => nodeOf(id)?.lastHeard;
 
   return (
     <ul className={styles.list}>
@@ -63,13 +62,14 @@ export default function DmList({ sourceId, onNavigate }: DmListProps) {
           <li key={id}>
             <NavLink
               to={`/source/${encodeURIComponent(sourceId)}/dm/${encodeURIComponent(id)}`}
-              state={{ focusDmNodeId: id }}
               className={({ isActive }) => `${styles.row} ${isActive ? styles.on : ''} ${count > 0 ? styles.unread : ''}`}
               onClick={onNavigate}
               aria-label={count > 0 ? t('workspace.shell.device_unread', { name, count }) : undefined}
             >
-              {/* Lines the names up with the channels' "#". */}
-              <span className={styles.hash} aria-hidden="true" />
+              {/* In the channels' "#" column, so the names line up. */}
+              <span className={styles.hash} aria-hidden="true">
+                <span className={styles.presence} data-presence={isHeardRecently(lastHeardOf(id)) ? 'online' : 'offline'} />
+              </span>
               <span className={styles.name}>{name}</span>
               {count > 0 && <span className={styles.badge} aria-hidden="true">{count}</span>}
             </NavLink>

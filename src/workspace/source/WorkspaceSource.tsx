@@ -5,9 +5,9 @@
  * - Meshtastic-family sources (App): Classic URLs redirect to their Workspace
  *   form, and App sees the Classic location of a Workspace-only URL
  *   (`classicSourceLocation`), since it picks its tab from the path. A
- *   channel (`channel/<n>[/beacons]`) is the Workspace's own ChannelThread
- *   instead, with App not mounted (Ruling AD: one owner of the message state
- *   per screen).
+ *   channel (`channel/<n>[/beacons]`) is the Workspace's own ChannelThread,
+ *   and a DM (`dm/<nodeId>`) its own DmConversation, with App not mounted
+ *   (Ruling AD: one owner of the message state per screen).
  * - MeshCore / Reticulum: the view comes from the URL and view changes
  *   navigate. A MeshCore view the viewer may not open is replaced in the URL
  *   by the one the page shows.
@@ -48,8 +48,11 @@ const PAGES: SourcePages = {
 };
 
 const ChannelThread = lazy(() => import('../chat/ChannelThread.tsx'));
+const DmConversation = lazy(() => import('../chat/DmConversation.tsx'));
 /** `channel/<n>` and `channel/<n>/beacons`: the Workspace chat (Task 2.3). */
 const CHAT_PATH = /^channel\/(\d+)(\/beacons)?\/?$/;
+/** `dm/<nodeId>`: the Workspace DM (Task 2.4). */
+const DM_PATH = /^dm\/([^/]+)\/?$/;
 
 export default function WorkspaceSource() {
   const { t } = useTranslation();
@@ -115,6 +118,15 @@ export default function WorkspaceSource() {
     return (
       <Rehost>
         <ChannelThread key={sourceId} sourceId={sourceId} source={source} channel={Number(chat[1])} view={chat[2] ? 'beacons' : 'thread'} />
+      </Rehost>
+    );
+  }
+
+  const dm = source && splat.match(DM_PATH);
+  if (dm) {
+    return (
+      <Rehost>
+        <DmConversation key={sourceId} sourceId={sourceId} source={source} nodeId={dm[1]} />
       </Rehost>
     );
   }

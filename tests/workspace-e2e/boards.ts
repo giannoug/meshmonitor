@@ -66,7 +66,35 @@ export const BOARDS: Board[] = [
       await sheet.getByRole('button', { name: 'Replace and join' }).waitFor();
     },
   })),
-  // The MQTT mirror; the TX-disabled and guest states need other fixtures and are checked in Vitest.
-  { id: '10-05-read-only', size: 'desktop', path: '/source/src-mqtt/channel/0' },
-  { id: '10-14-read-only', size: 'phone', path: '/source/src-mqtt/channel/0' },
+  // The MQTT mirror, on a DM as the boards draw it (Task 2.4); the TX-disabled and guest states
+  // need other fixtures and are checked in Vitest.
+  { id: '10-05-read-only', size: 'desktop', path: '/source/src-mqtt/dm/!a1b2c301' },
+  { id: '10-14-read-only', size: 'phone', path: '/source/src-mqtt/dm/!a1b2c301' },
+  // Task 2.4: the DM, past "Message anyway", replying, with Purge data open (desktop) / the node actions sheet (phone).
+  {
+    id: '10-01-dm-conversation',
+    size: 'desktop',
+    path: '/source/src-g2/dm/!a1b2c301',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Message anyway' }).click();
+      const theirs = page.locator('[data-message-id]', { hasText: 'Can you run a traceroute to me?' });
+      await theirs.hover();
+      await theirs.getByRole('button', { name: 'Reply' }).click();
+      await page.getByTestId('dm-header').getByRole('button', { name: 'Data' }).click();
+      await page.getByRole('button', { name: /^Purge Data/ }).click();
+      const sheet = page.getByRole('dialog', { name: 'Purge Data for Kifisia Rooftop' });
+      await sheet.getByRole('checkbox', { name: 'Purge All Messages' }).check();
+      await sheet.getByRole('checkbox', { name: 'Purge Traceroutes' }).check();
+    },
+  },
+  {
+    id: '10-07-dm-conversation',
+    size: 'phone',
+    path: '/source/src-g2/dm/!a1b2c301',
+    setup: async (page) => {
+      await page.getByTestId('key-mismatch-warning').waitFor();
+      await page.getByRole('button', { name: 'Node actions' }).click();
+      await page.getByRole('dialog', { name: /Kifisia Rooftop/ }).getByRole('tab', { name: 'Ask the node' }).waitFor();
+    },
+  },
 ];

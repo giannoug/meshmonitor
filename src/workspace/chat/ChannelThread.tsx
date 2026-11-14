@@ -20,30 +20,23 @@
  * guest sees the channel and Login. Nothing here sends without a click.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
 import { UiIcon } from '../../components/icons';
 import { MuteMenu } from '../../components/notifications/MuteMenu';
 import { useBeaconOffers } from '../../components/beacons/useBeaconOffers';
 import { useAuth } from '../../contexts/AuthContext';
-import { DataProvider, useData } from '../../contexts/DataContext';
-import { MessagingProvider, useMessaging, useUnreadDividerAnchors } from '../../contexts/MessagingContext';
-import { SettingsProvider, useNotificationMuteSettings, useSettings } from '../../contexts/SettingsContext';
-import { SourceProvider, useSource } from '../../contexts/SourceContext';
-import { UIProvider, useUI } from '../../contexts/UIContext';
-import { WebSocketProvider } from '../../contexts/WebSocketContext';
+import { useData } from '../../contexts/DataContext';
+import { useMessaging, useUnreadDividerAnchors } from '../../contexts/MessagingContext';
+import { useNotificationMuteSettings, useSettings } from '../../contexts/SettingsContext';
+import { useSource } from '../../contexts/SourceContext';
+import { useUI } from '../../contexts/UIContext';
 import type { DashboardSource } from '../../hooks/useDashboardData';
-import { useCsrfFetch } from '../../hooks/useCsrfFetch';
 import { useFirstUnread } from '../../hooks/useFirstUnread';
-import { useMeshtasticMessageActions } from '../../hooks/useMeshtasticMessageActions';
-import { useMessagingView } from '../../hooks/useMessagingView';
-import { usePoll } from '../../hooks/usePoll';
 import { useChannels, useNodes } from '../../hooks/useServerData';
 import { useTxStatus } from '../../hooks/useTxStatus';
 import { useViewTranslations } from '../../hooks/useViewTranslations';
 import { appBasename } from '../../init';
-import apiService from '../../services/api';
 import type { MeshMessage } from '../../types/message';
 import type { ResourceType } from '../../types/permission';
 import { CHANNEL_DB_OFFSET, canReadChannel } from '../../utils/channelReadAccess';
@@ -58,6 +51,7 @@ import { useUserPreferences } from '../prefs/useUserPreferences';
 import { useShellDevices } from '../shell/shellDevices';
 import { useIsPhone } from '../shell/useIsPhone';
 import BeaconsPage from './BeaconsPage';
+import ChatProviders from './ChatProviders';
 import ChannelHeaderMenu from './ChannelHeaderMenu';
 import ChannelInfoSheet from './ChannelInfoSheet';
 import Composer from './Composer';
@@ -65,6 +59,7 @@ import MessageRowD, { type MessageActionKind } from './MessageRowD';
 import ReadOnlyNote from './ReadOnlyNote';
 import { channelLabel, heardToday, replyIdOf } from './channelLabel';
 import { useChannelDatabaseEntries } from './useChannelDatabaseEntries';
+import { useChatRuntime } from './useChatRuntime';
 import styles from './ChannelThread.module.css';
 
 export interface ChannelThreadRouteProps {
@@ -74,97 +69,13 @@ export interface ChannelThreadRouteProps {
   view: 'thread' | 'beacons';
 }
 
-/** The providers App mounts for itself, under the source's own SourceProvider and socket. */
+/** The providers App mounts for itself, with Classic's `/channels` location. */
 export default function ChannelThreadRoute({ sourceId, source, channel, view }: ChannelThreadRouteProps) {
-  const location = useLocation();
-  const classic = { ...location, pathname: `/source/${encodeURIComponent(sourceId)}/channels` };
   return (
-    <SourceProvider sourceId={sourceId} sourceName={source.name} sourceType={source.type}>
-      <WebSocketProvider>
-        <SettingsProvider baseUrl={appBasename}>
-          <DataProvider>
-            <Routes location={classic}>
-              <Route
-                path="*"
-                element={
-                  <UIProvider>
-                    <MessagingProvider baseUrl={appBasename}>
-                      <ChannelThread channel={channel} view={view} deviceName={source.name} />
-                    </MessagingProvider>
-                  </UIProvider>
-                }
-              />
-            </Routes>
-          </DataProvider>
-        </SettingsProvider>
-      </WebSocketProvider>
-    </SourceProvider>
+    <ChatProviders sourceId={sourceId} source={source} classicTab="channels">
+      <ChannelThread channel={channel} view={view} deviceName={source.name} />
+    </ChatProviders>
   );
-}
-
-/** App's poll processing for the message state: the poll, the local node, `applyPollMessages`. */
-function useChannelRuntime(channel: number) {
-  const { sourceId } = useSource();
-  const { sources } = useShellDevices();
-  const linkUp = sources.find((s) => s.id === sourceId)?.status === 'connected';
-  const { connectionStatus, setConnectionStatus, setCurrentNodeId, setDeviceInfo, setDeviceConfig } = useData();
-  const csrfFetch = useCsrfFetch();
-
-  // App's connection state machine is not here; the shell's per-source status stands in for it.
-  useEffect(() => setConnectionStatus(linkUp ? 'connected' : 'disconnected'), [linkUp, setConnectionStatus]);
-  const { data: pollData, refetch: refetchPoll } = usePoll({ enabled: connectionStatus === 'connected' });
-
-  const view = useMessagingView();
-  const { applyPollMessages } = view;
-  const localNodeIdRef = useRef('');
-  const selectedChannelRef = useRef(channel);
-  useEffect(() => {
-    selectedChannelRef.current = channel;
-  }, [channel]);
-
-  useEffect(() => {
-    if (!pollData) return;
-    const localNodeId =
-      (pollData.deviceConfig?.basic?.nodeId as string | undefined) ||
-      pollData.config?.localNodeInfo?.nodeId ||
-      localNodeIdRef.current;
-    if (localNodeId) {
-      localNodeIdRef.current = localNodeId;
-      setCurrentNodeId(localNodeId);
-    }
-    if (pollData.messages) applyPollMessages(pollData, localNodeId, selectedChannelRef.current);
-    if (pollData.config) setDeviceInfo(pollData.config);
-    if (pollData.deviceConfig) setDeviceConfig(pollData.deviceConfig);
-  }, [pollData, applyPollMessages, setCurrentNodeId, setDeviceInfo, setDeviceConfig]);
-
-  // The homoglyph setting, read at send time (App keeps it in a ref too). Same query as useTranslationSettings.
-  const { data: homoglyph = false } = useQuery({
-    queryKey: ['settings', 'translation'],
-    queryFn: () => apiService.get<Record<string, string>>('/api/settings'),
-    staleTime: 60_000,
-    select: (s: Record<string, string>) => s.homoglyphEnabled === 'true',
-  });
-  const homoglyphEnabledRef = useRef(false);
-  useEffect(() => {
-    homoglyphEnabledRef.current = homoglyph;
-  }, [homoglyph]);
-
-  // shortcut: csrfFetch has no CSRF-refresh retry or 10 s timeout like App's authFetch; share one when DMs (2.4) need it too.
-  const authFetch = useCallback((url: string, options?: RequestInit) => csrfFetch(url, options), [csrfFetch]);
-  const actions = useMeshtasticMessageActions({
-    baseUrl: appBasename,
-    authFetch,
-    refetchPoll,
-    setMessages: view.setMessages,
-    setChannelMessages: view.setChannelMessages,
-    pendingMessagesRef: view.pendingMessagesRef,
-    channelMessagesContainerRef: view.channelMessagesContainerRef,
-    dmMessagesContainerRef: view.dmMessagesContainerRef,
-    localNodeIdRef,
-    homoglyphEnabledRef,
-  });
-
-  return { view, actions, homoglyph, deviceConfig: pollData?.deviceConfig };
 }
 
 interface ChannelThreadProps {
@@ -180,7 +91,7 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
   const { authStatus, hasPermission, loading: authLoading } = useAuth();
   const { sourceId, sourceType } = useSource();
   const { sources } = useShellDevices();
-  const { view, actions, homoglyph, deviceConfig } = useChannelRuntime(channel);
+  const { view, actions, homoglyph, deviceConfig } = useChatRuntime(channel);
   const { channels } = useChannels();
   const { nodes } = useNodes();
   const { currentNodeId, connectionStatus } = useData();

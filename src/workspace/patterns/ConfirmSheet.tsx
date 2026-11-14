@@ -19,6 +19,8 @@ export interface ConfirmSheetProps {
   confirmWord?: string;
   danger?: boolean;
   busy?: boolean;
+  /** Keeps the confirm off, e.g. until a choice in `body` is made. */
+  confirmDisabled?: boolean;
   /**
    * A rejected promise (or a throw) keeps the sheet open and shows the error
    * inline (the Error's message, else the generic `errors.generic` copy); the
@@ -33,13 +35,13 @@ export default function ConfirmSheet(props: ConfirmSheetProps) {
 }
 
 /** Mounted only while open, so the typed word starts empty on every open. */
-function OpenConfirm({ title, body, consequences, confirmLabel, cancelLabel, confirmWord, danger, busy, onConfirm, onCancel }: ConfirmSheetProps) {
+function OpenConfirm({ title, body, consequences, confirmLabel, cancelLabel, confirmWord, danger, busy, confirmDisabled, onConfirm, onCancel }: ConfirmSheetProps) {
   const { t } = useTranslation();
   const id = useId();
   const [typed, setTyped] = useState('');
   const [error, setError] = useState<string | null>(null);
   const needsWord = !!confirmWord?.trim();
-  const canConfirm = !busy && (!needsWord || typed.trim() === confirmWord!.trim());
+  const canConfirm = !busy && !confirmDisabled && (!needsWord || typed.trim() === confirmWord!.trim());
 
   const submit = (e: FormEvent) => {
     e.preventDefault();

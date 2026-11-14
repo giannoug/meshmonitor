@@ -4,13 +4,14 @@
  * Boards 10-05 (desktop) and 10-14 (phone): today's three read-only states,
  * which the boards draw side by side (note s10n3), each rendered here on its
  * own and checked together:
- * - an MQTT mirror: no composer, today's reason, and a way to the radio;
+ * - an MQTT mirror: no composer, today's reason, and a way to the radio; the
+ *   board's frame is a DM there, whose header keeps Organise and Data;
  * - TX disabled: the controls stay, disabled, with today's tooltip;
  * - a guest: the channel, and Login.
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { cleanup, screen } from '@testing-library/react';
+import { cleanup, screen, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { athensFixture, SOURCE_IDS } from '../../__fixtures__/athens';
 import { joined, renderChat } from './renderChat';
@@ -36,6 +37,14 @@ async function mqttMirror(phone: boolean) {
   return container;
 }
 
+/** The board's frame: a DM on the MQTT mirror, with Organise and Data in its header (Task 2.4). */
+async function mqttMirrorDm(phone: boolean) {
+  const { container } = renderChat(`/source/${SOURCE_IDS.mqtt}/dm/!a1b2c301`, { phone });
+  await screen.findByText(/no radio of its own/);
+  await within(await screen.findByTestId('dm-header')).findByText('Kifisia Rooftop');
+  return container;
+}
+
 async function txDisabled(phone: boolean) {
   const { container } = renderChat(`/source/${SOURCE_IDS.g2}/channel/0`, { phone, fixtures: txOff });
   await screen.findByText(TX_TOOLTIP);
@@ -55,7 +64,7 @@ describe.each([
 ])('%s', (board, phone) => {
   it(`${board} shows the board`, async () => {
     const parts: string[] = [];
-    for (const state of [mqttMirror, txDisabled, asGuest]) {
+    for (const state of [mqttMirrorDm, txDisabled, asGuest]) {
       parts.push((await state(phone)).textContent ?? '');
       cleanup();
     }
@@ -64,6 +73,19 @@ describe.each([
 });
 
 describe('read-only states', () => {
+  it('a DM on an MQTT mirror hides the log, the composer and Ask the node; Organise and Data stay', async () => {
+    await mqttMirrorDm(false);
+    const head = within(screen.getByTestId('dm-header'));
+    expect(head.getByRole('button', { name: 'Organise' })).toBeInTheDocument();
+    expect(head.getByRole('button', { name: 'Data' })).toBeInTheDocument();
+    expect(head.queryByRole('button', { name: 'Ask the node' })).toBeNull();
+    expect(screen.queryByText('Can you run a traceroute to me?')).toBeNull();
+    expect(document.querySelector('textarea')).toBeNull();
+    // Not the unmessageable banner: the mirror's own note says why.
+    expect(screen.queryByRole('button', { name: 'Message anyway' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Open on Station G2' })).toHaveAttribute('href', `/source/${SOURCE_IDS.g2}/dm/!a1b2c301`);
+  });
+
   it("an MQTT mirror shows no composer and today's reason, with a way to a device with a radio", async () => {
     await mqttMirror(false);
     expect(screen.queryByRole('combobox')).toBeNull();

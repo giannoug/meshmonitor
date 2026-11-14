@@ -31,6 +31,7 @@ vi.mock('../../pages/MeshCoreSourcePage', async () => ({ default: (await import(
 vi.mock('../../pages/MeshCoreIngestSourcePage', async () => ({ default: (await import('./pageStub')).pageStub('meshcore-ingest') }));
 vi.mock('../../pages/ReticulumSourcePage', async () => ({ default: (await import('./pageStub')).pageStub('reticulum') }));
 vi.mock('../chat/ChannelThread', async () => ({ default: (await import('./pageStub')).pageStub('channel-thread') }));
+vi.mock('../chat/DmConversation', async () => ({ default: (await import('./pageStub')).pageStub('dm-conversation') }));
 
 /** Shows the real URL, and navigates client-side when its input changes. */
 function RealUrl() {
@@ -112,13 +113,21 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     [`${g2}/channel/0/beacons`, 'channel-thread'],
     [`/source/${SOURCE_IDS.mqtt}/channel/2`, 'channel-thread'],
     [`${g2}/channels`, 'app'],
-    [`${g2}/dm/!a1b2c301`, 'app'],
+    // A Meshtastic DM is the Workspace's own conversation, with App not mounted (Task 2.4, Ruling AD).
+    [`${g2}/dm/!a1b2c301`, 'dm-conversation'],
+    [`/source/${SOURCE_IDS.mqtt}/dm/!a1b2c301`, 'dm-conversation'],
     [`/source/${SOURCE_IDS.mqtt}/nodes`, 'app'],
     [`${heltec}/room/r1`, 'meshcore'],
     [`${rns}/interfaces`, 'reticulum'],
   ])('%s re-hosts %s', async (route, page) => {
     renderAt(route);
     await expectPage(page);
+  });
+
+  it('a Meshtastic DM does not mount the re-hosted App (one owner per screen)', async () => {
+    renderAt(`${g2}/dm/!a1b2c301`);
+    await expectPage('dm-conversation');
+    expect(screen.queryByTestId('page-app')).toBeNull();
   });
 
   it('honours the default landing page only on /', async () => {
@@ -180,7 +189,6 @@ describe('redirects', () => {
     [`${g2}/settings/notifications`, `${g2}/notifications`],
     [`${g2}/settings?node=`, `${g2}/admin`],
     [`${g2}/settings`, `${g2}/configuration`],
-    [`${g2}/dm/!a1b2c301`, `${g2}/messages`],
   ])('the re-hosted App at %s sees %s', async (route, seen) => {
     renderAt(route);
     await expectPage('app');

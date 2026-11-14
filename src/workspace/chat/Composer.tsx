@@ -32,7 +32,7 @@ export interface ComposerProps {
   /** Set when sending is off (TX disabled): the controls stay, disabled, with this tooltip. */
   disabledReason?: string;
   onSend(text: string, replyTo: MeshMessage | null): void;
-  /** Channel only: sends the bell, with the draft after it, and clears the draft. */
+  /** Sends the bell (on the channel, or as a DM), with the draft after it, and clears the draft. */
   onBell?(text: string): void;
   onSendPosition?(): void;
   /** The radio's hop limit, for the Sends line. */
@@ -79,9 +79,9 @@ export default function Composer(props: ComposerProps) {
           </button>
         </div>
       )}
-      {target.kind === 'channel' && (
+      {(target.kind === 'channel' || props.onBell || props.canTranslate) && (
         <div className={styles.chips}>
-          {props.onSendPosition && (
+          {target.kind === 'channel' && props.onSendPosition && (
             <button
               type="button"
               className={styles.chip}
@@ -102,7 +102,11 @@ export default function Composer(props: ComposerProps) {
               type="button"
               className={styles.chip}
               disabled={off}
-              title={chipTitle(t('workspace.chat.bell_title', { channel: target.name }))}
+              title={chipTitle(
+                target.kind === 'channel'
+                  ? t('workspace.chat.bell_title', { channel: target.name })
+                  : t('workspace.chat.bell_dm_title', { name: target.name }),
+              )}
               onClick={() => {
                 props.onBell?.(draft.get());
                 draft.set('');

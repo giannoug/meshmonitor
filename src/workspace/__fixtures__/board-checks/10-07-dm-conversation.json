@@ -2,15 +2,15 @@
   "must": [
     "Kifisia Rooftop",
     "Forward",
-    "Key mismatch",
+    "public key has changed",
     "Traceroute",
     "Ask the node",
     "Organise",
     "Data",
-    "Exchange NodeInfo",
-    "Request telemetry",
+    "Exchange Node Info",
+    "Request Telemetry",
     "Sends",
-    "Scan for admin"
+    "Scan for Admin"
   ],
   "absent": [],
   "source": "checks/s10.json"

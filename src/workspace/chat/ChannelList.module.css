@@ -47,6 +47,22 @@
   font-weight: 700;
 }
 
+/* DM rows' presence dot (heard in the last 2 hours), in the "#" column. */
+.presence {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  border: 2px solid var(--color-text-faint);
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.presence[data-presence='online'] {
+  border-color: var(--color-success);
+  background: var(--color-success);
+}
+
 .name {
   min-width: 0;
   overflow: hidden;

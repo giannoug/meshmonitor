@@ -2,7 +2,7 @@
  * The phone frame, below 768 px (D8; boards a-chat-D-phone, c-home-e2-switcher,
  * s1-you): a header naming the open device (or the Overview) that opens the
  * device switcher, the page, and the tab bar. You, Preferences and Server
- * pages, and a channel conversation (its own header), have no device header.
+ * pages, and a channel or DM conversation (its own header), have no device header.
  *
  * Re-hosted Classic pages reserve room for their own header and bottom bar
  * from `--app-header-height` and `--app-nav-bar-height`; here those carry the
@@ -46,8 +46,11 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
   useEffect(() => setSwitcherOpen(false), [pathname]);
 
   const source = sources.find((s) => s.id === openId);
-  // A Meshtastic channel conversation draws its own header (boards 10-06, 10-14).
-  const ownHeader = !!source && isMeshtasticFamily(source.type) && !!matchPath('/source/:id/channel/*', pathname);
+  // A Meshtastic conversation draws its own header (boards 10-06, 10-14; DMs 10-07).
+  const ownHeader =
+    !!source &&
+    isMeshtasticFamily(source.type) &&
+    (!!matchPath('/source/:id/channel/*', pathname) || !!matchPath('/source/:id/dm/:nodeId', pathname));
   const showHeader = mode !== 'you' && mode !== 'server' && !ownHeader;
   const title = source?.name ?? t('workspace.shell.overview');
   const active = source?.live?.activeNodeCount;

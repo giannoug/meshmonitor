@@ -31,6 +31,18 @@ const defaults: Record<string, FixtureHandler> = {
   'GET /api/messages/first-unread': () => ({ success: true, data: A.firstUnread }),
   // Older pages for a conversation's scroll-back: the poll already holds them all.
   'GET /api/messages/channel/:channel': () => ({ messages: [], hasMore: false }),
+  'GET /api/messages/direct/:a/:b': () => ({ messages: [], hasMore: false }),
+  // The DM's traceroute strip: the stored runs it can pick from, and the pair history for Statistical.
+  'GET /api/traceroutes/participation/:nodeNum': (url) => {
+    const nodeNum = Number(url.pathname.split('/')[4]);
+    const entries = A.traceroutes
+      .slice(1)
+      .filter((r) => r.fromNodeNum === nodeNum || r.toNodeNum === nodeNum)
+      .map((r) => ({ ...r, id: r.id!, channel: 0, participation: 'endpoint', hopCount: r.hopCount }));
+    return { success: true, data: { entries } };
+  },
+  'GET /api/traceroutes/history/:from/:to': () => A.traceroutes,
+  'GET /api/nodes/identity-changes': () => ({ success: true, data: { detections: [] } }),
   // The MQTT mirror reads the same mesh as Station G2.
   'GET /api/poll': (url) => {
     const sourceId = url.searchParams.get('sourceId');

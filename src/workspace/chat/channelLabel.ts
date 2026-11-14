@@ -41,3 +41,11 @@ export function heardToday(nodes: ReadonlyArray<{ lastHeard?: number }>, now = n
   const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 1000;
   return nodes.filter((n) => (n.lastHeard ?? 0) >= midnight).length;
 }
+
+/** The window of the server's active-node count ("N online", getActiveNodeCount): heard in the last 2 hours. */
+export const ONLINE_WINDOW_S = 7200;
+
+/** Heard within ONLINE_WINDOW_S, the same rule as the shell's "N online" (strictly newer than the cutoff). */
+export function isHeardRecently(lastHeard: number | undefined, nowMs = Date.now()): boolean {
+  return (lastHeard ?? 0) > Math.floor(nowMs / 1000) - ONLINE_WINDOW_S;
+}
