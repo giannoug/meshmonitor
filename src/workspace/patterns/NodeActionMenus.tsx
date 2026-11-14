@@ -1,8 +1,9 @@
 /**
  * NodeActionMenus (spec s10n0, boards 10-01 / 10-07): a node's actions in
  * three groups, Ask the node / Organise / Data, drawn as header menus
- * (`menus`), a phone sheet behind ⋯ (`sheet`), or cards (`tiles`, the node
- * page in section 15).
+ * (`menus`), a phone sheet behind ⋯ (`sheet`), the same sheet behind one
+ * button per group, opening on that group's tab (`buttons`, the phone map
+ * peek, s15n5), or cards (`tiles`, the node page in section 15).
  *
  * - Every item calls today's request through `useMeshtasticNodeActions` (or,
  *   for the three purges the hook does not hold, the same request App and
@@ -46,7 +47,7 @@ import Sheet from './Sheet';
 import styles from './NodeActionMenus.module.css';
 
 export type NodeProtocol = 'meshtastic' | 'meshcore' | 'reticulum' | 'mqtt';
-export type NodeMenusVariant = 'menus' | 'tiles' | 'sheet';
+export type NodeMenusVariant = 'menus' | 'tiles' | 'sheet' | 'buttons';
 type GroupKey = 'ask' | 'organise' | 'data';
 
 export interface NodeActionMenusProps {
@@ -88,6 +89,9 @@ const GROUP_LABELS: Record<GroupKey, string> = {
   organise: 'workspace.node_menu.organise',
   data: 'workspace.node_menu.data',
 };
+
+/** The `buttons` variant's icons (board g1-map). */
+const GROUP_ICONS: Record<GroupKey, UiIconName> = { ask: 'activity', organise: 'favorite', data: 'more' };
 
 /** Valid channel slot (0-7), as the server's isValidChannelIndex. */
 const isSlot = (n: unknown): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 7;
@@ -432,7 +436,9 @@ function MenusView({ variant, node, groups, organiseExtra, onOpenNodePage }: Men
       </div>
     );
   }
-  if (variant === 'sheet') return <NodeSheet node={node} keys={keys} list={list} onOpenNodePage={onOpenNodePage} />;
+  if (variant === 'sheet' || variant === 'buttons') {
+    return <NodeSheet node={node} keys={keys} list={list} onOpenNodePage={onOpenNodePage} perGroup={variant === 'buttons'} />;
+  }
   return (
     <div className={styles.menus}>
       {keys.map((k) => (
@@ -475,22 +481,38 @@ function NodeSheet({
   keys,
   list,
   onOpenNodePage,
+  perGroup,
 }: {
   node: DeviceInfo;
   keys: GroupKey[];
   list(key: GroupKey, done?: () => void): ReactNode;
   onOpenNodePage?(): void;
+  /** One button per group, opening the sheet on its tab, instead of ⋯; the host lays them out. */
+  perGroup?: boolean;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<GroupKey>(keys[0]);
   const name = node.user?.longName || node.user?.shortName || node.user?.id || '';
   const label = t('workspace.node_menu.title');
+  const openOn = (k: GroupKey) => {
+    setTab(k);
+    setOpen(true);
+  };
   return (
     <>
-      <button type="button" className={styles.more} aria-label={label} title={label} onClick={() => setOpen(true)}>
-        <UiIcon name="more" size={22} />
-      </button>
+      {perGroup ? (
+        keys.map((k) => (
+          <button key={k} type="button" onClick={() => openOn(k)}>
+            <UiIcon name={GROUP_ICONS[k]} size={22} />
+            {t(GROUP_LABELS[k])}
+          </button>
+        ))
+      ) : (
+        <button type="button" className={styles.more} aria-label={label} title={label} onClick={() => setOpen(true)}>
+          <UiIcon name="more" size={22} />
+        </button>
+      )}
       <Sheet
         open={open}
         onClose={() => setOpen(false)}

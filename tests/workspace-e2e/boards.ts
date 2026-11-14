@@ -255,6 +255,46 @@ export const BOARDS: Board[] = [
       await page.getByRole('complementary', { name: 'Neighbour link' }).waitFor();
     },
   },
+  // Task 3.2: the phone map, its peek sheet, the Layers sheet and the neighbour link sheet.
+  {
+    id: 'g1-map',
+    size: 'phone',
+    path: '/source/src-g2/map',
+    setup: async (page) => {
+      // The board's state: Show Traceroute off (today it defaults on, with its mode banner).
+      await page.getByRole('button', { name: 'Turn off Show Traceroute' }).click();
+      await page.getByRole('button', { name: 'Node list' }).click();
+      await page.getByRole('list', { name: 'On the map' }).getByRole('button', { name: /Kifisia Rooftop/ }).click();
+      await page.getByRole('dialog', { name: 'Kifisia Rooftop' }).getByText('Swipe up for the node page').waitFor();
+      // The centring fly-to runs up to ZOOM_ANIMATION_DURATION_MAX_SECONDS (2 s), then the tiles load.
+      await page.waitForTimeout(2500);
+    },
+  },
+  {
+    id: 'g2-layers',
+    size: 'phone',
+    path: '/source/src-g2/map',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Layers' }).click();
+      await page.getByRole('dialog', { name: 'Layers' }).getByText('Ducting').waitFor();
+    },
+  },
+  {
+    // As 15-09: the board's one-way hover card is built apart (D9c); the shot shows the peek.
+    id: '15-21-neighbour-peek',
+    size: 'phone',
+    path: '/source/src-g2/map',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Layers' }).click();
+      const sheet = page.getByRole('dialog', { name: 'Layers' });
+      await sheet.getByRole('switch', { name: 'Show Neighbor Info' }).click();
+      await sheet.getByRole('button', { name: 'Close' }).click();
+      // The link runs past the phone viewport, so a pointer click cannot land on it: send the DOM click to
+      // its hit line (the invisible companion after it, NEIGHBOR_LINK_HIT_WEIGHT), which Leaflet handles.
+      await page.locator('path.neighbor-line + path').first().dispatchEvent('click');
+      await page.getByRole('dialog', { name: /Neighbour link/ }).waitFor();
+    },
+  },
 ];
 
 async function searchRelay(page: Page): Promise<void> {

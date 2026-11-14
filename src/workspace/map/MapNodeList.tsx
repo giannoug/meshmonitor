@@ -1,7 +1,8 @@
 /**
  * "On the map · N" (board Main): the nodes the map draws, in the Nodes sort
  * order, each opening its peek. Collapses like today's node list beside the
- * map (the same UI setting), and leads to Nodes for the full table.
+ * map (the same UI setting), and leads to Nodes for the full table. The
+ * phone map shows the same rows (`MapNodeRows`) in a sheet.
  */
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -23,7 +24,6 @@ export interface MapNodeListProps {
 
 export default function MapNodeList({ sourceId, nodes, selectedId, hopsOf, onPick }: MapNodeListProps) {
   const { t } = useTranslation();
-  const { timeFormat, dateFormat } = useSettings();
   const { isNodeListCollapsed, setIsNodeListCollapsed } = useUI();
   const title = t('workspace.map.on_the_map');
 
@@ -45,6 +45,18 @@ export default function MapNodeList({ sourceId, nodes, selectedId, hopsOf, onPic
           <UiIcon name="back" size={18} />
         </button>
       </div>
+      <MapNodeRows sourceId={sourceId} nodes={nodes} selectedId={selectedId} hopsOf={hopsOf} onPick={onPick} />
+    </section>
+  );
+}
+
+/** The rows and "Open in Nodes": beside the desktop map, and in the phone map's list sheet. */
+export function MapNodeRows({ sourceId, nodes, selectedId, hopsOf, onPick }: MapNodeListProps) {
+  const { t } = useTranslation();
+  const { timeFormat, dateFormat } = useSettings();
+  const title = t('workspace.map.on_the_map');
+  return (
+    <>
       <ul className={styles.rows} aria-label={title}>
         {nodes.map((node) => {
           const hops = hopsOf(node);
@@ -78,6 +90,6 @@ export default function MapNodeList({ sourceId, nodes, selectedId, hopsOf, onPic
         {t('workspace.map.open_in_nodes')}
         <UiIcon name="chevronRight" size={16} />
       </Link>
-    </section>
+    </>
   );
 }

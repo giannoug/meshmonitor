@@ -3,7 +3,7 @@
  * or one-way, the transport, the distance, and the SNR each way with when it
  * was heard. The data is today's DashboardNeighborPopup's: the server keeps
  * one row per node pair and puts the reverse direction on it
- * (`reverseSnr` / `reverseTimestamp`).
+ * (`reverseSnr` / `reverseTimestamp`). On phone it is a bottom sheet (15-21).
  */
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
@@ -11,6 +11,8 @@ import type { EnrichedNeighborInfo } from '../../contexts/MapContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { formatRelativeTime } from '../../utils/datetime';
 import { calculateDistance, formatDistance } from '../../utils/distance';
+import Sheet from '../patterns/Sheet';
+import { useIsPhone } from '../shell/useIsPhone';
 import styles from './NodePeek.module.css';
 
 export type NeighbourLink = EnrichedNeighborInfo & { reverseSnr?: number | null; reverseTimestamp?: number | null };
@@ -22,6 +24,7 @@ const signed = (snr: number) => `${snr > 0 ? '+' : ''}${snr.toFixed(1)}`;
 
 export default function NeighbourPeek({ link, onClose }: { link: NeighbourLink; onClose(): void }) {
   const { t } = useTranslation();
+  const isPhone = useIsPhone();
   const { distanceUnit, timeFormat, dateFormat } = useSettings();
   const from = link.nodeName ?? link.nodeId ?? '';
   const to = link.neighborName ?? link.neighborNodeId ?? '';
@@ -45,19 +48,13 @@ export default function NeighbourPeek({ link, onClose }: { link: NeighbourLink; 
     </li>
   );
 
-  return (
-    <aside className={styles.peek} aria-labelledby="neighbour-peek-title">
-      <div className={styles.head}>
-        <div className={styles.titles}>
-          <p id="neighbour-peek-title" className={styles.eyebrow}>{t('workspace.map.neighbour_link')}</p>
-          <h2 className={styles.name}>
-            {from} <UiIcon name={both ? 'bidirectional' : 'forward'} size={18} /> {to}
-          </h2>
-        </div>
-        <button type="button" className={styles.close} onClick={onClose} aria-label={t('common.close')}>
-          <UiIcon name="close" size={18} />
-        </button>
-      </div>
+  const names = (
+    <>
+      {from} <UiIcon name={both ? 'bidirectional' : 'forward'} size={18} /> {to}
+    </>
+  );
+  const details = (
+    <>
       <dl className={styles.stats}>
         <div>
           <dt>{t('workspace.map.link')}</dt>
@@ -78,6 +75,38 @@ export default function NeighbourPeek({ link, onClose }: { link: NeighbourLink; 
         {direction(from, to, link.snr, link.timestamp, true)}
         {hasReverse && direction(to, from, link.reverseSnr, link.reverseTimestamp, false)}
       </ul>
+    </>
+  );
+
+  if (isPhone) {
+    return (
+      <Sheet
+        open
+        onClose={onClose}
+        side="bottom"
+        title={
+          <span className={styles.sheetTitle}>
+            <span className={styles.eyebrow}>{t('workspace.map.neighbour_link')}</span>
+            <span className={styles.path}>{names}</span>
+          </span>
+        }
+      >
+        <div className={styles.phone}>{details}</div>
+      </Sheet>
+    );
+  }
+  return (
+    <aside className={styles.peek} aria-labelledby="neighbour-peek-title">
+      <div className={styles.head}>
+        <div className={styles.titles}>
+          <p id="neighbour-peek-title" className={styles.eyebrow}>{t('workspace.map.neighbour_link')}</p>
+          <h2 className={styles.name}>{names}</h2>
+        </div>
+        <button type="button" className={styles.close} onClick={onClose} aria-label={t('common.close')}>
+          <UiIcon name="close" size={18} />
+        </button>
+      </div>
+      {details}
     </aside>
   );
 }

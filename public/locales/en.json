@@ -8685,5 +8685,6 @@
   "workspace.map.one_way": "One-way",
   "workspace.map.link_snr": "SNR {{snr}} dB",
   "workspace.map.no_report_back": "no report back",
-  "workspace.map.not_connected": "Connect to a Meshtastic node to view node locations on the map"
+  "workspace.map.not_connected": "Connect to a Meshtastic node to view node locations on the map",
+  "workspace.map.swipe_up": "Swipe up for the node page"
 }

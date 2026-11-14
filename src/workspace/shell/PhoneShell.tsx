@@ -51,14 +51,15 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
   useEffect(() => setSwitcherOpen(false), [pathname]);
 
   const source = sources.find((s) => s.id === openId);
-  // A Meshtastic conversation draws its own header (boards 10-06, 10-14; DMs 10-07), and so do the inbox (c-home-e3) and Activity (c-home-e4).
+  // A Meshtastic conversation draws its own header (boards 10-06, 10-14; DMs 10-07), and so do the inbox (c-home-e3), Activity (c-home-e4) and the full-screen map (g1-map).
   const ownHeader =
     !!source &&
     isMeshtasticFamily(source.type) &&
     (!!matchPath('/source/:id/channel/*', pathname) ||
       !!matchPath('/source/:id/dm/:nodeId', pathname) ||
       !!matchPath('/source/:id/dms', pathname) ||
-      !!matchPath('/source/:id/activity', pathname));
+      !!matchPath('/source/:id/activity', pathname) ||
+      !!matchPath('/source/:id/map', pathname));
   const quick = source ? sources.filter((s) => s.id !== source.id).slice(0, QUICK_SQUARES) : [];
   const showHeader = mode !== 'you' && mode !== 'server' && !ownHeader;
   const title = source?.name ?? t('workspace.shell.overview');

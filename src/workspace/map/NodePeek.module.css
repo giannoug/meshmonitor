@@ -192,3 +192,94 @@
   align-items: center;
   gap: 6px;
 }
+
+/* Phone (boards g1-map, 15-21): the peeks are bottom sheets. */
+.phone {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 16px 8px;
+}
+
+/* A link's three stats sized to their words (15-21: "Bidirectional"); a node's four across, as g1-map. */
+.phone .stats {
+  grid-template-columns: repeat(3, auto);
+  justify-content: space-between;
+}
+
+.phone[data-node] .stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* Message and the three node menus (NodeActionMenus `buttons`) as tiles. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tiles > a,
+.tiles > button {
+  min-height: 64px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+
+.tiles > a.message {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.tiles > button:hover {
+  background: var(--color-surface-hover);
+}
+
+.tiles > button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.phone .open {
+  min-height: 44px;
+}
+
+.swipe {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}
+
+.phone .directions {
+  margin: 0 -16px;
+}
+
+.phone .direction {
+  min-height: 52px;
+  box-sizing: border-box;
+  justify-content: center;
+  padding: 8px 16px;
+}
+
+/* The neighbour sheet's title: the eyebrow over A ↔ B. */
+.sheetTitle {
+  display: flex;
+  flex-direction: column;
+}

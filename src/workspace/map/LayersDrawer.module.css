@@ -220,3 +220,8 @@
   color: var(--color-text-subtle);
   font-size: 14px;
 }
+
+/* The phone Layers sheet (g2-layers): the same groups, with 52 px rows. */
+.phone .row {
+  min-height: 52px;
+}

@@ -48,7 +48,7 @@ describe('c-home-e1-home', () => {
   it('tiles lead to the shell destinations; Automation and Tools to the re-hosted pages', async () => {
     await home();
     const tiles = within(screen.getByRole('navigation', { name: 'Device tools' }));
-    expect(tiles.getByRole('link', { name: 'Map' })).toHaveAttribute('href', `${g2}/nodes`);
+    expect(tiles.getByRole('link', { name: 'Map' })).toHaveAttribute('href', `${g2}/map`);
     expect(tiles.getByRole('link', { name: /^Nodes · 12/ })).toHaveAttribute('href', `${g2}/nodes`);
     expect(tiles.getByRole('link', { name: 'Automation' })).toHaveAttribute('href', `${g2}/automation`);
     expect(tiles.getByRole('link', { name: 'Tools' })).toHaveAttribute('href', `${g2}/info`);

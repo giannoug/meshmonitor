@@ -1,9 +1,10 @@
 /**
- * The device map (boards Main, f2-layers, 15-09): `/source/:id/map` on a
- * Meshtastic-family device. The map composes `BaseMap` and today's layers
- * (`DeviceMapLayers`, shared with NodesTab); a toolbar, the "On the map"
- * list, and one right-hand panel at a time: a node's peek, a neighbour
- * link's peek, or the Layers drawer.
+ * The device map (boards Main, f2-layers, 15-09; phone g1-map, g2-layers,
+ * 15-21): `/source/:id/map` on a Meshtastic-family device. The map composes
+ * `BaseMap` and today's layers (`DeviceMapLayers`, shared with NodesTab); a
+ * toolbar, the "On the map" list, and one right-hand panel at a time: a
+ * node's peek, a neighbour link's peek, or the Layers drawer. On a phone the
+ * same map and data get PhoneMap's controls, and each panel is a bottom sheet.
  *
  * One owner per screen (Ruling AD): App is not mounted here. The screen runs
  * the source's node state with the hooks App uses (useChatRuntime's poll,
@@ -66,7 +67,7 @@ import api from '../../services/api';
 import type { DbTraceroute } from '../../services/database';
 import type { DeviceInfo } from '../../types/device';
 import { getEffectivePosition } from '../../utils/nodeHelpers';
-import { resolveClusteredMapCenterTargetZoom } from '../../utils/mapZoomAnimation';
+import { computeClampedTargetZoom, resolveClusteredMapCenterTargetZoom } from '../../utils/mapZoomAnimation';
 import type { PacketFlightStats } from '../../utils/packetFlightEdges';
 import ChatProviders from '../chat/ChatProviders';
 import { useChatRuntime } from '../chat/useChatRuntime';
@@ -77,6 +78,8 @@ import MapNodeList from './MapNodeList';
 import MapToolbar, { MapControls } from './MapToolbar';
 import NeighbourPeek, { type NeighbourLink } from './NeighbourPeek';
 import NodePeek from './NodePeek';
+import PhoneMap from './PhoneMap';
+import { useIsPhone } from '../shell/useIsPhone';
 import { markerKey, useDeviceMap } from './useDeviceMap';
 import styles from './DeviceMap.module.css';
 
@@ -104,7 +107,8 @@ export default function DeviceMapRoute({ sourceId, source }: DeviceMapRouteProps
   );
 }
 
-type Panel = { kind: 'layers' } | { kind: 'node'; key: string } | { kind: 'link'; link: NeighbourLink } | null;
+/** `list`: the phone's node list sheet (desktop shows the list beside the map). */
+type Panel = { kind: 'layers' } | { kind: 'list' } | { kind: 'node'; key: string } | { kind: 'link'; link: NeighbourLink } | null;
 
 /** Leaflet polylines take colours, not CSS variables: read the theme's, as App does. */
 function themeColors(overlay: OverlayColors): ThemeColors {
@@ -133,6 +137,7 @@ interface DeviceMapProps {
 
 function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
   const { t } = useTranslation();
+  const isPhone = useIsPhone();
   const { pollData } = useChatRuntime(-1);
   const map = useMapContext();
   const { setTraceroutes, setNeighborInfo, setSelectedNodeId, setMapCenterTarget } = map;
@@ -227,11 +232,22 @@ function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
     },
     [data.nodePositions],
   );
+  const centerZoom = resolveClusteredMapCenterTargetZoom(settings.mapCenterTargetZoom, data.clusterZoomThreshold);
+  /**
+   * MapCenterController leaves its target a quarter of the map below centre (room for a popup above it).
+   * On phone the peek sheet covers the lower half, so aim half a map lower: the node lands a quarter from the top.
+   */
+  const centerTarget = (p: [number, number]): [number, number] => {
+    if (!isPhone || !leaflet) return p;
+    const zoom = computeClampedTargetZoom(leaflet.getZoom(), centerZoom);
+    const ll = leaflet.unproject(leaflet.project(p, zoom).add([0, leaflet.getContainer().clientHeight / 2]), zoom);
+    return [ll.lat, ll.lng];
+  };
   const openNode = (node: DeviceInfo, center: boolean) => {
     setPanel({ kind: 'node', key: markerKey(node) });
     setSelectedNodeId(node.user?.id ?? null);
     const p = center ? positionOf(node) : null;
-    if (p) setMapCenterTarget(p);
+    if (p) setMapCenterTarget(centerTarget(p));
   };
   const closePanel = () => {
     if (panel?.kind === 'node') setSelectedNodeId(null);
@@ -277,6 +293,35 @@ function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
   }, [leaflet, startOnNodes, !!firstFix]);
 
   const sourceIds = useMemo(() => [sourceId], [sourceId]);
+  const status = (
+    <>
+      {map.showNeighborInfo && (
+        // Above the Traceroute mode banner, which takes the bottom centre.
+        <p className={styles.hint} role="status" data-raised={map.showRoute || undefined}>
+          <UiIcon name="map" size={16} />
+          {t('workspace.map.neighbours_hint')}
+        </p>
+      )}
+      {map.showRoute && (
+        <MapModeIndicator
+          icon="route"
+          label={t('map.tracerouteModeActive', 'Traceroute mode')}
+          hint={t('map.tracerouteModeHint', 'Clicking a node with a stored route shows its path instead of its info popup')}
+          onDisable={() => map.setShowRoute(false)}
+          disableLabel={t('map.tracerouteModeDisable', 'Turn off Show Traceroute')}
+        />
+      )}
+    </>
+  );
+  const controls = !effective3D && (
+    <MapControls
+      canFit={fitPositions.length > 0}
+      onFit={fitAll}
+      measureActive={measureActive}
+      measureDisabled={data.measurePoints.length < 2}
+      onMeasure={setMeasureActive}
+    />
+  );
 
   return (
     <div className={styles.page}>
@@ -316,7 +361,7 @@ function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
             <MapCenterController
               centerTarget={map.mapCenterTarget}
               onCenterComplete={() => setMapCenterTarget(null)}
-              targetZoom={resolveClusteredMapCenterTargetZoom(settings.mapCenterTargetZoom, data.clusterZoomThreshold)}
+              targetZoom={centerZoom}
             />
             <ZoomHandler onZoomChange={mapView.setZoom} />
             <MapPositionHandler />
@@ -367,51 +412,45 @@ function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
         )}
         {isLoading && <MapLoadingOverlay />}
 
-        <div className={styles.overlay}>
-          <MapToolbar layersOpen={panel?.kind === 'layers'} onLayers={() => (panel?.kind === 'layers' ? closePanel() : setPanel({ kind: 'layers' }))} />
-          <div className={styles.columns}>
-            <MapNodeList
-              sourceId={sourceId}
-              nodes={data.visibleMapNodes}
-              selectedId={map.selectedNodeId}
-              hopsOf={data.hopsOf}
-              onPick={(node) => openNode(node, true)}
-            />
-            <span className={styles.spacer} />
-            <div className={styles.panel}>
-              {panel?.kind === 'layers' && <LayersDrawer groups={layers.groups} onClose={closePanel} />}
-              {panel?.kind === 'link' && <NeighbourPeek link={panel.link} onClose={closePanel} />}
+        {isPhone ? (
+          <PhoneMap
+            sourceId={sourceId}
+            sheet={panel?.kind === 'layers' || panel?.kind === 'list' ? panel.kind : null}
+            onSheet={(kind) => setPanel({ kind })}
+            onCloseSheet={closePanel}
+            groups={layers.groups}
+            nodes={data.visibleMapNodes}
+            selectedId={map.selectedNodeId}
+            hopsOf={data.hopsOf}
+            onPick={(node) => openNode(node, true)}
+            controls={controls}
+            status={status}
+          />
+        ) : (
+          <div className={styles.overlay}>
+            <MapToolbar layersOpen={panel?.kind === 'layers'} onLayers={() => (panel?.kind === 'layers' ? closePanel() : setPanel({ kind: 'layers' }))} />
+            <div className={styles.columns}>
+              <MapNodeList
+                sourceId={sourceId}
+                nodes={data.visibleMapNodes}
+                selectedId={map.selectedNodeId}
+                hopsOf={data.hopsOf}
+                onPick={(node) => openNode(node, true)}
+              />
+              <span className={styles.spacer} />
+              <div className={styles.panel}>
+                {panel?.kind === 'layers' && <LayersDrawer groups={layers.groups} onClose={closePanel} />}
+                {panel?.kind === 'link' && <NeighbourPeek link={panel.link} onClose={closePanel} />}
+              </div>
+            </div>
+            <div className={styles.foot}>
+              {status}
+              <span className={styles.spacer} />
+              {controls}
             </div>
           </div>
-          <div className={styles.foot}>
-            {map.showNeighborInfo && (
-              // Above the Traceroute mode banner, which takes the bottom centre.
-              <p className={styles.hint} role="status" data-raised={map.showRoute || undefined}>
-                <UiIcon name="map" size={16} />
-                {t('workspace.map.neighbours_hint')}
-              </p>
-            )}
-            {map.showRoute && (
-              <MapModeIndicator
-                icon="route"
-                label={t('map.tracerouteModeActive', 'Traceroute mode')}
-                hint={t('map.tracerouteModeHint', 'Clicking a node with a stored route shows its path instead of its info popup')}
-                onDisable={() => map.setShowRoute(false)}
-                disableLabel={t('map.tracerouteModeDisable', 'Turn off Show Traceroute')}
-              />
-            )}
-            <span className={styles.spacer} />
-            {!effective3D && (
-              <MapControls
-                canFit={fitPositions.length > 0}
-                onFit={fitAll}
-                measureActive={measureActive}
-                measureDisabled={data.measurePoints.length < 2}
-                onMeasure={setMeasureActive}
-              />
-            )}
-          </div>
-        </div>
+        )}
+        {isPhone && panel?.kind === 'link' && <NeighbourPeek link={panel.link} onClose={closePanel} />}
         {/* The node peek is a side panel here and a sheet on phone (NodePeek decides). */}
         {peekNode && (
           <div className={styles.peekSlot}>

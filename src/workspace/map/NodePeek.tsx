@@ -2,7 +2,8 @@
  * A node's map peek (board Main, ds1, s15n4: today's map NodePopup): who it
  * is, its signal, the last traceroute, then Message, the three node menus and
  * Open node page. A side panel on desktop and a bottom sheet on phone; the
- * map stays in view either way.
+ * map stays in view either way. On phone, swiping the sheet up opens the
+ * node page too (g1-map), and Open node page stays as the keyboard path.
  *
  * Gates are today's: Message needs messages:read (the popup's "More
  * details"), the node menus need a signed-in viewer (as the DM header), and
@@ -103,37 +104,37 @@ export default function NodePeek({ node, sourceId, onClose }: NodePeekProps) {
     </div>
   );
 
-  const body = (
-    <>
-      {stats.length > 0 && <dl className={styles.stats}>{stats}</dl>}
-      {!isHome && (
-        <div className={styles.route}>
-          <TracerouteBody recentTraceroute={recent} nodes={nodes} distanceUnit={distanceUnit} />
-        </div>
-      )}
-      {canMessage && (
-        <Link className={styles.message} to={`${base}/dm/${encodeURIComponent(nodeId)}`}>
-          <UiIcon name="messages" size={18} />
-          {t('workspace.map.message')}
-        </Link>
-      )}
-      {signedIn && (
-        <div className={styles.menus}>
-          <NodeActionMenus key={nodeId} protocol={protocol} sourceId={sourceId} node={node} variant={isPhone ? 'sheet' : 'menus'} onOpenNodePage={openNodePage} />
-        </div>
-      )}
-      <Link className={styles.open} to={nodePage} state={{ focusDmNodeId: nodeId }}>
-        {t('workspace.map.open_node_page')}
-        <UiIcon name="chevronRight" size={16} />
-      </Link>
-    </>
+  const statList = stats.length > 0 && <dl className={styles.stats}>{stats}</dl>;
+  const message = canMessage && (
+    <Link className={styles.message} to={`${base}/dm/${encodeURIComponent(nodeId)}`}>
+      <UiIcon name="messages" size={isPhone ? 22 : 18} />
+      {t('workspace.map.message')}
+    </Link>
+  );
+  const openPage = (
+    <Link className={styles.open} to={nodePage} state={{ focusDmNodeId: nodeId }}>
+      {t('workspace.map.open_node_page')}
+      <UiIcon name="chevronRight" size={16} />
+    </Link>
   );
 
+  // Phone (g1-map, s15n5): Message and the three menus as tiles; the last route is on the node page.
   if (isPhone) {
     return (
-      <Sheet open onClose={onClose} title={name} side="bottom">
-        {head}
-        {body}
+      <Sheet open onClose={onClose} title={name} side="bottom" onSwipeUp={openNodePage}>
+        <div className={styles.phone} data-node="">
+          {head}
+          {statList}
+          <div className={styles.tiles}>
+            {message}
+            {signedIn && <NodeActionMenus key={nodeId} protocol={protocol} sourceId={sourceId} node={node} variant="buttons" onOpenNodePage={openNodePage} />}
+          </div>
+          {openPage}
+          <p className={styles.swipe}>
+            <UiIcon name="chevronUp" size={16} />
+            {t('workspace.map.swipe_up')}
+          </p>
+        </div>
       </Sheet>
     );
   }
@@ -145,7 +146,19 @@ export default function NodePeek({ node, sourceId, onClose }: NodePeekProps) {
           <UiIcon name="close" size={18} />
         </button>
       </div>
-      {body}
+      {statList}
+      {!isHome && (
+        <div className={styles.route}>
+          <TracerouteBody recentTraceroute={recent} nodes={nodes} distanceUnit={distanceUnit} />
+        </div>
+      )}
+      {message}
+      {signedIn && (
+        <div className={styles.menus}>
+          <NodeActionMenus key={nodeId} protocol={protocol} sourceId={sourceId} node={node} variant="menus" onOpenNodePage={openNodePage} />
+        </div>
+      )}
+      {openPage}
     </aside>
   );
 }

@@ -111,3 +111,8 @@
   padding: 12px 20px;
   border-top: 1px solid var(--color-surface);
 }
+
+/* A swipe-up sheet (onSwipeUp) takes vertical drags itself, so the browser does not pan or cancel them. */
+.sheet[data-swipe] {
+  touch-action: pan-x;
+}

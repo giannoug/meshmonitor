@@ -1,0 +1,106 @@
+/*
+ * The phone map (boards g1-map, g2-layers): Back, the search pill and Layers
+ * across the top, the map buttons down the right, over a full-screen map.
+ */
+
+/* Above Leaflet's panes and controls; only the floating parts take the pointer. */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  pointer-events: none;
+}
+
+.top,
+.side,
+.status {
+  display: flex;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.top > *,
+.side > *,
+.status > * {
+  pointer-events: auto;
+}
+
+.side {
+  align-self: flex-end;
+  flex-direction: column;
+}
+
+.status {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* 44 px: the board's map buttons (g1-map), as the desktop map's. */
+.button {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-surface);
+  border-radius: 10px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.pill {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--color-surface);
+  border-radius: 10px;
+  background: var(--color-bg-raised);
+  color: var(--color-text-subtle);
+}
+
+.pill input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 16px; /* 16 px or more: iOS does not zoom the page on focus. */
+  outline: none;
+}
+
+.button:focus-visible,
+.pill:focus-within {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

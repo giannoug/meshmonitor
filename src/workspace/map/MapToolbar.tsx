@@ -16,22 +16,31 @@ export interface MapToolbarProps {
   onLayers(): void;
 }
 
+/** Today's node list filter (shared with Nodes): the toolbar's search, and the phone map's search pill. */
+export function MapSearch({ className = styles.search }: { className?: string }) {
+  const { t } = useTranslation();
+  const { nodesNodeFilter, setNodesNodeFilter } = useUI();
+  return (
+    <label className={className}>
+      <UiIcon name="search" size={18} />
+      <input
+        type="search"
+        value={nodesNodeFilter}
+        onChange={(e) => setNodesNodeFilter(e.target.value)}
+        placeholder={t('nodes.filter_placeholder')}
+        aria-label={t('nodes.filter_title')}
+      />
+    </label>
+  );
+}
+
 export default function MapToolbar({ layersOpen, onLayers }: MapToolbarProps) {
   const { t } = useTranslation();
   const { maxNodeAgeHours } = useSettings();
-  const { nodesNodeFilter, setNodesNodeFilter, setShowNodeFilterPopup } = useUI();
+  const { setShowNodeFilterPopup } = useUI();
   return (
     <div className={styles.toolbar}>
-      <label className={styles.search}>
-        <UiIcon name="search" size={18} />
-        <input
-          type="search"
-          value={nodesNodeFilter}
-          onChange={(e) => setNodesNodeFilter(e.target.value)}
-          placeholder={t('nodes.filter_placeholder')}
-          aria-label={t('nodes.filter_title')}
-        />
-      </label>
+      <MapSearch />
       <span className={styles.chip}>
         <NodeQuickAgeFilter settingsHours={maxNodeAgeHours} />
       </span>
