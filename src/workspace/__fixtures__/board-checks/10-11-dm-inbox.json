@@ -1,14 +1,13 @@
 {
   "must": [
-    "Search direct messages",
-    "All conversations",
-    "Unread only",
-    "Recent (24 h)",
-    "By hops",
-    "Favourites",
-    "With position",
-    "No infrastructure",
-    "Mark all read",
+    "All Conversations",
+    "Unread Only",
+    "Recent (24h)",
+    "By Hops",
+    "Favorites",
+    "With Position",
+    "Exclude Infrastructure",
+    "Mark All Read",
     "Pin"
   ],
   "absent": [],

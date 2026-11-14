@@ -86,3 +86,10 @@
   font-size: 12px;
   font-weight: 700;
 }
+
+/* The device Home on the phone (board c-home-e1): 52 px rows. */
+.large {
+  min-height: 52px;
+  font-size: 17px;
+  gap: 14px;
+}

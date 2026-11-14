@@ -109,6 +109,8 @@ interface MarkAsReadOptions {
   nodeId?: string;
   /** Mark ALL DMs as read (across all nodes) */
   allDMs?: boolean;
+  /** The source whose local node's DMs (and whose permissions) apply; omitted, the server's primary */
+  sourceId?: string;
 }
 
 /**

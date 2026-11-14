@@ -151,8 +151,10 @@ describe('DeviceSidebar', () => {
       ['Device Configuration', '/source/src-g2/settings'],
       ['More tools…', '/source/src-g2/info'],
       // Channels lists the device's channels from the page's poll (Task 2.3; none here).
-      ['Message a node', '/source/src-g2/messages'],
+      ['Message a node', '/source/src-g2/dms'],
     ]);
+    // Task 2.6: message search opens from the top of the device sidebar.
+    expect(within(side).getByRole('button', { name: /^Search Messages/ })).toBeInTheDocument();
   });
 
   it('device mode follows the device type (MeshCore views)', async () => {

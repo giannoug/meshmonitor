@@ -2,10 +2,12 @@
  * The sidebar of layout D (board a-chat-D-desktop, note asD). Its content
  * follows the route (spec §5.3):
  *
- * - `device`: header (device name, status line), the device's tools, then
+ * - `device`: header (device name, status line), the Search Messages field
+ *   (Task 2.6; with its ⌘K / Ctrl+K hint) where the viewer can search, the device's tools, then
  *   Channels and Direct messages. A Meshtastic-family device lists its
  *   channels and DM conversations (Task 2.3); other types link to today's
- *   tabs. "Message a node" still opens today's DM tab.
+ *   tabs. "Message a node" opens the DM inbox (Meshtastic family, Task 2.6)
+ *   or today's DM tab.
  * - `settings` / `server` / `you`: the categories of the re-hosted settings
  *   pages, as links to their Workspace URLs (Phases 5 and 6 rebuild them).
  * - `overview`: the all-devices tools (note ds3).
@@ -47,9 +49,11 @@ interface DeviceSidebarProps {
   source: WorkspaceSource | undefined;
   /** Called after a row is followed (closes the drawer). */
   onNavigate?: () => void;
+  /** Opens message search for this device; null where the viewer cannot search it. */
+  onSearch?: (() => void) | null;
 }
 
-export default function DeviceSidebar({ mode, sourceId, source, onNavigate }: DeviceSidebarProps) {
+export default function DeviceSidebar({ mode, sourceId, source, onNavigate, onSearch }: DeviceSidebarProps) {
   const { t } = useTranslation();
   const { authStatus, hasPermission } = useAuth();
   const isAdmin = authStatus?.authenticated === true && authStatus.user?.isAdmin === true;
@@ -137,8 +141,17 @@ export default function DeviceSidebar({ mode, sourceId, source, onNavigate }: De
   const channels = tab('channels');
   const dms = tab('dms');
 
+  const mac = /Mac|iP(hone|ad|od)/.test(navigator.platform);
+
   return (
     <Frame title={source.name} header={header}>
+      {onSearch && (
+        <button type="button" className={styles.search} onClick={onSearch}>
+          <UiIcon name="search" size={16} />
+          <span className={styles.label}>{t('search.title')}</span>
+          <kbd className={styles.kbd}>{t(mac ? 'workspace.search.shortcut_mac' : 'workspace.search.shortcut_other')}</kbd>
+        </button>
+      )}
       {list(rows)}
       {channels && (
         <SidebarSection title={t('channels.title')}>

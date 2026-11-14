@@ -32,6 +32,8 @@ vi.mock('../../pages/MeshCoreIngestSourcePage', async () => ({ default: (await i
 vi.mock('../../pages/ReticulumSourcePage', async () => ({ default: (await import('./pageStub')).pageStub('reticulum') }));
 vi.mock('../chat/ChannelThread', async () => ({ default: (await import('./pageStub')).pageStub('channel-thread') }));
 vi.mock('../chat/DmConversation', async () => ({ default: (await import('./pageStub')).pageStub('dm-conversation') }));
+vi.mock('../chat/DmInbox', async () => ({ default: (await import('./pageStub')).pageStub('dm-inbox') }));
+vi.mock('../chat/PhoneHome', async () => ({ default: (await import('./pageStub')).pageStub('phone-home') }));
 
 /** Shows the real URL, and navigates client-side when its input changes. */
 function RealUrl() {
@@ -106,7 +108,6 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     [`${g2}/settings/lora`, 'app'],
     [`${g2}/node/!a1b2c301`, 'app'],
     [`${g2}/node/!a1b2c301/telemetry`, 'app'],
-    [`${g2}/dms`, 'app'],
     [`${g2}/activity`, 'app'],
     // A Meshtastic channel is the Workspace's own thread, with App not mounted (Task 2.3, Ruling AD).
     [`${g2}/channel/0`, 'channel-thread'],
@@ -117,6 +118,11 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     [`${g2}/dm/!a1b2c301`, 'dm-conversation'],
     [`/source/${SOURCE_IDS.mqtt}/dm/!a1b2c301`, 'dm-conversation'],
     [`/source/${SOURCE_IDS.mqtt}/nodes`, 'app'],
+    // The DM inbox is the Workspace's own (Task 2.6, Ruling AD); a desktop bare source URL keeps App.
+    [`${g2}/dms`, 'dm-inbox'],
+    [`/source/${SOURCE_IDS.mqtt}/dms`, 'dm-inbox'],
+    [g2, 'app'],
+    [`${heltec}/dms`, 'meshcore'],
     [`${heltec}/room/r1`, 'meshcore'],
     [`${rns}/interfaces`, 'reticulum'],
   ])('%s re-hosts %s', async (route, page) => {
@@ -128,6 +134,22 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     renderAt(`${g2}/dm/!a1b2c301`);
     await expectPage('dm-conversation');
     expect(screen.queryByTestId('page-app')).toBeNull();
+  });
+
+  it.each([
+    [`${g2}/dms`, 'dm-inbox', false],
+    [`${g2}/dms`, 'dm-inbox', true],
+    [g2, 'phone-home', true],
+  ])('%s shows %s, with App not mounted (one owner per screen; phone: %s)', async (route, page, phone) => {
+    renderAt(route, { phone: phone as boolean });
+    await expectPage(page as string);
+    expect(screen.queryByTestId('page-app')).toBeNull();
+  });
+
+  it('a MeshCore device keeps its own page on the phone Home URL', async () => {
+    renderAt(heltec, { phone: true });
+    await expectPage('meshcore');
+    expect(screen.queryByTestId('page-phone-home')).toBeNull();
   });
 
   it('honours the default landing page only on /', async () => {

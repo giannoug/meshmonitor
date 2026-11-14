@@ -67,6 +67,8 @@ const defaults: Record<string, FixtureHandler> = {
   'GET /api/sources/:id/messages/:messageId/heard-by': () => ({ success: true, data: { heardBy: [] } }),
   'GET /api/direct-neighbors': () => ({}),
   'POST /api/translate': () => ({ success: true, data: A.translation }),
+  // Message search (10-15 / 10-16): the first page of 31 results; Load more serves it again.
+  'GET /api/messages/search': () => ({ success: true, count: A.searchResults.length, total: 31, data: A.searchResults }),
   'GET /api/telemetry/:nodeId': (url) => {
     const nodeId = decodeURIComponent(url.pathname.split('/')[3]);
     return A.telemetry.filter((row) => row.nodeId === nodeId);

@@ -11,6 +11,10 @@
  * their own (hidden) sidebar used to set. So the window stays the scroller, as
  * in Classic.
  *
+ * Message search (Task 2.6, note s10n5) belongs to the shell: the device
+ * sidebar's field, the phone Home's pill and ⌘K / Ctrl+K open it for the open
+ * Meshtastic-family device, as a dialog on desktop and a page on the phone.
+ *
  * Also here: the open device going away (Review Focus 4), the hashchange
  * that Classic's SectionNav needs after a client-side move to a `#section`,
  * and the forced password change after a recovery-code sign-in (Classic shows
@@ -25,6 +29,9 @@ import ChangePasswordModal from '../../components/ChangePasswordModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { UiIcon } from '../../components/icons';
 import { useDashboardSources } from '../../hooks/useDashboardData';
+import type { ResourceType } from '../../types/permission';
+import SearchMessages from '../chat/SearchMessages';
+import { isMeshtasticFamily } from './deviceTabs';
 import DeviceRail from './DeviceRail';
 import DeviceSidebar, { type SidebarMode } from './DeviceSidebar';
 import PhoneShell from './PhoneShell';
@@ -82,7 +89,7 @@ function useLeaveRemovedSource(openId: string | null) {
 export default function WorkspaceShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const location = useLocation();
-  const { authStatus, refreshAuth } = useAuth();
+  const { authStatus, refreshAuth, hasPermission } = useAuth();
   const isPhone = useIsPhone();
   const narrow = useIsNarrowDesktop();
   const { sources } = useWorkspaceSources();
@@ -97,6 +104,36 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (openId) setLastId(openId);
   }, [openId]);
+
+  // App's gate (App.tsx canSearch), on the open device: messages:read or any channel_N:read.
+  const searchable = !!source && isMeshtasticFamily(source.type);
+  const canSearch =
+    !!source &&
+    searchable &&
+    ['messages', ...Array.from({ length: 8 }, (_, i) => `channel_${i}`)].some((r) =>
+      hasPermission(r as ResourceType, 'read', { sourceId: source.id }),
+    );
+  const [searchOpen, setSearchOpen] = useState(false);
+  // Any navigation closes search: picking a result, switching device, or a tab (even the one under the phone page).
+  useEffect(() => setSearchOpen(false), [location.key]);
+  // App's ⌘K / Ctrl+K, with the same semantics (also from a text field). Caught on the window
+  // before it reaches the document, so a re-hosted App does not open its own modal as well.
+  useEffect(() => {
+    if (!searchable) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (canSearch) setSearchOpen((o) => !o);
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [searchable, canSearch]);
+  const openSearch = canSearch ? () => setSearchOpen(true) : null;
+  const search = searchOpen && canSearch && source && (
+    <SearchMessages source={source} phone={isPhone} onClose={() => setSearchOpen(false)} />
+  );
 
   useHashChangeOnNavigate(location.hash);
   useLeaveRemovedSource(openId);
@@ -116,7 +153,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
 
   if (isPhone) {
     return (
-      <ShellDevicesContext.Provider value={{ sources, home }}>
+      <ShellDevicesContext.Provider value={{ sources, home, openSearch }}>
         <div className={styles.shell} data-workspace-shell="">
           <div className={styles.main}>
             <PhoneShell sources={sources} openId={openId} home={home} mode={mode}>
@@ -124,6 +161,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
             </PhoneShell>
           </div>
         </div>
+        {search}
         {forcedPasswordChange}
       </ShellDevicesContext.Provider>
     );
@@ -133,7 +171,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   const frame = { '--ws-frame-width': `${narrow ? RAIL : RAIL + SIDEBAR}px` } as CSSProperties;
 
   return (
-    <ShellDevicesContext.Provider value={{ sources, home }}>
+    <ShellDevicesContext.Provider value={{ sources, home, openSearch }}>
       <div className={styles.shell} data-workspace-shell="" style={frame}>
         <DeviceRail
           sources={sources}
@@ -156,12 +194,19 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
           }
         />
         {showSidebar && (
-          <DeviceSidebar mode={mode} sourceId={openId} source={source} onNavigate={() => setDrawerOpen(false)} />
+          <DeviceSidebar
+            mode={mode}
+            sourceId={openId}
+            source={source}
+            onNavigate={() => setDrawerOpen(false)}
+            onSearch={openSearch}
+          />
         )}
         {narrow && drawerOpen && <div className={styles.backdrop} onClick={() => setDrawerOpen(false)} aria-hidden="true" />}
         {/* A div, not <main>: re-hosted pages bring their own <main>. */}
         <div className={`${styles.main} ${styles.framed}`}>{children}</div>
       </div>
+      {search}
       {forcedPasswordChange}
     </ShellDevicesContext.Provider>
   );

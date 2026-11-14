@@ -25,9 +25,13 @@ import styles from './ChannelList.module.css';
 interface DmListProps {
   sourceId: string;
   onNavigate?: () => void;
+  /** Phone rows (52 px, board c-home-e1) on the device Home. */
+  large?: boolean;
+  /** Show only the most recent conversations (the device Home). */
+  limit?: number;
 }
 
-export default function DmList({ sourceId, onNavigate }: DmListProps) {
+export default function DmList({ sourceId, onNavigate, large, limit }: DmListProps) {
   const { t } = useTranslation();
   const { authStatus } = useAuth();
   const { data: poll } = useQuery<PollData>({ queryKey: sourcePollQueryKey(sourceId), queryFn: skipToken });
@@ -46,8 +50,8 @@ export default function DmList({ sourceId, onNavigate }: DmListProps) {
       if (!peer || peer === local) continue;
       latest.set(peer, Math.max(latest.get(peer) ?? 0, new Date(m.timestamp).getTime()));
     }
-    return [...latest].sort((a, b) => b[1] - a[1]).map(([id]) => id);
-  }, [poll]);
+    return [...latest].sort((a, b) => b[1] - a[1]).map(([id]) => id).slice(0, limit);
+  }, [poll, limit]);
 
   const nodeOf = (id: string) => poll?.nodes?.find((n) => n.user?.id === id);
   const nameOf = (id: string) => nodeOf(id)?.user?.longName || nodeOf(id)?.user?.shortName || id;
@@ -62,7 +66,7 @@ export default function DmList({ sourceId, onNavigate }: DmListProps) {
           <li key={id}>
             <NavLink
               to={`/source/${encodeURIComponent(sourceId)}/dm/${encodeURIComponent(id)}`}
-              className={({ isActive }) => `${styles.row} ${isActive ? styles.on : ''} ${count > 0 ? styles.unread : ''}`}
+              className={({ isActive }) => `${styles.row} ${large ? styles.large : ''} ${isActive ? styles.on : ''} ${count > 0 ? styles.unread : ''}`}
               onClick={onNavigate}
               aria-label={count > 0 ? t('workspace.shell.device_unread', { name, count }) : undefined}
             >

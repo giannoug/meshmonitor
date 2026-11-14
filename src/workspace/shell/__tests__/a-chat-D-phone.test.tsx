@@ -1,19 +1,28 @@
 /**
  * @vitest-environment jsdom
  *
- * Board a-chat-D-phone, frame only (Task 1.7): the phone header and the tab
- * bar. The device home under them (Search, Channels, Direct messages, the
- * Automations and Tools tiles) is Phase 2's (c-home-e1).
+ * Board a-chat-D-phone: the phone header and the tab bar (Task 1.7), and the
+ * device Home under them (Task 2.6, Ruling AF: Search, the tiles, Channels,
+ * Direct messages, the quick squares).
  */
-import { describe, it, expect } from 'vitest';
+import type { ReactNode } from 'react';
+import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { renderWorkspace, type RenderWorkspaceOptions } from '../../test/renderWorkspace';
 import { SOURCE_IDS } from '../../__fixtures__/athens';
 import { ToastProvider } from '../../../components/ToastContainer';
 import WorkspaceShell from '../WorkspaceShell';
+import { expectBoard } from '../../test/boardChecks';
+import { renderChat } from '../../chat/__tests__/renderChat';
 
-/** The board's frame strings; the rest of its check is Phase 2's. */
+vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
+  ...(await orig<object>()),
+  WebSocketProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
+
+/** The frame's strings, which every device page shows. */
 const FRAME_MUST = ['Station G2', 'Home', 'DMs'];
 const ABSENT = ['Configuration', 'More tools…'];
 
@@ -44,7 +53,13 @@ function renderShell(route: string, opts: RenderWorkspaceOptions = {}) {
 const tabBar = () => screen.findByRole('navigation', { name: 'Tabs' });
 const tab = async (name: RegExp) => within(await tabBar()).getByRole('link', { name });
 
-describe('a-chat-D-phone (frame)', () => {
+describe('a-chat-D-phone', () => {
+  it('a-chat-D-phone shows the board (the device Home)', async () => {
+    const { container } = renderChat(`/source/${SOURCE_IDS.g2}`, { phone: true });
+    await screen.findByRole('link', { name: 'Athens Rover, 1 unread' });
+    expectBoard('a-chat-D-phone', container);
+  });
+
   it('a-chat-D-phone shows the frame of the board', async () => {
     const { container } = renderShell(`/source/${SOURCE_IDS.g2}/channels`);
     await screen.findByText('Station G2');
@@ -57,8 +72,8 @@ describe('a-chat-D-phone (frame)', () => {
     renderShell(`/source/${SOURCE_IDS.g2}/channels`);
     expect(await tab(/^Home/)).toHaveAttribute('href', `/source/${SOURCE_IDS.g2}`);
     expect(await tab(/^Home/)).toHaveAttribute('aria-current', 'page');
-    // Meshtastic DMs are today's Node Details tab until Phase 2.
-    expect(await tab(/^DMs/)).toHaveAttribute('href', `/source/${SOURCE_IDS.g2}/messages`);
+    // Meshtastic DMs are the Workspace inbox (Task 2.6).
+    expect(await tab(/^DMs/)).toHaveAttribute('href', `/source/${SOURCE_IDS.g2}/dms`);
     expect(await tab(/^Activity/)).toHaveAttribute('href', `/source/${SOURCE_IDS.g2}/activity`);
     expect(await tab(/^You/)).toHaveAttribute('href', '/you');
   });
@@ -88,7 +103,7 @@ describe('a-chat-D-phone (frame)', () => {
     goTo('/you');
     await waitFor(async () => expect(await tab(/^You/)).toHaveAttribute('aria-current', 'page'));
     expect(await tab(/^Home/)).toHaveAttribute('href', `/source/${SOURCE_IDS.rak}`);
-    expect(await tab(/^DMs/)).toHaveAttribute('href', `/source/${SOURCE_IDS.rak}/messages`);
+    expect(await tab(/^DMs/)).toHaveAttribute('href', `/source/${SOURCE_IDS.rak}/dms`);
   });
 
   it('gates DMs like the sidebar: no messages:read, DMs disabled', async () => {

@@ -1,30 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import apiService from '../../services/api.js';
+import { highlightText as highlight, useMessageSearch, type SearchResult } from './useMessageSearch';
 import './SearchModal.css';
 
-// Note (#3960 Phase 1b WP6): `source` below is a message-protocol
-// discriminator ('standard' Meshtastic vs 'meshcore'), not the `sources.type`
-// enum used elsewhere in the dashboard (see `DashboardPage.tsx` `formType`).
-// There is no per-`sources.type` icon/label map in this file to extend.
 // Reticulum has no messaging surface in Phase 1b (messaging is Phase 2/3
 // scope per the build spec), so no 'reticulum' branch is added here — doing
 // so would imply a search backend that doesn't exist yet.
-interface SearchResult {
-  id: string;
-  text: string;
-  fromNodeId?: string;
-  fromNodeNum?: number;
-  fromPublicKey?: string;
-  toNodeId?: string;
-  toNodeNum?: number;
-  toPublicKey?: string;
-  channel?: number;
-  timestamp: number;
-  rxTime?: number;
-  source: 'standard' | 'meshcore';
-}
-
 interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -36,8 +17,6 @@ interface SearchModalProps {
   /** Limit the search to this source (the page's current source). */
   sourceId?: string | null;
 }
-
-const RESULTS_PER_PAGE = 25;
 
 export const SearchModal: React.FC<SearchModalProps> = ({
   isOpen,
@@ -52,19 +31,17 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [query, setQuery] = useState('');
-  const [caseSensitive, setCaseSensitive] = useState(false);
-  const [scope, setScope] = useState<'all' | 'channels' | 'dms' | 'meshcore'>('all');
-  const [selectedChannels, setSelectedChannels] = useState<number[]>([]);
-  const [senderNodeId, setSenderNodeId] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
+  const {
+    query, setQuery,
+    caseSensitive, setCaseSensitive,
+    scope, setScope,
+    selectedChannels,
+    senderNodeId, setSenderNodeId,
+    startDate, setStartDate,
+    endDate, setEndDate,
+    results, total, loading, error, hasSearched,
+    handleSubmit, handleLoadMore, handleChannelChange,
+  } = useMessageSearch({ canSearchDms, canSearchMeshcore, channelCount: channels.length, sourceId });
 
   // Auto-focus search input on open
   useEffect(() => {
@@ -72,13 +49,6 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
-
-  // Reset scope if currently selected scope becomes inaccessible
-  useEffect(() => {
-    if (scope === 'dms' && !canSearchDms) setScope('all');
-    if (scope === 'meshcore' && !canSearchMeshcore) setScope('all');
-    if (scope === 'channels' && channels.length === 0) setScope('all');
-  }, [scope, canSearchDms, canSearchMeshcore, channels.length]);
 
   // Close on Escape key
   useEffect(() => {
@@ -89,49 +59,6 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
-
-  const performSearch = useCallback(async (offset: number) => {
-    setLoading(true);
-    setError(false);
-    try {
-      const params: Parameters<typeof apiService.searchMessages>[0] = {
-        q: query,
-        caseSensitive: caseSensitive || undefined,
-        scope: scope !== 'all' ? scope : undefined,
-        channels: selectedChannels.length > 0 ? selectedChannels : undefined,
-        fromNodeId: senderNodeId || undefined,
-        // Epoch ms, local-day bounds (#5517). The server compares against
-        // millisecond message times; seconds here matched nothing.
-        startDate: startDate ? new Date(`${startDate}T00:00:00`).getTime() : undefined,
-        endDate: endDate ? new Date(`${endDate}T23:59:59.999`).getTime() : undefined,
-        sourceId: sourceId ?? undefined,
-        limit: RESULTS_PER_PAGE,
-        offset,
-      };
-      const response = await apiService.searchMessages(params);
-      if (offset === 0) {
-        setResults(response.data);
-      } else {
-        setResults(prev => [...prev, ...response.data]);
-      }
-      setTotal(response.total);
-      setHasSearched(true);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [query, caseSensitive, scope, selectedChannels, senderNodeId, startDate, endDate, sourceId]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim().length < 2) return;
-    void performSearch(0);
-  };
-
-  const handleLoadMore = () => {
-    void performSearch(results.length);
-  };
 
   const handleResultClick = (result: SearchResult) => {
     onNavigateToMessage(result);
@@ -166,30 +93,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     return '';
   };
 
-  const highlightText = (text: string, searchQuery: string): React.ReactNode[] => {
-    if (!searchQuery) return [text];
-    const flags = caseSensitive ? 'g' : 'gi';
-    const escaped = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(${escaped})`, flags);
-    const parts = text.split(regex);
-    return parts.map((part, i) => {
-      if (regex.test(part)) {
-        // Reset lastIndex since we used 'g' flag
-        regex.lastIndex = 0;
-        return <mark key={i}>{part}</mark>;
-      }
-      return <React.Fragment key={i}>{part}</React.Fragment>;
-    });
-  };
-
-  const handleChannelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    if (value === '') {
-      setSelectedChannels([]);
-    } else {
-      setSelectedChannels([Number(value)]);
-    }
-  };
+  const highlightText = (text: string, searchQuery: string): React.ReactNode[] =>
+    highlight(text, searchQuery, caseSensitive);
 
   if (!isOpen) return null;
 

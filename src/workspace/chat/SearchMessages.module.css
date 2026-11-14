@@ -1,0 +1,328 @@
+/* Message search (boards 10-15 desktop dialog, 10-16 phone page). Above the shell, as Sheet. */
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 48px 24px;
+  box-sizing: border-box;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  color: var(--color-text);
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--color-bg-sunken) 70%, transparent);
+}
+
+.panel {
+  position: relative;
+  width: min(900px, 100%);
+  max-height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-surface);
+  border-radius: 16px;
+  outline: none;
+}
+
+/* Phone: a full page between the top of the screen and the tab bar, which stays reachable. */
+.layer[data-phone] {
+  bottom: var(--ws-tabbar-height, 64px);
+  padding: 0;
+}
+
+.panel[data-phone] {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: var(--color-bg);
+}
+
+.head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 8px 24px;
+}
+
+.panel[data-phone] .head {
+  min-height: 64px;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-surface);
+  background: var(--color-bg-sunken);
+}
+
+.titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.icon:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 24px 20px;
+}
+
+.panel[data-phone] .body {
+  padding: 16px;
+}
+
+.form {
+  display: flex;
+  gap: 10px;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 2px solid var(--color-accent);
+  border-radius: 12px;
+  background: var(--color-bg-sunken);
+  color: var(--color-text-subtle);
+}
+
+.input input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+}
+
+.submit,
+.moreButton {
+  flex: none;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 12px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.submit {
+  border: 0;
+  background: var(--color-accent);
+  color: var(--color-bg-sunken);
+}
+
+.submit:disabled,
+.moreButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  align-items: end;
+  margin: 16px 0 8px;
+}
+
+.panel[data-phone] .filters {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 16px;
+  border: 1px solid var(--color-surface);
+  border-radius: 16px;
+}
+
+.check {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 15px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.field select,
+.field input {
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.note {
+  margin: 16px 0;
+  color: var(--color-text-subtle);
+  text-align: center;
+}
+
+.count {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-surface);
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.result {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--color-surface);
+  background: none;
+  color: var(--color-text-subtle);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.result:hover {
+  background: var(--color-surface);
+}
+
+.result:focus-visible,
+.icon:focus-visible,
+.submit:focus-visible,
+.moreButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.avatar {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 13px;
+}
+
+.chip {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.time {
+  margin-left: auto;
+}
+
+.text {
+  color: var(--color-text);
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.text mark {
+  border-radius: 3px;
+  background: var(--color-warning);
+  color: var(--color-bg-sunken);
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+  padding-top: 16px;
+}
+
+.moreButton {
+  border: 1px solid var(--color-border-strong);
+  background: none;
+  color: var(--color-text);
+}

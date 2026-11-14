@@ -71,7 +71,7 @@ describe('classicSourceLocation (what App sees for a Workspace URL)', () => {
     ['/source/s1/node/!a1b2c3d4/telemetry', 'meshtastic_tcp', '/source/s1/messages', ''],
     ['/source/s1/dm/!a1b2c3d4', 'meshtastic_tcp', '/source/s1/messages', ''],
     ['/source/s1/channel/2', 'meshtastic_tcp', '/source/s1/channels', ''],
-    ['/source/s1/dms', 'meshtastic_tcp', '/source/s1/', ''],
+    ['/source/s1/dms', 'meshtastic_tcp', '/source/s1/messages', ''],
     ['/source/s1/nodes', 'meshtastic_tcp', '/source/s1/nodes', ''],
     ['/source/s1/', 'meshtastic_tcp', '/source/s1/', ''],
   ])('%s on %s → %s%s', (url, type, pathname, hash) => {

@@ -8619,5 +8619,14 @@
   "workspace.node_menu.sends_trace_path": "Sends 1 trace along the node's path",
   "workspace.node_menu.sends_discover_path": "Sends 1 path discovery request",
   "workspace.node_menu.purge_keep": "Keep the node",
-  "workspace.node_menu.purge_device_sends": "Sends nothing on the mesh; {{device}} forgets the node"
+  "workspace.node_menu.purge_device_sends": "Sends nothing on the mesh; {{device}} forgets the node",
+  "workspace.home.jump_to": "Jump to…",
+  "workspace.home.tools_label": "Device tools",
+  "workspace.home.tools": "Tools",
+  "workspace.home.all_dms": "All direct messages",
+  "workspace.dms.you_prefix": "You: {{text}}",
+  "workspace.search.shortcut_mac": "⌘K",
+  "workspace.search.shortcut_other": "Ctrl+K",
+  "workspace.search.pick_hint": "Pick one to open it in its conversation",
+  "workspace.search.tap_hint": "tap one to open it"
 }

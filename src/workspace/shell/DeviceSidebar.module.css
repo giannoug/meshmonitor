@@ -127,3 +127,43 @@
 .on .count {
   color: inherit;
 }
+
+/* The Search Messages field (board 10-15): opens the search dialog, with its shortcut. */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  box-sizing: border-box;
+  margin-bottom: 6px;
+  padding: 6px 8px 6px 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.search:hover {
+  color: var(--color-text);
+}
+
+.search:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+.kbd {
+  margin-left: auto;
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--color-text-subtle);
+}

@@ -3,9 +3,9 @@
  *
  * - Home: the device open in the URL, else the last one opened this session,
  *   else the Overview.
- * - DMs: that device's DMs. Until Phase 2 builds the inbox it is today's DM
- *   view, as the desktop sidebar's Direct messages link (Meshtastic
- *   `messages`, MeshCore and Reticulum `dms`). Badge: its DM unread.
+ * - DMs: that device's DMs, as the desktop sidebar's Direct messages link
+ *   (Meshtastic family: the Workspace inbox `dms`, Task 2.6; MeshCore and
+ *   Reticulum: today's `dms` view). Badge: its DM unread.
  * - Activity: `/source/:id/activity` (today's device page until Phase 2).
  * - With no device, DMs and Activity are shown disabled; so is DMs for a
  *   viewer the sidebar would not show Direct messages to.

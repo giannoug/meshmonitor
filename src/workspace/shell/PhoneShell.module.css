@@ -102,3 +102,41 @@
 .dot[data-status='connecting'] {
   background: var(--color-warning);
 }
+
+/* Quick squares (a-chat-D-phone): other devices, at the right of the header. */
+.quick {
+  flex: none;
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  padding-left: 8px;
+}
+
+.quick .square {
+  position: relative;
+  text-decoration: none;
+}
+
+.quick .square:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  border: 2px solid var(--color-bg-sunken);
+  background: var(--color-error);
+  color: var(--color-bg-sunken);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

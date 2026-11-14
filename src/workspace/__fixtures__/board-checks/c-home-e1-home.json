@@ -1,12 +1,10 @@
 {
   "must": [
     "Jump to",
-    "CHANNELS",
-    "DIRECT MESSAGES",
     "All direct messages",
     "Home",
     "DMs",
-    "Automations",
+    "Automation",
     "Connected"
   ],
   "absent": [

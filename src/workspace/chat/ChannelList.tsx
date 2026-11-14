@@ -28,9 +28,11 @@ interface ChannelListProps {
   sourceId: string;
   sourceType: string;
   onNavigate?: () => void;
+  /** Phone rows (52 px, board c-home-e1) on the device Home. */
+  large?: boolean;
 }
 
-export default function ChannelList({ sourceId, sourceType, onNavigate }: ChannelListProps) {
+export default function ChannelList({ sourceId, sourceType, onNavigate, large }: ChannelListProps) {
   const { t } = useTranslation();
   const { authStatus, hasPermission } = useAuth();
   // The page's poll cache, read without fetching.
@@ -70,7 +72,7 @@ export default function ChannelList({ sourceId, sourceType, onNavigate }: Channe
           <li key={id}>
             <NavLink
               to={`/source/${encodeURIComponent(sourceId)}/channel/${id}`}
-              className={({ isActive }) => `${styles.row} ${isActive ? styles.on : ''} ${count > 0 ? styles.unread : ''}`}
+              className={({ isActive }) => `${styles.row} ${large ? styles.large : ''} ${isActive ? styles.on : ''} ${count > 0 ? styles.unread : ''}`}
               onClick={onNavigate}
               aria-label={count > 0 ? t('workspace.shell.device_unread', { name, count }) : undefined}
             >

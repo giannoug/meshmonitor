@@ -7,11 +7,13 @@ import type { TFunction } from 'i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { hasDeviceConfigurationPage } from '../../components/search/configSections';
 import { visibleMeshCoreViews, type MeshCoreView } from '../../components/MeshCore/meshCoreViewAccess';
+import type { ResourceType } from '../../types/permission';
+import { useChannelDatabaseEntries } from '../chat/useChannelDatabaseEntries';
 import type { WorkspaceSource } from './useWorkspaceSources';
 
-/** Tab per tool row, by source type; null: the type has no such tab. */
+/** Tab per tool row, by source type; null: the type has no such tab. Meshtastic `dms` is the Workspace inbox (Task 2.6). */
 export const TOOL_TABS: Record<'meshtastic' | 'meshcore' | 'reticulum', Record<string, string | null>> = {
-  meshtastic: { map: 'nodes', nodes: 'nodes', dashboard: 'dashboard', automation: 'automation', config: 'settings', tools: 'info', channels: 'channels', dms: 'messages' },
+  meshtastic: { map: 'nodes', nodes: 'nodes', dashboard: 'dashboard', automation: 'automation', config: 'settings', tools: 'info', channels: 'channels', dms: 'dms' },
   meshcore: { map: 'nodes', nodes: 'nodes', dashboard: 'telemetry', automation: 'automations', config: 'configuration', tools: 'info', channels: 'channels', dms: 'dms' },
   reticulum: { map: 'map', nodes: 'destinations', dashboard: null, automation: null, config: 'configuration', tools: 'info', channels: null, dms: 'dms' },
 };
@@ -47,10 +49,19 @@ const GATE: Record<string, MeshCoreView> = {
  * Where each device entry (a `TOOL_TABS` key) leads for this viewer, or null
  * when the device type has no such tab or the viewer may not open it: the same
  * gates as MeshCore's tabs (`visibleMeshCoreViews`; DMs need messages:read).
- * Shared by the desktop sidebar and the phone tab bar.
+ * A Meshtastic-family device's Channels follow Classic's Channels tab instead
+ * (App.tsx `hasAnyChannelPermission`): any `channel_N:read`, or a readable
+ * Channel Database entry, which is fetched only when no slot is readable.
+ * Shared by the desktop sidebar, the phone tab bar and the device Home.
  */
 export function useDeviceTab(source: WorkspaceSource | null | undefined): (key: string) => string | null {
   const { authStatus, hasPermission } = useAuth();
+  const meshtastic = !!source && isMeshtasticFamily(source.type);
+  const anySlot =
+    !!source &&
+    meshtastic &&
+    Array.from({ length: 8 }, (_, i) => `channel_${i}` as ResourceType).some((r) => hasPermission(r, 'read', { sourceId: source.id }));
+  const { entries } = useChannelDatabaseEntries(meshtastic && !anySlot);
   if (!source) return () => null;
   const base = `/source/${encodeURIComponent(source.id)}`;
   const family = familyOf(source.type);
@@ -62,6 +73,7 @@ export function useDeviceTab(source: WorkspaceSource | null | undefined): (key: 
     if (source.type === 'meshcore_mqtt') return key === 'map' ? base : null;
     if (key === 'automation' && source.type === 'mqtt_bridge') return null;
     if (key === 'config' && family === 'meshtastic' && !hasDeviceConfigurationPage(source.type)) return null;
+    if (key === 'channels' && meshtastic) return anySlot || entries.length > 0 ? `${base}/channels` : null;
     const name = TOOL_TABS[family][key];
     return name && visible.includes(GATE[key]) ? `${base}/${name}` : null;
   };

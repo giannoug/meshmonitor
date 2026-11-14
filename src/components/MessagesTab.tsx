@@ -15,6 +15,7 @@ import { ResourceType } from '../types/permission';
 import { MuteMenu } from './notifications/MuteMenu';
 import { MarkAllReadButton } from './messages/MarkAllReadButton';
 import { DmFilterSelect } from './messages/DmFilterSelect';
+import { useStickyDmNodes } from '../hooks/useStickyDmNodes';
 import { NodeStatChips } from './nodes/NodeStatChips';
 import { passesDmFilter } from '../utils/dmListFilter';
 import { formatMessagePreview } from '../utils/messagePreview';
@@ -536,34 +537,13 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
   const [showTelemetryRequestModal, setShowTelemetryRequestModal] = useState(false);
 
   // Sticky nodes - pinned to top of list regardless of sorting (stored in localStorage)
-  const [stickyNodes, setStickyNodes] = useState<Set<number>>(() => {
-    try {
-      const stored = localStorage.getItem('meshmonitor-sticky-dm-nodes');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return new Set(Array.isArray(parsed) ? parsed : []);
-      }
-    } catch {
-      // Ignore parse errors
-    }
-    return new Set();
-  });
+  const [stickyNodes, toggleSticky] = useStickyDmNodes();
 
   // Toggle sticky status for a node
   const toggleStickyNode = useCallback((nodeNum: number, e: React.MouseEvent) => {
     e.stopPropagation(); // Don't select the node when toggling sticky
-    setStickyNodes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(nodeNum)) {
-        newSet.delete(nodeNum);
-      } else {
-        newSet.add(nodeNum);
-      }
-      // Persist to localStorage
-      localStorage.setItem('meshmonitor-sticky-dm-nodes', JSON.stringify([...newSet]));
-      return newSet;
-    });
-  }, []);
+    toggleSticky(nodeNum);
+  }, [toggleSticky]);
 
   // Admin scan state
   const [adminScanLoading, setAdminScanLoading] = useState<string | null>(null);

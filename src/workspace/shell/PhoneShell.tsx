@@ -1,15 +1,16 @@
 /**
  * The phone frame, below 768 px (D8; boards a-chat-D-phone, c-home-e2-switcher,
  * s1-you): a header naming the open device (or the Overview) that opens the
- * device switcher, the page, and the tab bar. You, Preferences and Server
- * pages, and a channel or DM conversation (its own header), have no device header.
+ * device switcher, with up to two other devices as quick squares (a-chat-D-phone),
+ * the page, and the tab bar. You, Preferences and Server pages, and a channel,
+ * a DM or the DM inbox (their own header), have no device header.
  *
  * Re-hosted Classic pages reserve room for their own header and bottom bar
  * from `--app-header-height` and `--app-nav-bar-height`; here those carry the
  * phone header and the tab bar instead.
  */
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { matchPath, useLocation } from 'react-router-dom';
+import { Link, matchPath, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import type { SidebarMode } from './DeviceSidebar';
@@ -21,6 +22,8 @@ import styles from './PhoneShell.module.css';
 
 const HEADER = 64;
 const TAB_BAR = 64;
+/** Other devices beside the open one; the switcher holds the rest (Review Focus 1). */
+const QUICK_SQUARES = 2;
 
 interface PhoneShellProps {
   sources: WorkspaceSource[];
@@ -46,11 +49,14 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
   useEffect(() => setSwitcherOpen(false), [pathname]);
 
   const source = sources.find((s) => s.id === openId);
-  // A Meshtastic conversation draws its own header (boards 10-06, 10-14; DMs 10-07).
+  // A Meshtastic conversation draws its own header (boards 10-06, 10-14; DMs 10-07), and so does the inbox (c-home-e3).
   const ownHeader =
     !!source &&
     isMeshtasticFamily(source.type) &&
-    (!!matchPath('/source/:id/channel/*', pathname) || !!matchPath('/source/:id/dm/:nodeId', pathname));
+    (!!matchPath('/source/:id/channel/*', pathname) ||
+      !!matchPath('/source/:id/dm/:nodeId', pathname) ||
+      !!matchPath('/source/:id/dms', pathname));
+  const quick = source ? sources.filter((s) => s.id !== source.id).slice(0, QUICK_SQUARES) : [];
   const showHeader = mode !== 'you' && mode !== 'server' && !ownHeader;
   const title = source?.name ?? t('workspace.shell.overview');
   const active = source?.live?.activeNodeCount;
@@ -95,6 +101,26 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
               )}
             </span>
           </button>
+          {quick.length > 0 && (
+            <div className={styles.quick}>
+              {quick.map((s) => (
+                <Link
+                  key={s.id}
+                  to={`/source/${encodeURIComponent(s.id)}`}
+                  className={styles.square}
+                  style={{ background: s.colorToken }}
+                  aria-label={s.dmUnread ? t('workspace.shell.device_unread', { name: s.name, count: s.dmUnread }) : s.name}
+                >
+                  {s.abbrev}
+                  {!!s.dmUnread && (
+                    <span className={styles.badge} aria-hidden="true">
+                      {s.dmUnread > 99 ? '99+' : s.dmUnread}
+                    </span>
+                  )}
+                </Link>
+              ))}
+            </div>
+          )}
         </header>
       )}
       {children}

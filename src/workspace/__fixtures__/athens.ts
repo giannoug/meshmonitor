@@ -257,6 +257,21 @@ const beaconOffers = [
   offer(0xa1b2c308, 'Keratea-Ops', 172_800, 'muted'),
 ];
 
+/**
+ * `GET /api/messages/search?q=relay&sourceId=src-g2` (10-15 / 10-16): the first page of 31, where
+ * each result sits (channel, or a DM), newest first.
+ */
+const searchResults = ([
+  [101, 0xa1b2c303, BROADCAST, 0, 'Anyone hearing the Hymettus relay this morning?', 1680],
+  [102, 0xa1b2c302, BROADCAST, 0, 'Relay is up, seeing it from the west side', 1620],
+  [103, 0xa1b2c301, '!a1b2c300', -1, 'Can you try the relay at noon?', 5_400],
+  [104, 0xa1b2c306, BROADCAST, 2, 'Relay rebooted at 07:40, should be stable now', 45_000],
+  [105, 0xa1b2c305, BROADCAST, 1, 'Summit tomorrow, I will bring the spare relay battery', 180_000],
+] as const).map(([n, fromNum, toNodeId, channelId, text, agoS]) => ({
+  id: `${SOURCE_IDS.g2}_${fromNum}_${n}`, text, fromNodeId: `!${fromNum.toString(16).padStart(8, '0')}`, fromNodeNum: fromNum,
+  toNodeId, channel: channelId, timestamp: NOW_MS - agoS * 1000, source: 'standard' as const,
+}));
+
 const unreadBySource: UnreadBySourceData = {
   sources: { [SOURCE_IDS.g2]: { directMessages: 1 }, [SOURCE_IDS.heltec]: { directMessages: 2 } },
 };
@@ -297,4 +312,5 @@ export const athensFixture = {
   traceroutes,
   messageEvents,
   translation,
+  searchResults,
 };

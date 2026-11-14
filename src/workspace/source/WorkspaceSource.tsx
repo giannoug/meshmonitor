@@ -6,8 +6,10 @@
  *   form, and App sees the Classic location of a Workspace-only URL
  *   (`classicSourceLocation`), since it picks its tab from the path. A
  *   channel (`channel/<n>[/beacons]`) is the Workspace's own ChannelThread,
- *   and a DM (`dm/<nodeId>`) its own DmConversation, with App not mounted
- *   (Ruling AD: one owner of the message state per screen).
+ *   a DM (`dm/<nodeId>`) its own DmConversation, the DM inbox (`dms`) its
+ *   DmInbox, and the bare source URL on a phone its PhoneHome (Task 2.6), with
+ *   App not mounted (Ruling AD: one owner of the message state per screen).
+ *   A desktop bare source URL keeps the re-hosted App.
  * - MeshCore / Reticulum: the view comes from the URL and view changes
  *   navigate. A MeshCore view the viewer may not open is replaced in the URL
  *   by the one the page shows.
@@ -37,6 +39,7 @@ import {
 } from '../routes';
 import { OverviewRehost, Redirect, Rehost } from '../rehost/pages';
 import { useHashTarget } from '../rehost/useHashTarget';
+import { useIsPhone } from '../shell/useIsPhone';
 import styles from './WorkspaceSource.module.css';
 
 // The same chunks Classic loads (main.tsx).
@@ -53,6 +56,10 @@ const DmConversation = lazy(() => import('../chat/DmConversation.tsx'));
 const CHAT_PATH = /^channel\/(\d+)(\/beacons)?\/?$/;
 /** `dm/<nodeId>`: the Workspace DM (Task 2.4). */
 const DM_PATH = /^dm\/([^/]+)\/?$/;
+const DmInbox = lazy(() => import('../chat/DmInbox.tsx'));
+const PhoneHome = lazy(() => import('../chat/PhoneHome.tsx'));
+/** `dms`: the Workspace DM inbox (Task 2.6). */
+const DMS_PATH = /^dms\/?$/;
 
 export default function WorkspaceSource() {
   const { t } = useTranslation();
@@ -61,6 +68,7 @@ export default function WorkspaceSource() {
   const navigate = useNavigate();
   const { data: sources, isLoading } = useDashboardSources();
   const { authStatus, loading: authLoading, hasPermission } = useAuth();
+  const isPhone = useIsPhone();
   const source = sources?.find((s) => s.id === sourceId);
   const base = `/source/${encodeURIComponent(sourceId)}`;
   const goToView = useCallback((view: string) => void navigate(`${base}/${view}`), [navigate, base]);
@@ -127,6 +135,23 @@ export default function WorkspaceSource() {
     return (
       <Rehost>
         <DmConversation key={sourceId} sourceId={sourceId} source={source} nodeId={dm[1]} />
+      </Rehost>
+    );
+  }
+
+  if (source && DMS_PATH.test(splat)) {
+    return (
+      <Rehost>
+        <DmInbox key={sourceId} sourceId={sourceId} source={source} />
+      </Rehost>
+    );
+  }
+
+  // The phone device Home (c-home-e1). A `#section` deep link still goes to App, which serves it.
+  if (source && isPhone && splat === '' && !location.hash) {
+    return (
+      <Rehost>
+        <PhoneHome key={sourceId} sourceId={sourceId} source={source} />
       </Rehost>
     );
   }

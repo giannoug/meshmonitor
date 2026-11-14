@@ -16,8 +16,8 @@ export interface Board {
 export const BOARDS: Board[] = [
   // Task 1.6 built the frame (rail + sidebar); Task 2.3 the channel list and the open channel.
   { id: 'a-chat-D-desktop', size: 'desktop', path: '/source/src-g2/channel/0' },
-  // Task 1.7: the phone frame (header, tab bar); the device home under it is Phase 2's.
-  { id: 'a-chat-D-phone', size: 'phone', path: '/source/src-g2/channels' },
+  // Task 1.7 built the phone frame (header, tab bar); Task 2.6 the device Home under it.
+  { id: 'a-chat-D-phone', size: 'phone', path: '/source/src-g2' },
   {
     id: 'c-home-e2-switcher',
     size: 'phone',
@@ -176,7 +176,48 @@ export const BOARDS: Board[] = [
       await page.getByRole('dialog', { name: 'React with an emoji' }).getByRole('button', { name: 'Custom emoji' }).click();
     },
   },
+  // Task 2.6: the phone device Home, the DM inbox, and message search.
+  { id: 'c-home-e1-home', size: 'phone', path: '/source/src-g2' },
+  { id: 'c-home-e3-dms', size: 'phone', path: '/source/src-g2/dms' },
+  {
+    // Today's filter is a select (DmFilterSelect); the shot shows the inbox with it, not an open sheet.
+    id: '10-11-dm-inbox',
+    size: 'phone',
+    path: '/source/src-g2/dms',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Pin to top of list: Kifisia Rooftop' }).click();
+    },
+  },
+  {
+    id: '10-15-search-messages',
+    size: 'desktop',
+    path: '/source/src-g2/channel/0',
+    setup: async (page) => {
+      // The board draws the Mac hint; the sidebar reads the platform again when search opens.
+      await page.evaluate(() => Object.defineProperty(navigator, 'platform', { get: () => 'MacIntel' }));
+      await page.getByRole('complementary', { name: 'Station G2' }).getByRole('link', { name: /LongFast/ }).waitFor();
+      await page.getByRole('button', { name: /^Search Messages/ }).click();
+      await searchRelay(page);
+    },
+  },
+  {
+    id: '10-16-search-messages',
+    size: 'phone',
+    path: '/source/src-g2',
+    setup: async (page) => {
+      await page.getByRole('link', { name: /Athens Rover/ }).waitFor();
+      await page.getByRole('button', { name: /Search Messages/ }).click();
+      await searchRelay(page);
+    },
+  },
 ];
+
+async function searchRelay(page: Page): Promise<void> {
+  const dialog = page.getByRole('dialog', { name: 'Search Messages' });
+  await dialog.getByRole('textbox', { name: 'Search for text in messages...' }).fill('relay');
+  await dialog.getByRole('button', { name: 'Search', exact: true }).click();
+  await dialog.getByText(/Showing 5 of 31 results/).waitFor();
+}
 
 /** Past the unmessageable banner, to the conversation. */
 async function openDm(page: Page): Promise<void> {

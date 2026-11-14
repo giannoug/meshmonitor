@@ -15,7 +15,8 @@ const RULES: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
   [/^\/(preferences|server)(\/.*)?$/, () => '/settings'],
   [/^\/you(\/.*)?$/, () => '/'],
   [/^\/source\/([^/]+)\/settings\/[^/].*$/, (m) => `/source/${m[1]}/settings`],
-  [/^\/source\/([^/]+)\/(node\/[^/]+(\/.*)?|dm\/[^/]+\/?)$/, (m) => `/source/${m[1]}/messages`],
+  // A node, a DM and the DM inbox (Task 2.6) are Classic's DM tab (MeshCore's page ignores the path).
+  [/^\/source\/([^/]+)\/(node\/[^/]+(\/.*)?|dm\/[^/]+\/?|dms\/?)$/, (m) => `/source/${m[1]}/messages`],
   [/^\/source\/([^/]+)\/channel\/[^/]+\/?$/, (m) => `/source/${m[1]}/channels`],
   [/^\/source\/([^/]+)\/(dms|activity|room)(\/.*)?$/, (m) => `/source/${m[1]}/`],
   [/^\/automations\/[^/]+(\/.*)?$/, () => '/automations'],
