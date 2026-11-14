@@ -6,7 +6,7 @@ import L from 'leaflet';
 import type { Marker as LeafletMarker } from 'leaflet';
 import { DeviceInfo } from '../types/device';
 import { TabType, SortField } from '../types/ui';
-import { nodePassesTransportFilter, transportCutoffSec, isMqttOnlySourceType } from '../utils/nodeTransport';
+import { transportCutoffSec, isMqttOnlySourceType } from '../utils/nodeTransport';
 import { getNodeTypeCategory, categoryGlyphFamily, markerRoleProps } from '../utils/nodeTypeCategory';
 import { effectiveMapMaxAgeHours } from '../utils/mapAge';
 import { isSecurityFlagged } from '../utils/nodeAdvancedFilter';
@@ -25,8 +25,8 @@ import { AssetPlaybackBar } from './map/AssetPlaybackBar';
 import { createNodeIcon, getHopColor } from '../utils/mapIcons';
 import { getPositionHistoryColor, generateHeadingAwarePath, generatePositionHistoryArrows, snrToColor } from '../utils/mapHelpers.tsx';
 import { convertSpeed } from '../utils/speedConversion';
-import { getEffectivePosition, getRoleName, hasValidEffectivePosition, isNodeComplete, parseNodeId, resolveMapEndpoint, resolveMarkerCenterTarget, TRACEROUTE_DISPLAY_HOURS } from '../utils/nodeHelpers';
-import { applyPrecisionCellOffsets, hasAccuracyCell, precisionCellBounds } from '../utils/precisionOffset';
+import { getEffectivePosition, getRoleName, hasValidEffectivePosition, isNodeComplete, parseNodeId, resolveMarkerCenterTarget, TRACEROUTE_DISPLAY_HOURS } from '../utils/nodeHelpers';
+import { applyPrecisionCellOffsets } from '../utils/precisionOffset';
 import { unifiedNodeKey } from '../utils/nodeIdentity';
 import MapLegend from './MapLegend';
 import { MapSidebar } from './map/MapSidebar';
@@ -71,6 +71,14 @@ import ZoomHandler from './ZoomHandler';
 import MapPositionHandler from './MapPositionHandler';
 import type { NodeMarkerDescriptor } from './map/layers/NodeMarkersLayer';
 import { DeviceMapLayers, computeNeighborLinkStyle } from './map/DeviceMapLayers';
+import {
+  buildAccuracyRegions,
+  buildEstimatedRadii,
+  buildNeighborLinks,
+  countAgedOutOnMap,
+  passesMapFilters as passesDeviceMapFilters,
+  type MapNodeFilter,
+} from './map/deviceMapModel';
 import { ImportContactUrlModal } from './nodes/ImportContactUrlModal';
 import importContactStyles from './nodes/ImportContactUrlModal.module.css';
 import MeasureDistanceController from './MeasureDistanceController';
@@ -1677,32 +1685,20 @@ const NodesTabComponent: React.FC<NodesTabProps> = ({
   // marker-key fallback convention).
   // The visible+positioned node set — the shared source of truth for both the
   // 2D marker descriptors below and the #4704 3D node features.
-  const passesMapFilters = (node: DeviceInfo): boolean => {
-    // Apply standard filters
-    if (!nodePassesTransportFilter(node, { showRfNodes, showUdpNodes, showMqttNodes }, transportCutoff)) return false;
-    if (!showIncompleteNodes && !isNodeComplete(node)) return false;
-    if (!showEstimatedPositions && node.user?.id && nodesWithEstimatedPosition.has(node.user.id)) return false;
-    // When traceroute is active, only show nodes involved in the traceroute
-    if (tracerouteNodeNums && !tracerouteNodeNums.has(node.nodeNum)) return false;
-    // #5364/#5365 Phase 2: an aged-out aircraft is older than any useful
-    // age window by definition, and "Show aged-out" is its own switch, so
-    // neither the age slider nor Hide applies to it.
-    if (isAgedOutAircraft(node)) return true;
-    // Map Features age slider (#3322): hide markers older than the
-    // chosen age. Favorites are always shown, matching the standard
-    // node age filter. Default (slider at max) is a no-op.
-    if (!node.isFavorite && node.lastHeard && node.lastHeard < mapAgeCutoffSeconds) return false;
-    // Likely-aircraft Hide (#5364/#5365 Phase 1 WP4): suppress the marker,
-    // except a favourite is never hidden by this toggle.
-    if (aircraftDisplayMode === 'hide' && node.likelyAircraft === true && !node.isFavorite) return false;
-    return true;
+  const mapNodeFilter: MapNodeFilter = {
+    transport: { showRfNodes, showUdpNodes, showMqttNodes },
+    transportCutoff,
+    showIncompleteNodes,
+    showEstimatedPositions,
+    nodesWithEstimatedPosition,
+    tracerouteNodeNums,
+    mapAgeCutoffSeconds,
+    aircraftDisplayMode,
   };
+  const passesMapFilters = (node: DeviceInfo): boolean => passesDeviceMapFilters(node, mapNodeFilter);
   const visibleMapNodes = nodesWithPosition.filter(passesMapFilters);
-  // "N aged out" hint (#5364/#5365 Phase 2): counted from the SAME filtered
-  // set the map draws with the checkbox on — never from every node (the
-  // Phase 1 count bug) — and independent of the checkbox itself.
-  const agedOutCountOnMap = [...processedWithPosition, ...agedOutWithPosition]
-    .filter(node => isAgedOutAircraft(node) && passesMapFilters(node)).length;
+  // "N aged out" hint (#5364/#5365 Phase 2), counted as the map draws (deviceMapModel).
+  const agedOutCountOnMap = countAgedOutOnMap([...processedWithPosition, ...agedOutWithPosition], mapNodeFilter);
   // #4835: live packet traffic resolves each flight against the nodes this
   // map draws, at their marker positions. Built only while the layer is on.
   const [packetFlightsStats, setPacketFlightsStats] = useState<PacketFlightStats | null>(null);
@@ -2000,66 +1996,18 @@ const NodesTabComponent: React.FC<NodesTabProps> = ({
       };
     });
 
-  // Position accuracy regions (#4047 Phase 7 WP11) — adapter over the shared
-  // `AccuracyRegionsLayer` (WP3). `hasAccuracyCell`/`precisionCellBounds`
-  // (`utils/precisionOffset`) reproduce this file's former inline bounds math
-  // exactly (same `2^(32-bits) * 1e-7 * 111_111` cell-size formula, verified
-  // numerically identical) — sharing them here removes the last duplicate of
-  // that formula. `pathOptions` stays hop-colored (NodesTab-only look, tied
-  // visually to the hop-colored marker) via the descriptor's per-region
-  // override, so this box is NOT the shared layer's canonical gray default.
+  // Position accuracy regions and estimated-position circles: shared builders
+  // (deviceMapModel), hop-colored like the marker.
+  const overlayHopColor = (node: DeviceInfo): string => {
+    const isLocalNode = node.user?.id === currentNodeId;
+    const hops = isLocalNode ? 0 : getEffectiveHops(node, nodeHopsCalculation, traceroutes, currentNodeNum);
+    return getHopColor(hops, overlayColors.hopColors);
+  };
   const accuracyRegions: AccuracyRegionDescriptor[] = showAccuracyRegions
-    ? nodesWithPosition
-        .filter(node => {
-          if (!hasAccuracyCell(node.positionPrecisionBits, node.positionIsOverride)) return false;
-          if (!nodePassesTransportFilter(node, { showRfNodes, showUdpNodes, showMqttNodes }, transportCutoff)) return false;
-          if (!showIncompleteNodes && !isNodeComplete(node)) return false;
-          // When traceroute is active, only show regions for nodes in the traceroute
-          if (tracerouteNodeNums && !tracerouteNodeNums.has(node.nodeNum)) return false;
-          return true;
-        })
-        .map(node => {
-          const bounds = precisionCellBounds(
-            node.position!.latitude,
-            node.position!.longitude,
-            node.positionPrecisionBits as number,
-          );
-          const isLocalNode = node.user?.id === currentNodeId;
-          const hops = isLocalNode ? 0 : getEffectiveHops(node, nodeHopsCalculation, traceroutes, currentNodeNum);
-          const color = getHopColor(hops, overlayColors.hopColors);
-          return {
-            key: `accuracy-${node.nodeNum}`,
-            bounds,
-            pathOptions: {
-              color,
-              fillColor: color,
-              fillOpacity: 0.08,
-              opacity: 0.5,
-              weight: 1,
-            },
-          };
-        })
+    ? buildAccuracyRegions(nodesWithPosition, mapNodeFilter, overlayHopColor)
     : [];
-
-  // Estimated-position uncertainty circles — adapter over the shared
-  // `EstimatedPositionRadiiLayer` (#6260 WP5).
   const estimatedRadii: EstimatedPositionRadius[] = showEstimatedPositions && showAccuracyRegions
-    ? nodesWithPosition
-        .filter(node => node.user?.id && nodesWithEstimatedPosition.has(node.user.id) && nodePassesTransportFilter(node, { showRfNodes, showUdpNodes, showMqttNodes }, transportCutoff) && (showIncompleteNodes || isNodeComplete(node)) && (!tracerouteNodeNums || tracerouteNodeNums.has(node.nodeNum)))
-        .map(node => {
-          // Real multilateration uncertainty radius (issue #3271); 500m base
-          // for legacy/missing data.
-          const uncertaintyKm = node.user?.id ? estimatedUncertainty[node.user.id] : undefined;
-          const radiusMeters = uncertaintyKm != null && uncertaintyKm > 0 ? uncertaintyKm * 1000 : 500;
-          const isLocalNode = node.user?.id === currentNodeId;
-          const hops = isLocalNode ? 0 : getEffectiveHops(node, nodeHopsCalculation, traceroutes, currentNodeNum);
-          return {
-            key: `estimated-${node.nodeNum}`,
-            center: [node.position!.latitude, node.position!.longitude] as [number, number],
-            radiusMeters,
-            color: getHopColor(hops, overlayColors.hopColors),
-          };
-        })
+    ? buildEstimatedRadii(nodesWithPosition, { ...mapNodeFilter, estimatedUncertainty }, overlayHopColor)
     : [];
 
   // Neighbor-info links (#4047 Phase 7 WP11) — adapter over the shared
@@ -2073,59 +2021,29 @@ const NodesTabComponent: React.FC<NodesTabProps> = ({
   // `atan2` calculation exactly), so it's no longer computed here.
   const zoomShowsNeighborLinks = useMapViewSelector(s => s.zoom >= neighborInfoMinZoom);
   const neighborLinks: NeighborLinkDescriptor[] = (showNeighborInfo && neighborInfo.length > 0 && zoomShowsNeighborLinks)
-    ? neighborInfo
-        .map((ni, idx): NeighborLinkDescriptor | null => {
-          // Anchor each endpoint to where the node's MARKER is rendered
-          // (merged / override-aware position, keyed by nodeNum) so the
-          // line connects to the visible marker rather than the
-          // source-specific reported coords (#3642). Falls back to the
-          // record's embedded coords when the node isn't on the map.
-          const nodeEndpoint = resolveMapEndpoint(nodePositions, ni.nodeNum, ni.nodeLatitude, ni.nodeLongitude);
-          const neighborEndpoint = resolveMapEndpoint(nodePositions, ni.neighborNodeNum, ni.neighborLatitude, ni.neighborLongitude);
-          if (!nodeEndpoint || !neighborEndpoint) return null;
-          const [nodeLat, nodeLng] = nodeEndpoint;
-          const [neighborLat, neighborLng] = neighborEndpoint;
-
-          // Filter out segments where either endpoint is not visible (Issue #1149)
-          if (visibleNodeNums && (!visibleNodeNums.has(ni.nodeNum) || !visibleNodeNums.has(ni.neighborNodeNum))) {
-            return null;
-          }
-
-          // When traceroute is active, only show segments for nodes in the traceroute
-          if (tracerouteNodeNums && (!tracerouteNodeNums.has(ni.nodeNum) || !tracerouteNodeNums.has(ni.neighborNodeNum))) {
-            return null;
-          }
-
-          const positions: [[number, number], [number, number]] = [
-            [nodeLat, nodeLng],
-            [neighborLat, neighborLng],
-          ];
-
-          const isBidirectional = ni.bidirectional === true;
-          const { pathOptions, arrows } = computeNeighborLinkStyle(ni.snr ?? null, isBidirectional, overlayColors.neighborLine);
-
+    ? buildNeighborLinks(neighborInfo, {
+        nodePositions,
+        visibleNodeNums,
+        tracerouteNodeNums,
+        lineColor: overlayColors.neighborLine,
+        decorate: (ni, { positions: [[nodeLat, nodeLng], [neighborLat, neighborLng]], isBidirectional }) => {
           // Calculate distance between nodes (coordinates guaranteed non-null by early return above)
           const distKm = calculateDistance(nodeLat, nodeLng, neighborLat, neighborLng);
           const distStr = formatDistance(distKm, distanceUnit);
-
+    
           // Normalize timestamp: old data may be in seconds, new data in milliseconds
           const tsMs = ni.timestamp < 10_000_000_000 ? ni.timestamp * 1000 : ni.timestamp;
           // Data age (clamped to 0 to handle clock skew)
           const ageMs = Math.max(0, Date.now() - tsMs);
           const ageMin = Math.floor(ageMs / 60000);
           const ageStr = ageMin < 60 ? `${ageMin}m ago` : `${Math.floor(ageMin / 60)}h ago`;
-
+    
           // SNR text color for popup (canonical 4-band scale, #4047 P3 D4)
           const snrTextColor = ni.snr != null
             ? snrToColor(ni.snr, overlayColors.snrColors)
             : undefined;
-
+    
           return {
-            key: `neighbor-${idx}`,
-            positions,
-            pathOptions,
-            className: `neighbor-line node-${ni.nodeNum} node-${ni.neighborNodeNum}`,
-            arrows,
             children: (
               <Popup>
                 <div className="route-popup">
@@ -2155,8 +2073,8 @@ const NodesTabComponent: React.FC<NodesTabProps> = ({
               </Popup>
             ),
           };
-        })
-        .filter((d): d is NeighborLinkDescriptor => d !== null)
+        },
+      })
     : [];
 
   // Calculate center point of all nodes for initial map view

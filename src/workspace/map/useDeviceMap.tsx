@@ -14,7 +14,14 @@ import { useSource } from '../../contexts/SourceContext';
 import { useData } from '../../contexts/DataContext';
 import { useTelemetryNodes } from '../../hooks/useServerData';
 import { useNodeQuickAgeFilter } from '../../hooks/useNodeQuickAgeFilter';
-import { computeNeighborLinkStyle } from '../../components/map/DeviceMapLayers';
+import {
+  buildAccuracyRegions,
+  buildEstimatedRadii,
+  buildNeighborLinks,
+  countAgedOutOnMap,
+  passesMapFilters as passesDeviceMapFilters,
+  type MapNodeFilter,
+} from '../../components/map/deviceMapModel';
 import { isAgedOutAircraft, AGED_OUT_AIRCRAFT_OPACITY } from '../../components/map/agedOutAircraft';
 import type { NodeMarkerDescriptor } from '../../components/map/layers/NodeMarkersLayer';
 import type { NeighborLinkDescriptor } from '../../components/map/layers/NeighborLinksLayer';
@@ -27,10 +34,10 @@ import type { MeasurePoint } from '../../utils/measureDistance';
 import { createNodeIcon, getHopColor } from '../../utils/mapIcons';
 import { calculateNodeOpacity } from '../../utils/nodeDimming';
 import { getEffectiveHops } from '../../utils/nodeHops';
-import { getEffectivePosition, hasValidEffectivePosition, isNodeComplete, parseNodeId, resolveMapEndpoint } from '../../utils/nodeHelpers';
+import { getEffectivePosition, hasValidEffectivePosition, parseNodeId } from '../../utils/nodeHelpers';
 import { categoryGlyphFamily, getNodeTypeCategory, markerRoleProps } from '../../utils/nodeTypeCategory';
-import { isMqttOnlySourceType, nodePassesTransportFilter, transportCutoffSec } from '../../utils/nodeTransport';
-import { applyPrecisionCellOffsets, hasAccuracyCell, precisionCellBounds } from '../../utils/precisionOffset';
+import { isMqttOnlySourceType, transportCutoffSec } from '../../utils/nodeTransport';
+import { applyPrecisionCellOffsets } from '../../utils/precisionOffset';
 import { effectiveMapMaxAgeHours } from '../../utils/mapAge';
 import { resolveNodeListAgeHours } from '../../utils/nodeQuickAgeFilter';
 import { resolveClusterZoomThreshold } from '../../utils/mapZoomAnimation';
@@ -94,16 +101,17 @@ export function useDeviceMap({ processedNodes, agedOutAircraftNodes, tracerouteN
     // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 keyed on positions like NodesTab's memo
   }, [nodesWithPosition.map((n) => { const p = getEffectivePosition(n); return `${n.nodeNum}:${p.latitude}:${p.longitude}:${n.positionPrecisionBits}`; }).join(','), map.spreadNodes]);
 
-  const passesMapFilters = (node: DeviceInfo): boolean => {
-    if (!nodePassesTransportFilter(node, transport, transportCutoff)) return false;
-    if (!settings.showIncompleteNodes && !isNodeComplete(node)) return false;
-    if (!map.showEstimatedPositions && node.user?.id && nodesWithEstimatedPosition.has(node.user.id)) return false;
-    if (tracerouteNodeNums && !tracerouteNodeNums.has(node.nodeNum)) return false;
-    if (isAgedOutAircraft(node)) return true;
-    if (!node.isFavorite && node.lastHeard && node.lastHeard < mapAgeCutoffSeconds) return false;
-    if (map.aircraftDisplayMode === 'hide' && node.likelyAircraft === true && !node.isFavorite) return false;
-    return true;
+  const mapNodeFilter: MapNodeFilter = {
+    transport,
+    transportCutoff,
+    showIncompleteNodes: settings.showIncompleteNodes,
+    showEstimatedPositions: map.showEstimatedPositions,
+    nodesWithEstimatedPosition,
+    tracerouteNodeNums,
+    mapAgeCutoffSeconds,
+    aircraftDisplayMode: map.aircraftDisplayMode,
   };
+  const passesMapFilters = (node: DeviceInfo): boolean => passesDeviceMapFilters(node, mapNodeFilter);
   const visibleMapNodes = nodesWithPosition.filter(passesMapFilters);
 
   const nodeMarkers: NodeMarkerDescriptor[] = visibleMapNodes.map((node) => {
@@ -147,56 +155,23 @@ export function useDeviceMap({ processedNodes, agedOutAircraftNodes, tracerouteN
     };
   });
 
-  const regionNodes = nodesWithPosition.filter(
-    (node) =>
-      nodePassesTransportFilter(node, transport, transportCutoff) &&
-      (settings.showIncompleteNodes || isNodeComplete(node)) &&
-      (!tracerouteNodeNums || tracerouteNodeNums.has(node.nodeNum)),
-  );
+  const hopColor = (node: DeviceInfo) => getHopColor(hopsOf(node), settings.overlayColors.hopColors);
   const accuracyRegions: AccuracyRegionDescriptor[] = map.showAccuracyRegions
-    ? regionNodes
-        .filter((node) => hasAccuracyCell(node.positionPrecisionBits, node.positionIsOverride))
-        .map((node) => {
-          const color = getHopColor(hopsOf(node), settings.overlayColors.hopColors);
-          return {
-            key: `accuracy-${node.nodeNum}`,
-            bounds: precisionCellBounds(node.position!.latitude, node.position!.longitude, node.positionPrecisionBits as number),
-            pathOptions: { color, fillColor: color, fillOpacity: 0.08, opacity: 0.5, weight: 1 },
-          };
-        })
+    ? buildAccuracyRegions(nodesWithPosition, mapNodeFilter, hopColor)
     : [];
   const estimatedRadii: EstimatedPositionRadius[] =
     map.showEstimatedPositions && map.showAccuracyRegions
-      ? regionNodes
-          .filter((node) => node.user?.id && nodesWithEstimatedPosition.has(node.user.id))
-          .map((node) => {
-            const km = estimatedUncertainty[node.user!.id];
-            return {
-              key: `estimated-${node.nodeNum}`,
-              center: [node.position!.latitude, node.position!.longitude] as [number, number],
-              radiusMeters: km != null && km > 0 ? km * 1000 : 500,
-              color: getHopColor(hopsOf(node), settings.overlayColors.hopColors),
-            };
-          })
+      ? buildEstimatedRadii(nodesWithPosition, { ...mapNodeFilter, estimatedUncertainty }, hopColor)
       : [];
 
   const neighborLinks: NeighborLinkDescriptor[] =
     map.showNeighborInfo && zoomShowsNeighborLinks
-      ? map.neighborInfo.flatMap((ni, idx): NeighborLinkDescriptor[] => {
-          const a = resolveMapEndpoint(nodePositions, ni.nodeNum, ni.nodeLatitude, ni.nodeLongitude);
-          const b = resolveMapEndpoint(nodePositions, ni.neighborNodeNum, ni.neighborLatitude, ni.neighborLongitude);
-          if (!a || !b) return [];
-          if (visibleNodeNums && (!visibleNodeNums.has(ni.nodeNum) || !visibleNodeNums.has(ni.neighborNodeNum))) return [];
-          if (tracerouteNodeNums && (!tracerouteNodeNums.has(ni.nodeNum) || !tracerouteNodeNums.has(ni.neighborNodeNum))) return [];
-          const { pathOptions, arrows } = computeNeighborLinkStyle(ni.snr ?? null, ni.bidirectional === true, settings.overlayColors.neighborLine);
-          return [{
-            key: `neighbor-${idx}`,
-            positions: [a, b],
-            pathOptions,
-            className: `neighbor-line node-${ni.nodeNum} node-${ni.neighborNodeNum}`,
-            arrows,
-            eventHandlers: { click: () => onLinkClick(ni) },
-          }];
+      ? buildNeighborLinks(map.neighborInfo, {
+          nodePositions,
+          visibleNodeNums,
+          tracerouteNodeNums,
+          lineColor: settings.overlayColors.neighborLine,
+          decorate: (ni) => ({ eventHandlers: { click: () => onLinkClick(ni) } }),
         })
       : [];
 
@@ -243,6 +218,6 @@ export function useDeviceMap({ processedNodes, agedOutAircraftNodes, tracerouteN
     mqttOnly,
     clusterZoomThreshold: resolveClusterZoomThreshold(settings.mapZoomGateThreshold, settings.mapClusteringEnabled),
     aircraftCount: nodesWithPosition.filter((n) => n.likelyAircraft === true && !isAgedOutAircraft(n)).length,
-    agedOutCount: [...positioned(processedNodes), ...agedOut].filter((n) => isAgedOutAircraft(n) && passesMapFilters(n)).length,
+    agedOutCount: countAgedOutOnMap([...positioned(processedNodes), ...agedOut], mapNodeFilter),
   };
 }
