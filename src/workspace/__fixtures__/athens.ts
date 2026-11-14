@@ -15,6 +15,7 @@ import type { UnreadBySourceData } from '../../hooks/useUnreadBySource';
 import type { UnreadCountsData } from '../../hooks/useUnreadCounts';
 import type { Channel, DeviceInfo } from '../../types/device';
 import type { MessageEvent } from '../../types/message';
+import type { ActivityItem } from '../../types/activity';
 
 export const SOURCE_IDS = {
   g2: 'src-g2',
@@ -27,6 +28,8 @@ export const SOURCE_IDS = {
 const NOW_S = Math.floor(Date.now() / 1000);
 const NOW_MS = NOW_S * 1000;
 const CREATED = NOW_MS - 90 * 86_400_000;
+/** Local midnight today: Activity's Today / Yesterday groups. */
+const MIDNIGHT = new Date(NOW_MS).setHours(0, 0, 0, 0);
 
 const sources: DashboardSource[] = [
   { id: SOURCE_IDS.g2, name: 'Station G2', type: 'meshtastic_tcp', enabled: true,
@@ -90,7 +93,11 @@ const config: PollConfig & { workspacePreview: boolean } = {
 };
 
 /** `GET /api/user/preferences` (spec §7.1): the user's saved preference map. */
-const userPreferences: Record<string, unknown> = { layout: 'workspace' };
+const userPreferences: Record<string, unknown> = {
+  layout: 'workspace',
+  // Station G2's Activity was last seen late yesterday: today's three items are unseen (c-home-e4).
+  [`workspace.activity.${SOURCE_IDS.g2}`]: MIDNIGHT - 3_600_000,
+};
 
 /** `GET /api/settings`: a flat string map. */
 const settings: Record<string, string> = {
@@ -272,6 +279,36 @@ const searchResults = ([
   toNodeId, channel: channelId, timestamp: NOW_MS - agoS * 1000, source: 'standard' as const,
 }));
 
+/**
+ * `GET /api/sources/src-g2/activity` (c-home-e4 / e6), newest first: three today (between
+ * midnight and now, so always today), two yesterday. Other devices have none (e5).
+ */
+const OURS = (n: number) => `${SOURCE_IDS.g2}_${0xa1b2c300}_${n}`;
+const today = (f: number) => Math.round(MIDNIGHT + (NOW_MS - MIDNIGHT) * f);
+const WELCOME = 'Welcome back! Hearing you direct from Kifisia';
+const activity: Record<string, ActivityItem[]> = {
+  [SOURCE_IDS.g2]: [
+    { kind: 'reply', id: `${SOURCE_IDS.g2}_${0xa1b2c305}_201`, targetMessageId: OURS(6), targetText: WELCOME,
+      conversation: { type: 'channel', channel: 0 }, fromId: '!a1b2c305', fromName: 'Marousi Mobile',
+      text: 'Yes, loud and clear from Marousi', timestamp: today(0.9) },
+    { kind: 'reaction', id: `reaction:${OURS(6)}`, targetMessageId: OURS(6), conversation: { type: 'channel', channel: 0 },
+      fromId: '!a1b2c302', fromName: 'Athens Rover', text: WELCOME, timestamp: today(0.8),
+      reactions: [
+        { emoji: '👍', count: 2, fromNames: ['Athens Rover', 'Glyfada Beach'] },
+        { emoji: '📡', count: 1, fromNames: ['Lycabettus Repeater'] },
+      ] },
+    { kind: 'mention', id: `${SOURCE_IDS.g2}_${0xa1b2c304}_202`, targetMessageId: null,
+      conversation: { type: 'channel', channel: 2 }, fromId: '!a1b2c304', fromName: 'Piraeus Base',
+      text: '@!a1b2c300 are you hearing the Hymettus relay?', timestamp: today(0.7) },
+    { kind: 'reply', id: `${SOURCE_IDS.g2}_${0xa1b2c301}_203`, targetMessageId: OURS(10), targetText: 'Back on LongFast later?',
+      conversation: { type: 'dm', peerId: KIFISIA }, fromId: KIFISIA, fromName: 'Kifisia Rooftop',
+      text: 'Try LongFast, MediumFast is quiet here', timestamp: MIDNIGHT - 19_200_000 },
+    { kind: 'reaction', id: `reaction:${OURS(4)}`, targetMessageId: OURS(4), conversation: { type: 'channel', channel: 1 },
+      fromId: '!a1b2c306', fromName: 'Hymettus Relay', text: 'gauntlet test 1', timestamp: MIDNIGHT - 28_500_000,
+      reactions: [{ emoji: '✅', count: 1, fromNames: ['Hymettus Relay'] }] },
+  ],
+};
+
 const unreadBySource: UnreadBySourceData = {
   sources: { [SOURCE_IDS.g2]: { directMessages: 1 }, [SOURCE_IDS.heltec]: { directMessages: 2 } },
 };
@@ -313,4 +350,5 @@ export const athensFixture = {
   messageEvents,
   translation,
   searchResults,
+  activity,
 };

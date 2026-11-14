@@ -2,7 +2,8 @@
  * The sidebar of layout D (board a-chat-D-desktop, note asD). Its content
  * follows the route (spec §5.3):
  *
- * - `device`: header (device name, status line), the Search Messages field
+ * - `device`: header (device name, status line, and the Activity bell of
+ *   Task 2.8 on a Meshtastic-family device), the Search Messages field
  *   (Task 2.6; with its ⌘K / Ctrl+K hint) where the viewer can search, the device's tools, then
  *   Channels and Direct messages. A Meshtastic-family device lists its
  *   channels and DM conversations (Task 2.3); other types link to today's
@@ -28,7 +29,8 @@ import {
 } from '../../components/search/configSections';
 import { PREFERENCE_CATEGORIES } from '../routes';
 import SidebarSection from './SidebarSection';
-import { isMeshtasticFamily, statusLabel, useDeviceTab } from './deviceTabs';
+import { canReadMessages, isMeshtasticFamily, statusLabel, useDeviceTab } from './deviceTabs';
+import ActivityPanel from '../activity/ActivityPanel';
 import ChannelList from '../chat/ChannelList';
 import DmList from '../chat/DmList';
 import type { WorkspaceSource } from './useWorkspaceSources';
@@ -181,9 +183,11 @@ function Frame({ title, header, children }: { title: string; header?: ReactNode;
   );
 }
 
-/** Name and status line: "Connected · !a1b2c3d4". */
+/** Name and status line: "Connected · !a1b2c3d4", and the Activity bell (Task 2.8, Meshtastic family). */
 function DeviceHeader({ source }: { source: WorkspaceSource }) {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
+  const bell = isMeshtasticFamily(source.type) && canReadMessages(hasPermission, source.id);
   const label = statusLabel(t, source.status);
   const nodeNum = source.live?.nodeNum;
   const line = nodeNum !== undefined && source.status === 'connected' ? `${label} · !${nodeNum.toString(16).padStart(8, '0')}` : label;
@@ -196,6 +200,7 @@ function DeviceHeader({ source }: { source: WorkspaceSource }) {
           <span>{line}</span>
         </p>
       </div>
+      {bell && <ActivityPanel key={source.id} sourceId={source.id} deviceName={source.name} />}
     </div>
   );
 }

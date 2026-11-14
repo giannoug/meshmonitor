@@ -6,14 +6,19 @@
  * - DMs: that device's DMs, as the desktop sidebar's Direct messages link
  *   (Meshtastic family: the Workspace inbox `dms`, Task 2.6; MeshCore and
  *   Reticulum: today's `dms` view). Badge: its DM unread.
- * - Activity: `/source/:id/activity` (today's device page until Phase 2).
+ * - Activity: `/source/:id/activity`, the Workspace feed (Task 2.8), on a
+ *   Meshtastic-family device the viewer can read messages on. Badge: its
+ *   unseen items (`useActivity`).
  * - With no device, DMs and Activity are shown disabled; so is DMs for a
- *   viewer the sidebar would not show Direct messages to.
+ *   viewer the sidebar would not show Direct messages to, and Activity on a
+ *   MeshCore or Reticulum device (their chat is Phase 7) or without read.
  */
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon, type UiIconName } from '../../components/icons';
-import { useDeviceTab } from './deviceTabs';
+import { useAuth } from '../../contexts/AuthContext';
+import { useActivity } from '../activity/useActivity';
+import { canReadMessages, isMeshtasticFamily, useDeviceTab } from './deviceTabs';
 import type { WorkspaceSource } from './useWorkspaceSources';
 import styles from './TabBar.module.css';
 
@@ -30,10 +35,13 @@ export default function TabBar({ home, active }: TabBarProps) {
   const base = home && `/source/${encodeURIComponent(home.id)}`;
   // Gated as the desktop sidebar's Direct messages entry (messages:read, type).
   const dms = useDeviceTab(home)('dms');
+  const { hasPermission } = useAuth();
+  const hasActivity = !!home && isMeshtasticFamily(home.type) && canReadMessages(hasPermission, home.id);
+  const { unseenCount } = useActivity(home?.id, { enabled: hasActivity });
   const tabs: Array<{ key: PhoneTab; to: string | null; icon: UiIconName; badge?: number }> = [
     { key: 'home', to: base ?? '/overview', icon: 'home' },
     { key: 'dms', to: dms, icon: 'messages', badge: home?.dmUnread },
-    { key: 'activity', to: base && `${base}/activity`, icon: 'notifications' },
+    { key: 'activity', to: hasActivity ? `${base}/activity` : null, icon: 'notifications', badge: unseenCount },
     { key: 'you', to: '/you', icon: 'user' },
   ];
 

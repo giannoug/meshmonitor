@@ -49,3 +49,9 @@ export const ONLINE_WINDOW_S = 7200;
 export function isHeardRecently(lastHeard: number | undefined, nowMs = Date.now()): boolean {
   return (lastHeard ?? 0) > Math.floor(nowMs / 1000) - ONLINE_WINDOW_S;
 }
+
+/** A stable avatar colour per node, from the categorical device tokens. */
+export function avatarToken(nodeId: string): string {
+  const num = parseInt(nodeId.replace('!', ''), 16) || 0;
+  return `var(--device-${(num % 8) + 1})`;
+}

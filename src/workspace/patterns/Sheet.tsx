@@ -19,6 +19,8 @@ export interface SheetProps {
   side?: 'auto' | 'bottom' | 'right';
   children: ReactNode;
   footer?: ReactNode;
+  /** Buttons in the head, before Close. */
+  actions?: ReactNode;
 }
 
 export default function Sheet(props: SheetProps) {
@@ -26,7 +28,7 @@ export default function Sheet(props: SheetProps) {
 }
 
 /** Mounted only while open: the a11y hook focuses on mount and restores focus on unmount. */
-function OpenSheet({ onClose, title, side = 'auto', children, footer }: SheetProps) {
+function OpenSheet({ onClose, title, side = 'auto', children, footer, actions }: SheetProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const { contentRef, onKeyDown } = useDialogA11y(onClose);
@@ -49,6 +51,7 @@ function OpenSheet({ onClose, title, side = 'auto', children, footer }: SheetPro
         {docked === 'bottom' && <span className={styles.handle} aria-hidden="true" />}
         <div className={styles.head}>
           <h2 id={titleId} className={styles.title}>{title}</h2>
+          {actions}
           <button type="button" className={styles.close} onClick={onClose} aria-label={t('common.close')}>
             <UiIcon name="close" size={20} />
           </button>

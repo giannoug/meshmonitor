@@ -24,25 +24,9 @@ import { MeshCoreRepository, type MeshCoreMessageScope } from './meshcore.js';
 import { isTapbackMessage } from '../../utils/messageReplies.js';
 import { textMentionsNode } from '../../utils/mentions.js';
 import { textMentionsMeshCoreName } from '../../utils/meshcoreMentions.js';
+import type { ActivityConversation, ActivityItem, ActivityPage } from '../../types/activity.js';
 
-export type ActivityConversation = { type: 'channel'; channel: number } | { type: 'dm'; peerId: string };
-
-export interface ActivityItem {
-  kind: 'reply' | 'reaction' | 'mention';
-  id: string;
-  targetMessageId: string | null;
-  conversation: ActivityConversation;
-  fromId: string;
-  fromName: string;
-  text: string;
-  reactions?: Array<{ emoji: string; count: number; fromNames: string[] }>;
-  timestamp: number;
-}
-
-export interface ActivityPage {
-  items: ActivityItem[];
-  nextBefore: number | null;
-}
+export type { ActivityConversation, ActivityItem, ActivityPage };
 
 export interface MeshtasticActivityQuery {
   sourceId: string;
@@ -187,7 +171,7 @@ export class ActivityRepository extends BaseRepository {
       if (isTapbackMessage(r)) {
         if (targetId && targetText !== undefined) addReaction(groups, items, targetId, targetText, r.text, from);
       } else if (targetId && targetText !== undefined) {
-        items.push({ kind: 'reply', id: r.id, targetMessageId: targetId, text: r.text, ...from });
+        items.push({ kind: 'reply', id: r.id, targetMessageId: targetId, targetText, text: r.text, ...from });
       } else if (textMentionsNode(r.text, q.ownNodeId)) {
         items.push({ kind: 'mention', id: r.id, targetMessageId: null, text: r.text, ...from });
       }

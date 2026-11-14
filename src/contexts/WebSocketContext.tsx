@@ -6,6 +6,7 @@
  */
 
 import React, { createContext, useContext, useMemo } from 'react';
+import type { Socket } from 'socket.io-client';
 import { useWebSocket, type WebSocketState } from '../hooks/useWebSocket';
 import { useAuth } from './AuthContext.js';
 
@@ -96,4 +97,13 @@ export function useWebSocketContext(): WebSocketContextType {
 export function useWebSocketConnected(): boolean {
   const context = useContext(WebSocketContext);
   return context?.state.connected ?? false;
+}
+
+/**
+ * The nearest WebSocketProvider's socket, or null outside one or before it
+ * connects. For listeners that may also run where no provider is mounted.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- #6365 a hook beside its context, as useWebSocketContext
+export function useOptionalSocket(): Socket | null {
+  return useContext(WebSocketContext)?.state.socket ?? null;
 }

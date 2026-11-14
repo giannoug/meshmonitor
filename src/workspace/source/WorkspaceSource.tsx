@@ -7,7 +7,8 @@
  *   (`classicSourceLocation`), since it picks its tab from the path. A
  *   channel (`channel/<n>[/beacons]`) is the Workspace's own ChannelThread,
  *   a DM (`dm/<nodeId>`) its own DmConversation, the DM inbox (`dms`) its
- *   DmInbox, and the bare source URL on a phone its PhoneHome (Task 2.6), with
+ *   DmInbox, Activity (`activity`) its ActivityFeed (Task 2.8), and the bare
+ *   source URL on a phone its PhoneHome (Task 2.6), with
  *   App not mounted (Ruling AD: one owner of the message state per screen).
  *   A desktop bare source URL keeps the re-hosted App.
  * - MeshCore / Reticulum: the view comes from the URL and view changes
@@ -60,6 +61,9 @@ const DmInbox = lazy(() => import('../chat/DmInbox.tsx'));
 const PhoneHome = lazy(() => import('../chat/PhoneHome.tsx'));
 /** `dms`: the Workspace DM inbox (Task 2.6). */
 const DMS_PATH = /^dms\/?$/;
+const ActivityFeed = lazy(() => import('../activity/ActivityFeed.tsx'));
+/** `activity`: the Workspace Activity feed (Task 2.8). */
+const ACTIVITY_PATH = /^activity\/?$/;
 
 export default function WorkspaceSource() {
   const { t } = useTranslation();
@@ -143,6 +147,14 @@ export default function WorkspaceSource() {
     return (
       <Rehost>
         <DmInbox key={sourceId} sourceId={sourceId} source={source} />
+      </Rehost>
+    );
+  }
+
+  if (source && ACTIVITY_PATH.test(splat)) {
+    return (
+      <Rehost>
+        <ActivityFeed key={sourceId} sourceId={sourceId} source={source} />
       </Rehost>
     );
   }

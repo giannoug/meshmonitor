@@ -29,6 +29,13 @@ export function isMeshtasticFamily(type: string): boolean {
   return familyOf(type) === 'meshtastic' && type !== 'meshcore_mqtt';
 }
 
+/** App's message gate (App.tsx canSearch): messages:read or any channel_N:read on the device. */
+export function canReadMessages(hasPermission: ReturnType<typeof useAuth>['hasPermission'], sourceId: string): boolean {
+  return ['messages', ...Array.from({ length: 8 }, (_, i) => `channel_${i}`)].some((r) =>
+    hasPermission(r as ResourceType, 'read', { sourceId }),
+  );
+}
+
 /** Today's words for a device's state. */
 export function statusLabel(t: TFunction, status: WorkspaceSource['status']): string {
   return {

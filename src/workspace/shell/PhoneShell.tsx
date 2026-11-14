@@ -16,6 +16,7 @@ import { UiIcon } from '../../components/icons';
 import type { SidebarMode } from './DeviceSidebar';
 import { isMeshtasticFamily, statusLabel } from './deviceTabs';
 import DeviceSwitcherSheet from './DeviceSwitcherSheet';
+import { ShellDevicesContext, useShellDevices } from './shellDevices';
 import TabBar, { type PhoneTab } from './TabBar';
 import type { WorkspaceSource } from './useWorkspaceSources';
 import styles from './PhoneShell.module.css';
@@ -45,17 +46,19 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const shell = useShellDevices();
   // Following a row (or any link) closes the switcher.
   useEffect(() => setSwitcherOpen(false), [pathname]);
 
   const source = sources.find((s) => s.id === openId);
-  // A Meshtastic conversation draws its own header (boards 10-06, 10-14; DMs 10-07), and so does the inbox (c-home-e3).
+  // A Meshtastic conversation draws its own header (boards 10-06, 10-14; DMs 10-07), and so do the inbox (c-home-e3) and Activity (c-home-e4).
   const ownHeader =
     !!source &&
     isMeshtasticFamily(source.type) &&
     (!!matchPath('/source/:id/channel/*', pathname) ||
       !!matchPath('/source/:id/dm/:nodeId', pathname) ||
-      !!matchPath('/source/:id/dms', pathname));
+      !!matchPath('/source/:id/dms', pathname) ||
+      !!matchPath('/source/:id/activity', pathname));
   const quick = source ? sources.filter((s) => s.id !== source.id).slice(0, QUICK_SQUARES) : [];
   const showHeader = mode !== 'you' && mode !== 'server' && !ownHeader;
   const title = source?.name ?? t('workspace.shell.overview');
@@ -72,66 +75,68 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
   } as CSSProperties;
 
   return (
-    <div style={vars}>
-      {showHeader && (
-        <header className={styles.header}>
-          <button
-            type="button"
-            className={styles.switch}
-            aria-haspopup="dialog"
-            aria-expanded={switcherOpen}
-            aria-label={t('workspace.switcher.open', { name: title })}
-            onClick={() => setSwitcherOpen(true)}
-          >
-            {source ? (
-              <span className={styles.square} style={{ background: source.colorToken }}>{source.abbrev}</span>
-            ) : (
-              <span className={`${styles.square} ${styles.plain}`}><UiIcon name="dashboard" size={22} /></span>
-            )}
-            <span className={styles.text}>
-              <span className={styles.title}>
-                <span className={styles.name}>{title}</span>
-                <UiIcon name="chevronDown" size={18} />
-              </span>
-              {status && (
-                <span className={styles.status}>
-                  <span className={styles.dot} data-status={source.status} />
-                  <span>{status}</span>
-                </span>
+    <ShellDevicesContext.Provider value={{ ...shell, openSwitcher: () => setSwitcherOpen(true) }}>
+      <div style={vars}>
+        {showHeader && (
+          <header className={styles.header}>
+            <button
+              type="button"
+              className={styles.switch}
+              aria-haspopup="dialog"
+              aria-expanded={switcherOpen}
+              aria-label={t('workspace.switcher.open', { name: title })}
+              onClick={() => setSwitcherOpen(true)}
+            >
+              {source ? (
+                <span className={styles.square} style={{ background: source.colorToken }}>{source.abbrev}</span>
+              ) : (
+                <span className={`${styles.square} ${styles.plain}`}><UiIcon name="dashboard" size={22} /></span>
               )}
-            </span>
-          </button>
-          {quick.length > 0 && (
-            <div className={styles.quick}>
-              {quick.map((s) => (
-                <Link
-                  key={s.id}
-                  to={`/source/${encodeURIComponent(s.id)}`}
-                  className={styles.square}
-                  style={{ background: s.colorToken }}
-                  aria-label={s.dmUnread ? t('workspace.shell.device_unread', { name: s.name, count: s.dmUnread }) : s.name}
-                >
-                  {s.abbrev}
-                  {!!s.dmUnread && (
-                    <span className={styles.badge} aria-hidden="true">
-                      {s.dmUnread > 99 ? '99+' : s.dmUnread}
-                    </span>
-                  )}
-                </Link>
-              ))}
-            </div>
-          )}
-        </header>
-      )}
-      {children}
-      <TabBar home={home} active={activeTab(pathname, mode)} />
-      <DeviceSwitcherSheet
-        open={switcherOpen}
-        onClose={() => setSwitcherOpen(false)}
-        sources={sources}
-        openId={openId}
-        overviewActive={mode === 'overview'}
-      />
-    </div>
+              <span className={styles.text}>
+                <span className={styles.title}>
+                  <span className={styles.name}>{title}</span>
+                  <UiIcon name="chevronDown" size={18} />
+                </span>
+                {status && (
+                  <span className={styles.status}>
+                    <span className={styles.dot} data-status={source.status} />
+                    <span>{status}</span>
+                  </span>
+                )}
+              </span>
+            </button>
+            {quick.length > 0 && (
+              <div className={styles.quick}>
+                {quick.map((s) => (
+                  <Link
+                    key={s.id}
+                    to={`/source/${encodeURIComponent(s.id)}`}
+                    className={styles.square}
+                    style={{ background: s.colorToken }}
+                    aria-label={s.dmUnread ? t('workspace.shell.device_unread', { name: s.name, count: s.dmUnread }) : s.name}
+                  >
+                    {s.abbrev}
+                    {!!s.dmUnread && (
+                      <span className={styles.badge} aria-hidden="true">
+                        {s.dmUnread > 99 ? '99+' : s.dmUnread}
+                      </span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </header>
+        )}
+        {children}
+        <TabBar home={home} active={activeTab(pathname, mode)} />
+        <DeviceSwitcherSheet
+          open={switcherOpen}
+          onClose={() => setSwitcherOpen(false)}
+          sources={sources}
+          openId={openId}
+          overviewActive={mode === 'overview'}
+        />
+      </div>
+    </ShellDevicesContext.Provider>
   );
 }

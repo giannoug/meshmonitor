@@ -69,6 +69,11 @@ const defaults: Record<string, FixtureHandler> = {
   'POST /api/translate': () => ({ success: true, data: A.translation }),
   // Message search (10-15 / 10-16): the first page of 31 results; Load more serves it again.
   'GET /api/messages/search': () => ({ success: true, count: A.searchResults.length, total: 31, data: A.searchResults }),
+  // Activity (c-home-e4 / e5 / e6): one page per device; Station G2 has five items, the rest none.
+  'GET /api/sources/:id/activity': (url) => ({
+    success: true,
+    data: { items: url.searchParams.has('before') ? [] : (A.activity[url.pathname.split('/')[3]] ?? []), nextBefore: null },
+  }),
   'GET /api/telemetry/:nodeId': (url) => {
     const nodeId = decodeURIComponent(url.pathname.split('/')[3]);
     return A.telemetry.filter((row) => row.nodeId === nodeId);

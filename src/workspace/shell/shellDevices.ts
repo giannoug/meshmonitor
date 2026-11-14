@@ -8,6 +8,8 @@ export interface ShellDevices {
   home: WorkspaceSource | null;
   /** Opens message search for the open device; null where the viewer cannot search it (Task 2.6). */
   openSearch?: (() => void) | null;
+  /** Phone only: opens the device switcher, for a page that draws its own header (Task 2.8). */
+  openSwitcher?: () => void;
 }
 
 export const ShellDevicesContext = createContext<ShellDevices>({ sources: [], home: null });

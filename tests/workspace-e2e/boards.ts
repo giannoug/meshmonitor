@@ -210,6 +210,18 @@ export const BOARDS: Board[] = [
       await searchRelay(page);
     },
   },
+  // Task 2.8: Activity (phone tab, empty, and the desktop bell's panel).
+  { id: 'c-home-e4-activity', size: 'phone', path: '/source/src-g2/activity' },
+  { id: 'c-home-e5-activity-empty', size: 'phone', path: '/source/src-rak/activity' },
+  {
+    id: 'c-home-e6-desktop-activity',
+    size: 'desktop',
+    path: '/source/src-g2/channel/0',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Activity, 3 unread' }).click();
+      await page.getByRole('dialog', { name: /Activity/ }).getByText(/replied in #LongFast/).waitFor();
+    },
+  },
 ];
 
 async function searchRelay(page: Page): Promise<void> {

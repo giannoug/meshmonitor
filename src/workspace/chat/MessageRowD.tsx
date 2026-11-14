@@ -30,6 +30,7 @@ import { getMeshtasticDeliveryState } from '../../utils/deliveryDiagnostics/stat
 import { renderMessageWithLinks, type MentionRenderOptions } from '../../utils/linkRenderer';
 import { messageRowPropsEqual } from '../../components/messages/messageRowSupport';
 import SendsLine from '../patterns/SendsLine';
+import { avatarToken } from './channelLabel';
 import MessageActionsSheet from './MessageActionsSheet';
 import MessageHoverBar from './MessageHoverBar';
 import { messageActionItems, type MessageActionContext, type MessageActionKind } from './messageActions';
@@ -73,12 +74,6 @@ export interface MessageRowDProps {
   phone: boolean;
   /** `emoji` with `react` sends that tapback; without it, the picker opens. */
   onAction(kind: MessageActionKind, message: MeshMessage, emoji?: string): void;
-}
-
-/** A stable avatar colour per node, from the categorical device tokens. */
-function avatarToken(nodeId: string): string {
-  const num = parseInt(nodeId.replace('!', ''), 16) || 0;
-  return `var(--device-${(num % 8) + 1})`;
 }
 
 function MessageRowDImpl(props: MessageRowDProps) {

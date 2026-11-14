@@ -29,9 +29,8 @@ import ChangePasswordModal from '../../components/ChangePasswordModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { UiIcon } from '../../components/icons';
 import { useDashboardSources } from '../../hooks/useDashboardData';
-import type { ResourceType } from '../../types/permission';
 import SearchMessages from '../chat/SearchMessages';
-import { isMeshtasticFamily } from './deviceTabs';
+import { canReadMessages, isMeshtasticFamily } from './deviceTabs';
 import DeviceRail from './DeviceRail';
 import DeviceSidebar, { type SidebarMode } from './DeviceSidebar';
 import PhoneShell from './PhoneShell';
@@ -107,12 +106,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
 
   // App's gate (App.tsx canSearch), on the open device: messages:read or any channel_N:read.
   const searchable = !!source && isMeshtasticFamily(source.type);
-  const canSearch =
-    !!source &&
-    searchable &&
-    ['messages', ...Array.from({ length: 8 }, (_, i) => `channel_${i}`)].some((r) =>
-      hasPermission(r as ResourceType, 'read', { sourceId: source.id }),
-    );
+  const canSearch = !!source && searchable && canReadMessages(hasPermission, source.id);
   const [searchOpen, setSearchOpen] = useState(false);
   // Any navigation closes search: picking a result, switching device, or a tab (even the one under the phone page).
   useEffect(() => setSearchOpen(false), [location.key]);

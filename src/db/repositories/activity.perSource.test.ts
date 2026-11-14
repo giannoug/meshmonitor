@@ -126,7 +126,7 @@ function suite(getCtx: () => Ctx) {
     const [reply, reaction, mention, dm] = page.items;
     const ownCh = `${A}_${OWN}_${P_OWN_CH}`;
     expect(reply).toMatchObject({
-      targetMessageId: ownCh, fromId: hex(ALICE), fromName: 'Alice',
+      targetMessageId: ownCh, targetText: 'hello mesh', fromId: hex(ALICE), fromName: 'Alice',
       conversation: { type: 'channel', channel: 0 }, timestamp: NOW - MIN,
     });
     expect(reaction).toMatchObject({
@@ -138,7 +138,7 @@ function suite(getCtx: () => Ctx) {
     });
     expect(mention).toMatchObject({ targetMessageId: null, fromName: 'BOB', conversation: { type: 'channel', channel: 0 } });
     expect(dm).toMatchObject({
-      targetMessageId: `${A}_${OWN}_${P_OWN_DM}`,
+      targetMessageId: `${A}_${OWN}_${P_OWN_DM}`, targetText: 'dm out',
       conversation: { type: 'dm', peerId: hex(ALICE) },
     });
     expect(typeof reply.timestamp).toBe('number');

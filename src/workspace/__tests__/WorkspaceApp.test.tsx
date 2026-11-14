@@ -16,6 +16,7 @@ import { mounts } from './pageStub';
 // One marker element per provider, so a test can count the sockets a route opens.
 vi.mock('../../contexts/WebSocketContext', () => ({
   WebSocketProvider: ({ children }: { children: React.ReactNode }) => <div data-ws-provider="">{children}</div>,
+  useOptionalSocket: () => null,
 }));
 vi.mock('../../App', async () => ({ default: (await import('./pageStub')).pageStub('app') }));
 vi.mock('../../pages/DashboardPage', async () => ({ default: (await import('./pageStub')).pageStub('dashboard') }));
@@ -34,6 +35,7 @@ vi.mock('../chat/ChannelThread', async () => ({ default: (await import('./pageSt
 vi.mock('../chat/DmConversation', async () => ({ default: (await import('./pageStub')).pageStub('dm-conversation') }));
 vi.mock('../chat/DmInbox', async () => ({ default: (await import('./pageStub')).pageStub('dm-inbox') }));
 vi.mock('../chat/PhoneHome', async () => ({ default: (await import('./pageStub')).pageStub('phone-home') }));
+vi.mock('../activity/ActivityFeed', async () => ({ default: (await import('./pageStub')).pageStub('activity') }));
 
 /** Shows the real URL, and navigates client-side when its input changes. */
 function RealUrl() {
@@ -108,7 +110,10 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     [`${g2}/settings/lora`, 'app'],
     [`${g2}/node/!a1b2c301`, 'app'],
     [`${g2}/node/!a1b2c301/telemetry`, 'app'],
-    [`${g2}/activity`, 'app'],
+    // Activity is the Workspace's own feed on a Meshtastic-family device (Task 2.8, Ruling AD); MeshCore keeps its page.
+    [`${g2}/activity`, 'activity'],
+    [`/source/${SOURCE_IDS.mqtt}/activity`, 'activity'],
+    [`${heltec}/activity`, 'meshcore'],
     // A Meshtastic channel is the Workspace's own thread, with App not mounted (Task 2.3, Ruling AD).
     [`${g2}/channel/0`, 'channel-thread'],
     [`${g2}/channel/0/beacons`, 'channel-thread'],
@@ -128,6 +133,12 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
   ])('%s re-hosts %s', async (route, page) => {
     renderAt(route);
     await expectPage(page);
+  });
+
+  it('Activity does not mount the re-hosted App (one owner per screen)', async () => {
+    renderAt(`${g2}/activity`);
+    await expectPage('activity');
+    expect(screen.queryByTestId('page-app')).toBeNull();
   });
 
   it('a Meshtastic DM does not mount the re-hosted App (one owner per screen)', async () => {
