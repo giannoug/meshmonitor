@@ -830,6 +830,37 @@ export const BOARDS: Board[] = [
       await page.getByRole('checkbox', { name: 'Also push to device NodeDB' }).check();
     },
   },
+  // Task 4.6: Overview › Messages and its export.
+  {
+    id: '7-01-messages',
+    size: 'desktop',
+    path: '/overview/messages',
+    setup: async (page) => {
+      await page.getByTestId('feed-row').filter({ hasText: 'Anyone hearing the Hymettus relay' }).getByRole('button', { name: 'heard by 3' }).click();
+      await page.getByRole('complementary', { name: 'Reception details' }).waitFor();
+    },
+  },
+  {
+    id: '7-02-export-messages',
+    size: 'desktop',
+    path: '/overview/messages',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Export' }).click();
+      await page.getByRole('dialog', { name: 'Export messages' }).waitFor();
+    },
+  },
+  {
+    // The board shows All channels, with a channel tag on each message (s7n2).
+    id: '7-06-messages',
+    size: 'phone',
+    path: '/overview/messages',
+    setup: async (page) => {
+      await page.getByRole('combobox', { name: 'Channel' }).selectOption('__all__');
+      await page.getByTestId('feed-row').filter({ hasText: 'Anyone hearing the Hymettus relay' }).first().click();
+      await page.getByRole('dialog', { name: 'Reception details' }).waitFor();
+    },
+  },
+  { id: '7-09-export-messages', size: 'phone', path: '/overview/messages/export' },
 ];
 
 const ON_24H = { enabled: true, lookbackHours: 24 };

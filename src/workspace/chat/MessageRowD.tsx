@@ -13,6 +13,10 @@
  * the row's "Message actions" button, for keyboards) opens the actions sheet.
  * A reaction chip sends the same tapback when React is on, with its Sends line.
  *
+ * `readOnly` (Overview › Messages, Task 4.6): no hover bar, no long-press
+ * sheet, and reaction chips that do not send; `headExtra` sits beside the
+ * time (rows style) and `footer` under the text.
+ *
  * Memoized by value (`messageRowPropsEqual`): the screen keeps `onAction`,
  * `actionContext` and `translationActions` stable, and the per-render
  * reaction arrays compare by content.
@@ -74,7 +78,12 @@ export interface MessageRowDProps {
   phone: boolean;
   /** `emoji` with `react` sends that tapback; without it, the picker opens. */
   onAction(kind: MessageActionKind, message: MeshMessage, emoji?: string): void;
+  readOnly?: boolean;
+  headExtra?: ReactNode;
+  footer?: ReactNode;
 }
+
+const NO_ITEMS: ReturnType<typeof messageActionItems> = [];
 
 function MessageRowDImpl(props: MessageRowDProps) {
   const { message: msg, style, signalDetail, mine, senderName, senderShort, onAction } = props;
@@ -91,7 +100,7 @@ function MessageRowDImpl(props: MessageRowDProps) {
   });
   const swallowClick = useRef(false);
   const time = formatMessageTime(new Date(msg.timestamp), props.timeFormat, props.dateFormat);
-  const items = messageActionItems(props.actionContext, msg, mine);
+  const items = props.readOnly ? NO_ITEMS : messageActionItems(props.actionContext, msg, mine);
   const react = items.find((i) => i.kind === 'react');
   const chipsSend = !!react && !react.reason;
 
@@ -102,7 +111,7 @@ function MessageRowDImpl(props: MessageRowDProps) {
   useEffect(() => () => {
     if (press.current.timer) clearTimeout(press.current.timer);
   }, []);
-  const pressProps = props.phone
+  const pressProps = props.phone && !props.readOnly
     ? {
         onPointerDown: (e: PointerEvent) => {
           resetPress();
@@ -197,6 +206,7 @@ function MessageRowDImpl(props: MessageRowDProps) {
         />
       )}
       {signal.length > 0 && <p className={styles.signal}>{signal.join(' · ')}</p>}
+      {props.footer}
       {props.reactions.length > 0 && (
         <>
           <div className={styles.reactions}>
@@ -215,7 +225,7 @@ function MessageRowDImpl(props: MessageRowDProps) {
       )}
     </>
   );
-  const actions = props.phone ? (
+  const actions = props.readOnly ? null : props.phone ? (
     <button type="button" className={styles.sheetButton} onClick={() => setSheet(true)}>
       <UiIcon name="more" size={18} />
       {t('workspace.chat.message_actions')}
@@ -252,6 +262,7 @@ function MessageRowDImpl(props: MessageRowDProps) {
               <p className={styles.head}>
                 <span className={styles.name}>{mine ? t('workspace.chat.you') : senderName}</span>
                 <span className={styles.time}>{time}</span>
+                {props.headExtra}
                 {ackLabel}
               </p>
               {quote}

@@ -9,6 +9,7 @@
  */
 import { athensFixture as A, SOURCE_IDS } from './athens';
 import * as R from './reports';
+import * as M from './messages';
 
 export type FixtureHandler = (url: URL, init?: RequestInit) => unknown | Response;
 
@@ -51,6 +52,10 @@ const defaults: Record<string, FixtureHandler> = {
       neighborInfo: sourceId === SOURCE_IDS.g2 ? A.neighborInfo : [],
       channels: sourceId === SOURCE_IDS.g2 ? A.channels : [],
     })),
+  // Overview › Messages (7-01 … 7-09): the unified feed, its channel list and Station G2's key collision.
+  'GET /api/unified/channels': () => M.unifiedChannels,
+  'GET /api/unified/messages': (url) => M.unifiedMessagesReply(url),
+  'GET /api/channels/collisions': (url) => ({ collisions: M.channelCollisions[url.searchParams.get('sourceId') ?? ''] ?? [] }),
   'GET /api/messages/unread-by-source': () => A.unreadBySource,
   'GET /api/messages/unread-counts': () => A.unreadCounts,
   'GET /api/messages/first-unread': () => ({ success: true, data: A.firstUnread }),

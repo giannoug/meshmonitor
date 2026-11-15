@@ -1,0 +1,196 @@
+/* Reception details (boards 7-01, 7-06): a side panel on desktop, a sheet's body on the phone. */
+.panel {
+  min-width: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 14px;
+  border: 1px solid var(--color-surface);
+  border-radius: 16px;
+  background: var(--color-bg-raised);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.headText {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.summary {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+  overflow-wrap: anywhere;
+}
+
+.close {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.close:focus-visible {
+  outline: 2px solid var(--color-accent);
+}
+
+.quote {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--color-bg-sunken);
+  font-size: 15px;
+}
+
+.quoteText {
+  display: block;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th {
+  padding: 6px 3px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+  border-bottom: 1px solid var(--color-surface);
+}
+
+.table td {
+  padding: 10px 3px;
+  text-align: right;
+  border-bottom: 1px solid var(--color-surface);
+  white-space: nowrap;
+}
+
+.table th:first-child,
+.table td:first-child {
+  text-align: left;
+}
+
+.yes {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--color-success);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.list li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.time {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-subtle);
+}
+
+.note {
+  margin: 0;
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}
+
+.note svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* Phone sheet (7-06): one card per device, ≥52 px. */
+.sheetBody {
+  padding: 0 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cards {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-surface);
+  border-radius: 16px;
+}
+
+.card {
+  min-height: 52px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.card + .card {
+  border-top: 1px solid var(--color-surface);
+}
+
+.cardText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.cardText strong {
+  font-size: 17px;
+  color: var(--color-text);
+}

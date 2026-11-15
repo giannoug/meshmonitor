@@ -1,0 +1,393 @@
+/*
+ * Overview › Messages (boards 7-01, 7-06): fixed to the page column like a
+ * device channel (ChannelThread); the feed scrolls inside itself, newest at
+ * the bottom.
+ */
+.page {
+  position: fixed;
+  top: var(--app-header-height);
+  right: 0;
+  bottom: var(--app-nav-bar-height);
+  left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 20px 16px 12px 24px;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.headText {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.button,
+.filter {
+  height: 36px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.button:focus-visible,
+.select:focus-visible {
+  outline: 2px solid var(--color-accent);
+}
+
+.filter {
+  padding-right: 4px;
+  border-radius: 999px;
+}
+
+.select {
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.select option {
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+}
+
+/* Channels | feed | receptions panel. */
+.body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 16px;
+}
+
+/* The board's panel: the feed keeps most of the width. */
+.body[data-panel] {
+  grid-template-columns: 170px minmax(0, 1fr) 364px;
+}
+
+.channels {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.channelsTitle {
+  margin: 0 0 6px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.channel {
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.channel:hover {
+  background: var(--color-surface-hover);
+}
+
+.channel[aria-current] {
+  background: var(--color-surface);
+}
+
+.channel:focus-visible {
+  outline: 2px solid var(--color-accent);
+}
+
+.channelName {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.channelName svg {
+  color: var(--color-warning);
+}
+
+.channelTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.feed {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+.warning {
+  margin: 0 0 8px;
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-warning);
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.warning svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--color-warning);
+}
+
+.error {
+  margin: 0 0 8px;
+  color: var(--color-error);
+}
+
+.state,
+.sentinel {
+  margin: 12px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}
+
+.sentinel:empty {
+  margin: 0;
+  min-height: 1px;
+}
+
+.date {
+  margin: 12px 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-subtle);
+}
+
+.date::before,
+.date::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--color-surface);
+}
+
+.row {
+  padding: 4px 12px;
+  border-left: 3px solid var(--color-surface);
+  border-radius: 0 12px 12px 0;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+.row:hover,
+.row[data-open] {
+  background: var(--color-surface-hover);
+}
+
+.channelTag {
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-subtle);
+}
+
+.clock {
+  font-size: 12px;
+  color: var(--color-text-subtle);
+}
+
+.heard {
+  margin: 6px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.reception {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.heardBy {
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.heardBy:focus-visible {
+  outline: 2px solid var(--color-accent);
+}
+
+.note {
+  flex: none;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+/* Phone (7-06): the page's own header, chips, and rows of at least 52 px. */
+.page[data-phone] {
+  padding: 0 12px;
+  gap: 8px;
+}
+
+.phoneHead {
+  flex: none;
+  min-height: 56px;
+  margin: 0 -12px;
+  padding: 0 4px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  border-bottom: 1px solid var(--color-surface);
+  background: var(--color-bg-sunken);
+}
+
+.back {
+  justify-self: start;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border-radius: 10px;
+  color: var(--color-accent);
+  font-size: 17px;
+  text-decoration: none;
+}
+
+.phoneTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.iconLink {
+  justify-self: end;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--color-text);
+}
+
+.back:focus-visible,
+.iconLink:focus-visible {
+  outline: 2px solid var(--color-accent);
+}
+
+.chips {
+  flex: none;
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.chips .select,
+.chips .button {
+  height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0 12px;
+}
+
+.chips .select {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.chips .button {
+  flex: none;
+}
+
+.chips .button {
+  border-radius: 10px;
+}
+
+.page[data-phone] .row {
+  min-height: 52px;
+  padding: 4px 8px;
+}
+
+.page[data-phone] .heardBy {
+  min-height: 44px;
+}

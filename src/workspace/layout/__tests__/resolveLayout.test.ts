@@ -25,6 +25,8 @@ describe('classicFallback', () => {
     ['/overview/reports', '/reports'],
     ['/overview/reports/mesh-issues', '/reports'],
     ['/overview/messages', '/unified/messages'],
+    // Export messages is a Workspace page (Task 4.6); Classic exports from Unified Messages.
+    ['/overview/messages/export', '/unified/messages'],
     ['/overview/telemetry', '/unified/telemetry'],
     ['/overview/packets', '/unified/packets'],
     ['/overview/automations', '/automations'],

@@ -21,7 +21,6 @@ vi.mock('../../contexts/WebSocketContext', () => ({
 vi.mock('../../App', async () => ({ default: (await import('./pageStub')).pageStub('app') }));
 vi.mock('../../pages/DashboardPage', async () => ({ default: (await import('./pageStub')).pageStub('dashboard') }));
 vi.mock('../../components/automations/AutomationsPage', async () => ({ default: (await import('./pageStub')).pageStub('automations') }));
-vi.mock('../../pages/UnifiedMessagesPage', async () => ({ default: (await import('./pageStub')).pageStub('unified-messages') }));
 vi.mock('../../pages/UnifiedTelemetryPage', async () => ({ default: (await import('./pageStub')).pageStub('unified-telemetry') }));
 vi.mock('../../pages/UnifiedPacketMonitorPage', async () => ({ default: (await import('./pageStub')).pageStub('unified-packets') }));
 vi.mock('../../pages/GlobalSettingsPage', async () => ({ default: (await import('./pageStub')).pageStub('global-settings') }));
@@ -40,6 +39,9 @@ vi.mock('../overview/OverviewMap', async () => ({ default: (await import('./page
 // Reports are the Workspace's own list and report pages (Task 4.4); their tests live in reports/__tests__.
 vi.mock('../reports/ReportsRoute', async () => ({ default: (await import('./pageStub')).pageStub('reports-route') }));
 vi.mock('../overview/OverviewHome', async () => ({ default: (await import('./pageStub')).pageStub('overview-home') }));
+// Overview › Messages and its export are the Workspace's own (Task 4.6); their tests live in overview/__tests__.
+vi.mock('../overview/OverviewMessages', async () => ({ default: (await import('./pageStub')).pageStub('overview-messages') }));
+vi.mock('../overview/ExportMessagesPage', async () => ({ default: (await import('./pageStub')).pageStub('export-messages') }));
 
 /** Shows the real URL, and navigates client-side when its input changes. */
 function RealUrl() {
@@ -86,12 +88,10 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
   it.each([
     ['/overview/dashboard', 'dashboard'],
     ['/overview/audit', 'dashboard'],
-    ['/overview/messages', 'unified-messages'],
     ['/overview/telemetry', 'unified-telemetry'],
     ['/overview/packets', 'unified-packets'],
     ['/overview/automations', 'automations'],
     ['/overview/users', 'users'],
-    ['/unified/messages', 'unified-messages'],
     ['/unified/telemetry', 'unified-telemetry'],
     ['/unified/packets', 'unified-packets'],
     ['/automations', 'automations'],
@@ -194,6 +194,17 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
       expect(realUrl()).toBe(route);
     },
   );
+
+  it.each([
+    ['/overview/messages', 'overview-messages'],
+    ['/unified/messages', 'overview-messages'],
+    ['/overview/messages/export', 'export-messages'],
+  ])('%s shows the Workspace %s (Task 4.6), not today\'s Unified Messages', async (route, page) => {
+    renderAt(route);
+    expect(await screen.findByTestId(`page-${page}`)).toHaveAttribute('data-embedded', 'false');
+    expect(screen.queryByTestId('page-unified-messages')).toBeNull();
+    expect(realUrl()).toBe(route);
+  });
 
   it('/overview on a phone is the Overview Home (5-07)', async () => {
     renderAt('/overview', { phone: true });

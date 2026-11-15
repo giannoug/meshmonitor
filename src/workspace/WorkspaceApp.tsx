@@ -28,7 +28,6 @@ import {
   AutomationsRehost,
   GlobalSettingsRehost,
   OverviewRehost,
-  UnifiedMessagesRehost,
   UnifiedPacketsRehost,
   UnifiedTelemetryRehost,
   UsersRehost,
@@ -36,6 +35,8 @@ import {
 
 const OverviewMap = lazy(() => import('./overview/OverviewMap.tsx'));
 const OverviewHome = lazy(() => import('./overview/OverviewHome.tsx'));
+const OverviewMessages = lazy(() => import('./overview/OverviewMessages.tsx'));
+const ExportMessagesPage = lazy(() => import('./overview/ExportMessagesPage.tsx'));
 const ReportsRoute = lazy(() => import('./reports/ReportsRoute.tsx'));
 
 /**
@@ -77,7 +78,9 @@ function WorkspaceRoutes() {
           {/* `/overview/dashboard` and `/overview/audit`, which have no cross-source Classic page:
               today's Dashboard until Phases 4 and 8. */}
           <Route path="overview/*" element={<OverviewRehost />} />
-          <Route path="overview/messages" element={<UnifiedMessagesRehost />} />
+          {/* Overview › Messages and its export (Task 4.6), with no Classic page mounted (Ruling AD). */}
+          <Route path="overview/messages" element={<OverviewMessages />} />
+          <Route path="overview/messages/export" element={<ExportMessagesPage />} />
           <Route path="overview/telemetry" element={<UnifiedTelemetryRehost />} />
           <Route path="overview/packets" element={<UnifiedPacketsRehost />} />
           {/* Map Analysis is merged into the all-devices map (Task 4.2, s5n1): the same element, the Analysis group open. */}
@@ -87,7 +90,7 @@ function WorkspaceRoutes() {
           <Route path="overview/automations" element={<AutomationsRehost />} />
           <Route path="overview/users" element={<UsersRehost />} />
 
-          <Route path="unified/messages" element={<UnifiedMessagesRehost />} />
+          <Route path="unified/messages" element={<OverviewMessages />} />
           <Route path="unified/telemetry" element={<UnifiedTelemetryRehost />} />
           <Route path="unified/packets" element={<UnifiedPacketsRehost />} />
           <Route path="analysis" element={<OverviewIndex />} />
