@@ -16,8 +16,13 @@
  * The all-devices overlays 4.1's map drew (GeoJSON, cross-source links, packet
  * traffic, ducting, aircraft trails) are drawn inside the canvas.
  *
- * The phone keeps 4.1's frame (Back, the node filter, the map); its Analysis
- * sheets are Task 4.3.
+ * The phone (5-08 … 5-13) keeps 4.1's frame (Back, the node filter, the map)
+ * with the chips and the placement hint under it. Below the map: the inspect
+ * hint or today's inspector (PhoneInspector), then the bar (PhoneMapBar:
+ * Tools, Time, Layers, Zoom to fit) with its Tools and Layers sheets. The
+ * canvas docks today's Link Profile drawer and Site Planner / GNSS DOP panels
+ * along its bottom as sheets (`stackedPanels`), so the map above them still
+ * takes taps.
  *
  * One owner per screen (Ruling AD): neither DashboardPage nor MapAnalysisPage
  * is mounted. The reads are today's polled hooks and Map Analysis's own
@@ -52,12 +57,16 @@ import { effectiveMapMaxAgeHours } from '../../utils/mapAge';
 import { readHidePositionlessAdverts, writeHidePositionlessAdverts } from '../../utils/meshcoreAdvertPosition';
 import type { PacketFlightStats } from '../../utils/packetFlightEdges';
 import LayersDrawer from '../map/LayersDrawer';
+import type { LayerGroupSpec, LayerItem } from '../map/LayerGroup';
+import { useStoredFlag } from '../map/deviceLayerGroups';
 import { useIsPhone } from '../shell/useIsPhone';
 import AnalysisChips from './analysis/AnalysisChips';
 import InspectorPanelD from './analysis/InspectorPanelD';
 import NodeColourKey from './analysis/NodeColourKey';
 import MapToolsMenu from './analysis/MapToolsMenu';
 import OverviewOverlays from './analysis/OverviewOverlays';
+import PhoneInspector from './analysis/PhoneInspector';
+import PhoneMapBar from './analysis/PhoneMapBar';
 import TimeControl from './analysis/TimeControl';
 import { useOverviewLayerGroups, type DashboardControls } from './analysis/overviewLayerGroups';
 import { useOverviewPins } from './analysis/useOverviewPins';
@@ -229,6 +238,42 @@ function AllDevicesMap({ landing, colourKey, ...dashboard }: AllDevicesMapProps)
   );
 
   const layersOn = TIMED_LAYERS.filter((l) => config.layers[l.key].enabled).length;
+  // Today's Map Analysis filters: on the desktop bar, in the phone's Layers sheet (Filters).
+  const filters = [
+    { id: 'sources', label: 'Sources', node: <SourceMultiSelect sources={sources.map((s) => ({ id: s.id, name: s.name }))} value={config.sources} onChange={ctx.setSources} /> },
+    { id: 'node-types', label: 'Node types', node: <NodeTypeFilterControl /> },
+    { id: 'transports', label: 'Transports', node: <TransportFilterControl /> },
+    { id: 'nodes', label: 'Nodes', node: <NodeMultiSelect nodes={nodeOptions} value={config.selectedNodeIds} onChange={ctx.setSelectedNodeIds} /> },
+  ];
+  const fit = (
+    <button
+      type="button"
+      className={styles.fit}
+      onClick={() => setFitRequest((n) => n + 1)}
+      disabled={analysisNodes.length === 0}
+      title={analysisNodes.length === 0 ? 'No positioned nodes to zoom to' : `Zoom to fit all ${analysisNodes.length} positioned nodes`}
+      aria-label="Zoom to fit all nodes"
+    >
+      <UiIcon name="fitBounds" size={18} />
+    </button>
+  );
+  const reset = (
+    <button type="button" className={styles.reset} onClick={ctx.reset}>
+      {t('common.reset')}
+    </button>
+  );
+  // Today's Dashboard map "Show Legend" browser setting: a phone map has no room for a standing legend.
+  const [showLegend, setShowLegend] = useStoredFlag('meshmonitor-showLegend');
+  const phoneGroups: LayerGroupSpec[] = groups.flatMap((g) =>
+    g.id === 'analysis'
+      ? [g, { id: 'filters', title: t('workspace.overview.filters'), items: filters.map((f): LayerItem => ({ kind: 'custom', ...f })) }]
+      : g.id === 'base'
+        ? [{ ...g, items: [...g.items, { kind: 'toggle', id: 'legend', label: t('workspace.map.legend'), checked: showLegend, onChange: setShowLegend }] }]
+        : [g],
+  );
+  // One at a time on the phone: a tool, or a tool's panel along the map's bottom, holds the place of the inspector.
+  const busy = Object.values(controls.tools).some((tool) => tool.shown && tool.active)
+    || ctx.linkProfileMode || ctx.linkEndpoints.length > 0 || ctx.sitePlannerMode || ctx.gnssDopMode;
   const search = (
     <label className={styles.search}>
       <UiIcon name="search" size={18} />
@@ -243,9 +288,9 @@ function AllDevicesMap({ landing, colourKey, ...dashboard }: AllDevicesMapProps)
   );
 
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${isPhone ? styles.phone : ''}`}>
       <div className={styles.map}>
-        <MapAnalysisCanvas workspace={{ layers, pins: pins.pins }} />
+        <MapAnalysisCanvas workspace={{ layers, pins: pins.pins, stackedPanels: isPhone }} />
         <div className={styles.overlay}>
           <div className={styles.bar} role="toolbar" aria-label={t('workspace.overview.map_bar')}>
             {isPhone ? (
@@ -259,31 +304,14 @@ function AllDevicesMap({ landing, colourKey, ...dashboard }: AllDevicesMapProps)
             ) : (
               <>
                 <div className={styles.filters}>
-                  <SourceMultiSelect
-                    sources={sources.map((s) => ({ id: s.id, name: s.name }))}
-                    value={config.sources}
-                    onChange={ctx.setSources}
-                  />
-                  <NodeTypeFilterControl />
-                  <TransportFilterControl />
+                  {filters[0].node}
+                  {filters[1].node}
+                  {filters[2].node}
                   {search}
-                  <NodeMultiSelect nodes={nodeOptions} value={config.selectedNodeIds} onChange={ctx.setSelectedNodeIds} />
+                  {filters[3].node}
                 </div>
                 <div className={styles.actions}>
-                  <button
-                    type="button"
-                    className={styles.fit}
-                    onClick={() => setFitRequest((n) => n + 1)}
-                    disabled={analysisNodes.length === 0}
-                    title={
-                      analysisNodes.length === 0
-                        ? 'No positioned nodes to zoom to'
-                        : `Zoom to fit all ${analysisNodes.length} positioned nodes`
-                    }
-                    aria-label="Zoom to fit all nodes"
-                  >
-                    <UiIcon name="fitBounds" size={18} />
-                  </button>
+                  {fit}
                   <MapToolsMenu tools={controls.tools} />
                   <TimeControl />
                   <button
@@ -300,8 +328,8 @@ function AllDevicesMap({ landing, colourKey, ...dashboard }: AllDevicesMapProps)
               </>
             )}
           </div>
-          {!isPhone && <AnalysisChips />}
-          {!isPhone && pins.hint}
+          <AnalysisChips />
+          {pins.hint}
         </div>
         {!isPhone && (layersOpen || selected) && (
           // Beside today's Site Planner / GNSS DOP panels, which keep the map's top-right corner.
@@ -310,20 +338,30 @@ function AllDevicesMap({ landing, colourKey, ...dashboard }: AllDevicesMapProps)
               <LayersDrawer
                 groups={groups}
                 onClose={() => setLayersOpen(false)}
-                actions={(
-                  <button type="button" className={styles.reset} onClick={ctx.reset}>
-                    {t('common.reset')}
-                  </button>
-                )}
+                actions={reset}
               />
             ) : (
               <InspectorPanelD />
             )}
           </div>
         )}
-        {!isPhone && <MapLegend />}
-        {!isPhone && colourKey && <NodeColourKey {...colourKey} />}
+        {(!isPhone || showLegend) && <MapLegend />}
+        {colourKey && <NodeColourKey {...colourKey} />}
       </div>
+      {isPhone && (
+        <>
+          <PhoneInspector busy={busy} />
+          <PhoneMapBar
+            tools={controls.tools}
+            groups={phoneGroups}
+            layersOpen={layersOpen}
+            onLayersOpen={setLayersOpen}
+            layersOn={layersOn}
+            layersActions={reset}
+            fit={fit}
+          />
+        </>
+      )}
       {pins.overlay}
     </div>
   );

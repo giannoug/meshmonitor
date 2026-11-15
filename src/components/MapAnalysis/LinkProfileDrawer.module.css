@@ -1,0 +1,33 @@
+/* The Link Profile drawer as a bottom sheet (`stacked`), for the Workspace
+ * phone map (#6365, board 5-11). Classic never sets it: there the drawer
+ * keeps the chart and the side column next to each other
+ * (src/styles/map-analysis.css).
+ *
+ * Stacked, the chart sits above the verdict, the budget and the inputs, and
+ * the whole sheet scrolls as one. It stays a non-modal panel over the bottom
+ * of the canvas, so the map above it still takes the A and B taps.
+ *
+ * The root selector is doubled with the global class so it outranks the base
+ * `.map-analysis-link-drawer` rule whatever order the sheets load in (as
+ * AnalysisInspectorPanel.module.css). */
+
+:global(.map-analysis-link-drawer).stacked {
+  flex-direction: column;
+  height: min(60%, 560px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 20px 20px 0 0;
+}
+
+.stacked > :global(.map-analysis-link-drawer-chart) {
+  flex: 0 0 200px;
+}
+
+.stacked > :global(.map-analysis-link-drawer-side) {
+  flex: 0 0 auto;
+  width: auto;
+  overflow-y: visible;
+  border-left: none;
+  border-top: 1px solid var(--color-border);
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+}

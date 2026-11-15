@@ -1,0 +1,36 @@
+/* Under the phone map (5-08, 5-10): the inspect hint, or the node page link at the foot of today's inspector. */
+.hint {
+  flex: none;
+  min-height: 52px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-surface);
+  background: var(--color-bg-raised);
+  color: var(--color-text-subtle);
+}
+
+.hint > svg {
+  flex: none;
+}
+
+.open {
+  min-height: 52px;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.open:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}

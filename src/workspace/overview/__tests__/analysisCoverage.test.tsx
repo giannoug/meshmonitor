@@ -27,7 +27,7 @@ import { UNIFIED_SOURCE_ID } from '../../../hooks/useDashboardData';
 import { athensFixture as A, SOURCE_IDS } from '../../__fixtures__/athens';
 import { dbRow } from '../../__fixtures__/fixtureApi';
 import { DEFAULT_CONFIG, type LayerKey } from '../../../hooks/useMapAnalysisConfig';
-import { openLayers, openTools, renderOverview, storedConfig } from './renderOverview';
+import { openLayers, openPhoneSheet, openTools, renderOverview, storedConfig } from './renderOverview';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
@@ -239,6 +239,111 @@ describe('every control of today\'s Dashboard map is on the Overview map (Ruling
       const scope = elsewhere.place === 'bar' ? bar : elsewhere.place === 'drawer' ? drawer : elsewhere.place === 'map' ? document.body : await openTools();
       if (!has(scope, elsewhere.name)) missing.push(`${name} → ${elsewhere.place} "${elsewhere.name}"`);
       if (elsewhere.place === 'tools') fireEvent.keyDown(document, { key: 'Escape' });
+    }
+    expect(missing).toEqual([]);
+  });
+});
+
+/*
+ * The phone (Task 4.3): the same lists, the same tables, and every control is
+ * reachable on the phone map too. The phone has three places: the map itself
+ * (Back, the node filter, and the bar under it: Tools, Time, Layers, Zoom to
+ * fit), the Layers sheet and the Tools sheet. What moves on the phone is
+ * listed here, with why; everything else stays where the desktop puts it.
+ */
+type PhonePlace = 'map' | 'layers' | 'tools';
+const ON_PHONE: Record<Place, PhonePlace> = { bar: 'map', drawer: 'layers', tools: 'tools' };
+
+/** Toolbar controls placed otherwise on the phone. */
+const PHONE_TOOLBAR_MOVES: Record<string, [PhonePlace, string]> = {
+  // The bar's filters do not fit across a phone: the Layers sheet's Filters group holds them.
+  'All sources (5)': ['layers', 'All sources (5)'],
+  'All node types': ['layers', 'All node types'],
+  'All transports': ['layers', 'All transports'],
+  'All nodes': ['layers', 'All nodes'],
+  // The Tools sheet's Time section (board 5-09).
+  'Time Slider': ['tools', 'Time Slider'],
+};
+
+/** DashboardMap controls placed otherwise on the phone. */
+const PHONE_DASHBOARD_MOVES: Record<string, [PhonePlace, string]> = {
+  'Show RF': ['layers', 'All transports'],
+  'Show UDP': ['layers', 'All transports'],
+  'Show MQTT': ['layers', 'All transports'],
+  // A phone map has no room for a standing legend: Layers › Legend draws today's on the map.
+  'Show Legend': ['layers', 'Legend'],
+};
+
+/** Opens the phone place (closing any open sheet first) and returns where to look. */
+async function phonePlace(place: PhonePlace): Promise<HTMLElement> {
+  const open = screen.queryByRole('dialog');
+  if (open) fireEvent.click(within(open).getByRole('button', { name: 'Close' }));
+  if (place === 'map') return document.body;
+  return openPhoneSheet(place === 'layers' ? 'Layers' : 'Tools');
+}
+
+const reachable = (scope: HTMLElement, name: string) =>
+  within(scope).queryAllByLabelText(name, { exact: false }).length > 0
+  || within(scope).queryAllByRole('button', { name: new RegExp(`^${name.replace(/[()]/g, '\\$&')}`) }).length > 0
+  || within(scope).queryAllByRole('radio', { name }).length > 0
+  || within(scope).queryAllByRole('menuitemradio', { name }).length > 0
+  || within(scope).queryAllByRole('switch', { name }).length > 0
+  || within(scope).queryAllByText(name).length > 0;
+
+describe('on the phone, every Map Analysis layer has a switch in the Layers sheet', () => {
+  const keys = Object.keys(DEFAULT_CONFIG.layers) as LayerKey[];
+
+  it.each(keys)('%s', async (key) => {
+    renderOverview('/overview/map', { phone: true });
+    const toggle = within(await openPhoneSheet('Layers')).getByRole('switch', { name: LABEL_OF[key] });
+    const before = storedConfig().layers[key].enabled;
+    fireEvent.click(toggle);
+    expect(storedConfig().layers[key].enabled).toBe(!before);
+  });
+});
+
+describe('on the phone, every control of today\'s Map Analysis toolbar is reachable', () => {
+  it('each one is on the map, in the Layers sheet or in the Tools sheet', async () => {
+    const controls = await toolbarControls();
+    expect(controls).toEqual(expect.arrayContaining(['Measure', 'Markers', 'Traceroutes lookback', 'Traceroute filters']));
+    renderOverview('/overview/map', { phone: true, layers: { traceroutes: { enabled: true, lookbackHours: 24 } } });
+    await screen.findByRole('toolbar', { name: 'Map tools' }, { timeout: 5000 });
+    const missing: string[] = [];
+    for (const name of controls) {
+      const place = WHERE[name];
+      if (!Array.isArray(place)) continue;
+      const [where, there] = PHONE_TOOLBAR_MOVES[name] ?? [ON_PHONE[place[0]], place[1]];
+      if (!reachable(await phonePlace(where), there)) missing.push(`${name} → ${where} "${there}"`);
+    }
+    expect(missing).toEqual([]);
+  });
+});
+
+describe('on the phone, every control of today\'s Dashboard map is reachable (Ruling CE)', () => {
+  it('each one is there under its name, or the name the tables give', async () => {
+    const controls = await dashboardControls();
+    expect(controls).toEqual(expect.arrayContaining(['Zoom to fit all nodes', 'Show Route Segments', 'Show Traceroute', 'Spread Nodes']));
+    renderOverview('/overview/map', {
+      phone: true,
+      fixtures: {
+        'GET /api/unified/dashboard': (url: URL) =>
+          (url.searchParams.get('sources') ?? '').split(',').filter(Boolean).map((sourceId) => ({
+            sourceId,
+            nodes: sourceId === SOURCE_IDS.g2 ? A.nodes.map((n) => dbRow(n, sourceId)) : sourceId === SOURCE_IDS.heltec ? [MESHCORE_NODE] : [],
+            traceroutes: [], neighborInfo: [], channels: [],
+          })),
+      },
+    });
+    await within(await openPhoneSheet('Layers')).findByRole('switch', { name: 'Hide nodes without a current position advert' }, { timeout: 5000 });
+    const missing: string[] = [];
+    for (const name of controls) {
+      const elsewhere = DASHBOARD_ELSEWHERE[name];
+      // Same-named controls: in the Layers sheet or on the map.
+      const [where, there]: [PhonePlace, string] = PHONE_DASHBOARD_MOVES[name]
+        ?? (elsewhere ? [elsewhere.place === 'tools' ? 'tools' : elsewhere.place === 'drawer' ? 'layers' : 'map', elsewhere.name] : ['layers', name]);
+      let found = reachable(await phonePlace(where), there);
+      if (!found && !elsewhere && !PHONE_DASHBOARD_MOVES[name]) found = reachable(await phonePlace('map'), there);
+      if (!found) missing.push(`${name} → ${where} "${there}"`);
     }
     expect(missing).toEqual([]);
   });

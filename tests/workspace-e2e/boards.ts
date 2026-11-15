@@ -538,10 +538,15 @@ export const BOARDS: Board[] = [
       await page.getByRole('dialog', { name: 'New local marker' }).getByLabel('Label').fill('Site B');
     },
   },
-  // Task 4.1: the Overview. 5-08 is the frame; its Analysis sheets are 4.3's.
+  // Task 4.1: the Overview. Task 4.3 adds 5-08's Analysis frame (Tools, Time, Layers, the chips, the inspect hint).
   { id: 'f6-overview', size: 'desktop', path: '/overview/map' },
   { id: '5-07-overview-home', size: 'phone', path: '/overview' },
-  { id: '5-08-overview-map', size: 'phone', path: '/overview/map' },
+  {
+    id: '5-08-overview-map',
+    size: 'phone',
+    path: '/overview/map',
+    setup: (page) => presetAnalysis(page, { traceroutes: ON_24H, neighbors: ON_24H }),
+  },
   // Task 4.2: Analysis on the Overview map (desktop). Today's Map Analysis config is preset as a returning user has it.
   {
     id: '5-01-overview-analysis',
@@ -625,6 +630,71 @@ export const BOARDS: Board[] = [
       await page.getByTestId('analysis-inspector').getByText(/^\d+ m$/).first().waitFor();
     },
   },
+  // Task 4.3: Analysis on the phone. The Tools and Layers sheets, the docked inspector, Link Profile and Site Planner / GNSS DOP.
+  {
+    // 5-09 draws Link Profile chosen: picked, then the sheet opened again over its drawer.
+    id: '5-09-tools-time',
+    size: 'phone',
+    path: '/overview/map',
+    setup: async (page) => {
+      await presetAnalysis(page, {}, { timeSlider: { enabled: true } });
+      await openPhoneSheet(page, 'Tools');
+      await page.getByRole('dialog', { name: 'Tools' }).getByRole('radio', { name: 'Link Profile' }).click();
+      await page.getByTestId('link-profile-drawer').waitFor();
+      await openPhoneSheet(page, 'Time');
+    },
+  },
+  {
+    id: '5-10-inspector-sheet',
+    size: 'phone',
+    path: '/overview/map',
+    setup: async (page) => {
+      await presetAnalysis(page, { neighbors: ON_24H });
+      await page.locator('.leaflet-neighbors-pane path.leaflet-interactive').first().dispatchEvent('click');
+      await page.getByTestId('analysis-inspector').getByText('View terrain profile').waitFor();
+    },
+  },
+  {
+    id: '5-11-link-profile-sheet',
+    size: 'phone',
+    path: '/overview/map',
+    setup: async (page) => {
+      await openPhoneSheet(page, 'Tools');
+      await page.getByRole('dialog', { name: 'Tools' }).getByRole('radio', { name: 'Link Profile' }).click();
+      const drawer = page.getByTestId('link-profile-drawer');
+      await drawer.waitFor();
+      // A and B: two taps on the map above the sheet; the fixture serves the terrain.
+      const map = page.locator('.leaflet-container');
+      const box = (await map.boundingBox())!;
+      await map.click({ position: { x: box.width * 0.3, y: box.height * 0.15 } });
+      await map.click({ position: { x: box.width * 0.7, y: box.height * 0.3 } });
+      await drawer.getByText('Margin', { exact: true }).waitFor();
+    },
+  },
+  {
+    id: '5-12-layers-sheet',
+    size: 'phone',
+    path: '/overview/map',
+    setup: async (page) => {
+      await presetAnalysis(page, { traceroutes: ON_24H, neighbors: ON_24H });
+      await openPhoneSheet(page, 'Layers');
+    },
+  },
+  {
+    id: '5-13-planner-dop-sheet',
+    size: 'phone',
+    path: '/overview/map',
+    setup: async (page) => {
+      await openPhoneSheet(page, 'Layers');
+      const layers = page.getByRole('dialog', { name: 'Layers' });
+      await layers.getByRole('switch', { name: 'GNSS DOP' }).click();
+      await layers.getByRole('button', { name: 'Close' }).click();
+      await openPhoneSheet(page, 'Tools');
+      await page.getByRole('dialog', { name: 'Tools' }).getByRole('radio', { name: 'Site Planner' }).click();
+      await page.getByText('Predict coverage').waitFor();
+      await page.getByText('GNSS DOP overlay').waitFor();
+    },
+  },
 ];
 
 const ON_24H = { enabled: true, lookbackHours: 24 };
@@ -651,6 +721,12 @@ async function openTools(page: Page, item?: string): Promise<void> {
   const menu = page.getByRole('menu', { name: 'Tools' });
   await menu.waitFor();
   if (item) await menu.getByRole('menuitemradio', { name: new RegExp(`^${item}`) }).click();
+}
+
+/** Phone (Task 4.3): a button on the bar under the map opens its sheet; Tools and Time open the one Tools sheet. */
+async function openPhoneSheet(page: Page, button: 'Tools' | 'Time' | 'Layers'): Promise<void> {
+  await page.getByRole('toolbar', { name: 'Map tools' }).getByRole('button', { name: new RegExp(`^${button}`) }).click();
+  await page.getByRole('dialog', { name: button === 'Layers' ? 'Layers' : 'Tools' }).waitFor();
 }
 
 /** Kifisia Rooftop's detected renumbering, served for this shot, then the page reloads. */

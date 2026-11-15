@@ -86,3 +86,26 @@
     right: min(var(--map-sidebar-width), 60%);
   }
 }
+
+/* The Workspace phone map (#6365, board 5-13) docks the column along the
+   canvas's bottom edge as one bottom sheet, so the map above it keeps taking
+   taps (the planner's origin). Classic never sets it. Last in the file, so it
+   wins over the phone rule above. */
+.bottomColumn {
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: auto;
+  max-height: 60%;
+  gap: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 20px 20px 0 0;
+  pointer-events: auto;
+}
+
+/* One scroller for the sheet: the panels keep their full height inside it. */
+.bottomColumn > * {
+  flex: none;
+}

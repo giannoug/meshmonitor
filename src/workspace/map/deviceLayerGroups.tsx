@@ -55,7 +55,7 @@ export interface DeviceLayerParams {
 }
 
 /** A browser setting NodesTab keeps under the same key. */
-function useStoredFlag(key: string): [boolean, (v: boolean) => void] {
+export function useStoredFlag(key: string): [boolean, (v: boolean) => void] {
   const [value, setValue] = useState(() => {
     try {
       return localStorage.getItem(key) === 'true';

@@ -1,11 +1,10 @@
 {
   "must": [
-    "Link profile",
-    "Line of sight",
+    "Link Profile",
     "Fresnel",
     "Margin",
     "Clear",
-    "Inputs"
+    "Frequency (MHz)"
   ],
   "absent": [],
   "source": "checks/s05.json"

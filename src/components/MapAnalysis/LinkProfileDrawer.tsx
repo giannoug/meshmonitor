@@ -39,6 +39,7 @@ import { UiIcon } from '../icons';
 import { NumberInput } from '../common/NumberInput';
 import toolPanelStyles from './MapToolPanels.module.css';
 import endpointStyles from './LinkProfileEndpoints.module.css';
+import drawerStyles from './LinkProfileDrawer.module.css';
 
 // Documented defaults (LINK_PROFILE_TOOL_SPEC.md §0.7).
 const DEFAULT_FREQ_MHZ = 915;
@@ -110,7 +111,8 @@ function endpointName(ep: { label?: string; lat: number; lng: number }): string 
   return ep.label || `${ep.lat.toFixed(4)}, ${ep.lng.toFixed(4)}`;
 }
 
-const LinkProfileDrawer: React.FC = () => {
+/** `stacked`: the Workspace phone map's bottom-sheet form (#6365). Classic passes nothing. */
+const LinkProfileDrawer: React.FC<{ stacked?: boolean }> = ({ stacked = false }) => {
   const { distanceUnit } = useSettings();
   const { linkProfileMode, linkEndpoints, setLinkProfileMode, setLinkEndpoints, setLinkVerdict, setHoverPoint } =
     useMapAnalysisCtx();
@@ -282,7 +284,7 @@ const LinkProfileDrawer: React.FC = () => {
   if (!linkProfileMode && linkEndpoints.length === 0) return null;
 
   return (
-    <div className={`map-analysis-link-drawer ${toolPanelStyles.clearOfControls}`} data-testid="link-profile-drawer">
+    <div className={`map-analysis-link-drawer ${toolPanelStyles.clearOfControls}${stacked ? ` ${drawerStyles.stacked}` : ''}`} data-testid="link-profile-drawer">
       <div className="map-analysis-link-drawer-chart">
         {!endpointA || !endpointB ? (
           <div className="map-analysis-link-drawer-empty">

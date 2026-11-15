@@ -2,7 +2,7 @@
   "must": [
     "Site planner",
     "Predict",
-    "Radius",
+    "Search radius",
     "GNSS DOP",
     "Elevation mask",
     "GPS",

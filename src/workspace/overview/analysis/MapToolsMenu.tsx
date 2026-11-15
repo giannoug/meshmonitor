@@ -27,7 +27,51 @@ const ORDER: Array<{ key: ToolKey; icon: UiIconName; hint: string }> = [
   { key: 'addMarker', icon: 'pin', hint: 'workspace.overview.tool_marker' },
 ];
 
-export default function MapToolsMenu({ tools }: { tools: Record<ToolKey, AnalysisTool> }) {
+type Tools = Record<ToolKey, AnalysisTool>;
+
+/**
+ * The five tools, in board order, as one choice: `menuitemradio` rows in the
+ * desktop menu, `radio` rows in the phone's Tools sheet (5-09). A disabled
+ * tool shows today's reason and does nothing; picking one calls `onPicked`
+ * (both close, so the next click lands on the map).
+ */
+export function ToolItems({ tools, role, onPicked }: { tools: Tools; role: 'menuitemradio' | 'radio'; onPicked(): void }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      {ORDER.filter(({ key }) => tools[key].shown).map(({ key, icon, hint }) => {
+        const tool = tools[key];
+        return (
+          <button
+            key={key}
+            type="button"
+            role={role}
+            aria-checked={tool.active}
+            aria-disabled={tool.disabled}
+            aria-label={tool.label}
+            title={tool.title}
+            className={styles.item}
+            onClick={() => {
+              if (tool.disabled) return;
+              tool.toggle();
+              onPicked();
+            }}
+          >
+            <span className={styles.radio} aria-hidden="true">{tool.active && <UiIcon name="check" size={14} />}</span>
+            <UiIcon name={icon} size={18} />
+            <span className={styles.text}>
+              <span className={styles.label}>{tool.label}</span>
+              <span className={styles.hint}>{tool.disabled ? tool.title : t(hint)}</span>
+              {key === 'addWaypoint' && !tool.disabled && <SendsLine>{t('workspace.overview.tool_waypoint_sends')}</SendsLine>}
+            </span>
+          </button>
+        );
+      })}
+    </>
+  );
+}
+
+export default function MapToolsMenu({ tools }: { tools: Tools }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
@@ -66,34 +110,7 @@ export default function MapToolsMenu({ tools }: { tools: Record<ToolKey, Analysi
       {open && (
         <div className={styles.menu} role="menu" aria-label={t('workspace.overview.tools')}>
           <div className={styles.heading}>{t('workspace.overview.tools_heading')}</div>
-          {ORDER.filter(({ key }) => tools[key].shown).map(({ key, icon, hint }) => {
-            const tool = tools[key];
-            return (
-              <button
-                key={key}
-                type="button"
-                role="menuitemradio"
-                aria-checked={tool.active}
-                aria-disabled={tool.disabled}
-                aria-label={tool.label}
-                title={tool.title}
-                className={styles.item}
-                onClick={() => {
-                  if (tool.disabled) return;
-                  tool.toggle();
-                  setOpen(false);
-                }}
-              >
-                <span className={styles.radio} aria-hidden="true">{tool.active && <UiIcon name="check" size={14} />}</span>
-                <UiIcon name={icon} size={18} />
-                <span className={styles.text}>
-                  <span className={styles.label}>{tool.label}</span>
-                  <span className={styles.hint}>{tool.disabled ? tool.title : t(hint)}</span>
-                  {key === 'addWaypoint' && !tool.disabled && <SendsLine>{t('workspace.overview.tool_waypoint_sends')}</SendsLine>}
-                </span>
-              </button>
-            );
-          })}
+          <ToolItems tools={tools} role="menuitemradio" onPicked={() => setOpen(false)} />
         </div>
       )}
     </div>

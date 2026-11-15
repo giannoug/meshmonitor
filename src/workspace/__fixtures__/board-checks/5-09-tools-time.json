@@ -3,14 +3,14 @@
     "Tools",
     "One at a time",
     "Measure",
-    "Link profile",
-    "Site planner",
-    "Add waypoint",
-    "Add local marker",
+    "Link Profile",
+    "Site Planner",
+    "Add Waypoint",
+    "Add Local Marker",
     "Sends",
     "Time",
-    "Live",
-    "Time slider"
+    "(live)",
+    "Time Slider"
   ],
   "absent": [],
   "source": "checks/s05.json"

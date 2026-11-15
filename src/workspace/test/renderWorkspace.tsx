@@ -66,14 +66,18 @@ function authStatusFor(opts: RenderWorkspaceOptions): AuthStatus {
   return { ...base, user: { ...base.user!, isAdmin }, permissions };
 }
 
-/** Evaluate `(min-width: Npx)` / `(max-width: Npx)` clauses joined by `and` at `width`. */
+/**
+ * Evaluate `(min-width: Npx)` / `(max-width: Npx)` clauses joined by `and` at `width`; a comma list matches
+ * when any of its queries does (MOBILE_LAYOUT_MEDIA_QUERY). Any other clause (height, orientation) is false.
+ */
 function mediaMatches(query: string, width: number): boolean {
-  const clauses = query.split(/\s+and\s+/);
-  return clauses.every((clause) => {
-    const m = clause.match(/\((min|max)-width:\s*([\d.]+)px\)/);
-    if (!m) return false;
-    return m[1] === 'min' ? width >= Number(m[2]) : width <= Number(m[2]);
-  });
+  return query.split(',').some((one) =>
+    one.trim().split(/\s+and\s+/).every((clause) => {
+      const m = clause.match(/\((min|max)-width:\s*([\d.]+)px\)/);
+      if (!m) return false;
+      return m[1] === 'min' ? width >= Number(m[2]) : width <= Number(m[2]);
+    }),
+  );
 }
 
 export function renderWorkspace(ui: ReactElement, opts: RenderWorkspaceOptions = {}): RenderResult {

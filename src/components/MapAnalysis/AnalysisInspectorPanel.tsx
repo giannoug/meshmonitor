@@ -64,8 +64,12 @@ interface NodeRecord extends MaybePositionedNode, IdentifiableNode {
  * ~50px map. Its close button dismisses the sheet for that selection only;
  * the next click on the map selects a new target and opens it again. The
  * persisted `inspectorOpen` flag is the desktop column's and is left alone.
+ *
+ * The Workspace phone map (#6365) passes `onClose` (its close clears the
+ * selection) and `footer` (its "Open node page" link, inside the pane).
+ * Classic passes neither.
  */
-export default function AnalysisInspectorPanel() {
+export default function AnalysisInspectorPanel({ onClose, footer }: { onClose?: () => void; footer?: ReactNode } = {}) {
   const {
     config,
     selected,
@@ -203,7 +207,7 @@ export default function AnalysisInspectorPanel() {
           type="button"
           className="map-analysis-inspector-close"
           aria-label="Close details"
-          onClick={() => setDismissed(selected)}
+          onClick={() => (onClose ? onClose() : setDismissed(selected))}
         >
           <UiIcon name="close" />
         </button>
@@ -218,6 +222,7 @@ export default function AnalysisInspectorPanel() {
         </button>
       )}
       {body}
+      {footer}
     </aside>
   );
 

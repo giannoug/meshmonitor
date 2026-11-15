@@ -9,17 +9,9 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../../components/icons';
 import AnalysisInspectorPanel from '../../../components/MapAnalysis/AnalysisInspectorPanel';
-import { useMapAnalysisCtx, type SelectedTarget } from '../../../components/MapAnalysis/MapAnalysisContext';
+import { useMapAnalysisCtx } from '../../../components/MapAnalysis/MapAnalysisContext';
+import { nodePageOf } from './nodePage';
 import styles from './InspectorPanelD.module.css';
-
-/** The selected node's page, or null when the selection has no one node on one device. */
-function nodePageOf(selected: SelectedTarget | null): string | null {
-  if (!selected || (selected.type !== 'node' && selected.type !== 'trail') || !selected.sourceId) return null;
-  const base = `/source/${encodeURIComponent(selected.sourceId)}`;
-  if (selected.nodeKey?.startsWith('mc:')) return base;
-  if (selected.nodeNum === undefined) return null;
-  return `${base}/node/${encodeURIComponent(`!${(selected.nodeNum >>> 0).toString(16).padStart(8, '0')}`)}`;
-}
 
 export default function InspectorPanelD() {
   const { t } = useTranslation();

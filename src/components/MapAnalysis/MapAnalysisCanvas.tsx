@@ -66,11 +66,14 @@ const NO_3D_NODES: Node3DFeature[] = [];
  * The Workspace Overview map (#6365) draws this canvas inside its own frame:
  * `layers` are extra Leaflet layers in the 2D map, and `pins` is its own
  * `usePinAuthoring` (whose editors it draws). With it, the canvas draws no
- * legend / tile sidebar and no pin editors of its own. Classic passes nothing.
+ * legend / tile sidebar and no pin editors of its own. `stackedPanels` (the
+ * phone) docks the Link Profile drawer and the Site Planner / GNSS DOP column
+ * along the bottom as sheets. Classic passes nothing.
  */
 export interface MapAnalysisCanvasWorkspace {
   layers?: ReactNode;
   pins: PinAuthoring;
+  stackedPanels?: boolean;
 }
 
 export default function MapAnalysisCanvas({ workspace }: { workspace?: MapAnalysisCanvasWorkspace } = {}) {
@@ -451,12 +454,15 @@ export default function MapAnalysisCanvas({ workspace }: { workspace?: MapAnalys
       </BaseMap>
       <TimeSliderControl />
       <FollowResumeButton />
-      <LinkProfileDrawer />
+      <LinkProfileDrawer stacked={workspace?.stackedPanels} />
       {!workspace && <MapPinAuthoringOverlay pins={pins} />}
       {/* One column for the top-right tool panels, so two open panels stack
           instead of drawing over each other, and one rule moves both beside
           the open Map controls panel (MapToolPanels.module.css). */}
-      <div className={toolPanelStyles.toolColumn} data-testid="map-tool-column">
+      <div
+        className={workspace?.stackedPanels ? `${toolPanelStyles.toolColumn} ${toolPanelStyles.bottomColumn}` : toolPanelStyles.toolColumn}
+        data-testid="map-tool-column"
+      >
         <SitePlannerPanel
           open={sitePlannerMode}
           sourceId={activeSourceId}

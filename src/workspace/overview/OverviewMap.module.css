@@ -22,15 +22,18 @@
   display: flex;
 }
 
-/* Leaflet's zoom buttons move below the bar and the chips. */
-.page :global(.leaflet-top.leaflet-left) {
-  top: 64px;
+/* The phone (5-08 … 5-13): the map, then the inspect hint or today's inspector, then the bar. */
+.phone {
+  flex-direction: column;
 }
 
-@media (min-width: 768px) {
-  .page :global(.leaflet-top.leaflet-left) {
-    top: 172px;
-  }
+.phone .map {
+  min-height: 0;
+}
+
+/* Leaflet's zoom buttons move below the bar and the chips (two rows of chips on a phone). */
+.page :global(.leaflet-top.leaflet-left) {
+  top: 172px;
 }
 
 /* Above Leaflet's panes and controls; only the bar's controls, chips and hint take the pointer. */

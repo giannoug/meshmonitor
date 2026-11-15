@@ -1,6 +1,6 @@
 {
   "must": [
-    "Neighbour link",
+    "Neighbor Link",
     "SNR",
     "Distance",
     "Elevation",

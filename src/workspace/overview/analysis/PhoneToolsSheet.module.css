@@ -1,0 +1,16 @@
+/* The phone's Tools sheet (5-09): the desktop menu's tool rows at phone size, then Time. */
+.hint {
+  margin: 0;
+  padding: 0 20px 12px;
+  color: var(--color-text-subtle);
+}
+
+/* ToolItems' rows are buttons: at least 52 px tall, as every phone row. */
+.tools > button {
+  min-height: 56px;
+  padding: 14px 20px;
+}
+
+.time {
+  padding: 8px 16px 16px;
+}

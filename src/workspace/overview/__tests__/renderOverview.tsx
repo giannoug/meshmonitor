@@ -6,7 +6,7 @@
  */
 import type { ReactNode } from 'react';
 import { vi, onTestFinished } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { renderWorkspace, type RenderWorkspaceOptions } from '../../test/renderWorkspace';
 import { DEFAULT_CONFIG, type MapAnalysisConfig } from '../../../hooks/useMapAnalysisConfig';
 import WorkspaceApp from '../../WorkspaceApp';
@@ -66,5 +66,29 @@ export async function openTools(): Promise<HTMLElement> {
 }
 
 export const inDrawer = async (): Promise<ReturnType<typeof within>> => within(await openLayers());
+
+/** Phone (Task 4.3): a bar button opens its sheet. Tools and Time open the one Tools sheet. */
+export async function openPhoneSheet(button: 'Tools' | 'Time' | 'Layers'): Promise<HTMLElement> {
+  const bar = await screen.findByRole('toolbar', { name: 'Map tools' }, { timeout: 5000 });
+  fireEvent.click(within(bar).getByRole('button', { name: new RegExp(`^${button}`) }));
+  return screen.findByRole('dialog', { name: button === 'Layers' ? 'Layers' : 'Tools' });
+}
+
+/** The first interactive line in a Map Analysis pane (`neighbors`, `paths`, `trails`). */
+export function lineIn(pane: string): Promise<Element> {
+  return waitFor(
+    () => {
+      const el = document.querySelector(`.leaflet-${pane}-pane path.leaflet-interactive`);
+      if (!el) throw new Error(`no line in ${pane}`);
+      return el;
+    },
+    { timeout: 5000 },
+  );
+}
+
+export const ON_24H = { enabled: true, lookbackHours: 24 };
+
+/** Requests that are not reads: none may leave while browsing (nothing transmits). */
+export const nonGets = () => vi.mocked(fetch).mock.calls.filter(([, i]) => (i?.method ?? 'GET') !== 'GET').map(([u]) => String(u));
 
 export const passthrough = ({ children }: { children: ReactNode }) => <>{children}</>;
