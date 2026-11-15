@@ -1,0 +1,113 @@
+/* Tools on the Overview map's bar (5-04): a 44 px map button and its menu. */
+.wrap {
+  position: relative;
+}
+
+.trigger {
+  min-height: 44px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 0 14px;
+  border: 1px solid var(--color-surface);
+  border-radius: 10px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.trigger[aria-expanded='true'],
+.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 400px;
+  max-width: calc(100vw - 32px);
+  border: 1px solid var(--color-surface);
+  border-radius: 14px;
+  background: var(--color-bg-raised);
+  box-shadow: 0 12px 32px -8px var(--color-bg-sunken);
+  overflow: hidden;
+}
+
+.heading {
+  padding: 12px 20px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.item {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 20px;
+  border: 0;
+  border-top: 1px solid var(--color-surface);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:hover,
+.item[aria-checked='true'] {
+  background: var(--color-surface-hover);
+}
+
+.item[aria-disabled='true'] {
+  cursor: not-allowed;
+  color: var(--color-text-subtle);
+}
+
+.item:focus-visible,
+.trigger:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.radio {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+}
+
+.item[aria-checked='true'] .radio {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.label {
+  font-weight: 600;
+}
+
+.hint {
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}

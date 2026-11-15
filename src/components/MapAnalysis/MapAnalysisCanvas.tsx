@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Pane } from 'react-leaflet';
 import type * as maplibregl from 'maplibre-gl';
 import 'leaflet/dist/leaflet.css';
@@ -54,7 +54,7 @@ import FollowResumeButton from './FollowResumeButton';
 import MapViewStateController from './MapViewStateController';
 import LocalMarkerPlacementBridge from '../map/LocalMarkerPlacementBridge';
 import MapPinAuthoringOverlay from './MapPinAuthoringOverlay';
-import { usePinAuthoring } from './usePinAuthoring';
+import { usePinAuthoring, type PinAuthoring } from './usePinAuthoring';
 
 const FALLBACK_CENTER: [number, number] = [30, -90];
 const FALLBACK_ZOOM = 10;
@@ -62,7 +62,18 @@ const FALLBACK_ZOOM = 10;
 /** Stable empty list so toggling the markers layer off doesn't churn Base3DMap's source. */
 const NO_3D_NODES: Node3DFeature[] = [];
 
-export default function MapAnalysisCanvas() {
+/**
+ * The Workspace Overview map (#6365) draws this canvas inside its own frame:
+ * `layers` are extra Leaflet layers in the 2D map, and `pins` is its own
+ * `usePinAuthoring` (whose editors it draws). With it, the canvas draws no
+ * legend / tile sidebar and no pin editors of its own. Classic passes nothing.
+ */
+export interface MapAnalysisCanvasWorkspace {
+  layers?: ReactNode;
+  pins: PinAuthoring;
+}
+
+export default function MapAnalysisCanvas({ workspace }: { workspace?: MapAnalysisCanvasWorkspace } = {}) {
   const {
     defaultMapCenterLat,
     defaultMapCenterLon,
@@ -180,7 +191,8 @@ export default function MapAnalysisCanvas() {
   }, [forced2d, setViewMode]);
 
   // #5685: add / edit / delete waypoints and local markers. 2D only.
-  const pins = usePinAuthoring(effectiveViewMode === '2d');
+  const ownPins = usePinAuthoring(effectiveViewMode === '2d');
+  const pins = workspace?.pins ?? ownPins;
 
   // Same shared `useAnalysisNodes()` data the 2D markers layer/picker use
   // (see `analysisNodes` above), mapped to the shape `Base3DMap` expects.
@@ -340,10 +352,12 @@ export default function MapAnalysisCanvas() {
         customTilesets={customTilesets}
         styleJson={activeStyleJson ?? undefined}
         sidebar={
-          <>
-            <MapLegend />
-            <TilesetSelector selectedTilesetId={mapTileset} onTilesetChange={setMapTileset} embedded />
-          </>
+          workspace ? undefined : (
+            <>
+              <MapLegend />
+              <TilesetSelector selectedTilesetId={mapTileset} onTilesetChange={setMapTileset} embedded />
+            </>
+          )
         }
       >
         <MapViewStateController />
@@ -433,11 +447,12 @@ export default function MapAnalysisCanvas() {
         <Pane name="linkProfileHover" style={{ zIndex: 700 }}>
           <LinkProfileHoverLayer />
         </Pane>
+        {workspace?.layers}
       </BaseMap>
       <TimeSliderControl />
       <FollowResumeButton />
       <LinkProfileDrawer />
-      <MapPinAuthoringOverlay pins={pins} />
+      {!workspace && <MapPinAuthoringOverlay pins={pins} />}
       {/* One column for the top-right tool panels, so two open panels stack
           instead of drawing over each other, and one rule moves both beside
           the open Map controls panel (MapToolPanels.module.css). */}

@@ -25,7 +25,6 @@ import LayoutPage from './you/LayoutPage';
 import GeneralLayoutCard from './server/GeneralLayoutCard';
 import { workspaceRedirect } from './routes';
 import {
-  AnalysisRehost,
   AutomationsRehost,
   GlobalSettingsRehost,
   OverviewRehost,
@@ -40,10 +39,11 @@ const OverviewMap = lazy(() => import('./overview/OverviewMap.tsx'));
 const OverviewHome = lazy(() => import('./overview/OverviewHome.tsx'));
 
 /**
- * `/`, `/overview` and `/overview/map`: the all-devices map, except the phone's
- * `/overview`, which is the Overview Home (5-07). One element type for all
- * three routes, so moving between them (the rail's Overview square, the
- * sidebar's All-devices map row) keeps the one map mounted.
+ * `/`, `/overview`, `/overview/map`, `/analysis` and `/overview/analysis`: the
+ * all-devices map with Analysis (Tasks 4.1, 4.2), except the phone's
+ * `/overview`, which is the Overview Home (5-07). One element type for all of
+ * them, so moving between them (the rail's Overview square, the sidebar's
+ * All-devices map and Map Analysis rows) keeps the one map mounted.
  */
 function OverviewIndex({ landing = false }: { landing?: boolean }) {
   const isPhone = useIsPhone();
@@ -80,7 +80,8 @@ function WorkspaceRoutes() {
           <Route path="overview/messages" element={<UnifiedMessagesRehost />} />
           <Route path="overview/telemetry" element={<UnifiedTelemetryRehost />} />
           <Route path="overview/packets" element={<UnifiedPacketsRehost />} />
-          <Route path="overview/analysis" element={<AnalysisRehost />} />
+          {/* Map Analysis is merged into the all-devices map (Task 4.2, s5n1): the same element, the Analysis group open. */}
+          <Route path="overview/analysis" element={<OverviewIndex />} />
           <Route path="overview/reports/*" element={<ReportsRehost />} />
           <Route path="overview/automations" element={<AutomationsRehost />} />
           <Route path="overview/users" element={<UsersRehost />} />
@@ -88,7 +89,7 @@ function WorkspaceRoutes() {
           <Route path="unified/messages" element={<UnifiedMessagesRehost />} />
           <Route path="unified/telemetry" element={<UnifiedTelemetryRehost />} />
           <Route path="unified/packets" element={<UnifiedPacketsRehost />} />
-          <Route path="analysis" element={<AnalysisRehost />} />
+          <Route path="analysis" element={<OverviewIndex />} />
           <Route path="reports" element={<ReportsRehost />} />
           <Route path="automations/*" element={<AutomationsRehost />} />
           <Route path="users" element={<UsersRehost />} />

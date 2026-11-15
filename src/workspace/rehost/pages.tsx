@@ -13,7 +13,6 @@ import { useHashTarget } from './useHashTarget';
 
 // The same chunks Classic loads (main.tsx).
 const DashboardPage = lazy(() => import('../../pages/DashboardPage.tsx'));
-const MapAnalysisPage = lazy(() => import('../../pages/MapAnalysisPage.tsx'));
 const ReportsPage = lazy(() => import('../../pages/ReportsPage.tsx'));
 const AutomationsPage = lazy(() => import('../../components/automations/AutomationsPage.tsx'));
 const UnifiedMessagesPage = lazy(() => import('../../pages/UnifiedMessagesPage.tsx'));
@@ -87,7 +86,6 @@ export function GlobalSettingsRehost({ above }: { above?: Record<string, ReactNo
   );
 }
 
-export const AnalysisRehost = () => <Rehost><MapAnalysisPage /></Rehost>;
 export const ReportsRehost = () => <Rehost><ReportsPage /></Rehost>;
 export const AutomationsRehost = () => <Rehost><AutomationsPage /></Rehost>;
 export const UnifiedMessagesRehost = () => <Rehost><UnifiedMessagesPage /></Rehost>;

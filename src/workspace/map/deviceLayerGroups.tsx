@@ -74,13 +74,29 @@ function useStoredFlag(key: string): [boolean, (v: boolean) => void] {
   return [value, set];
 }
 
+/** Today's GeoJSON overlay layers and their per-layer switch (shared with the Overview map). */
+export function useGeoJsonLayers() {
+  const csrfFetch = useCsrfFetch();
+  const queryClient = useQueryClient();
+  const geoKey = ['geojson', 'layers'];
+  const { data: geoJsonLayers = [] } = useQuery({ queryKey: geoKey, queryFn: () => api.get<GeoJsonLayer[]>('/api/geojson/layers') });
+  const setLayerVisible = (id: string, visible: boolean) => {
+    queryClient.setQueryData<GeoJsonLayer[]>(geoKey, (old = []) => old.map((l) => (l.id === id ? { ...l, visible } : l)));
+    // As NodesTab: the visibility is saved for everyone, and a failure is only logged.
+    csrfFetch(`${appBasename}/api/geojson/layers/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visible }),
+    }).catch((err) => console.error('Failed to update layer visibility:', err));
+  };
+  return { geoJsonLayers, setLayerVisible };
+}
+
 export function useDeviceLayerGroups(p: DeviceLayerParams) {
   const { t } = useTranslation();
   const m = useMapContext();
   const s = useSettings();
   const { hasPermission } = useAuth();
-  const csrfFetch = useCsrfFetch();
-  const queryClient = useQueryClient();
   const { unmappedCount } = useTelemetryNodes();
   const [showLegend, setShowLegend] = useStoredFlag('meshmonitor-showLegend');
   const [showPacketMonitor, setShowPacketMonitor] = useStoredFlag('showPacketMonitor');
@@ -96,17 +112,7 @@ export function useDeviceLayerGroups(p: DeviceLayerParams) {
   });
   const packetMonitorAvailable = canViewPacketMonitor && packetStats?.enabled === true;
 
-  const geoKey = ['geojson', 'layers'];
-  const { data: geoJsonLayers = [] } = useQuery({ queryKey: geoKey, queryFn: () => api.get<GeoJsonLayer[]>('/api/geojson/layers') });
-  const setLayerVisible = (id: string, visible: boolean) => {
-    queryClient.setQueryData<GeoJsonLayer[]>(geoKey, (old = []) => old.map((l) => (l.id === id ? { ...l, visible } : l)));
-    // As NodesTab: the visibility is saved for everyone, and a failure is only logged.
-    csrfFetch(`${appBasename}/api/geojson/layers/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ visible }),
-    }).catch((err) => console.error('Failed to update layer visibility:', err));
-  };
+  const { geoJsonLayers, setLayerVisible } = useGeoJsonLayers();
 
   const toggle = (id: string, label: string, checked: boolean, onChange: (v: boolean) => void, extra: Partial<LayerToggle> = {}): LayerToggle => ({
     kind: 'toggle', id, label, checked, onChange, ...extra,

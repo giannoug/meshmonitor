@@ -162,7 +162,7 @@ interface MapBoundsUpdaterProps {
   skip: boolean;
 }
 
-function MapBoundsUpdater({ positions, sourceId, skip }: MapBoundsUpdaterProps) {
+export function MapBoundsUpdater({ positions, sourceId, skip }: MapBoundsUpdaterProps) {
   const map = useMap();
   const hasFittedRef = useRef(false);
 

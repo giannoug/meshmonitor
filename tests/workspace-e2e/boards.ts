@@ -538,11 +538,109 @@ export const BOARDS: Board[] = [
       await page.getByRole('dialog', { name: 'New local marker' }).getByLabel('Label').fill('Site B');
     },
   },
-  // Task 4.1: the Overview. 5-08 is the frame; Tools, Time and the Analysis chips are 4.2 / 4.3's.
+  // Task 4.1: the Overview. 5-08 is the frame; its Analysis sheets are 4.3's.
   { id: 'f6-overview', size: 'desktop', path: '/overview/map' },
   { id: '5-07-overview-home', size: 'phone', path: '/overview' },
   { id: '5-08-overview-map', size: 'phone', path: '/overview/map' },
+  // Task 4.2: Analysis on the Overview map (desktop). Today's Map Analysis config is preset as a returning user has it.
+  {
+    id: '5-01-overview-analysis',
+    size: 'desktop',
+    path: '/overview/map',
+    setup: async (page) => {
+      await presetAnalysis(page, { traceroutes: ON_24H, neighbors: ON_24H, hopShading: { enabled: true, lookbackHours: null } });
+      await page.locator('.leaflet-marker-icon', { hasText: 'KFR' }).dispatchEvent('click');
+      await page.getByTestId('analysis-inspector').getByText('Traceroute Links').waitFor();
+    },
+  },
+  {
+    id: '5-02-layers-analysis',
+    size: 'desktop',
+    path: '/overview/analysis',
+    setup: async (page) => {
+      await presetAnalysis(page, { traceroutes: ON_24H, neighbors: ON_24H });
+      const drawer = page.getByTestId('layers-drawer');
+      await drawer.getByRole('button', { name: /^Traceroute filters/ }).click();
+      await drawer.getByText('Min occurrences').waitFor();
+    },
+  },
+  {
+    id: '5-03-time-trails',
+    size: 'desktop',
+    path: '/overview/map',
+    setup: async (page) => {
+      await presetAnalysis(page, { trails: { enabled: true, lookbackHours: 6 } }, { timeSlider: { enabled: true } });
+      await page.locator('.leaflet-trails-pane path.leaflet-interactive').first().dispatchEvent('click');
+      await page.getByTestId('analysis-inspector').getByText('Position Trail').waitFor();
+    },
+  },
+  {
+    // 5-04 draws the Tools menu over the open Link Profile drawer.
+    id: '5-04-link-profile',
+    size: 'desktop',
+    path: '/overview/map',
+    setup: async (page) => {
+      await openTools(page, 'Link Profile');
+      await page.getByTestId('link-profile-drawer').waitFor();
+      await openTools(page);
+    },
+  },
+  {
+    id: '5-05-site-planner',
+    size: 'desktop',
+    path: '/overview/map',
+    setup: async (page) => {
+      await page.route((url) => url.pathname.endsWith('/api/sources/src-g2/markers'), (route) =>
+        route.fulfill({ json: { success: true, data: [CANDIDATE_SITE] } }),
+      );
+      await page.reload();
+      await page.waitForLoadState('networkidle');
+      await page.locator('.leaflet-localMarkers-pane .leaflet-marker-icon').dispatchEvent('click');
+      await page.getByText('Candidate site').waitFor();
+      await page.getByRole('button', { name: /^Layers/ }).click();
+      await page.getByTestId('layers-drawer').getByRole('switch', { name: 'GNSS DOP' }).click();
+      await page.getByRole('button', { name: /^Layers/ }).click();
+      await openTools(page, 'Site Planner');
+      await page.getByText('Predict coverage').waitFor();
+    },
+  },
+  {
+    id: '5-06-route-segment',
+    size: 'desktop',
+    path: '/overview/map',
+    setup: async (page) => {
+      await presetAnalysis(page, { traceroutes: ON_24H });
+      await page.locator('.leaflet-paths-pane path.leaflet-interactive').first().dispatchEvent('click');
+      await page.getByTestId('analysis-inspector').getByText('Route Segment').waitFor();
+    },
+  },
 ];
+
+const ON_24H = { enabled: true, lookbackHours: 24 };
+const CANDIDATE_SITE = {
+  id: 7, sourceId: 'src-g2', label: 'Candidate site', description: 'Rooftop survey', latitude: 37.99, longitude: 23.76,
+  altitude: null, icon: 'pin', color: 'amber', createdBy: 1, createdAt: Date.now() - 86_400_000, updatedAt: Date.now() - 86_400_000,
+};
+
+/** Today's Map Analysis config (localStorage `mapAnalysis.config.v1`) with these layers on, then the page reloads. */
+async function presetAnalysis(page: Page, layers: Record<string, { enabled: boolean; lookbackHours: number | null }>, extra: object = {}): Promise<void> {
+  await page.evaluate(([l, e]) => {
+    const key = 'mapAnalysis.config.v1';
+    const stored = JSON.parse(localStorage.getItem(key) ?? 'null') ?? {};
+    localStorage.setItem(key, JSON.stringify({ version: 1, ...stored, ...e, layers: { ...(stored.layers ?? {}), ...l } }));
+  }, [layers, extra] as const);
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  await page.locator('.leaflet-marker-icon', { hasText: 'KFR' }).waitFor();
+}
+
+/** Opens the Overview map's Tools menu, and picks `item` if given. */
+async function openTools(page: Page, item?: string): Promise<void> {
+  await page.getByRole('button', { name: 'Tools' }).click();
+  const menu = page.getByRole('menu', { name: 'Tools' });
+  await menu.waitFor();
+  if (item) await menu.getByRole('menuitemradio', { name: new RegExp(`^${item}`) }).click();
+}
 
 /** Kifisia Rooftop's detected renumbering, served for this shot, then the page reloads. */
 async function serveRenumbering(page: Page): Promise<void> {

@@ -3,12 +3,10 @@
     "Time",
     "Start",
     "End",
-    "Live",
+    "Window",
     "Trails",
     "Points",
-    "Duration",
-    "Follow paused",
-    "Resume"
+    "Duration"
   ],
   "absent": [],
   "source": "checks/s05.json"

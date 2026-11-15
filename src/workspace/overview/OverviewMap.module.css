@@ -1,7 +1,8 @@
 /*
- * The all-devices map (boards f6-overview, 5-08-overview-map): DashboardMap
- * fills the page column; Back (phone) and the search pill float top left.
- * DashboardMap keeps its own map controls panel on the right.
+ * The all-devices map (f6-overview, 5-01 … 5-06, 5-08): the Map Analysis
+ * canvas fills the page column, today's inspector beside it on desktop. The
+ * bar, the Analysis chips and the placement hint float top left; the Layers
+ * drawer docks right over the map.
  */
 .page {
   position: fixed;
@@ -14,44 +15,135 @@
   color: var(--color-text);
 }
 
-/* Leaflet's zoom buttons move below the search pill. */
+.map {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+/* Leaflet's zoom buttons move below the bar and the chips. */
 .page :global(.leaflet-top.leaflet-left) {
   top: 64px;
 }
 
-/* Above Leaflet's panes and controls, below DashboardMap's controls panel; only the pill and Back take the pointer. */
+@media (min-width: 768px) {
+  .page :global(.leaflet-top.leaflet-left) {
+    top: 172px;
+  }
+}
+
+/* Above Leaflet's panes and controls; only the bar's controls, chips and hint take the pointer. */
 .overlay {
   position: absolute;
   top: 12px;
   left: 12px;
-  right: 72px;
-  z-index: 1000;
+  right: 12px;
+  /* Over today's Map Analysis legend (1500), so the Tools menu and filter popovers are never under it. */
+  z-index: 1600;
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 8px;
   pointer-events: none;
 }
 
-.overlay > * {
+.overlay > *,
+.bar > * {
   pointer-events: auto;
 }
 
-/* 44 px: the board's map buttons (Ruling 3.1). */
-.back {
+/* Today's filters wrap on the left; Tools, Time Slider and Layers stay on the first row at the right. */
+.bar {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.filters {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.filters > * {
+  pointer-events: auto;
+}
+
+.actions {
   flex: none;
-  width: 44px;
-  height: 44px;
+  display: flex;
+  gap: 8px;
+}
+
+/* 44 px: the board's map buttons (Ruling 3.1). */
+.back,
+.layers,
+.reset {
+  flex: none;
+  min-height: 44px;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   border: 1px solid var(--color-surface);
   border-radius: 10px;
   background: var(--color-bg-raised);
   color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.back {
+  width: 44px;
+}
+
+.layers {
+  padding: 0 14px;
+}
+
+.layers[aria-pressed='true'] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.badge {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-size: 13px;
+}
+
+.layers[aria-pressed='true'] .badge {
+  background: var(--color-bg);
+  color: var(--color-accent);
+}
+
+.reset {
+  min-height: 36px;
+  padding: 0 12px;
+  border-color: transparent;
+  background: none;
 }
 
 .search {
-  flex: 0 1 360px;
+  flex: 0 1 220px;
   min-width: 0;
   min-height: 44px;
   box-sizing: border-box;
@@ -77,9 +169,34 @@
 }
 
 .back:focus-visible,
+.layers:focus-visible,
+.reset:focus-visible,
 .search:focus-within {
   outline: 2px solid var(--color-accent);
   outline-offset: 1px;
+}
+
+/* Under the bar, over the map's right edge (and over today's legend): the drawer or the inspector. */
+.slot {
+  position: absolute;
+  top: 68px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 1550;
+  max-width: calc(100% - 24px);
+  display: flex;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px -8px var(--color-bg-sunken);
+}
+
+/* The drawer is 400 px wide; the inspector keeps today's 340 px. */
+.drawerSlot {
+  width: 400px;
+}
+
+.besideTools {
+  right: calc(340px + 24px);
 }
 
 .srOnly {

@@ -20,7 +20,6 @@ vi.mock('../../contexts/WebSocketContext', () => ({
 }));
 vi.mock('../../App', async () => ({ default: (await import('./pageStub')).pageStub('app') }));
 vi.mock('../../pages/DashboardPage', async () => ({ default: (await import('./pageStub')).pageStub('dashboard') }));
-vi.mock('../../pages/MapAnalysisPage', async () => ({ default: (await import('./pageStub')).pageStub('analysis') }));
 vi.mock('../../pages/ReportsPage', async () => ({ default: (await import('./pageStub')).pageStub('reports') }));
 vi.mock('../../components/automations/AutomationsPage', async () => ({ default: (await import('./pageStub')).pageStub('automations') }));
 vi.mock('../../pages/UnifiedMessagesPage', async () => ({ default: (await import('./pageStub')).pageStub('unified-messages') }));
@@ -89,7 +88,6 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     ['/overview/messages', 'unified-messages'],
     ['/overview/telemetry', 'unified-telemetry'],
     ['/overview/packets', 'unified-packets'],
-    ['/overview/analysis', 'analysis'],
     ['/overview/reports', 'reports'],
     ['/overview/reports/coverage', 'reports'],
     ['/overview/automations', 'automations'],
@@ -97,7 +95,6 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     ['/unified/messages', 'unified-messages'],
     ['/unified/telemetry', 'unified-telemetry'],
     ['/unified/packets', 'unified-packets'],
-    ['/analysis', 'analysis'],
     ['/reports', 'reports'],
     ['/automations', 'automations'],
     ['/automations/12', 'automations'],
@@ -180,10 +177,14 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     ['/', 'overview-map'],
     ['/overview', 'overview-map'],
     ['/overview/map', 'overview-map'],
-  ])('%s shows the Workspace all-devices map (Task 4.1), not today\'s Dashboard', async (route, page) => {
+    // Map Analysis is merged into the all-devices map (Task 4.2, s5n1).
+    ['/overview/analysis', 'overview-map'],
+    ['/analysis', 'overview-map'],
+  ])('%s shows the Workspace all-devices map (Tasks 4.1, 4.2), not today\'s Dashboard or Map Analysis', async (route, page) => {
     renderAt(route);
     expect(await screen.findByTestId(`page-${page}`)).toHaveAttribute('data-embedded', 'false');
     expect(screen.queryByTestId('page-dashboard')).toBeNull();
+    expect(screen.queryByTestId('page-analysis')).toBeNull();
     expect(realUrl()).toBe(route);
   });
 
@@ -345,6 +346,10 @@ describe('re-hosted pages stay mounted while the URL is fixed up', () => {
     ['/overview', '/overview/map', '/overview/map', 'overview-map'],
     ['/overview/map', '/overview', '/overview', 'overview-map'],
     ['/', '/overview', '/overview', 'overview-map'],
+    // The sidebar's Map Analysis row (Task 4.2): the same map, with the Analysis group open.
+    ['/overview/map', '/overview/analysis', '/overview/analysis', 'overview-map'],
+    ['/overview/analysis', '/overview/map', '/overview/map', 'overview-map'],
+    ['/analysis', '/overview', '/overview', 'overview-map'],
   ])('%s → %s (lands on %s) keeps one %s', async (from, to, lands, page) => {
     renderAt(from);
     await (page === 'overview-map' ? screen.findByTestId('page-overview-map') : expectPage(page));

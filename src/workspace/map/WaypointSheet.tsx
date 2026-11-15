@@ -18,7 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { HopLimitOverrideSelect } from '../../components/HopLimitOverrideSelect';
 import { NumberInput } from '../../components/common/NumberInput';
 import { NumberInputScope } from '../../components/common/NumberInputScope';
-import PinSourcePicker from '../../components/map/PinSourcePicker';
+import PinSourcePicker, { type PinSourceChoice } from '../../components/map/PinSourcePicker';
 import { UiIcon } from '../../components/icons';
 import {
   DEFAULT_EMOJIS,
@@ -45,6 +45,12 @@ export interface WaypointSheetProps {
   defaultCoords: { lat: number; lon: number } | null;
   channels: WaypointChannelOption[];
   selfNodeNum: number | null;
+  /**
+   * The Overview map (several devices, #6365): the device that sends the new
+   * waypoint is picked here, as on Map Analysis; Save stays off until one is.
+   * Omit for one device's map (`sourceId` / `sourceName`).
+   */
+  sourceChoice?: PinSourceChoice;
   onClose(): void;
   onSave(input: WaypointInput): Promise<void>;
 }
@@ -61,7 +67,7 @@ export default function WaypointSheet(p: WaypointSheetProps) {
     onSave: p.onSave,
     selfNodeNum: p.selfNodeNum,
     defaultCoords: p.defaultCoords,
-    sendingSource: { options: [{ id: p.sourceId, name: p.sourceName }], value: p.sourceId },
+    sendingSource: p.sourceChoice ?? { options: [{ id: p.sourceId, name: p.sourceName }], value: p.sourceId },
   });
   // The phone's Geofence step (15-24); every open starts on the form.
   const [step, setStep] = useState<'form' | 'geofence'>('form');
@@ -106,7 +112,7 @@ export default function WaypointSheet(p: WaypointSheetProps) {
                 placeholder={t('mapPins.chooseSource')}
                 hint={t('mapPins.waypointSourceHint')}
                 hiddenNote={t('mapPins.hiddenByFilter')}
-                choice={{ options: [{ id: p.sourceId, name: p.sourceName }], value: p.sourceId }}
+                choice={p.sourceChoice ?? { options: [{ id: p.sourceId, name: p.sourceName }], value: p.sourceId }}
               />
               <div className={styles.row}>
                 <label className={styles.field}>

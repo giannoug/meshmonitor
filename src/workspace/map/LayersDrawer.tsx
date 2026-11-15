@@ -3,6 +3,7 @@
  * Base map / Nodes / Links / Analysis / Overlays, with "N more" for the
  * less-used ones. Nothing is removed and the toggles are MapContext's own.
  */
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import LayerGroup, { type LayerGroupSpec } from './LayerGroup';
@@ -11,14 +12,17 @@ import styles from './LayersDrawer.module.css';
 export interface LayersDrawerProps {
   groups: LayerGroupSpec[];
   onClose(): void;
+  /** Buttons before Close (the Overview map's Reset). */
+  actions?: ReactNode;
 }
 
-export default function LayersDrawer({ groups, onClose }: LayersDrawerProps) {
+export default function LayersDrawer({ groups, onClose, actions }: LayersDrawerProps) {
   const { t } = useTranslation();
   return (
     <aside className={styles.drawer} aria-labelledby="layers-title" data-testid="layers-drawer">
       <div className={styles.head}>
         <h2 id="layers-title" className={styles.title}>{t('workspace.map.layers')}</h2>
+        {actions}
         <button type="button" className={styles.close} onClick={onClose} aria-label={t('common.close')}>
           <UiIcon name="close" size={18} />
         </button>

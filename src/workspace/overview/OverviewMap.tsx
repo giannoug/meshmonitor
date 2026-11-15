@@ -1,143 +1,214 @@
 /**
- * The all-devices map (boards f6-overview, 5-08-overview-map): `/` and
- * `/overview/map` (and `/overview` on desktop). Today's DashboardMap as is,
- * fed the way DashboardPage feeds it: every device merged (Unified) when there
- * are two or more, else the one device's own data. MeshCore nodes show here
- * (Ruling 3.1). The search pill is today's node filter wording, as on the
- * device map; it narrows the pins by name or id.
+ * The all-devices map with Analysis merged in (boards f6-overview, 5-01 …
+ * 5-06, 5-08; s5n1): `/`, `/overview`, `/overview/map`, `/analysis` and
+ * `/overview/analysis`, one route element so the map stays mounted between
+ * them. The map is today's Map Analysis canvas, every device's nodes merged,
+ * as is (Rule X: it takes one optional prop for the Workspace's extra layers
+ * and pin sheets). Over it:
  *
- * One owner per screen (Ruling AD): DashboardPage is not mounted. The data is
- * today's polled hooks, so this adds no timer and sends nothing. On `/` only
- * (`landing`), the admin's default landing page applies, as on Classic's `/`.
+ * - the bar: today's Map Analysis filters (devices, node types, transports,
+ *   the node filter, the node picker), then Tools, Time Slider and Layers;
+ * - a chip per analysis layer that is on, and the pin placement hint;
+ * - one right-hand panel (Ruling 3.1): the Layers drawer (Analysis first:
+ *   `/analysis` opens on it), or today's inspector with "Open node page"
+ *   while something is selected.
+ *
+ * The all-devices overlays 4.1's map drew (GeoJSON, cross-source links, packet
+ * traffic, ducting, aircraft trails) are drawn inside the canvas.
+ *
+ * The phone keeps 4.1's frame (Back, the node filter, the map); its Analysis
+ * sheets are Task 4.3.
+ *
+ * One owner per screen (Ruling AD): neither DashboardPage nor MapAnalysisPage
+ * is mounted. The reads are today's polled hooks and Map Analysis's own
+ * queries; this adds no timer and sends nothing until a pin sheet's button is
+ * pressed. On `/` only (`landing`), the admin's default landing page applies,
+ * as on Classic's `/`.
  */
-import { useCallback, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import DashboardMap from '../../components/Dashboard/DashboardMap';
-import type { NodeSourceRef } from '../../components/Dashboard/DashboardNodePopup';
+import type L from 'leaflet';
 import { UiIcon } from '../../components/icons';
-import { MapProvider, useMapContext } from '../../contexts/MapContext';
+import MapAnalysisCanvas from '../../components/MapAnalysis/MapAnalysisCanvas';
+import MapLegend from '../../components/MapAnalysis/MapLegend';
+import NodeMultiSelect from '../../components/MapAnalysis/NodeMultiSelect';
+import NodeTypeFilterControl from '../../components/MapAnalysis/NodeTypeFilterControl';
+import SourceMultiSelect from '../../components/MapAnalysis/SourceMultiSelect';
+import TransportFilterControl from '../../components/MapAnalysis/TransportFilterControl';
+import { MapAnalysisProvider, useMapAnalysisCtx } from '../../components/MapAnalysis/MapAnalysisContext';
+import { TIMED_LAYERS, useAnalysisControls } from '../../components/MapAnalysis/analysisControls';
+import { isAgedOutAircraft } from '../../components/map/agedOutAircraft';
+import { MapProvider } from '../../contexts/MapContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import {
-  UNIFIED_SOURCE_ID,
-  useDashboardSourceData,
-  useDashboardSources,
-  useDashboardUnifiedData,
-  type DashboardDataOptions,
-} from '../../hooks/useDashboardData';
+import { useDashboardSources } from '../../hooks/useDashboardData';
 import { useDefaultLandingRedirect } from '../../hooks/useDefaultLandingRedirect';
-import { useMeshCoreNeighbors } from '../../hooks/useMapAnalysisData';
-import { useMaxInfraNodeAgeHoursAcross, useMaxNodeAgeHoursAcross } from '../../hooks/useNodeDisplaySettings';
+import { useMaxNodeAgeHoursAcross } from '../../hooks/useNodeDisplaySettings';
+import type { PacketFlightStats } from '../../utils/packetFlightEdges';
+import LayersDrawer from '../map/LayersDrawer';
 import { useIsPhone } from '../shell/useIsPhone';
-import '../../styles/dashboard.css';
+import AnalysisChips from './analysis/AnalysisChips';
+import InspectorPanelD from './analysis/InspectorPanelD';
+import MapToolsMenu from './analysis/MapToolsMenu';
+import OverviewOverlays from './analysis/OverviewOverlays';
+import TimeControl from './analysis/TimeControl';
+import { useOverviewLayerGroups } from './analysis/overviewLayerGroups';
+import { useOverviewPins } from './analysis/useOverviewPins';
+import '../../styles/map-analysis.css';
 import styles from './OverviewMap.module.css';
 
-/** As DashboardPage: the server leaves out nodes the map hides by age. */
-const DATA_OPTIONS: DashboardDataOptions = { ageWindow: true };
-
-interface NamedNode {
-  longName?: unknown;
-  shortName?: unknown;
-  nodeId?: unknown;
-  user?: { longName?: unknown; shortName?: unknown; id?: unknown };
-}
-
-/** The nodes whose long name, short name or id contains `query` (any case). */
-function filterNodes(nodes: unknown[], query: string): unknown[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return nodes;
-  return nodes.filter((n) => {
-    const { longName, shortName, nodeId, user } = n as NamedNode;
-    return [longName, shortName, nodeId, user?.longName, user?.shortName, user?.id].some(
-      (v) => typeof v === 'string' && v.toLowerCase().includes(q),
-    );
-  });
-}
+/** `/analysis` and `/overview/analysis` open on the Analysis group (s5n1). */
+const ANALYSIS_ROUTE = /^\/(overview\/)?analysis\/?$/;
 
 export default function OverviewMap({ landing = false }: { landing?: boolean }) {
   return (
     <MapProvider>
-      <AllDevicesMap landing={landing} />
+      <MapAnalysisProvider>
+        <AllDevicesMap landing={landing} />
+      </MapAnalysisProvider>
     </MapProvider>
   );
 }
 
 function AllDevicesMap({ landing }: { landing: boolean }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const isPhone = useIsPhone();
-  const { mapTileset, customTilesets, defaultMapCenterLat, defaultMapCenterLon, defaultLandingPage } = useSettings();
+  const { pathname } = useLocation();
+  const { defaultLandingPage, defaultMapCenterLat, defaultMapCenterLon, defaultMapCenterZoom } = useSettings();
   const { data: sources = [], isSuccess } = useDashboardSources();
   useDefaultLandingRedirect({ skip: !landing, isSuccess, defaultLandingPage, sources });
 
-  const sourceIds = sources.map((s) => s.id);
+  const ctx = useMapAnalysisCtx();
+  const { config, nodeFilter, setNodeFilter } = ctx;
+  const controls = useAnalysisControls();
+  const { analysisNodes, in3D } = controls;
+
+  const sourceIds = useMemo(() => sources.map((s) => s.id), [sources]);
   const maxNodeAgeHours = useMaxNodeAgeHoursAcross(sourceIds);
-  const maxInfraNodeAgeHours = useMaxInfraNodeAgeHoursAcross(sourceIds);
 
-  // DashboardPage's default selection: Unified with 2+ devices, else the first enabled one.
-  const unified = sources.length >= 2;
-  const single = unified ? null : ((sources.find((s) => s.enabled) ?? sources[0])?.id ?? null);
-  const singleData = useDashboardSourceData(single, DATA_OPTIONS);
-  const unifiedData = useDashboardUnifiedData(sources, unified, DATA_OPTIONS);
-  const data = unified ? unifiedData : singleData;
+  // The Layers drawer: open on the analysis URLs, also when the map was already open.
+  const analysisRoute = ANALYSIS_ROUTE.test(pathname);
+  const [layersOpen, setLayersOpen] = useState(analysisRoute);
+  useEffect(() => {
+    if (analysisRoute) setLayersOpen(true);
+  }, [analysisRoute]);
+  // One right-hand panel at a time (Ruling 3.1): a new selection opens the inspector in the drawer's place.
+  const { selected } = ctx;
+  useEffect(() => {
+    if (selected) setLayersOpen(false);
+  }, [selected]);
 
-  // MeshCore neighbour links, fetched only while Show Neighbors is on (as DashboardPage).
-  const { showNeighborInfo } = useMapContext();
-  const neighborSources = unified ? sourceIds : single ? [single] : [];
-  const meshcoreNeighbors = useMeshCoreNeighbors({
-    enabled: showNeighborInfo && neighborSources.length > 0,
-    sources: neighborSources,
-    lookbackHours: maxNodeAgeHours,
-  });
+  const [leaflet, setLeaflet] = useState<L.Map | null>(null);
+  const [packetFlightsStats, setPacketFlightsStats] = useState<PacketFlightStats | null>(null);
+  const pins = useOverviewPins(!in3D, leaflet);
 
-  const [query, setQuery] = useState('');
-  const nodes = useMemo(() => filterNodes(data.nodes, query), [data.nodes, query]);
+  const aircraftCount = analysisNodes.filter(({ node }) => node.likelyAircraft === true && !isAgedOutAircraft(node)).length;
+  const agedOutCount = analysisNodes.filter(({ node }) => isAgedOutAircraft(node)).length;
+  const groups = useOverviewLayerGroups({ controls, packetFlightsStats, aircraftCount, agedOutCount });
 
-  // A popup's "seen by" row: that device's node page (today's Node Details), or the MeshCore device.
-  // Stable, so the map's memoized marker popups don't rebuild on every render.
-  const onNodeSourceSelect = useCallback(
-    (source: NodeSourceRef, nodeId: string | undefined) => {
-      const base = `/source/${encodeURIComponent(source.sourceId)}`;
-      void navigate(source.protocol !== 'MeshCore' && nodeId ? `${base}/node/${encodeURIComponent(nodeId)}` : base);
-    },
-    [navigate],
+  // Today's node picker options (MapAnalysisToolbar): the nodes the map draws, by name.
+  const nodeOptions = useMemo(() => {
+    const byKey = new Map<string, string>();
+    for (const { key, node } of analysisNodes) {
+      if (!byKey.has(key)) byKey.set(key, node.longName || node.shortName || node.nodeId || key);
+    }
+    return [...byKey].map(([key, label]) => ({ key, label })).sort((a, b) => a.label.localeCompare(b.label));
+  }, [analysisNodes]);
+
+  const onMap = useCallback((map: L.Map) => setLeaflet(map), []);
+  const layers = (
+    <OverviewOverlays
+      sourceIds={sourceIds}
+      nodes={analysisNodes}
+      lookbackHours={maxNodeAgeHours}
+      onPacketFlightsStats={setPacketFlightsStats}
+      onMap={onMap}
+      hasDefaultCenter={defaultMapCenterLat != null && defaultMapCenterLon != null && defaultMapCenterZoom != null}
+    />
+  );
+
+  const layersOn = TIMED_LAYERS.filter((l) => config.layers[l.key].enabled).length;
+  const search = (
+    <label className={styles.search}>
+      <UiIcon name="search" size={18} />
+      <input
+        type="search"
+        value={nodeFilter}
+        onChange={(e) => setNodeFilter(e.target.value)}
+        placeholder={t('nodes.filter_placeholder')}
+        aria-label={t('nodes.filter_title')}
+      />
+    </label>
   );
 
   return (
     <div className={styles.page}>
-      <DashboardMap
-        nodes={nodes}
-        traceroutes={data.traceroutes}
-        neighborInfo={data.neighborInfo}
-        meshcoreNeighbors={(meshcoreNeighbors.data?.items as unknown[] | undefined) ?? []}
-        channels={data.channels}
-        tilesetId={mapTileset}
-        customTilesets={customTilesets}
-        defaultCenter={{ lat: defaultMapCenterLat ?? 30.0, lng: defaultMapCenterLon ?? -90.0 }}
-        sourceId={unified ? UNIFIED_SOURCE_ID : single}
-        maxNodeAgeHours={maxNodeAgeHours}
-        maxInfraNodeAgeHours={maxInfraNodeAgeHours}
-        onNodeSourceSelect={onNodeSourceSelect}
-        isLoading={data.isLoading}
-      />
-      <div className={styles.overlay}>
-        {isPhone && (
-          <Link className={styles.back} to="/overview">
-            <UiIcon name="back" size={22} />
-            <span className={styles.srOnly}>{t('common.back')}</span>
-          </Link>
+      <div className={styles.map}>
+        <MapAnalysisCanvas workspace={{ layers, pins: pins.pins }} />
+        <div className={styles.overlay}>
+          <div className={styles.bar} role="toolbar" aria-label={t('workspace.overview.map_bar')}>
+            {isPhone ? (
+              <>
+                <Link className={styles.back} to="/overview">
+                  <UiIcon name="back" size={22} />
+                  <span className={styles.srOnly}>{t('common.back')}</span>
+                </Link>
+                {search}
+              </>
+            ) : (
+              <>
+                <div className={styles.filters}>
+                  <SourceMultiSelect
+                    sources={sources.map((s) => ({ id: s.id, name: s.name }))}
+                    value={config.sources}
+                    onChange={ctx.setSources}
+                  />
+                  <NodeTypeFilterControl />
+                  <TransportFilterControl />
+                  {search}
+                  <NodeMultiSelect nodes={nodeOptions} value={config.selectedNodeIds} onChange={ctx.setSelectedNodeIds} />
+                </div>
+                <div className={styles.actions}>
+                  <MapToolsMenu tools={controls.tools} />
+                  <TimeControl />
+                  <button
+                    type="button"
+                    className={styles.layers}
+                    aria-pressed={layersOpen}
+                    aria-label={layersOn > 0 ? t('workspace.overview.layers_count', { count: layersOn }) : undefined}
+                    onClick={() => setLayersOpen((o) => !o)}
+                  >
+                    {t('workspace.map.layers')}
+                    {layersOn > 0 && <span className={styles.badge}>{layersOn}</span>}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          {!isPhone && <AnalysisChips />}
+          {!isPhone && pins.hint}
+        </div>
+        {!isPhone && (layersOpen || selected) && (
+          // Beside today's Site Planner / GNSS DOP panels, which keep the map's top-right corner.
+          <div className={`${styles.slot} ${layersOpen ? styles.drawerSlot : ''} ${ctx.sitePlannerMode || ctx.gnssDopMode ? styles.besideTools : ''}`}>
+            {layersOpen ? (
+              <LayersDrawer
+                groups={groups}
+                onClose={() => setLayersOpen(false)}
+                actions={(
+                  <button type="button" className={styles.reset} onClick={ctx.reset}>
+                    {t('common.reset')}
+                  </button>
+                )}
+              />
+            ) : (
+              <InspectorPanelD />
+            )}
+          </div>
         )}
-        <label className={styles.search}>
-          <UiIcon name="search" size={18} />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t('nodes.filter_placeholder')}
-            aria-label={t('nodes.filter_title')}
-          />
-        </label>
+        {!isPhone && <MapLegend />}
       </div>
+      {pins.overlay}
     </div>
   );
 }

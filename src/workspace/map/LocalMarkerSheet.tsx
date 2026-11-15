@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { NumberInput } from '../../components/common/NumberInput';
 import { NumberInputScope } from '../../components/common/NumberInputScope';
 import { UiIcon } from '../../components/icons';
+import PinSourcePicker, { type PinSourceChoice } from '../../components/map/PinSourcePicker';
 import { COLOR_LABELS, ICON_LABELS, useLocalMarkerForm } from '../../components/map/useLocalMarkerForm';
 import {
   MAP_MARKER_COLORS, MAP_MARKER_DESCRIPTION_MAX, MAP_MARKER_ICONS, MAP_MARKER_LABEL_MAX,
@@ -24,12 +25,14 @@ export interface LocalMarkerSheetProps {
   defaultCoords: { lat: number; lon: number } | null;
   onClose(): void;
   onSave(input: MapMarkerInput): Promise<void>;
+  /** The Overview map (several devices, #6365): the device that keeps the marker; Save stays off until one is picked. */
+  storingSource?: PinSourceChoice;
 }
 
-export default function LocalMarkerSheet({ open, initial, defaultCoords, onClose, onSave }: LocalMarkerSheetProps) {
+export default function LocalMarkerSheet({ open, initial, defaultCoords, onClose, onSave, storingSource }: LocalMarkerSheetProps) {
   const { t } = useTranslation();
   const id = useId();
-  const form = useLocalMarkerForm({ isOpen: open, initial, defaultCoords, onClose, onSave });
+  const form = useLocalMarkerForm({ isOpen: open, initial, defaultCoords, onClose, onSave, storingSource });
   return (
     <ConfirmSheet
       open={open}
@@ -45,6 +48,16 @@ export default function LocalMarkerSheet({ open, initial, defaultCoords, onClose
             <p className={styles.hint}>
               <UiIcon name="visibilityOff" size={14} /> {t('localMarkers.editorNote')}
             </p>
+            {storingSource && (
+              <PinSourcePicker
+                id={`${id}-source`}
+                label={t('mapPins.markerSourceLabel', 'Source')}
+                placeholder={t('mapPins.chooseSource')}
+                hint={t('mapPins.markerSourceHint', 'The marker is kept with this source and shows on its maps. No radio sends it.')}
+                hiddenNote={t('mapPins.hiddenByFilter')}
+                choice={storingSource}
+              />
+            )}
             <div className={styles.row}>
               <label className={styles.field}>
                 <span className={styles.label}>{t('localMarkers.label')}</span>

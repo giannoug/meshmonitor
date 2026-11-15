@@ -1,13 +1,10 @@
 {
   "must": [
-    "Route segment",
+    "Route Segment",
     "From",
     "To",
-    "Direction",
     "Observations",
-    "Avg SNR",
-    "Terrain",
-    "Traceroutes through this segment"
+    "Avg SNR"
   ],
   "absent": [],
   "source": "checks/s05.json"

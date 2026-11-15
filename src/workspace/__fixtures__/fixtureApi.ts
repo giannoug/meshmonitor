@@ -11,6 +11,21 @@ import { athensFixture as A, SOURCE_IDS } from './athens';
 
 export type FixtureHandler = (url: URL, init?: RequestInit) => unknown | Response;
 
+/**
+ * A node as the server's dashboard routes send it: the stored row's flat fields (names, position,
+ * device metrics), which Map Analysis reads; the poll's nested fields are kept beside them.
+ */
+function dbRow(n: (typeof A.nodes)[number], sourceId: string) {
+  return {
+    ...n,
+    sourceId,
+    nodeId: n.user?.id, longName: n.user?.longName, shortName: n.user?.shortName, hwModel: n.user?.hwModel, role: n.user?.role,
+    publicKey: n.user?.publicKey,
+    latitude: n.position?.latitude, longitude: n.position?.longitude, altitude: n.position?.altitude,
+    ...n.deviceMetrics,
+  };
+}
+
 const defaults: Record<string, FixtureHandler> = {
   'GET /api/config': () => A.config,
   'GET /api/csrf-token': () => ({ csrfToken: 'fixture-csrf-token' }),
@@ -30,7 +45,7 @@ const defaults: Record<string, FixtureHandler> = {
   'GET /api/unified/dashboard': (url) =>
     (url.searchParams.get('sources') ?? '').split(',').filter(Boolean).map((sourceId) => ({
       sourceId,
-      nodes: sourceId === SOURCE_IDS.g2 ? A.nodes : [],
+      nodes: sourceId === SOURCE_IDS.g2 ? A.nodes.map((n) => dbRow(n, sourceId)) : [],
       traceroutes: [],
       neighborInfo: [],
       channels: sourceId === SOURCE_IDS.g2 ? A.channels : [],
@@ -127,6 +142,24 @@ const defaults: Record<string, FixtureHandler> = {
       { portnum: 1, portnum_name: 'TEXT_MESSAGE_APP', count: 14 },
     ],
   }),
+  // Analysis on the Overview map (5-01 … 5-06): Station G2's traceroutes, neighbour links, Athens
+  // Rover's trail and the hop counts; elevation is on without DEM tiles (no 3D). The terrain
+  // profile is left unanswered by default, so the link profile shows "Loading elevation profile…".
+  'GET /api/analysis/traceroutes': () => ({
+    items: A.traceroutes.map((r) => ({ ...r, sourceId: SOURCE_IDS.g2 })), hasMore: false, nextCursor: null,
+  }),
+  'GET /api/analysis/neighbors': () => ({
+    items: A.neighborInfo.map((n) => ({ ...n, sourceId: SOURCE_IDS.g2, neighborNum: n.neighborNodeNum })),
+  }),
+  'GET /api/analysis/positions': () => ({
+    items: A.roverTrack.segments[0].map((p) => ({ ...p, nodeNum: A.roverTrack.nodeNum, sourceId: SOURCE_IDS.g2 })),
+    hasMore: false,
+    nextCursor: null,
+  }),
+  'GET /api/analysis/hop-counts': () => ({
+    entries: A.nodes.map((n) => ({ sourceId: SOURCE_IDS.g2, nodeNum: n.nodeNum, hops: n.hopsAway ?? 0 })),
+  }),
+  'GET /api/elevation/capabilities': () => ({ success: true, data: { enabled: true, terrainTiles: false } }),
   'GET /api/telemetry/:nodeId': (url) => {
     const nodeId = decodeURIComponent(url.pathname.split('/')[3]);
     return A.telemetry.filter((row) => row.nodeId === nodeId);

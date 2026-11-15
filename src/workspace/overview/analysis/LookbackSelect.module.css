@@ -1,0 +1,20 @@
+/* A layer's lookback, in a drawer row or an Analysis chip. */
+.lookback {
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.lookback:disabled {
+  opacity: 0.5;
+}
+
+.lookback:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
