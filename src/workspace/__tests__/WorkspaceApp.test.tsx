@@ -20,7 +20,6 @@ vi.mock('../../contexts/WebSocketContext', () => ({
 }));
 vi.mock('../../App', async () => ({ default: (await import('./pageStub')).pageStub('app') }));
 vi.mock('../../pages/DashboardPage', async () => ({ default: (await import('./pageStub')).pageStub('dashboard') }));
-vi.mock('../../pages/ReportsPage', async () => ({ default: (await import('./pageStub')).pageStub('reports') }));
 vi.mock('../../components/automations/AutomationsPage', async () => ({ default: (await import('./pageStub')).pageStub('automations') }));
 vi.mock('../../pages/UnifiedMessagesPage', async () => ({ default: (await import('./pageStub')).pageStub('unified-messages') }));
 vi.mock('../../pages/UnifiedTelemetryPage', async () => ({ default: (await import('./pageStub')).pageStub('unified-telemetry') }));
@@ -38,6 +37,8 @@ vi.mock('../activity/ActivityFeed', async () => ({ default: (await import('./pag
 vi.mock('../nodes/NodesPage', async () => ({ default: (await import('./pageStub')).pageStub('nodes') }));
 vi.mock('../node-page/NodePage', async () => ({ default: (await import('./pageStub')).pageStub('node-page') }));
 vi.mock('../overview/OverviewMap', async () => ({ default: (await import('./pageStub')).pageStub('overview-map') }));
+// Reports are the Workspace's own list and report pages (Task 4.4); their tests live in reports/__tests__.
+vi.mock('../reports/ReportsRoute', async () => ({ default: (await import('./pageStub')).pageStub('reports-route') }));
 vi.mock('../overview/OverviewHome', async () => ({ default: (await import('./pageStub')).pageStub('overview-home') }));
 
 /** Shows the real URL, and navigates client-side when its input changes. */
@@ -88,14 +89,11 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     ['/overview/messages', 'unified-messages'],
     ['/overview/telemetry', 'unified-telemetry'],
     ['/overview/packets', 'unified-packets'],
-    ['/overview/reports', 'reports'],
-    ['/overview/reports/coverage', 'reports'],
     ['/overview/automations', 'automations'],
     ['/overview/users', 'users'],
     ['/unified/messages', 'unified-messages'],
     ['/unified/telemetry', 'unified-telemetry'],
     ['/unified/packets', 'unified-packets'],
-    ['/reports', 'reports'],
     ['/automations', 'automations'],
     ['/automations/12', 'automations'],
     ['/automations/12/runs', 'automations'],
@@ -187,6 +185,15 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     expect(screen.queryByTestId('page-analysis')).toBeNull();
     expect(realUrl()).toBe(route);
   });
+
+  it.each(['/overview/reports', '/overview/reports/coverage', '/reports', '/reports/mesh-issues'])(
+    '%s shows the Workspace Reports (Task 4.4), not today\'s Reports page',
+    async (route) => {
+      renderAt(route);
+      expect(await screen.findByTestId('page-reports-route')).toHaveAttribute('data-embedded', 'false');
+      expect(realUrl()).toBe(route);
+    },
+  );
 
   it('/overview on a phone is the Overview Home (5-07)', async () => {
     renderAt('/overview', { phone: true });
@@ -324,12 +331,12 @@ describe('sockets (Ruling N)', () => {
     [`${g2}/settings`, 'app'],
     [`${heltec}/nodes`, 'meshcore'],
     [`${rns}/destinations`, 'reticulum'],
-    ['/overview/reports', 'reports'],
+    ['/overview/reports', 'reports-route'],
     ['/', 'overview-map'],
     ['/source/no-such-device/nodes', 'dashboard'],
   ])('%s has exactly one WebSocketProvider', async (route, page) => {
     const { container } = renderAt(route);
-    await (page === 'overview-map' ? screen.findByTestId('page-overview-map') : expectPage(page));
+    await (page === 'overview-map' || page === 'reports-route' ? screen.findByTestId(`page-${page}`) : expectPage(page));
     expect(container.querySelectorAll('[data-ws-provider]')).toHaveLength(1);
   });
 });

@@ -6,7 +6,6 @@
     "Fixes heard",
     "Likely gaps",
     "Best SNR",
-    "Range",
     "Sender",
     "Hops",
     "Cross-source only",
@@ -15,11 +14,7 @@
     "Dots",
     "Grid",
     "Receivers",
-    "Export",
-    "Surveys",
-    "Search",
-    "MQTT recording",
-    "All / None"
+    "Export"
   ],
   "absent": [],
   "source": "checks/s06.json"

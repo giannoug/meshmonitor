@@ -20,48 +20,11 @@
  * WP5) — never re-applied after mount, same rule as the query-stability fix
  * on `timeWindow` below.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../icons';
-import {
-  useCoverageReceivers,
-  useCoverageSenders,
-  useCoverageReceptions,
-} from '../../hooks/useCoverageData';
-import { useCoverageSurveys } from '../../hooks/useCoverageSurveys';
-import {
-  groupReceptionsIntoFixes,
-  formatCoverageNodeId,
-  effectiveSurveyEndAt,
-  COVERAGE_GRID_CELL_SIZES_M,
-  COVERAGE_GRID_DEFAULT_CELL_M,
-  isMeshCorePubKeyId,
-} from '../../utils/coverage';
+import { formatCoverageNodeId, COVERAGE_GRID_CELL_SIZES_M } from '../../utils/coverage';
 import type { CoverageMetric } from '../../utils/coverage';
-import type { CoverageHopsMode, CoverageSurveyDto } from '../../types/coverage';
-import {
-  buildReceiverQuery,
-  deselectedFromReceiverFilter,
-  encodeReceiverFilter,
-  receiverKey,
-} from '../../utils/coverageReceiverFilter';
-import {
-  resolveCoverageWindow,
-  type CoverageRangePreset,
-  type CoverageWindow,
-} from '../../utils/coverageTimeRange';
-import { detectCoverageGaps } from '../../utils/coverageGaps';
-import { summarizeCoverage } from '../../utils/coverageSummary';
-import { summarizeCrossSourceCoverage } from '../../utils/coverageCrossSource';
-import { binFixesToGrid } from '../../utils/coverageGrid';
-import type {
-  CoverageDeepLink,
-  CoverageExportContext,
-  CoverageGridCellSizeM,
-  CoverageMapView,
-  GapFixInput,
-} from '../../types/coverageAnalysis';
-import { useSettings } from '../../contexts/SettingsContext';
+import type { CoverageDeepLink, CoverageGridCellSizeM } from '../../types/coverageAnalysis';
 import { CoverageMap } from './CoverageMap';
 import { CoverageReceiverFilter } from './CoverageReceiverFilter';
 import { CoverageSummaryPanel } from './CoverageSummaryPanel';
@@ -69,45 +32,10 @@ import { CoverageDistanceChart } from './CoverageDistanceChart';
 import { CoverageExportButtons } from './CoverageExportButtons';
 import { CoverageSurveyBar } from './CoverageSurveyBar';
 import { CoverageCrossSourceSummary } from './CoverageCrossSourceSummary';
-import SearchableSelect, { type SearchableSelectOption } from '../common/SearchableSelect';
+import { CoverageSetupGuidance } from './CoverageSetupGuidance';
+import SearchableSelect from '../common/SearchableSelect';
+import { HOPS_OPTIONS, RANGE_PRESETS, useCoverageReport } from './useCoverageReport';
 import styles from './CoverageReport.module.css';
-
-const RANGE_PRESETS: Array<{ id: Exclude<CoverageRangePreset, 'custom'>; key: string; label: string }> = [
-  { id: '1h', key: 'range_1h', label: '1 h' },
-  { id: '6h', key: 'range_6h', label: '6 h' },
-  { id: '24h', key: 'range_24h', label: '24 h' },
-  { id: '3d', key: 'range_3d', label: '3 days' },
-  { id: '7d', key: 'range_7d', label: '7 days' },
-];
-
-// 8 = MeshCore's advert flood limit (`flood_max_advert`, COVERAGE_P3_SPEC.md
-// §0.2) — one hop past Meshtastic's own max of 7, so a MeshCore multi-hop
-// advert always has a value on this list (#5277 P3 WP3, spec §2.6).
-const HOPS_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-
-/** Docs section the setup guidance links to (#5591). The anchor is the
- *  "Why a survey looks sparse" heading in docs/features/coverage-report.md. */
-const COVERAGE_SPARSE_DOCS_URL =
-  'https://meshmonitor.org/features/coverage-report#why-a-survey-looks-sparse';
-
-/** The Meshtastic hop_limit / airtime-cost table (spec §0), shown in the
- *  collapsible setup guidance panel. Multipliers are the spec's own rough
- *  per-fix transmission-count estimates. */
-const AIRTIME_ROWS: Array<{ hopLimit: number; txPerFix: string; perHourPct: string }> = [
-  { hopLimit: 0, txPerFix: '1', perHourPct: '~2%' },
-  { hopLimit: 1, txPerFix: '2-4', perHourPct: '~4-8%' },
-  { hopLimit: 3, txPerFix: '4-8', perHourPct: '~8-16%' },
-];
-
-/** MeshCore per-advert airtime table (COVERAGE_P3_SPEC.md §0.3), shown in a
- *  MeshCore-specific block in the setup guidance panel below the Meshtastic
- *  table. Advert size ranges 111-135 bytes (short name to a full 32-char
- *  name); figures are the spec's own Semtech-formula computations. */
-const MESHCORE_AIRTIME_ROWS: Array<{ preset: string; b111: string; b123: string; b135: string }> = [
-  { preset: 'US/Canada 910.525 MHz, SF7 BW62.5 CR5', b111: '396 ms', b123: '426 ms', b135: '467 ms' },
-  { preset: 'EU/UK narrow, SF8 BW62.5 CR8', b111: '1.07 s', b123: '1.16 s', b135: '1.26 s' },
-  { preset: 'Legacy EU, SF11 BW250 CR5', b111: '1.09 s', b123: '1.17 s', b135: '1.26 s' },
-];
 
 export interface CoverageReportProps {
   /**
@@ -126,396 +54,62 @@ export interface CoverageReportProps {
 
 export const CoverageReport: React.FC<CoverageReportProps> = ({ initialLink }) => {
   const { t } = useTranslation();
-  const { distanceUnit } = useSettings();
-
-  const [preset, setPreset] = useState<CoverageRangePreset>(() => initialLink?.range ?? '24h');
-  const [customFrom, setCustomFrom] = useState('');
-  const [customTo, setCustomTo] = useState('');
-  const [senderId, setSenderId] = useState<string>(() => initialLink?.sender ?? '');
-  const [deselectedReceiverIds, setDeselectedReceiverIds] = useState<Set<string>>(new Set());
-  const [hops, setHops] = useState<number | ''>('');
-  const [hopsMode, setHopsMode] = useState<CoverageHopsMode>('exact');
-  // #5560: only fixes sent by another of our sources.
-  const [crossSourceOnly, setCrossSourceOnly] = useState(false);
-  const [metric, setMetric] = useState<CoverageMetric>('snr');
-  const [guidanceOpen, setGuidanceOpen] = useState(false);
-  const [view, setView] = useState<CoverageMapView>('dots');
-  const [cellSize, setCellSize] = useState<CoverageGridCellSizeM>(COVERAGE_GRID_DEFAULT_CELL_M);
-
-  // Saved surveys (#5277 P4b WP3, spec §2b.7). `selectedSurvey` holds the
-  // FULL DTO, not just an id looked up from `surveysQuery` below, on
-  // purpose: `applySurvey` (and the bar's Start/Save/Stop/Edit onSuccess
-  // callbacks, which also call back through `onSelectSurvey`) always hand
-  // this the freshest row directly, and `surveysQuery`'s own cache can lag
-  // one refetch behind a just-created/just-mutated row (its invalidation is
-  // async). Deriving `selectedSurvey` by re-looking the id up in
-  // `surveysQuery.data` would momentarily lose `intervalSec`/`isLive`/etc.
-  // right after Start or Save, before that refetch lands. A manual sender or
-  // window change clears it (see the wrapped setters further down), matching
-  // "picking a survey applies it; changing anything by hand detaches it"
-  // (spec §2b.7).
-  //
-  // Starts `null`, even with a `survey=` deep link — NOT the deep-linked id
-  // itself. The survey list has to load first to know whether that id is
-  // real; the effect below is what sets this once it's confirmed to exist,
-  // same "seed once, from confirmed data" rule as the sender synthetic-
-  // option handling above, just one tick later than a lazy `useState` can
-  // reach (the list is a network fetch, not a prop already in hand).
-  const [selectedSurvey, setSelectedSurvey] = useState<CoverageSurveyDto | null>(null);
-  const selectedSurveyId = selectedSurvey?.id ?? null;
-  const appliedInitialSurveyRef = useRef(false);
-
-  // Resolved ONCE per discrete user action (mount / preset click / custom
-  // "Apply" / Refresh) via `resolveCoverageWindow`, and cached in state —
-  // NEVER recomputed from `Date.now()` during a plain render. See
-  // `coverageTimeRange.ts`'s doc comment: an earlier version computed
-  // sinceMs/untilMs inline on every render, which fed a numerically
-  // different value into the TanStack Query key on every render and caused
-  // an endless refetch loop (#5277 browser-validation regression) that kept
-  // Refresh permanently disabled and the map never rendering. The lazy
-  // `useState` initializer runs exactly once, at mount.
-  const [timeWindow, setTimeWindow] = useState<CoverageWindow>(() =>
-    resolveCoverageWindow(initialLink?.range ?? '24h', Date.now()),
-  );
-  const { sinceMs, untilMs, rangeInvalid } = timeWindow;
-
-  // A manual range or sender change is "changing the window/sender by hand"
-  // (spec §2b.7) — it detaches whatever survey is currently applied. This
-  // does NOT run when `applySurvey` itself sets these (it sets
-  // `selectedSurveyId` directly, never through these wrapped setters).
-  const selectPreset = (id: Exclude<CoverageRangePreset, 'custom'>) => {
-    setPreset(id);
-    setTimeWindow(resolveCoverageWindow(id, Date.now()));
-    setSelectedSurvey(null);
-  };
-
-  /** Switches the UI to the custom from/to inputs WITHOUT resolving a new
-   *  window — the window only changes once the user presses Apply, so
-   *  merely opening the custom picker can't itself trigger a fetch (and
-   *  doesn't detach a selected survey either). */
-  const selectCustomPreset = () => {
-    setPreset('custom');
-  };
-
-  const applyCustomRange = () => {
-    setTimeWindow(resolveCoverageWindow('custom', Date.now(), customFrom, customTo));
-    setSelectedSurvey(null);
-  };
-
-  const handleSenderChange = useCallback((id: string) => {
-    setSenderId(id);
-    setSelectedSurvey(null);
-  }, []);
-
-  const receiversQuery = useCoverageReceivers([]);
-  const sendersQuery = useCoverageSenders({ sources: [], sinceMs, untilMs });
-
-  // senderId -> best display name, for CoverageMap's fix popup header.
-  // Receptions/receivers carry no name; `/senders` is the only endpoint
-  // that does.
-  const senderNames = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const s of sendersQuery.data?.senders ?? []) {
-      const name = s.longName || s.shortName;
-      if (name) map.set(s.senderId, name);
-    }
-    return map;
-  }, [sendersQuery.data]);
-
-  // Options for the sender SearchableSelect (spec §2a.7). A deep-linked (or
-  // otherwise already-selected) sender absent from `/senders` — no fixes in
-  // the current window — still gets a synthetic option with its formatted
-  // id so the current value never silently vanishes from the picker.
-  const senderOptions = useMemo<SearchableSelectOption[]>(() => {
-    const senders = sendersQuery.data?.senders ?? [];
-    const options: SearchableSelectOption[] = senders.map((s) => {
-      const displaySenderId = formatCoverageNodeId(s.senderId);
-      const label = s.longName || s.shortName || displaySenderId;
-      // #5560: mark senders that are one of our own sources' radios.
-      const own = s.senderIsOwnSource
-        ? ` · ${t('analysis.coverage.sender_own_source', 'our source {{source}}', {
-            source: s.ownSourceName ?? s.ownSourceId ?? '',
-          })}`
-        : '';
-      return {
-        value: s.senderId,
-        label: `${label} (${displaySenderId}) — ${s.fixCount}${own}`,
-        keywords: [s.longName, s.shortName, s.senderId, s.ownSourceName].filter(Boolean).join(' '),
-      };
-    });
-    if (senderId && !senders.some((s) => s.senderId === senderId)) {
-      options.push({
-        value: senderId,
-        label: formatCoverageNodeId(senderId),
-        keywords: senderId,
-      });
-    }
-    return options;
-  }, [sendersQuery.data, senderId, t]);
-
-  // The cross-source toggle only shows when it can match something (or is
-  // already on), so single-source installs never see it.
-  const hasOwnSourceSenders = useMemo(
-    () => (sendersQuery.data?.senders ?? []).some((s) => s.senderIsOwnSource),
-    [sendersQuery.data],
-  );
-
-  // The filter only applies while its toggle is on screen. If the window or
-  // data changes so no sender is one of our sources, the toggle hides and the
-  // filter stops applying, so a hidden control can never leave an empty page.
-  const effectiveCrossSourceOnly = crossSourceOnly && hasOwnSourceSenders;
-
-  const receivers = useMemo(() => receiversQuery.data?.receivers ?? [], [receiversQuery.data]);
-  const mqttSources = useMemo(() => receiversQuery.data?.mqttSources ?? [], [receiversQuery.data]);
-
-  // receiverKey(sourceId, receiverId) -> best display name / sourceId ->
-  // sourceName, for the summary table, distance chart and CSV/GeoJSON export
-  // (spec §2a.4/§2a.6). Same composite-key convention as
-  // `CoverageReceiverFilter`/`CoverageMap`.
-  const receiverNames = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const r of receivers) {
-      const name = r.longName || r.shortName;
-      if (name) map.set(receiverKey(r.sourceId, r.receiverId), name);
-    }
-    return map;
-  }, [receivers]);
-  const sourceNames = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const r of receivers) {
-      if (r.sourceName) map.set(r.sourceId, r.sourceName);
-    }
-    // #5560: a sender's own source may not be a receiver in this window.
-    for (const s of sendersQuery.data?.senders ?? []) {
-      if (s.ownSourceId && s.ownSourceName && !map.has(s.ownSourceId)) map.set(s.ownSourceId, s.ownSourceName);
-    }
-    return map;
-  }, [receivers, sendersQuery.data]);
-
-  // Source-scoped receiver filter (#5277 P2 §2.5/§2.9), built from the
-  // composite-keyed `deselectedReceiverIds` set — carry-over (a): the same
-  // receiverId on two different sources toggles independently.
-  const receiverQuery = useMemo(
-    () =>
-      buildReceiverQuery(
-        receivers.map((r) => ({ sourceId: r.sourceId, receiverId: r.receiverId })),
-        deselectedReceiverIds,
-      ),
-    [receivers, deselectedReceiverIds],
-  );
-  const selectedReceiverKeys = useMemo(() => {
-    const set = new Set<string>();
-    for (const r of receivers) {
-      const key = receiverKey(r.sourceId, r.receiverId);
-      if (!deselectedReceiverIds.has(key)) set.add(key);
-    }
-    return set;
-  }, [receivers, deselectedReceiverIds]);
-  const allReceiversSelected = receivers.length > 0 && selectedReceiverKeys.size === receivers.length;
-  const noReceiversSelected = receivers.length > 0 && receiverQuery.noneSelected;
-
-  // Encoded wire form of the CURRENT receiver selection — what "Save as
-  // survey" stores on the new row (spec §2b.7: "sender + current window +
-  // current receiver filter"). `null` = every receiver, same convention as
-  // `CoverageSurveyDto.receivers`. When the picker fell back to
-  // `clientSideFilter` (well past the 1000-id / 6000-char cap, spec §2.5),
-  // there is no encodable filter to save — the survey is saved with every
-  // receiver instead of failing outright; it is a view preference, not a
-  // privacy boundary (spec §2b.1).
-  const currentReceiversEncoded = useMemo(
-    () =>
-      receiverQuery.clientSideFilter || !receiverQuery.receiverFilter
-        ? null
-        : encodeReceiverFilter(receiverQuery.receiverFilter),
-    [receiverQuery],
-  );
-
-  // Saved surveys (#5277 P4b WP3, spec §2b.7). `surveysQuery` itself is only
-  // read here for the deep-link lookup below (and to hand `.refetch` to
-  // Refresh) — everyday selection reads/writes go through `selectedSurvey`
-  // state above, not this query's cache (see that state's doc comment).
-  const surveysQuery = useCoverageSurveys();
-
-  /** Applies a picked/started/saved/stopped survey to the report's own
-   *  sender/window/receiver state — the one place all four ever change
-   *  together. Sets `selectedSurvey` directly (never through the wrapped
-   *  `handleSenderChange`/`selectPreset`/`applyCustomRange` setters above,
-   *  which would immediately clear it again). */
-  const applySurvey = useCallback(
-    (survey: CoverageSurveyDto) => {
-      setSelectedSurvey(survey);
-      setSenderId(survey.senderId);
-      setTimeWindow({
-        sinceMs: survey.startAt,
-        untilMs: effectiveSurveyEndAt(survey, Date.now()),
-        rangeInvalid: false,
-      });
-      setDeselectedReceiverIds(
-        deselectedFromReceiverFilter(
-          survey.receivers,
-          receivers.map((r) => ({ sourceId: r.sourceId, receiverId: r.receiverId })),
-        ),
-      );
-    },
-    [receivers],
-  );
-
-  const handleSelectSurvey = useCallback(
-    (survey: CoverageSurveyDto | null) => {
-      if (!survey) {
-        setSelectedSurvey(null);
-        return;
-      }
-      applySurvey(survey);
-    },
-    [applySurvey],
-  );
-
-  // Deep link `survey=<uuid>` (spec §2a.5/§2b.7): applied once, as soon as
-  // the survey list has loaded and contains it. Runs at most once per mount
-  // (the ref guard) — a survey that no longer exists, or hasn't loaded yet
-  // on the first pass, is simply left unapplied rather than retried forever.
-  useEffect(() => {
-    if (appliedInitialSurveyRef.current) return;
-    if (!initialLink?.survey) return;
-    if (!surveysQuery.data) return; // still loading
-    appliedInitialSurveyRef.current = true;
-    const found = surveysQuery.data.find((s) => s.id === initialLink.survey);
-    if (found) applySurvey(found);
-  }, [initialLink?.survey, surveysQuery.data, applySurvey]);
-
-  const receptionsEnabled = !rangeInvalid && !noReceiversSelected;
-  const receptionsQuery = useCoverageReceptions(
-    {
-      sources: receiverQuery.sources ?? [],
-      sinceMs,
-      untilMs,
-      receiverFilter: receiverQuery.receiverFilter,
-      clientSideFilter: receiverQuery.clientSideFilter ? selectedReceiverKeys : undefined,
-      senderId: senderId || undefined,
-      hops: hops === '' ? undefined : hops,
-      hopsMode,
-      crossSourceOnly: effectiveCrossSourceOnly,
-    },
+  const {
+    distanceUnit,
+    preset,
+    selectPreset,
+    selectCustomPreset,
+    customFrom,
+    setCustomFrom,
+    customTo,
+    setCustomTo,
+    applyCustomRange,
+    senderId,
+    handleSenderChange,
+    senderOptions,
+    senderNames,
+    hops,
+    setHops,
+    hopsMode,
+    setHopsMode,
+    hasOwnSourceSenders,
+    crossSourceOnly,
+    setCrossSourceOnly,
+    metric,
+    setMetric,
+    view,
+    setView,
+    cellSize,
+    setCellSize,
+    handleRefresh,
+    isLoading,
+    isEmpty,
+    items,
+    fixes,
+    gapResult,
+    exportCtx,
+    sinceMs,
+    untilMs,
+    rangeInvalid,
+    currentReceiversEncoded,
+    selectedSurveyId,
+    handleSelectSurvey,
+    receivers,
+    deselectedReceiverIds,
+    setDeselectedReceiverIds,
+    mqttSources,
+    hasMqttReceivers,
+    retentionDays,
+    noReceiversSelected,
+    receptionsQuery,
     receptionsEnabled,
-  );
-
-  const items = useMemo(() => receptionsQuery.data?.items ?? [], [receptionsQuery.data]);
-  const fixes = useMemo(() => groupReceptionsIntoFixes(items, metric), [items, metric]);
-
-  // P4a pure analysis (spec §2a.7) — all derived from `items`/`fixes`
-  // that are already privacy-filtered and already-loaded; no new fetch.
-  const singleSender = senderId !== '';
-  const fixesAsGapInputs = useMemo<GapFixInput[]>(
-    () =>
-      fixes.map((f) => ({
-        packetKey: f.packetKey,
-        firstReceivedAt: f.firstReceivedAt,
-        latitude: f.latitude,
-        longitude: f.longitude,
-      })),
-    [fixes],
-  );
-  // Gaps only run for a single sender, so its protocol follows from its id
-  // (MeshCore senders are 64-hex public keys), never a source type (spec
-  // §2a.2). The gap rule's default interval (30 s vs 60 s) depends on it.
-  const protocol = isMeshCorePubKeyId(senderId) ? 'meshcore' : 'meshtastic';
-  // A selected survey's configured interval overrides the observed/default
-  // estimate (spec §2b.7/§2a.2's `configured` source).
-  const configuredIntervalSec = selectedSurvey?.intervalSec ?? undefined;
-  const gapResult = useMemo(
-    () => (singleSender ? detectCoverageGaps(fixesAsGapInputs, { protocol, configuredIntervalSec }) : null),
-    [singleSender, fixesAsGapInputs, protocol, configuredIntervalSec],
-  );
-  const summary = useMemo(() => summarizeCoverage(items), [items]);
-  const crossSourceRows = useMemo(() => summarizeCrossSourceCoverage(items), [items]);
-  const gridCells = useMemo(
-    () => (view === 'grid' ? binFixesToGrid(fixes, cellSize, metric) : []),
-    [view, fixes, cellSize, metric],
-  );
-  // Tied to when `items` actually changed (a real fetch), not every render —
-  // an export timestamp has no query-key implications, but there is no
-  // reason to churn it on every keystroke either. `items` isn't read inside
-  // the factory; it's the recompute trigger, which exhaustive-deps can't see.
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- #5277 P4a WP4: intentional recompute-on-items-change, Date.now() itself has no deps
-  const generatedAt = useMemo(() => Date.now(), [items]);
-  const exportCtx = useMemo<CoverageExportContext>(
-    () => ({
-      senderNames,
-      receiverNames,
-      sourceNames,
-      truncated: receptionsQuery.data?.truncated ?? false,
-      generatedAt,
-      filters: {
-        senderId: senderId || null,
-        hops: hops === '' ? null : hops,
-        hopsMode,
-        metric,
-      },
-    }),
-    [
-      senderNames,
-      receiverNames,
-      sourceNames,
-      receptionsQuery.data?.truncated,
-      generatedAt,
-      senderId,
-      hops,
-      hopsMode,
-      metric,
-    ],
-  );
-
-  // Identifies the current filter set for CoverageMap's fit-once-per-filter
-  // behaviour. Deliberately excludes sinceMs/untilMs (the resolved window) —
-  // those shift on every Refresh even when the filters themselves didn't
-  // change (a preset re-anchors to "now"), and Refresh must never yank the
-  // map out from under a user who has since panned/zoomed. `preset` plus the
-  // custom from/to inputs capture "which range the user picked" without the
-  // refresh-anchor noise.
-  const fitKey = useMemo(() => {
-    const receiversPart = allReceiversSelected ? 'all' : [...selectedReceiverKeys].sort().join(',');
-    const rangePart = preset === 'custom' ? `custom:${customFrom}:${customTo}` : preset;
-    return `${senderId}|${receiversPart}|${hops}|${hopsMode}|${rangePart}|${effectiveCrossSourceOnly ? 'x' : ''}`;
-  }, [senderId, selectedReceiverKeys, allReceiversSelected, hops, hopsMode, preset, customFrom, customTo, effectiveCrossSourceOnly]);
-
-  const isLoading = receiversQuery.isLoading || sendersQuery.isLoading || receptionsQuery.isLoading;
-  const isEmpty = receptionsEnabled && !isLoading && items.length === 0;
-  const retentionDays = receiversQuery.data?.retentionDays;
-  const hasMqttReceivers = useMemo(
-    () => receivers.some((r) => r.receiverKind === 'mqtt_gateway') || mqttSources.length > 0,
-    [receivers, mqttSources],
-  );
-
-  const handleRefresh = () => {
-    // Re-anchors the window to "now" (a preset window slides forward; a
-    // custom range is re-validated against its current from/to inputs).
-    // That alone changes sinceMs/untilMs, which changes the senders' and
-    // receptions' query keys, which TanStack Query fetches automatically —
-    // do NOT also call .refetch() on those two here: combined with the key
-    // change, an explicit refetch double-fires them (one fetch for the old
-    // key via .refetch(), one for the new key from the key change), which
-    // is exactly the bug this file's regression test guards against.
-    // `receiversQuery`'s key never depends on the time window, so it needs
-    // its own explicit refetch to actually do anything on Refresh — same
-    // reasoning applies to `surveysQuery` (#5277 P4b WP3).
-    //
-    // A selected LIVE survey re-anchors to its own effective end (spec
-    // §2b.7: "live -> now at resolve time; Refresh re-anchors") instead of
-    // the preset — its `startAt` never moves, only how far `effectiveEndAt`
-    // has crept since it was last resolved.
-    if (selectedSurvey) {
-      setTimeWindow({
-        sinceMs: selectedSurvey.startAt,
-        untilMs: effectiveSurveyEndAt(selectedSurvey, Date.now()),
-        rangeInvalid: false,
-      });
-    } else {
-      setTimeWindow(resolveCoverageWindow(preset, Date.now(), customFrom, customTo));
-    }
-    void receiversQuery.refetch();
-    void surveysQuery.refetch();
-  };
+    fitKey,
+    gridCells,
+    summary,
+    crossSourceRows,
+    sourceNames,
+    receiverNames,
+  } = useCoverageReport(initialLink);
 
   return (
     <>
@@ -811,139 +405,7 @@ export const CoverageReport: React.FC<CoverageReportProps> = ({ initialLink }) =
         </>
       )}
 
-      <div className="reports-panel">
-        <button
-          type="button"
-          className="reports-btn reports-btn--ghost"
-          onClick={() => setGuidanceOpen((o) => !o)}
-          aria-expanded={guidanceOpen}
-        >
-          <UiIcon name={guidanceOpen ? 'chevronUp' : 'chevronDown'} size={14} />
-          {t('analysis.coverage.guidance_toggle', 'Setup guidance')}
-        </button>
-        {guidanceOpen && (
-          <div className={styles.guidance}>
-            <p>
-              {t(
-                'analysis.coverage.guidance_recommend',
-                'Recommended survey-node settings: hop_limit 0, smart position enabled (it honours hop_limit 0), and a smart position minimum interval of 30 seconds or more. 30 seconds needs a private channel: on a default channel the firmware raises it to 5 minutes.',
-              )}
-            </p>
-            {/* #5591: one hint, one docs link. No control here changes a
-               node — this report sends nothing. */}
-            <p data-testid="coverage-sparse-hint">
-              {t(
-                'analysis.coverage.guidance_sparse_hint',
-                'Fewer dots than you expected? Firmware holds back and drops position packets.',
-              )}{' '}
-              <a
-                className={styles.guidanceLink}
-                href={COVERAGE_SPARSE_DOCS_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t('analysis.coverage.guidance_sparse_link', 'Why a survey looks sparse')}
-              </a>
-            </p>
-            <p>
-              {t(
-                'analysis.coverage.guidance_firmware_caveat',
-                'Receiver firmware caveat: a receiving node only keeps a zero-hop (hop_limit 0) packet on firmware 2.7.20 or later — older firmware drops packets with hop_start == 0 before decrypting them. If any receiver in your mesh runs older firmware, use hop_limit 1 instead. Direct copies still show as 0 hops, but each neighbour rebroadcasts once, which costs more airtime.',
-              )}
-            </p>
-            <table className={styles.airtimeTable}>
-              <thead>
-                <tr>
-                  <th>{t('analysis.coverage.guidance_col_hop_limit', 'hop_limit')}</th>
-                  <th>{t('analysis.coverage.guidance_col_tx_per_fix', 'Tx per fix')}</th>
-                  <th>{t('analysis.coverage.guidance_col_pct_per_hour', '% of channel/hour (30s interval)')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {AIRTIME_ROWS.map((row) => (
-                  <tr key={row.hopLimit}>
-                    <td>{row.hopLimit}</td>
-                    <td>{row.txPerFix}</td>
-                    <td>{row.perHourPct}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* MeshCore block (#5277 P3 WP3, spec §2.6 / user decision U2):
-               a survey advert is a manual, one-shot broadcast, not a timed
-               background send like Meshtastic's position packets — so the
-               guidance here is about HOW to send one safely, not a setting
-               to change on the node. */}
-            <h4 className={styles.guidanceSubheading}>
-              {t('analysis.coverage.meshcore_guidance_title', 'MeshCore')}
-            </h4>
-            <p>
-              {t(
-                'analysis.coverage.meshcore_guidance_zero_hop',
-                'Send zero-hop adverts only, one every 60 seconds or slower. Never flood adverts for a survey: every repeater within 8 hops repeats each flood advert.',
-              )}
-            </p>
-            <p>
-              {t(
-                'analysis.coverage.meshcore_guidance_how_to_send',
-                'To send a zero-hop advert: in the companion app, use its advert action and pick the zero-hop option, not flood. On a repeater used as a survey node, use the CLI command advert.zerohop, not advert (which floods).',
-              )}
-            </p>
-            <p>
-              {t(
-                'analysis.coverage.meshcore_guidance_button_floods',
-                "MeshMonitor's own Send advert button floods. Don't use it for surveys.",
-              )}
-            </p>
-            <p>
-              {t(
-                'analysis.coverage.meshcore_guidance_stored_position',
-                "An advert carries the node's stored advert position, not a live GPS fix. Update the node's location before each advert.",
-              )}
-            </p>
-            <table className={styles.airtimeTable}>
-              <thead>
-                <tr>
-                  <th>{t('analysis.coverage.meshcore_guidance_col_preset', 'Preset')}</th>
-                  <th>{t('analysis.coverage.meshcore_guidance_col_111', '111 B')}</th>
-                  <th>{t('analysis.coverage.meshcore_guidance_col_123', '123 B')}</th>
-                  <th>{t('analysis.coverage.meshcore_guidance_col_135', '135 B')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {MESHCORE_AIRTIME_ROWS.map((row) => (
-                  <tr key={row.preset}>
-                    <td>{row.preset}</td>
-                    <td>{row.b111}</td>
-                    <td>{row.b123}</td>
-                    <td>{row.b135}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p>
-              {t(
-                'analysis.coverage.meshcore_guidance_survey_pct',
-                'A survey sending one zero-hop advert every 60 seconds uses about 0.7% of the local channel on the US preset, up to 1.9% on EU narrow.',
-              )}
-            </p>
-            <p className={styles.guidanceFooter}>
-              {t(
-                'analysis.coverage.meshcore_guidance_repeaters_auto',
-                "Repeaters' own adverts are recorded automatically. MeshMonitor never sends adverts for you.",
-              )}
-            </p>
-
-            <p className={styles.guidanceFooter}>
-              {t(
-                'analysis.coverage.guidance_no_send',
-                'MeshMonitor sends nothing for this report and never changes the survey node — it only records position packets the node already received.',
-              )}
-            </p>
-          </div>
-        )}
-      </div>
+      <CoverageSetupGuidance />
     </>
   );
 };

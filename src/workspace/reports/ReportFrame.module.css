@@ -1,0 +1,87 @@
+/* The Reports frame (boards 6-01 … 6-15): the way back, the title block and the page's actions. */
+.page {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 24px 32px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.page[data-phone] {
+  padding: 0 12px calc(var(--app-nav-bar-height) + env(safe-area-inset-bottom, 0px) + 24px);
+  gap: 12px;
+}
+
+/* Phone: the page's own header, in place of the device header (6-08 … 6-10). */
+.phoneHead {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  margin: 0 -12px;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--color-surface);
+  background: var(--color-bg-sunken);
+}
+
+.back {
+  align-self: flex-start;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 0 0;
+  border-radius: 8px;
+  color: var(--color-accent);
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.page[data-phone] .back {
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: 17px;
+}
+
+.back:focus-visible {
+  outline: 2px solid var(--color-accent);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.headText {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.page[data-phone] .title {
+  font-size: 24px;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}

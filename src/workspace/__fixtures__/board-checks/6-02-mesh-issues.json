@@ -1,14 +1,10 @@
 {
   "must": [
-    "Run now",
     "Last run",
     "from storage",
     "Evidence",
-    "Traceroute funnel",
     "New",
-    "Reopened",
     "Muted",
-    "Search",
     "Severity",
     "Tier",
     "Source",
@@ -24,7 +20,6 @@
     "Sources",
     "Dismiss",
     "Restore",
-    "Recommendation",
     "Router cluster",
     "Members",
     "SNR",

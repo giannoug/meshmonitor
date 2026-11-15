@@ -1,0 +1,232 @@
+/* Overview › Reports (boards 6-01, 6-08): a table on desktop, rows of at least 52 px on the phone. */
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--color-surface);
+  border-radius: 14px;
+  background: var(--color-bg-raised);
+  font-size: 15px;
+}
+
+.table th {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+  border-bottom: 1px solid var(--color-surface);
+}
+
+.table td {
+  padding: 12px 16px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-surface);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.report {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 260px;
+  max-width: 420px;
+}
+
+.icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-accent);
+}
+
+.itemText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+a.name:hover {
+  text-decoration: underline;
+}
+
+.description,
+.result,
+.note {
+  font-size: 14px;
+  color: var(--color-text-subtle);
+  overflow-wrap: anywhere;
+}
+
+.lastRun {
+  display: block;
+  white-space: nowrap;
+}
+
+.note {
+  display: block;
+}
+
+.resultCell {
+  min-width: 160px;
+  max-width: 240px;
+  overflow-wrap: break-word;
+}
+
+.chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.chip[data-tone='warn'] {
+  background: var(--color-warning);
+  color: var(--color-bg);
+}
+
+.chip[data-tone='ok'] {
+  background: var(--color-success);
+  color: var(--color-bg);
+}
+
+.actionCell {
+  text-align: right;
+}
+
+.run,
+.open {
+  box-sizing: border-box;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.run {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.run:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.run:focus-visible,
+.open:focus-visible,
+.name:focus-visible,
+.itemLink:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Phone (6-08). */
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-surface);
+  border-radius: 14px;
+  background: var(--color-bg-raised);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 12px;
+  border-bottom: 1px solid var(--color-surface);
+}
+
+.item:last-child {
+  border-bottom: 0;
+}
+
+.itemLink {
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0 14px 14px;
+  color: var(--color-text-subtle);
+  text-decoration: none;
+}
+
+.item .run {
+  min-height: 44px;
+  white-space: normal;
+  max-width: 132px;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.error {
+  margin: 0;
+  color: var(--color-error);
+}
+
+.footnote {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.footnote > svg {
+  flex: none;
+  margin-top: 3px;
+}

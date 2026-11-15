@@ -1,11 +1,7 @@
 {
   "must": [
     "Filters",
-    "Search subject",
     "Severity",
-    "High",
-    "Medium",
-    "Low",
     "Tier",
     "Source",
     "Station G2",

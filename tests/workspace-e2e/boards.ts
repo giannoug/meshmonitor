@@ -695,6 +695,57 @@ export const BOARDS: Board[] = [
       await page.getByText('GNSS DOP overlay').waitFor();
     },
   },
+  // Task 4.4: Overview › Reports — the list, Mesh Issues (today's parts, sections preset open), Coverage.
+  { id: '6-01-reports-list', size: 'desktop', path: '/overview/reports' },
+  { id: '6-08-reports-list', size: 'phone', path: '/overview/reports' },
+  {
+    id: '6-02-mesh-issues',
+    size: 'desktop',
+    path: '/overview/reports/mesh-issues',
+    setup: async (page) => {
+      await presetMeshIssues(page, ['B1_router_cluster', 'B3_asymmetric_link', 'C2_over_broadcasting'], { includeDismissed: true });
+      await showClusterDetails(page);
+    },
+  },
+  {
+    id: '6-09-mesh-issues',
+    size: 'phone',
+    path: '/overview/reports/mesh-issues',
+    setup: async (page) => {
+      await presetMeshIssues(page, ['B1_router_cluster'], {});
+      await showClusterDetails(page);
+    },
+  },
+  {
+    id: '6-15-mesh-issues-filters',
+    size: 'phone',
+    path: '/overview/reports/mesh-issues',
+    setup: async (page) => {
+      await presetMeshIssues(page, [], { includeDismissed: true, tiers: ['B'] });
+      await page.getByRole('button', { name: 'Filters · 2' }).click();
+      await page.getByRole('dialog', { name: 'Filters' }).getByText('Station G2').waitFor();
+    },
+  },
+  {
+    // The linked live survey (Kifisia walk) applied, the receivers list open as the board draws it.
+    id: '6-03-coverage',
+    size: 'desktop',
+    path: '/overview/reports/coverage?report=coverage&sender=!a1b2c302&survey=6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Stop survey' }).waitFor();
+      await page.getByText('Distance vs SNR (direct receptions)').waitFor();
+      await page.getByRole('button', { name: 'All receivers' }).click();
+      await page.getByRole('textbox', { name: 'Search receivers' }).waitFor();
+    },
+  },
+  {
+    id: '6-10-coverage',
+    size: 'phone',
+    path: '/overview/reports/coverage?report=coverage&sender=!a1b2c302',
+    setup: async (page) => {
+      await page.getByText('Distance vs SNR (direct receptions)').waitFor();
+    },
+  },
 ];
 
 const ON_24H = { enabled: true, lookbackHours: 24 };
@@ -713,6 +764,27 @@ async function presetAnalysis(page: Page, layers: Record<string, { enabled: bool
   await page.reload();
   await page.waitForLoadState('networkidle');
   await page.locator('.leaflet-marker-icon', { hasText: 'KFR' }).waitFor();
+}
+
+/** Today's Mesh Issues view state (localStorage `meshIssues.viewState.v1`): these sections open and these filters, then the page reloads. */
+async function presetMeshIssues(page: Page, expandedTypes: string[], filters: object): Promise<void> {
+  await page.evaluate(([types, f]) => {
+    localStorage.setItem('meshIssues.viewState.v1', JSON.stringify({
+      version: 1, view: 'byIssue', sortByType: {}, expandedNodes: [], expandedTypes: types,
+      filters: { severities: [], tiers: [], issueTypes: [], sources: [], q: '', includeClosed: false, includeDismissed: false, ...f },
+    }));
+  }, [expandedTypes, filters] as const);
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+}
+
+/** Opens the router cluster's finding (recommendation, map, members), as 6-02 and 6-09 draw it. */
+async function showClusterDetails(page: Page): Promise<void> {
+  const section = page.locator('section', { has: page.getByRole('button', { name: /^B1 Router cluster/, expanded: true }) });
+  await section.getByRole('button', { name: 'Show details' }).click();
+  await section.getByRole('button', { name: 'Show map' }).click();
+  await section.locator('.leaflet-container').waitFor();
+  await page.evaluate(() => window.scrollTo(0, 0));
 }
 
 /** Opens the Overview map's Tools menu, and picks `item` if given. */

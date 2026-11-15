@@ -25,6 +25,8 @@ interface OverviewSidebarProps {
 export default function OverviewSidebar({ sources, onNavigate }: OverviewSidebarProps) {
   const { t } = useTranslation();
   const path = useLocation().pathname.replace(/(.)\/$/, '$1');
+  // `/reports/…` is the same page as `/overview/reports/…` (Task 4.4).
+  const toolPath = path.replace(/^\/reports(?=\/|$)/, '/overview/reports');
   const { devices, install } = useOverviewTools();
   const title = t('workspace.shell.overview');
   const rowClass = (on: boolean) => `${frame.row} ${on ? frame.on : ''}`;
@@ -32,7 +34,7 @@ export default function OverviewSidebar({ sources, onNavigate }: OverviewSidebar
   const toolList = (label: string, tools: OverviewTool[]) => (
     <ul className={frame.list} aria-label={label}>
       {tools.map((tool) => {
-        const on = tool.key === 'map' ? MAP_PATHS.includes(path) : path === tool.to || path.startsWith(`${tool.to}/`);
+        const on = tool.key === 'map' ? MAP_PATHS.includes(path) : toolPath === tool.to || toolPath.startsWith(`${tool.to}/`);
         return (
           <li key={tool.key}>
             <Link to={tool.to} className={rowClass(on)} aria-current={on ? 'page' : undefined} onClick={onNavigate}>

@@ -28,7 +28,6 @@ import {
   AutomationsRehost,
   GlobalSettingsRehost,
   OverviewRehost,
-  ReportsRehost,
   UnifiedMessagesRehost,
   UnifiedPacketsRehost,
   UnifiedTelemetryRehost,
@@ -37,6 +36,7 @@ import {
 
 const OverviewMap = lazy(() => import('./overview/OverviewMap.tsx'));
 const OverviewHome = lazy(() => import('./overview/OverviewHome.tsx'));
+const ReportsRoute = lazy(() => import('./reports/ReportsRoute.tsx'));
 
 /**
  * `/`, `/overview`, `/overview/map`, `/analysis` and `/overview/analysis`: the
@@ -82,7 +82,8 @@ function WorkspaceRoutes() {
           <Route path="overview/packets" element={<UnifiedPacketsRehost />} />
           {/* Map Analysis is merged into the all-devices map (Task 4.2, s5n1): the same element, the Analysis group open. */}
           <Route path="overview/analysis" element={<OverviewIndex />} />
-          <Route path="overview/reports/*" element={<ReportsRehost />} />
+          {/* Reports (Task 4.4): the list, Mesh Issues, Coverage; the other reports re-hosted until 4.5. */}
+          <Route path="overview/reports/:report?" element={<ReportsRoute />} />
           <Route path="overview/automations" element={<AutomationsRehost />} />
           <Route path="overview/users" element={<UsersRehost />} />
 
@@ -90,7 +91,7 @@ function WorkspaceRoutes() {
           <Route path="unified/telemetry" element={<UnifiedTelemetryRehost />} />
           <Route path="unified/packets" element={<UnifiedPacketsRehost />} />
           <Route path="analysis" element={<OverviewIndex />} />
-          <Route path="reports" element={<ReportsRehost />} />
+          <Route path="reports/:report?" element={<ReportsRoute />} />
           <Route path="automations/*" element={<AutomationsRehost />} />
           <Route path="users" element={<UsersRehost />} />
 

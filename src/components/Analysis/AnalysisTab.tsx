@@ -25,19 +25,13 @@ import MeshIssuesReport from './MeshIssuesReport';
 import CoverageReport from './CoverageReport';
 import TracerouteExplorerReport from './tracerouteExplorer/TracerouteExplorerReport';
 import { parseCoverageDeepLink } from '../../utils/coverageDeepLink';
+import { ANALYSIS_REPORTS, type AnalysisReportId } from './analysisReports';
 import { UiIcon, type UiIconName } from '../icons';
 
-type AnalysisType =
-  | 'solar-monitoring'
-  | 'nodeinfo-enrichment'
-  | 'mqtt-oktomqtt-violations'
-  | 'mesh-issues'
-  | 'coverage'
-  | 'traceroute-explorer'
-  | null;
+type AnalysisType = AnalysisReportId | null;
 
 interface AnalysisCard {
-  id: Exclude<AnalysisType, null>;
+  id: AnalysisReportId;
   title: string;
   description: string;
   icon: UiIconName;
@@ -53,62 +47,12 @@ const AnalysisTab: React.FC = () => {
   const coverageLink = useMemo(() => parseCoverageDeepLink(searchParams), [searchParams]);
   const [selected, setSelected] = useState<AnalysisType>(() => (coverageLink ? 'coverage' : null));
 
-  const reports: AnalysisCard[] = [
-    {
-      id: 'solar-monitoring',
-      title: t('analysis.solar_monitoring.title', 'Solar Monitoring Analysis'),
-      description: t(
-        'analysis.solar_monitoring.description',
-        'Identify solar-powered nodes by analyzing battery and voltage patterns that show daytime charging and nighttime discharge.',
-      ),
-      icon: 'sun',
-    },
-    {
-      id: 'nodeinfo-enrichment',
-      title: t('analysis.enrichment.title', 'NodeInfo Enrichment'),
-      description: t(
-        'analysis.enrichment.description',
-        'Fill blank NodeInfo fields (name, hardware, role, …) for nodes seen on multiple sources by copying from a source that already has the data.',
-      ),
-      icon: 'identity',
-    },
-    {
-      id: 'mqtt-oktomqtt-violations',
-      title: t('analysis.mqtt_violations.title', 'ok_to_mqtt Violations'),
-      description: t(
-        'analysis.mqtt_violations.description',
-        "Find MQTT gateways that uplinked other nodes' packets even though the sender did not opt in to MQTT (ok_to_mqtt = 0).",
-      ),
-      icon: 'securityAlert',
-    },
-    {
-      id: 'mesh-issues',
-      title: t('analysis.mesh_issues.title', 'Mesh Issues'),
-      description: t(
-        'analysis.mesh_issues.description',
-        'Flag wrongly-roled or poorly placed routers, airtime abusers, and infrastructure nodes on failing power — from passively collected data only.',
-      ),
-      icon: 'alert',
-    },
-    {
-      id: 'coverage',
-      title: t('analysis.coverage.title', 'Coverage Report'),
-      description: t(
-        'analysis.coverage.description',
-        'Map RF receptions of position packets — how far your mesh actually reaches, and how well each receiver hears it. Built from a survey node driving your coverage area, not sent by MeshMonitor.',
-      ),
-      icon: 'radioSignal',
-    },
-    {
-      id: 'traceroute-explorer',
-      title: t('analysis.traceroute_explorer.title', 'Traceroute Explorer'),
-      description: t(
-        'analysis.traceroute_explorer.description',
-        'Browse every stored traceroute across your sources on a linked map and table: paths, SNR per hop, answer rates, and route changes.',
-      ),
-      icon: 'route',
-    },
-  ];
+  const reports: AnalysisCard[] = ANALYSIS_REPORTS.map((r) => ({
+    id: r.id,
+    title: t(r.titleKey, r.title),
+    description: t(r.descriptionKey, r.description),
+    icon: r.icon,
+  }));
 
   if (selected === 'solar-monitoring') {
     return (

@@ -8,6 +8,7 @@
  * fall through. Overrides are tried before the defaults. No match: `undefined`.
  */
 import { athensFixture as A, SOURCE_IDS } from './athens';
+import * as R from './reports';
 
 export type FixtureHandler = (url: URL, init?: RequestInit) => unknown | Response;
 
@@ -172,6 +173,18 @@ const defaults: Record<string, FixtureHandler> = {
     });
     return { success: true, data: { distanceMeters: meters, provider: 'fixture', samples } };
   },
+  // Overview › Reports (6-01 … 6-15): Mesh Issues' last run and findings, the Coverage Report's data.
+  'GET /api/analysis/mesh-issues/status': () => ({ success: true, data: R.meshIssuesStatus }),
+  'GET /api/analysis/mesh-issues/summary': () => ({ success: true, data: R.meshIssuesSummary }),
+  'GET /api/analysis/mesh-issues': (url) => R.meshIssuesPage(url),
+  'GET /api/analysis/coverage/receivers': () => ({
+    success: true, data: { receivers: R.coverageReceivers, retentionDays: 30, mqttSources: R.coverageMqttSources },
+  }),
+  'GET /api/analysis/coverage/senders': () => ({ success: true, data: { senders: R.coverageSenders, truncated: false } }),
+  'GET /api/analysis/coverage/receptions': () => ({
+    success: true, data: { items: R.coverageReceptions, pageSize: 1000, hasMore: false, nextCursor: null },
+  }),
+  'GET /api/analysis/coverage/surveys': () => ({ success: true, data: R.coverageSurveys }),
   'GET /api/telemetry/:nodeId': (url) => {
     const nodeId = decodeURIComponent(url.pathname.split('/')[3]);
     return A.telemetry.filter((row) => row.nodeId === nodeId);

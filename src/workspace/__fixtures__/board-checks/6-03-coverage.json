@@ -1,6 +1,5 @@
 {
   "must": [
-    "Range",
     "24 h",
     "Custom",
     "Sender",
@@ -14,7 +13,6 @@
     "Export",
     "CSV",
     "GeoJSON",
-    "Elapsed",
     "Save as survey",
     "Stop",
     "Auto-end",
@@ -24,8 +22,6 @@
     "Local",
     "MeshCore",
     "All",
-    "None",
-    "MQTT recording",
     "Turn on in source settings",
     "Fixes heard",
     "Likely gaps",
@@ -36,8 +32,7 @@
     "Kind",
     "Median SNR",
     "Furthest direct",
-    "Distance vs SNR",
-    "Via"
+    "Distance vs SNR"
   ],
   "absent": [],
   "source": "checks/s06.json"

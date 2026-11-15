@@ -1,12 +1,12 @@
 {
   "must": [
     "Reports",
-    "Mesh issues",
+    "Mesh Issues",
     "Coverage",
-    "Traceroute explorer",
+    "Traceroute Explorer",
     "Solar",
-    "ok_to_mqtt violations",
-    "NodeInfo enrichment",
+    "ok_to_mqtt Violations",
+    "NodeInfo Enrichment",
     "Needs a look",
     "Not run yet",
     "from storage",

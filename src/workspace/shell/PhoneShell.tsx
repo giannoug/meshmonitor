@@ -64,10 +64,11 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
       !!matchPath('/source/:id/map', pathname) ||
       !!matchPath('/source/:id/nodes', pathname) ||
       !!matchPath('/source/:id/node/*', pathname));
-  // The all-devices map is full screen with its own Back, as the device map (5-08).
+  // The all-devices map is full screen with its own Back, as the device map (5-08); Reports draw their own header (6-08 … 6-10).
   const overviewMap = mode === 'overview' && (pathname === '/' || !!matchPath('/overview/map', pathname));
+  const reports = /^\/(overview\/)?reports(\/|$)/.test(pathname);
   const quick = source ? sources.filter((s) => s.id !== source.id).slice(0, QUICK_SQUARES) : [];
-  const showHeader = mode !== 'you' && mode !== 'server' && !ownHeader && !overviewMap;
+  const showHeader = mode !== 'you' && mode !== 'server' && !ownHeader && !overviewMap && !reports;
   const title = source?.name ?? t('workspace.shell.overview');
   const active = source?.live?.activeNodeCount;
   const status = !source

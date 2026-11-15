@@ -6,7 +6,8 @@
 import { expect, test } from '@playwright/test';
 import { routeFixtures } from './fixtureRoutes';
 
-for (const path of ['/source/src-g2/nodes', '/overview/reports']) {
+// Today's Solar report stays re-hosted under the Reports frame until Task 4.5.
+for (const path of ['/source/src-g2/nodes', '/overview/reports/solar']) {
   test(`re-hosted ${path} renders without errors`, async ({ page }) => {
     const errors: string[] = [];
     page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
