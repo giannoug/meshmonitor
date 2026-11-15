@@ -646,3 +646,15 @@ Ruling: 4.8 o4/q4/13-13/13-18/o5/16-03/16-08 checks — D9b swaps and Ruling Q /
 - Mesh impact this phase: no new send paths, no automatic sends, no new timers. Packet capture is a server-side logging setting under today's `settings:write` gate and transmits nothing. Enrichment keeps today's unpaced send (Ruling CM, FINAL REPORT ITEM).
 - Pre-existing issues found and left for follow-up (FINAL REPORT ITEMs): any Users save clears MeshCore `remote_admin` grants in both layouts (Ruling DA); Classic's relay-estimate modal pools direct-neighbour stats across sources.
 - No PR created (requester's instruction).
+
+## Task 5.1 — Extract device-config state and saves (Rule X)
+
+Ruling DE: 5.1 — reload() reports today's 31 tracked fields with today's English labels as `field`; it is not widened — why: today has a diff and the move keeps it; 5.3's Review builds from the save queue, not reload() — cost if wrong: a later "changed on the node" screen must widen the diff and add stable keys (forward constraint)
+Ruling DF: 5.1 — the widened signatures (sourceId: string | null, refreshTrigger?: number, optional onRebootDevice, mqtt(extra?)) are accepted — why: compatible supersets that keep Classic's nullable source and primary-source fallback — cost if wrong: none
+Ruling DG: forward constraints for 5.2+ — Workspace settings mount useDeviceConfigState ONCE per source (shared through the frame), never per category page (each instance reloads config + keys); read state.x rather than copying the destructure; 5.3's saveAll treats reboot() === false as "reconnect failed", not "reboot not sent"
+Ruling: 5.1 — `useDeviceConfigState` takes `sourceId: string | null, refreshTrigger?: number` — Classic's `useSource()` and prop are nullable/optional and the api already accepts null — cost if wrong: none; a stricter caller still compiles.
+Ruling: 5.1 — `useDeviceConfigSaves` opts gain optional `onRebootDevice` — Classic's reboot must keep going through the parent handler — cost if wrong: Workspace omits it and gets today's direct-api fallback.
+Ruling: 5.1 — `reboot()` never calls `onRebootExpected` — today's reboot is announced by the parent handler; a second signal would change Classic's reboot UI — cost if wrong: a Workspace reboot banner must hook `onRebootDevice` instead.
+Ruling: 5.1 — `ConfigSaveSection` is configRebootRules' union minus `bluetooth` — one name per section across the reboot rules and the saves; there is no Bluetooth save here — cost if wrong: a rename later touches both.
+Ruling: 5.1 — `reload()` returns today's tracked-field diff (31 fields), raw before/after, `field` = today's label — keeps Workspace and Classic agreeing on "what changed" with no new diff logic — cost if wrong: a later task widens the tracked set in one place.
+Ruling: 5.1 — `confirmAction`, the import/export modal flags and the `nodes` position effect stay in ConfigurationTab — they are Classic UI or depend on a prop the hook signature lacks — cost if wrong: Workspace re-implements the fixed-position prefill from nodes if it wants it.
