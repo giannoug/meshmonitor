@@ -454,5 +454,6 @@ export function useUnifiedFeedScroll({
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  return { scrollRef, handleScroll, sentinelRef };
+  // `wasAtBottomRef`: for a page whose layout can change the feed's width (the Workspace's side panel).
+  return { scrollRef, handleScroll, sentinelRef, wasAtBottomRef };
 }

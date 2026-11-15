@@ -14,7 +14,7 @@
  * Every row, tag, channel source and filter entry keeps to the devices the
  * viewer can read (Review Focus 2, `readableSources`).
  */
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
@@ -87,7 +87,7 @@ export default function OverviewMessages() {
     () => feed.feedMessages.flatMap((m) => readableMessage(m, readable) ?? []),
     [feed.feedMessages, readable],
   );
-  const { scrollRef, handleScroll, sentinelRef } = useUnifiedFeedScroll({
+  const { scrollRef, handleScroll, sentinelRef, wasAtBottomRef } = useUnifiedFeedScroll({
     feedMessages: rows,
     selectedChannel,
     hasNextPage: feed.hasNextPage,
@@ -95,6 +95,20 @@ export default function OverviewMessages() {
     fetchNextPage: feed.fetchNextPage,
   });
   const opened = rows.find((m) => m.dedupKey === openKey) ?? null;
+  const panelOpen = !!opened;
+  // The desktop panel narrows (closing it widens) the feed, so rows reflow: keep the newest message at
+  // the bottom if the reader was there, then the opened row in view.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (wasAtBottomRef.current) el.scrollTop = el.scrollHeight;
+    const row = el.querySelector<HTMLElement>('[data-open]')?.getBoundingClientRect();
+    if (!row) return;
+    // Nearest edge, in the feed only (scrollIntoView would also scroll the window).
+    const box = el.getBoundingClientRect();
+    if (row.top < box.top) el.scrollTop += row.top - box.top;
+    else if (row.bottom > box.bottom) el.scrollTop += Math.min(row.bottom - box.bottom, row.top - box.top);
+  }, [panelOpen, scrollRef, wasAtBottomRef]);
   const allChannels = selectedChannel === ALL_CHANNELS_PARAM;
   const collided = useMemo(() => {
     const names = new Set<string>();
