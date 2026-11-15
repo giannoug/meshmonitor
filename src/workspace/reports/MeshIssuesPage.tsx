@@ -149,6 +149,7 @@ export default function MeshIssuesPage() {
               onForbidden={m.handleForbidden}
             />
           ) : (
+            <div className={isPhone ? styles.byNodePhone : undefined} data-testid="mesh-by-node">
             <ByNodeView
               summary={m.summary}
               filters={m.filters}
@@ -165,6 +166,7 @@ export default function MeshIssuesPage() {
               onBulkRestore={m.handleBulkRestore}
               bulkPending={m.bulkPending}
             />
+            </div>
           )}
         </>
       )}

@@ -140,3 +140,19 @@
   display: inline-flex;
   align-items: center;
 }
+
+/* Today's By node groups on the phone (ByNodeView, as is): its chevrons, Dismiss / Restore icons, node links
+   and map toggle as 44 px targets, by element selectors under this class (no change to the Classic part). */
+.byNodePhone button {
+  box-sizing: border-box;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Rows of at least 52 px: each group's header (its first child) and each finding's header (the first child of a
+   finding in the group's body). Structural, since the part's own classes are not ours to name. */
+.byNodePhone > div > div > div:first-child,
+.byNodePhone > div > div > div:nth-child(2) > div > div:first-child {
+  box-sizing: border-box;
+  min-height: 52px;
+}

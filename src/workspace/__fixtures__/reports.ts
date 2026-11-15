@@ -97,6 +97,8 @@ export const meshIssuesSummary: MeshIssuesSummary = {
   byNode: [
     { nodeNum: ROVER, nodeName: 'Athens Rover', total: 2, bySeverity: { critical: 0, warning: 1, info: 1 }, worstSeverity: 'warning',
       issueTypes: ['A8_low_battery', 'C2_over_broadcasting'], latestDetected: LAST_RUN },
+    { nodeNum: PIR, nodeName: 'Piraeus Base', total: 1, bySeverity: { critical: 0, warning: 0, info: 1 }, worstSeverity: 'info',
+      issueTypes: ['C2_over_broadcasting'], latestDetected: LAST_RUN - 3_600_000 },
     { nodeNum: null, nodeName: null, total: 2, bySeverity: { critical: 1, warning: 1, info: 0 }, worstSeverity: 'critical',
       issueTypes: ['B1_router_cluster', 'B3_asymmetric_link'], latestDetected: LAST_RUN },
   ],

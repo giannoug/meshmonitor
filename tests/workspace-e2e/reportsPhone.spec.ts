@@ -54,6 +54,44 @@ test('Mesh Issues: the filter sheet, finding rows and finding sheet are phone ta
   expect(await shortTargets(sheet)).toEqual([]);
 });
 
+test('Mesh Issues By node: toggles and Dismiss / Restore are phone targets, rows at least 52 px', async ({ page }) => {
+  await routeFixtures(page);
+  await page.goto('/overview/reports/mesh-issues');
+  // Athens Rover, Piraeus Base (its finding dismissed, shown) and the Mesh-wide group, all open.
+  await presetMeshIssues(page, { view: 'byNode', expandedNodes: [0xa1b2c302, 0xa1b2c304, 'mesh-wide'] });
+  const view = page.getByTestId('mesh-by-node');
+  await view.getByRole('button', { name: 'Restore' }).waitFor();
+  await view.getByRole('button', { name: 'Dismiss' }).first().waitFor();
+  expect(await shortTargets(view)).toEqual([]);
+  // Group headers and finding headers: the first child of each group, and of each finding in a group's body.
+  const rows = await view.evaluate((el) =>
+    [...el.querySelectorAll<HTMLElement>(':scope > div > div > div:first-child, :scope > div > div > div:nth-child(2) > div > div:first-child')]
+      .map((r) => Math.round(r.getBoundingClientRect().height)),
+  );
+  expect(rows.length).toBeGreaterThanOrEqual(5);
+  expect(rows.filter((h) => h < 52)).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
+
+test('Mesh Issues By node: rows stay at least 52 px for a viewer with no Dismiss (no canAct)', async ({ page }) => {
+  await routeFixtures(page, {
+    'GET /api/analysis/mesh-issues/status': () => new Response(JSON.stringify({ success: false, error: 'Forbidden', code: 'FORBIDDEN' }), {
+      status: 403, headers: { 'content-type': 'application/json' },
+    }),
+  });
+  await page.goto('/overview/reports/mesh-issues');
+  await presetMeshIssues(page, { view: 'byNode', expandedNodes: [0xa1b2c302, 0xa1b2c304, 'mesh-wide'] });
+  const view = page.getByTestId('mesh-by-node');
+  await view.getByText('Piraeus Base').last().waitFor();
+  await expect(view.getByRole('button', { name: 'Dismiss' })).toHaveCount(0);
+  const rows = await view.evaluate((el) =>
+    [...el.querySelectorAll<HTMLElement>(':scope > div > div > div:first-child, :scope > div > div > div:nth-child(2) > div > div:first-child')]
+      .map((r) => Math.round(r.getBoundingClientRect().height)),
+  );
+  expect(rows.length).toBeGreaterThanOrEqual(5);
+  expect(rows.filter((h) => h < 52)).toEqual([]);
+});
+
 test('Coverage: the survey bar and the panel (receivers list open) are phone targets', async ({ page }) => {
   await routeFixtures(page);
   await page.goto('/overview/reports/coverage?report=coverage&sender=!a1b2c302');
