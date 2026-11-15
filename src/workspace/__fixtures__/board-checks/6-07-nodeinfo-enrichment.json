@@ -1,6 +1,6 @@
 {
   "must": [
-    "NodeInfo enrichment",
+    "NodeInfo Enrichment",
     "Nodes",
     "Targets",
     "Fillable fields",
@@ -12,10 +12,10 @@
     "Target source",
     "Donor",
     "Fix",
-    "Copy preview",
-    "Long name",
+    "Long Name",
     "Hardware",
-    "Copy"
+    "Copy",
+    "Copy NodeInfo"
   ],
   "absent": [],
   "source": "checks/s06.json"

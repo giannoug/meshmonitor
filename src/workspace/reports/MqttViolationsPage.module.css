@@ -1,0 +1,45 @@
+/* ok_to_mqtt Violations (boards 6-06, 6-13): today's parts in a column; the phone filter sheet and packet sheet. */
+.desktop,
+.phoneBanners {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Today's controls row in the sheet: one control per line. */
+.sheetControls > div > div {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.drill {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.packet {
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 12px;
+}
+
+.muted {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.pager {
+  display: inline-flex;
+  gap: 8px;
+}
+
+/* The packet sheet's Export CSV: the sheet sits in <body>, outside the page's [data-phone], so it sizes itself. */
+.sheetAction {
+  min-height: 44px;
+}

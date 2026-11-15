@@ -1,0 +1,196 @@
+/* Parts the Task 4.5 report pages share (boards 6-04 … 6-07, 6-11 … 6-14): header buttons, stat tiles,
+   phone rows, the phone toolbar, and phone-sized targets for today's controls inside a sheet or panel. */
+.primary,
+.ghost {
+  box-sizing: border-box;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid var(--color-accent);
+  border-radius: 8px;
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ghost {
+  border-color: var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+}
+
+.primary:disabled,
+.ghost:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.primary:focus-visible,
+.ghost:focus-visible,
+.rowButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+[data-phone] .primary,
+[data-phone] .ghost {
+  min-height: 44px;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.tile {
+  padding: 12px 16px;
+  border: 1px solid var(--color-surface);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+}
+
+.tileLabel {
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.tileValue {
+  margin-top: 2px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.banner {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--color-bg-raised);
+  color: var(--color-text-subtle);
+}
+
+.error {
+  margin: 0;
+  color: var(--color-error);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toolbar > :last-child {
+  margin-left: auto;
+}
+
+/* Phone lists: one ≥52 px row per item (s6n3). */
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-surface);
+  border-radius: 14px;
+  background: var(--color-bg-raised);
+  overflow: hidden;
+}
+
+.list > li + li {
+  border-top: 1px solid var(--color-surface);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 12px;
+}
+
+.rowButton {
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rowTitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.rowMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+  overflow-wrap: anywhere;
+}
+
+.chevron {
+  flex: none;
+  color: var(--color-text-subtle);
+}
+
+.tag {
+  padding: 1px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+.tag[data-tone='warn'] {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+/* Content placed straight in a Sheet body, which has no side padding of its own. */
+.sheetPad {
+  padding: 0 16px;
+}
+
+/* Today's controls re-hosted in a phone sheet or panel: 44 px targets by element selectors under this class
+   (they outrank the parts' single-class rules), with no change to the Classic parts. */
+.targets button,
+.targets select,
+.targets label,
+.targets input:not([type='checkbox']):not([type='radio']) {
+  box-sizing: border-box;
+  min-height: 44px;
+}
+
+.targets button,
+.targets label {
+  display: inline-flex;
+  align-items: center;
+}

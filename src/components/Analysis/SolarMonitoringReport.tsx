@@ -6,13 +6,18 @@
  * reference lines for healthy levels, and an optional forecast simulation
  * extending the chart into the future.
  */
-import { useMemo, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../icons';
-import apiService from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
-import { SolarOverridesPanel, type SolarOverrideEntry, type SolarPickerNode } from './SolarOverridesPanel';
+import { SolarOverridesPanel } from './SolarOverridesPanel';
+import {
+  useSolarMonitoringReport,
+  type ForecastDay,
+  type SolarForecastAnalysis,
+  type SolarNode,
+  type SolarPattern,
+  type SolarProductionPoint,
+} from './useSolarMonitoringReport';
 import { NumberInput } from '../common/NumberInput';
 import {
   Area,
@@ -27,142 +32,12 @@ import {
   YAxis,
 } from 'recharts';
 
-interface SolarPattern {
-  date: string;
-  sunrise: { time: string; value: number };
-  peak: { time: string; value: number };
-  sunset: { time: string; value: number };
-  rise: number | null;
-  fall: number | null;
-  charge_rate_per_hour: number | null;
-  discharge_rate_per_hour: number | null;
-}
-
-interface SolarChartPoint {
-  timestamp: number;
-  value: number;
-}
-
-interface SolarProductionPoint {
-  timestamp: number;
-  wattHours: number;
-}
-
-interface SolarNode {
-  node_num: number;
-  node_name: string;
-  solar_score: number;
-  days_analyzed: number;
-  days_with_pattern: number;
-  recent_patterns: SolarPattern[];
-  metric_type: string;
-  metrics_detected: string[];
-  chart_data: SolarChartPoint[];
-  avg_charge_rate_per_hour: number | null;
-  avg_discharge_rate_per_hour: number | null;
-  insufficient_solar: boolean | null;
-  /** True when the operator marked this node as solar (#3195). */
-  manual_override?: boolean;
-}
-
-interface SolarNodesAnalysis {
-  lookback_days: number;
-  total_nodes_analyzed: number;
-  solar_nodes_count: number;
-  solar_nodes: SolarNode[];
-  solar_production: SolarProductionPoint[];
-  avg_charging_hours_per_day: number | null;
-  avg_discharge_hours_per_day: number | null;
-  analyzed_nodes?: SolarPickerNode[];
-  manual_overrides?: SolarOverrideEntry[];
-}
-
-interface ForecastDay {
-  date: string;
-  forecast_wh: number;
-  avg_historical_wh: number;
-  pct_of_average: number;
-  is_low: boolean;
-}
-
-interface ForecastSimulationPoint {
-  timestamp: string;
-  simulated_battery: number;
-  phase: 'sunrise' | 'peak' | 'sunset';
-  forecast_factor: number;
-}
-
-interface NodeSimulation {
-  node_num: number;
-  node_name: string;
-  metric_type: string;
-  current_battery: number | null;
-  min_simulated_battery: number;
-  simulation: ForecastSimulationPoint[];
-}
-
-interface SolarForecastAnalysis {
-  lookback_days: number;
-  historical_days_analyzed: number;
-  avg_historical_daily_wh: number;
-  low_output_warning: boolean;
-  forecast_days: ForecastDay[];
-  nodes_at_risk_count: number;
-  nodes_at_risk: NodeSimulation[];
-  solar_simulations: NodeSimulation[];
-}
-
 const SolarMonitoringReport: React.FC = () => {
   const { t } = useTranslation();
-  const { hasPermission } = useAuth();
-  const canWriteOverrides = hasPermission('settings', 'write');
-  const queryClient = useQueryClient();
-  const [overrideBusy, setOverrideBusy] = useState(false);
-  const [overrideError, setOverrideError] = useState<string | null>(null);
-  const [lookbackDays, setLookbackDays] = useState(7);
-  const [run, setRun] = useState(false);
-  const [runForecast, setRunForecast] = useState(false);
-
-  const { data, isLoading, error, refetch } = useQuery<SolarNodesAnalysis>({
-    queryKey: ['solar-nodes-analysis', lookbackDays],
-    queryFn: () =>
-      apiService.get<SolarNodesAnalysis>(
-        `/api/analysis/solar-nodes?lookback_days=${lookbackDays}`,
-      ),
-    enabled: run,
-  });
-
   const {
-    data: forecast,
-    isLoading: forecastLoading,
-    error: forecastError,
-    refetch: refetchForecast,
-  } = useQuery<SolarForecastAnalysis>({
-    queryKey: ['solar-forecast-analysis', lookbackDays],
-    queryFn: () =>
-      apiService.get<SolarForecastAnalysis>(
-        `/api/analysis/solar-forecast?lookback_days=${lookbackDays}`,
-      ),
-    enabled: runForecast,
-  });
-
-  // #3195: set (true/false) or clear (null) a node's manual solar classification,
-  // then re-run whichever analyses are showing so the report reflects it.
-  const setSolarOverride = async (nodeNum: number, isSolar: boolean | null) => {
-    setOverrideBusy(true);
-    setOverrideError(null);
-    try {
-      await apiService.put(`/api/analysis/solar-overrides/${nodeNum}`, { isSolar });
-      await queryClient.invalidateQueries({ queryKey: ['solar-nodes-analysis'] });
-      await queryClient.invalidateQueries({ queryKey: ['solar-forecast-analysis'] });
-    } catch (err) {
-      setOverrideError(
-        `${t('analysis.solar_monitoring.override_failed', 'Could not save the classification:')} ${(err as Error).message}`,
-      );
-    } finally {
-      setOverrideBusy(false);
-    }
-  };
+    canWriteOverrides, overrideBusy, overrideError, lookbackDays, setLookbackDays, run, runForecast,
+    data, isLoading, error, forecast, forecastLoading, forecastError, setSolarOverride, onRunAnalysis, onRunForecast,
+  } = useSolarMonitoringReport();
 
   return (
     <>
@@ -194,13 +69,7 @@ const SolarMonitoringReport: React.FC = () => {
           <button
             type="button"
             className="reports-btn"
-            onClick={() => {
-              if (run) {
-                void refetch();
-              } else {
-                setRun(true);
-              }
-            }}
+            onClick={onRunAnalysis}
             disabled={isLoading}
           >
             {isLoading
@@ -212,13 +81,7 @@ const SolarMonitoringReport: React.FC = () => {
           <button
             type="button"
             className="reports-btn reports-btn--ghost"
-            onClick={() => {
-              if (runForecast) {
-                void refetchForecast();
-              } else {
-                setRunForecast(true);
-              }
-            }}
+            onClick={onRunForecast}
             disabled={forecastLoading}
             title={t(
               'analysis.solar_monitoring.forecast_help',
@@ -300,7 +163,7 @@ const SolarMonitoringReport: React.FC = () => {
   );
 };
 
-const SolarSummary: React.FC<{
+export const SolarSummary: React.FC<{
   totalAnalyzed: number;
   solarCount: number;
   avgCharging: number | null;
@@ -331,7 +194,11 @@ const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   </div>
 );
 
-const ForecastResults: React.FC<{ forecast: SolarForecastAnalysis }> = ({ forecast }) => {
+export const ForecastResults: React.FC<{
+  forecast: SolarForecastAnalysis;
+  /** Draws the forecast days in place of today's table (the Workspace phone's day tiles). */
+  renderDays?: (days: ForecastDay[]) => ReactNode;
+}> = ({ forecast, renderDays }) => {
   return (
     <div className="reports-panel reports-forecast">
       <div className="reports-forecast__header">
@@ -353,38 +220,41 @@ const ForecastResults: React.FC<{ forecast: SolarForecastAnalysis }> = ({ foreca
         </div>
       )}
 
-      {forecast.forecast_days.length > 0 && (
-        <div className="reports-table-wrap">
-          <table className="reports-table">
-            <thead>
-              <tr>
-                <th>Day</th>
-                <th>Forecast Wh</th>
-                <th>Historical Wh</th>
-                <th>% of avg</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {forecast.forecast_days.map((d) => (
-                <tr key={d.date}>
-                  <td>{d.date}</td>
-                  <td>{d.forecast_wh.toFixed(0)}</td>
-                  <td>{d.avg_historical_wh.toFixed(0)}</td>
-                  <td>{d.pct_of_average.toFixed(0)}%</td>
-                  <td>
-                    {d.is_low ? (
-                      <span className="reports-pill reports-pill--warn">Low</span>
-                    ) : (
-                      <span className="reports-pill reports-pill--ok">OK</span>
-                    )}
-                  </td>
+      {forecast.forecast_days.length > 0 &&
+        (renderDays ? (
+          renderDays(forecast.forecast_days)
+        ) : (
+          <div className="reports-table-wrap">
+            <table className="reports-table">
+              <thead>
+                <tr>
+                  <th>Day</th>
+                  <th>Forecast Wh</th>
+                  <th>Historical Wh</th>
+                  <th>% of avg</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {forecast.forecast_days.map((d) => (
+                  <tr key={d.date}>
+                    <td>{d.date}</td>
+                    <td>{d.forecast_wh.toFixed(0)}</td>
+                    <td>{d.avg_historical_wh.toFixed(0)}</td>
+                    <td>{d.pct_of_average.toFixed(0)}%</td>
+                    <td>
+                      {d.is_low ? (
+                        <span className="reports-pill reports-pill--warn">Low</span>
+                      ) : (
+                        <span className="reports-pill reports-pill--ok">OK</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
 
       {forecast.nodes_at_risk.length > 0 && (
         <div>
@@ -413,14 +283,16 @@ interface ChartPoint {
   solarWh?: number | null;
 }
 
-const SolarNodeCard: React.FC<{
+export const SolarNodeCard: React.FC<{
   node: SolarNode;
   solarProduction: SolarProductionPoint[];
   forecast?: SolarForecastAnalysis;
   canWriteOverrides?: boolean;
   overrideBusy?: boolean;
   onSetOverride?: (isSolar: boolean | null) => void;
-}> = ({ node, solarProduction, forecast, canWriteOverrides, overrideBusy, onSetOverride }) => {
+  /** Draws the daily patterns in place of today's table (the Workspace phone's Daily pattern row). */
+  renderPatterns?: (node: SolarNode) => ReactNode;
+}> = ({ node, solarProduction, forecast, canWriteOverrides, overrideBusy, onSetOverride, renderPatterns }) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
@@ -730,60 +602,64 @@ const SolarNodeCard: React.FC<{
             </div>
           )}
 
-          {node.recent_patterns.length > 0 && (
-            <div>
-              <p className="reports-node__patterns-title">Recent daily patterns</p>
-              <div className="reports-table-wrap">
-                <table className="reports-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Sunrise</th>
-                      <th>Peak</th>
-                      <th>Sunset</th>
-                      <th>Rise</th>
-                      <th>Fall</th>
-                      <th>Charge /h</th>
-                      <th>Discharge /h</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {node.recent_patterns.map((p) => (
-                      <tr key={p.date}>
-                        <td>{p.date}</td>
-                        <td>
-                          {p.sunrise.time} ({p.sunrise.value})
-                        </td>
-                        <td>
-                          {p.peak.time} ({p.peak.value})
-                        </td>
-                        <td>
-                          {p.sunset.time} ({p.sunset.value})
-                        </td>
-                        <td>{p.rise !== null ? p.rise.toFixed(1) : '—'}</td>
-                        <td>{p.fall !== null ? p.fall.toFixed(1) : '—'}</td>
-                        <td>
-                          {p.charge_rate_per_hour !== null
-                            ? p.charge_rate_per_hour.toFixed(2)
-                            : '—'}
-                        </td>
-                        <td>
-                          {p.discharge_rate_per_hour !== null
-                            ? p.discharge_rate_per_hour.toFixed(2)
-                            : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          {node.recent_patterns.length > 0 &&
+            (renderPatterns ? renderPatterns(node) : <SolarDailyPatterns patterns={node.recent_patterns} />)}
         </div>
       )}
     </div>
   );
 };
+
+/** A node's recent daily patterns table (SolarNodeCard's; the Workspace phone opens it in a sheet). */
+export const SolarDailyPatterns: React.FC<{ patterns: SolarPattern[] }> = ({ patterns }) => (
+  <div>
+    <p className="reports-node__patterns-title">Recent daily patterns</p>
+    <div className="reports-table-wrap">
+      <table className="reports-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Sunrise</th>
+            <th>Peak</th>
+            <th>Sunset</th>
+            <th>Rise</th>
+            <th>Fall</th>
+            <th>Charge /h</th>
+            <th>Discharge /h</th>
+          </tr>
+        </thead>
+        <tbody>
+          {patterns.map((p) => (
+            <tr key={p.date}>
+              <td>{p.date}</td>
+              <td>
+                {p.sunrise.time} ({p.sunrise.value})
+              </td>
+              <td>
+                {p.peak.time} ({p.peak.value})
+              </td>
+              <td>
+                {p.sunset.time} ({p.sunset.value})
+              </td>
+              <td>{p.rise !== null ? p.rise.toFixed(1) : '—'}</td>
+              <td>{p.fall !== null ? p.fall.toFixed(1) : '—'}</td>
+              <td>
+                {p.charge_rate_per_hour !== null
+                  ? p.charge_rate_per_hour.toFixed(2)
+                  : '—'}
+              </td>
+              <td>
+                {p.discharge_rate_per_hour !== null
+                  ? p.discharge_rate_per_hour.toFixed(2)
+                  : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
 
 const Field: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>

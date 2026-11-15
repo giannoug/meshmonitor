@@ -1,7 +1,7 @@
 {
   "must": [
-    "ok_to_mqtt violations",
-    "Run",
+    "ok_to_mqtt Violations",
+    "Re-run report",
     "Confirmed",
     "Suspected",
     "Originators",

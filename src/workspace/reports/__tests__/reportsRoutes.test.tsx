@@ -1,9 +1,9 @@
 /**
  * @vitest-environment jsdom
  *
- * Overview › Reports routes: until Task 4.5 rebuilds them, the Traceroute
- * Explorer, Solar, ok_to_mqtt and NodeInfo Enrichment rows open today's
- * report under the Reports frame. An unknown report goes back to the list.
+ * Overview › Reports routes: the Traceroute Explorer, Solar, ok_to_mqtt and
+ * NodeInfo Enrichment slugs open their Workspace pages (Task 4.5) under
+ * either prefix. An unknown report goes back to the list.
  * A Classic user following a Workspace report link lands on Classic's
  * Reports page.
  */
@@ -17,23 +17,20 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
   WebSocketProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
-vi.mock('../../../components/Analysis/SolarMonitoringReport', () => ({ default: () => <div>Classic solar report</div> }));
-vi.mock('../../../components/Analysis/NodeInfoEnrichmentReport', () => ({ default: () => <div>Classic enrichment report</div> }));
-vi.mock('../../../components/Analysis/MqttViolationsReport', () => ({ default: () => <div>Classic ok_to_mqtt report</div> }));
-vi.mock('../../../components/Analysis/tracerouteExplorer/TracerouteExplorerReport', () => ({
-  default: () => <div>Classic traceroute explorer</div>,
-}));
+vi.mock('../SolarPage', () => ({ default: () => <div>Solar page</div> }));
+vi.mock('../EnrichmentPage', () => ({ default: () => <div>Enrichment page</div> }));
+vi.mock('../MqttViolationsPage', () => ({ default: () => <div>ok_to_mqtt page</div> }));
+vi.mock('../TracerouteExplorerPage', () => ({ default: () => <div>Traceroute explorer page</div> }));
 
 describe('reports routes', () => {
   it.each([
-    ['/overview/reports/solar', 'Classic solar report', '/overview/reports'],
-    ['/reports/nodeinfo-enrichment', 'Classic enrichment report', '/reports'],
-    ['/overview/reports/mqtt-violations', 'Classic ok_to_mqtt report', '/overview/reports'],
-    ['/reports/traceroute-explorer', 'Classic traceroute explorer', '/reports'],
-  ])('%s opens today’s report under the Reports frame', async (route, text, back) => {
+    ['/overview/reports/solar', 'Solar page'],
+    ['/reports/nodeinfo-enrichment', 'Enrichment page'],
+    ['/overview/reports/mqtt-violations', 'ok_to_mqtt page'],
+    ['/reports/traceroute-explorer', 'Traceroute explorer page'],
+  ])('%s opens its Workspace page', async (route, text) => {
     renderReports(route);
     expect(await screen.findByText(text, {}, { timeout: 5000 })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to reports' })).toHaveAttribute('href', back);
   });
 
   it('an unknown report goes back to the list', async () => {

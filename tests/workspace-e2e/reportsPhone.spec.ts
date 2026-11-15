@@ -102,3 +102,88 @@ test('Coverage: the survey bar and the panel (receivers list open) are phone tar
   expect(await shortTargets(page.getByTestId('coverage-survey'))).toEqual([]);
   expect(await shortTargets(page.getByTestId('coverage-panel'))).toEqual([]);
 });
+
+/** Rounded heights of the elements matching `selector`. */
+async function heights(page: Page, selector: string): Promise<number[]> {
+  return page.locator(selector).evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
+}
+
+async function noSidewaysScroll(page: Page): Promise<void> {
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+}
+
+test('Traceroute Explorer: pair rows, the filter sheet and the pair sheet are phone targets', async ({ page }) => {
+  await routeFixtures(page);
+  await page.goto('/overview/reports/traceroute-explorer');
+  const rows = page.getByTestId('explorer-pair-item');
+  await rows.first().waitFor();
+  expect((await heights(page, '[data-testid="explorer-pair-item"]')).filter((h) => h < 52)).toEqual([]);
+  expect(await shortTargets(page.getByTestId('report-frame'))).toEqual([]);
+  await noSidewaysScroll(page);
+
+  await page.getByRole('button', { name: 'Filters' }).click();
+  const filters = page.getByRole('dialog', { name: 'Filters' });
+  await filters.getByRole('button', { name: 'Answered' }).waitFor();
+  expect(await shortTargets(filters)).toEqual([]);
+  await filters.getByRole('button', { name: 'Close' }).click();
+
+  await rows.first().getByRole('button').click();
+  const sheet = page.getByRole('dialog', { name: 'Pair' });
+  await sheet.getByRole('button', { name: 'Pair history' }).waitFor();
+  expect(await shortTargets(sheet)).toEqual([]);
+});
+
+test('Solar: the header controls, cards and rows are phone targets; the sheets too', async ({ page }) => {
+  await routeFixtures(page);
+  await page.goto('/overview/reports/solar');
+  await page.getByRole('button', { name: 'Run analysis' }).click();
+  await page.getByRole('button', { name: 'Run forecast' }).click();
+  await page.getByText('Solar Forecast').waitFor();
+  await page.getByRole('button', { name: /Glyfada Beach/ }).first().click();
+  const daily = page.getByRole('button', { name: /Recent daily patterns/ });
+  await daily.waitFor();
+  expect(await shortTargets(page.getByTestId('report-frame'))).toEqual([]);
+  expect(Math.round((await daily.boundingBox())!.height)).toBeGreaterThanOrEqual(52);
+  const overridesRow = page.getByRole('button', { name: /Manual solar classification/ });
+  expect(Math.round((await overridesRow.boundingBox())!.height)).toBeGreaterThanOrEqual(52);
+  await noSidewaysScroll(page);
+
+  await overridesRow.click();
+  const overrides = page.getByRole('dialog', { name: 'Manual solar classification' });
+  await overrides.getByRole('button', { name: 'Mark as solar' }).waitFor();
+  expect(await shortTargets(overrides)).toEqual([]);
+});
+
+test('ok_to_mqtt: gateway rows, the filter sheet and the packet sheet are phone targets', async ({ page }) => {
+  await routeFixtures(page);
+  await page.goto('/overview/reports/mqtt-violations');
+  await page.getByRole('button', { name: 'Filters' }).click();
+  const filters = page.getByRole('dialog', { name: 'Filters' });
+  await filters.getByRole('button', { name: '30 days' }).waitFor();
+  expect(await shortTargets(filters)).toEqual([]);
+  await filters.getByRole('button', { name: 'Close' }).click();
+
+  await page.getByRole('button', { name: 'Run report' }).click();
+  await page.getByTestId('mqtt-gateway-item').first().waitFor();
+  expect((await heights(page, '[data-testid="mqtt-gateway-item"]')).filter((h) => h < 52)).toEqual([]);
+  expect(await shortTargets(page.getByTestId('report-frame'))).toEqual([]);
+  await noSidewaysScroll(page);
+
+  await page.getByTestId('mqtt-gateway-item').first().getByRole('button').click();
+  const sheet = page.getByRole('dialog', { name: 'Athens MQTT gw' });
+  await sheet.getByText('Nikos T-Echo').waitFor();
+  expect(await shortTargets(sheet)).toEqual([]);
+  expect((await sheet.locator('li').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)))).filter((h) => h < 52)).toEqual([]);
+});
+
+test('NodeInfo Enrichment: the push card, Fix All, target rows and Fix are phone targets', async ({ page }) => {
+  await routeFixtures(page);
+  await page.goto('/overview/reports/nodeinfo-enrichment');
+  await page.getByText('Marousi Mobile').waitFor();
+  await page.getByRole('checkbox', { name: 'Also push to device NodeDB' }).check();
+  expect(await shortTargets(page.getByTestId('report-frame'))).toEqual([]);
+  const rows = await page.getByTestId('report-frame').locator('li').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
+  expect(rows).toHaveLength(4);
+  expect(rows.filter((h) => h < 52)).toEqual([]);
+  await noSidewaysScroll(page);
+});

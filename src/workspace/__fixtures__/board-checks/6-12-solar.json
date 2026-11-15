@@ -1,20 +1,19 @@
 {
   "must": [
     "Solar",
-    "Run analysis",
-    "Run forecast",
+    "Re-run analysis",
+    "Re-run forecast",
     "Forecast",
-    "At risk",
+    "Nodes predicted at risk",
     "Low",
     "Score",
-    "Days with pattern",
-    "Overrides",
+    "Manual solar classification",
     "Lookback",
-    "Analysed",
+    "Nodes analyzed",
     "Avg charge",
     "Avg discharge",
-    "Production points",
-    "Daily pattern"
+    "Solar production points",
+    "Recent daily patterns"
   ],
   "absent": [],
   "source": "checks/s06.json"

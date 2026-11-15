@@ -1,0 +1,122 @@
+/* NodeInfo Enrichment (boards 6-07, 6-14): the push card with its Sends line and Fix All, the targets table, the field pills. */
+.push {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--color-surface);
+  border-radius: 14px;
+  background: var(--color-bg-raised);
+}
+
+[data-phone] .push {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.pushText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.check {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+[data-phone] .check {
+  min-height: 44px;
+}
+
+.check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-accent);
+}
+
+.help,
+.hint,
+.bannerLine {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.bannerLine + .bannerLine {
+  margin-top: 4px;
+}
+
+.fixAll {
+  flex: none;
+}
+
+[data-phone] .fixAll {
+  width: 100%;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-surface);
+  border-radius: 14px;
+  background: var(--color-bg-raised);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.table td {
+  padding: 10px 12px;
+  border-top: 1px solid var(--color-surface);
+  vertical-align: middle;
+}
+
+.table tbody tr {
+  cursor: pointer;
+}
+
+.table tbody tr:hover {
+  background: var(--color-surface);
+}
+
+.name {
+  font-weight: 600;
+}
+
+.meta {
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pill {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+}

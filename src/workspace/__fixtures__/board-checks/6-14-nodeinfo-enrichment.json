@@ -1,6 +1,6 @@
 {
   "must": [
-    "NodeInfo enrichment",
+    "NodeInfo Enrichment",
     "Also push to device NodeDB",
     "Sends 1 NodeInfo request",
     "Fix all",

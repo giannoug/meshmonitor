@@ -1,9 +1,7 @@
 {
   "must": [
-    "ok_to_mqtt violations",
-    "Not run yet",
+    "ok_to_mqtt Violations",
     "Run",
-    "from storage",
     "24 h",
     "7 d",
     "30 d",
@@ -26,7 +24,7 @@
     "Port",
     "Bitfield",
     "Topic",
-    "Rx time",
+    "RX time",
     "CSV"
   ],
   "absent": [],

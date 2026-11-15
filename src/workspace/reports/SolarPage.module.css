@@ -1,0 +1,100 @@
+/* Solar Monitoring (boards 6-05, 6-12): the header controls, the forecast/classification column beside the cards. */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lookback {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.lookback input {
+  box-sizing: border-box;
+  width: 72px;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.lookback input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+[data-phone] .actions {
+  width: 100%;
+}
+
+[data-phone] .actions > * {
+  flex: 1 1 140px;
+}
+
+[data-phone] .lookback input {
+  min-height: 44px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cards {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* A card's override and header buttons on the phone: 44 px targets (today's card, as is). */
+[data-phone] .cards button {
+  box-sizing: border-box;
+  min-height: 44px;
+}
+
+.patternsRow {
+  width: 100%;
+  border-top: 1px solid var(--color-surface);
+}
+
+/* The phone forecast: one tile per day (6-12), in place of today's five-column table. */
+.days {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+  gap: 6px;
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.day[data-low] {
+  background: var(--color-surface);
+}

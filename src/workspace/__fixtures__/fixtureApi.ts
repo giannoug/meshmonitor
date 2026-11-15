@@ -185,6 +185,13 @@ const defaults: Record<string, FixtureHandler> = {
     success: true, data: { items: R.coverageReceptions, pageSize: 1000, hasMore: false, nextCursor: null },
   }),
   'GET /api/analysis/coverage/surveys': () => ({ success: true, data: R.coverageSurveys }),
+  // Traceroute Explorer, Solar, ok_to_mqtt and NodeInfo Enrichment (6-04 … 6-07, 6-11 … 6-14).
+  'GET /api/traceroutes/explorer': () => ({ success: true, data: R.explorerResponse }),
+  'GET /api/analysis/solar-nodes': () => R.solarNodes,
+  'GET /api/analysis/solar-forecast': () => R.solarForecast,
+  'GET /api/analysis/mqtt-violations/gateways': (url) => R.mqttGatewaysReply(url),
+  'GET /api/analysis/mqtt-violations/packets': (url) => R.mqttPacketsReply(url),
+  'GET /api/nodes/enrichment/analysis': () => ({ success: true, data: R.enrichmentAnalysis }),
   'GET /api/telemetry/:nodeId': (url) => {
     const nodeId = decodeURIComponent(url.pathname.split('/')[3]);
     return A.telemetry.filter((row) => row.nodeId === nodeId);

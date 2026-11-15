@@ -19,7 +19,7 @@ import styles from './ReportFrame.module.css';
 interface ReportFrameProps {
   /** `overview` on the list, `reports` on a report. */
   back: 'overview' | 'reports';
-  /** Omitted when the page draws its own title (today's reports re-hosted until Task 4.5). */
+  /** Omitted when the page has no title of its own. */
   title?: ReactNode;
   subtitle?: ReactNode;
   actions?: ReactNode;
@@ -38,7 +38,7 @@ export default function ReportFrame({ back, title, subtitle, actions, children }
   );
 
   return (
-    <div className={styles.page} data-phone={isPhone || undefined}>
+    <div className={styles.page} data-phone={isPhone || undefined} data-testid="report-frame">
       {isPhone ? <header className={styles.phoneHead}>{backLink}</header> : back === 'reports' && backLink}
       {(title || actions) && (
         <div className={styles.head}>

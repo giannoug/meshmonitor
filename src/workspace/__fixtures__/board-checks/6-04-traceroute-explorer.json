@@ -1,8 +1,8 @@
 {
   "must": [
-    "6 h",
-    "24 h",
-    "7 d",
+    "6h",
+    "24h",
+    "7d",
     "All",
     "Source",
     "Protocol",
@@ -13,7 +13,6 @@
     "Through",
     "Max hops",
     "Traceroutes",
-    "Pairs",
     "Answered",
     "Median hops",
     "Route changes",
@@ -31,11 +30,12 @@
     "Answer rate",
     "Route changed",
     "Asymmetric",
-    "Copy links",
     "Pair history",
-    "Paths used",
     "Forward",
-    "Return"
+    "Return",
+    "Node pairs",
+    "Copy Both",
+    "Paths this pair has used"
   ],
   "absent": [],
   "source": "checks/s06.json"

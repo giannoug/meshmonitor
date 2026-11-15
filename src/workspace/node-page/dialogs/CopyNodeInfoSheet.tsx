@@ -4,7 +4,9 @@
  * donor source, each field's current and incoming value with today's default
  * ticks, and Push to NodeDB. A copy writes MeshMonitor's row only; Push to
  * NodeDB adds today's one NodeInfo request on the node's channel, and its
- * Sends line says so. Closes on success, as today's callers do.
+ * Sends line says so, so Enter does not confirm (Ruling BH). Closes on
+ * success, as today's callers do. NodeInfo Enrichment's copy preview (6-07)
+ * opens it by node number with the row's donor and fields preselected.
  */
 import { useId, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -16,17 +18,25 @@ import styles from './CopyNodeInfoSheet.module.css';
 
 export interface CopyNodeInfoSheetProps {
   open: boolean;
+  /** The copy's target source. */
   sourceId: string;
-  node: DeviceInfo;
+  /** The target node with its current values; or `nodeNum` alone, and the values come from the copy-candidates reply. */
+  node?: DeviceInfo;
+  nodeNum?: number;
+  initialDonorSourceId?: string | null;
+  preselectFields?: string[] | null;
+  /** After a copy, before the sheet closes. */
+  onCopied?(): void;
   onClose(): void;
 }
 
-export default function CopyNodeInfoSheet({ open, sourceId, node, onClose }: CopyNodeInfoSheetProps) {
+export default function CopyNodeInfoSheet({ open, sourceId, node, nodeNum, initialDonorSourceId, preselectFields, onCopied, onClose }: CopyNodeInfoSheetProps) {
   const { t } = useTranslation();
   const selectId = useId();
   // NodeActionMenus' (and MessagesTab's) current values. Memoised: the hook re-seeds its ticks when this object changes.
-  const user = node.user;
-  const currentNode = useMemo(() => ({
+  const user = node?.user;
+  const hasNode = node !== undefined;
+  const currentNode = useMemo(() => hasNode ? ({
     longName: user?.longName,
     shortName: user?.shortName,
     hwModel: user?.hwModel,
@@ -35,8 +45,19 @@ export default function CopyNodeInfoSheet({ open, sourceId, node, onClose }: Cop
     macaddr: user?.macaddr,
     hasPKC: user?.hasPKC,
     firmwareVersion: user?.firmwareVersion,
-  }), [user]);
-  const copy = useCopyNodeInfo({ isOpen: open, nodeNum: node.nodeNum, targetSourceId: sourceId, currentNode, onCopied: onClose });
+  }) : undefined, [hasNode, user]);
+  const copy = useCopyNodeInfo({
+    isOpen: open,
+    nodeNum: node?.nodeNum ?? nodeNum ?? null,
+    targetSourceId: sourceId,
+    currentNode,
+    initialDonorSourceId,
+    preselectFields,
+    onCopied: () => {
+      onCopied?.();
+      onClose();
+    },
+  });
   const ready = !copy.loading && copy.candidates.length > 0;
 
   return (
@@ -48,6 +69,7 @@ export default function CopyNodeInfoSheet({ open, sourceId, node, onClose }: Cop
       confirmDisabled={!ready || !copy.hasChanges}
       onCancel={onClose}
       onConfirm={copy.handleConfirm}
+      submitOnEnter={false}
       body={
         <div className={styles.copy}>
           {copy.loading ? (

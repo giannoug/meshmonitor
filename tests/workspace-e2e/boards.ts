@@ -750,6 +750,86 @@ export const BOARDS: Board[] = [
       await page.getByText('Distance vs SNR (direct receptions)').waitFor();
     },
   },
+  // Task 4.5: Traceroute Explorer, Solar, ok_to_mqtt and NodeInfo Enrichment.
+  {
+    id: '6-04-traceroute-explorer',
+    size: 'desktop',
+    path: '/overview/reports/traceroute-explorer',
+    setup: async (page) => {
+      // Station G2 → Kifisia Rooftop: open the pair and select its newest run.
+      const pair = page.getByTestId('explorer-pair-row').filter({ hasText: 'KIF' });
+      await pair.click();
+      await page.locator('[data-testid="explorer-pair-row"]:has-text("KIF") + tr').click();
+      await page.getByTestId('traceroute-explorer-detail').waitFor();
+      await page.evaluate(() => window.scrollTo(0, 0));
+    },
+  },
+  {
+    id: '6-11-traceroute-explorer',
+    size: 'phone',
+    path: '/overview/reports/traceroute-explorer',
+    setup: async (page) => {
+      await page.getByTestId('explorer-pair-item').first().getByRole('button').click();
+      await page.getByRole('dialog').getByTestId('traceroute-explorer-detail').waitFor();
+    },
+  },
+  ...(['desktop', 'phone'] as const).map((size) => ({
+    id: size === 'desktop' ? '6-05-solar' : '6-12-solar',
+    size,
+    path: '/overview/reports/solar',
+    setup: async (page: Page) => {
+      await page.getByRole('button', { name: 'Run analysis' }).click();
+      await page.getByRole('button', { name: 'Run forecast' }).click();
+      await page.getByText('Solar Forecast').waitFor();
+      await page.getByRole('button', { name: /Glyfada Beach/ }).first().click();
+      await page.locator('.recharts-surface').first().waitFor();
+      await page.evaluate(() => window.scrollTo(0, 0));
+    },
+  })),
+  {
+    id: '6-06-mqtt-violations',
+    size: 'desktop',
+    path: '/overview/reports/mqtt-violations',
+    setup: async (page) => {
+      await page.getByRole('checkbox', { name: 'Include unproven (unreadable bit)' }).check();
+      await page.getByRole('button', { name: 'Run report' }).click();
+      await page.getByText('Athens MQTT gw').click();
+      await page.getByText('Nikos T-Echo').waitFor();
+      await page.evaluate(() => window.scrollTo(0, 0));
+    },
+  },
+  {
+    id: '6-13-mqtt-violations',
+    size: 'phone',
+    path: '/overview/reports/mqtt-violations',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Filters' }).click();
+      const filters = page.getByRole('dialog', { name: 'Filters' });
+      await filters.getByRole('checkbox', { name: 'Include unproven (unreadable bit)' }).check();
+      await filters.getByRole('button', { name: 'Close' }).click();
+      await page.getByRole('button', { name: 'Run report' }).click();
+      await page.getByTestId('mqtt-gateway-item').first().getByRole('button').click();
+      await page.getByRole('dialog').getByText('Nikos T-Echo').waitFor();
+    },
+  },
+  {
+    id: '6-07-nodeinfo-enrichment',
+    size: 'desktop',
+    path: '/overview/reports/nodeinfo-enrichment',
+    setup: async (page) => {
+      await page.getByRole('checkbox', { name: 'Also push to device NodeDB' }).check();
+      await page.getByText('Marousi Mobile').click();
+      await page.getByRole('dialog', { name: 'Copy NodeInfo' }).getByRole('button', { name: 'Confirm' }).waitFor();
+    },
+  },
+  {
+    id: '6-14-nodeinfo-enrichment',
+    size: 'phone',
+    path: '/overview/reports/nodeinfo-enrichment',
+    setup: async (page) => {
+      await page.getByRole('checkbox', { name: 'Also push to device NodeDB' }).check();
+    },
+  },
 ];
 
 const ON_24H = { enabled: true, lookbackHours: 24 };
