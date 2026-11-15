@@ -8529,6 +8529,7 @@
   "workspace.overview.time": "Time",
   "workspace.overview.tools_sheet_hint": "One at a time. Pick one, then tap the map.",
   "workspace.overview.inspect_hint": "Tap a node, route segment, neighbour link or trail to inspect it",
+  "workspace.overview.inspect_dop": "Close GNSS DOP to inspect a node, route segment, neighbour link or trail",
   "workspace.overview.filters": "Filters",
   "workspace.you.account": "Account",
   "workspace.you.sign_in_security": "Sign-in & security",

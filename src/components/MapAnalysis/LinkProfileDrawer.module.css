@@ -3,20 +3,26 @@
  * keeps the chart and the side column next to each other
  * (src/styles/map-analysis.css).
  *
- * Stacked, the chart sits above the verdict, the budget and the inputs, and
- * the whole sheet scrolls as one. It stays a non-modal panel over the bottom
- * of the canvas, so the map above it still takes the A and B taps.
+ * Stacked, the chart sits above the verdict, the budget and the inputs, in
+ * the flow of the canvas's one bottom dock (MapToolPanels.module.css
+ * `.bottomColumn`), which scrolls it together with the Site Planner and GNSS
+ * DOP panels. The dock is not modal, so the map above it still takes the A
+ * and B taps.
  *
  * The root selector is doubled with the global class so it outranks the base
  * `.map-analysis-link-drawer` rule whatever order the sheets load in (as
  * AnalysisInspectorPanel.module.css). */
 
 :global(.map-analysis-link-drawer).stacked {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  z-index: auto;
+  height: auto;
   flex-direction: column;
-  height: min(60%, 560px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  border-radius: 20px 20px 0 0;
+  overflow: visible;
+  box-shadow: none;
 }
 
 .stacked > :global(.map-analysis-link-drawer-chart) {

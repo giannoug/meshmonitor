@@ -5,8 +5,9 @@
  * page" for a node or trail. Not modal: the map above stays live, so the next
  * tap inspects the next thing. Close clears the selection.
  *
- * One at a time: neither shows while a tool is on or a tool's panel holds the
- * bottom of the map (`busy`).
+ * One at a time (`heldBy`): nothing shows while a tool is on or a tool's
+ * panel holds the bottom of the map; while the GNSS DOP panel holds it, the
+ * hint says to close it, so a tap that opens nothing is explained.
  */
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -16,15 +17,15 @@ import { useMapAnalysisCtx } from '../../../components/MapAnalysis/MapAnalysisCo
 import { nodePageOf } from './nodePage';
 import styles from './PhoneInspector.module.css';
 
-export default function PhoneInspector({ busy }: { busy: boolean }) {
+export default function PhoneInspector({ heldBy }: { heldBy: 'tool' | 'dop' | null }) {
   const { t } = useTranslation();
   const { selected, setSelected } = useMapAnalysisCtx();
-  if (busy) return null;
-  if (!selected) {
+  if (heldBy === 'tool') return null;
+  if (heldBy === 'dop' || !selected) {
     return (
       <p className={styles.hint}>
         <UiIcon name="info" size={18} />
-        {t('workspace.overview.inspect_hint')}
+        {t(heldBy === 'dop' ? 'workspace.overview.inspect_dop' : 'workspace.overview.inspect_hint')}
       </p>
     );
   }

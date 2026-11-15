@@ -67,8 +67,10 @@ const NO_3D_NODES: Node3DFeature[] = [];
  * `layers` are extra Leaflet layers in the 2D map, and `pins` is its own
  * `usePinAuthoring` (whose editors it draws). With it, the canvas draws no
  * legend / tile sidebar and no pin editors of its own. `stackedPanels` (the
- * phone) docks the Link Profile drawer and the Site Planner / GNSS DOP column
- * along the bottom as sheets. Classic passes nothing.
+ * phone) gives the canvas's bottom one owner: the Link Profile drawer, the
+ * Site Planner and GNSS DOP panels and the Time Slider stack in one column
+ * docked along the bottom, which scrolls as one with the slider pinned at its
+ * foot, so no panel covers another's controls. Classic passes nothing.
  */
 export interface MapAnalysisCanvasWorkspace {
   layers?: ReactNode;
@@ -196,6 +198,7 @@ export default function MapAnalysisCanvas({ workspace }: { workspace?: MapAnalys
   // #5685: add / edit / delete waypoints and local markers. 2D only.
   const ownPins = usePinAuthoring(effectiveViewMode === '2d');
   const pins = workspace?.pins ?? ownPins;
+  const stacked = workspace?.stackedPanels === true;
 
   // Same shared `useAnalysisNodes()` data the 2D markers layer/picker use
   // (see `analysisNodes` above), mapped to the shape `Base3DMap` expects.
@@ -452,17 +455,18 @@ export default function MapAnalysisCanvas({ workspace }: { workspace?: MapAnalys
         </Pane>
         {workspace?.layers}
       </BaseMap>
-      <TimeSliderControl />
+      {!stacked && <TimeSliderControl />}
       <FollowResumeButton />
-      <LinkProfileDrawer stacked={workspace?.stackedPanels} />
+      {!stacked && <LinkProfileDrawer />}
       {!workspace && <MapPinAuthoringOverlay pins={pins} />}
       {/* One column for the top-right tool panels, so two open panels stack
           instead of drawing over each other, and one rule moves both beside
           the open Map controls panel (MapToolPanels.module.css). */}
       <div
-        className={workspace?.stackedPanels ? `${toolPanelStyles.toolColumn} ${toolPanelStyles.bottomColumn}` : toolPanelStyles.toolColumn}
+        className={stacked ? `${toolPanelStyles.toolColumn} ${toolPanelStyles.bottomColumn}` : toolPanelStyles.toolColumn}
         data-testid="map-tool-column"
       >
+        {stacked && <LinkProfileDrawer stacked />}
         <SitePlannerPanel
           open={sitePlannerMode}
           sourceId={activeSourceId}
@@ -477,6 +481,7 @@ export default function MapAnalysisCanvas({ workspace }: { workspace?: MapAnalys
           onChange={setGnssDopParams}
           onClose={() => setGnssDopMode(false)}
         />
+        {stacked && <TimeSliderControl docked />}
       </div>
     </div>
   );

@@ -271,9 +271,10 @@ function AllDevicesMap({ landing, colourKey, ...dashboard }: AllDevicesMapProps)
         ? [{ ...g, items: [...g.items, { kind: 'toggle', id: 'legend', label: t('workspace.map.legend'), checked: showLegend, onChange: setShowLegend }] }]
         : [g],
   );
-  // One at a time on the phone: a tool, or a tool's panel along the map's bottom, holds the place of the inspector.
-  const busy = Object.values(controls.tools).some((tool) => tool.shown && tool.active)
-    || ctx.linkProfileMode || ctx.linkEndpoints.length > 0 || ctx.sitePlannerMode || ctx.gnssDopMode;
+  // One at a time on the phone: a tool, or a panel in the map's bottom dock, holds the place of the inspector.
+  const toolHolds = Object.values(controls.tools).some((tool) => tool.shown && tool.active)
+    || ctx.linkProfileMode || ctx.linkEndpoints.length > 0 || ctx.sitePlannerMode;
+  const heldBy = toolHolds ? 'tool' : ctx.gnssDopMode ? 'dop' : null;
   const search = (
     <label className={styles.search}>
       <UiIcon name="search" size={18} />
@@ -350,7 +351,7 @@ function AllDevicesMap({ landing, colourKey, ...dashboard }: AllDevicesMapProps)
       </div>
       {isPhone && (
         <>
-          <PhoneInspector busy={busy} />
+          <PhoneInspector heldBy={heldBy} />
           <PhoneMapBar
             tools={controls.tools}
             groups={phoneGroups}

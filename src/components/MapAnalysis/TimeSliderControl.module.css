@@ -78,3 +78,17 @@
     z-index: 2000;
   }
 }
+
+/* The Workspace phone map (#6365) puts the slider at the foot of its one
+   bottom dock (MapToolPanels.module.css `.bottomColumn`): in the dock's flow,
+   pinned to its bottom while the panels above scroll, so it never covers
+   them. Classic never sets it. Doubled to outrank the rules above. */
+.slider.docked {
+  position: sticky;
+  bottom: 0;
+  left: auto;
+  transform: none;
+  width: auto;
+  border-radius: 0;
+  box-shadow: none;
+}

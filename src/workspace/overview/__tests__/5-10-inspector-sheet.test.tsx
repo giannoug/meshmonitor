@@ -10,7 +10,7 @@ import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
-import { lineIn, marker, nonGets, ON_24H, renderOverview } from './renderOverview';
+import { lineIn, marker, nonGets, ON_24H, openPhoneSheet, renderOverview } from './renderOverview';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
@@ -62,5 +62,16 @@ describe('5-10-inspector-sheet', () => {
     expect(screen.queryByTestId('analysis-inspector')).toBeNull();
     // The terrain is a server read (elevation service); nothing goes on the mesh.
     expect(nonGets().every((u) => u.includes('/api/elevation/profile'))).toBe(true);
+  });
+
+  it('while GNSS DOP holds the bottom, a tap shows why nothing opens', async () => {
+    renderOverview('/overview/map', { phone: true });
+    const layers = within(await openPhoneSheet('Layers'));
+    fireEvent.click(layers.getByRole('switch', { name: 'GNSS DOP' }));
+    fireEvent.click(layers.getByRole('button', { name: 'Close' }));
+    fireEvent.click(await marker('KFR'));
+    expect(screen.getByText('Close GNSS DOP to inspect a node, route segment, neighbour link or trail')).toBeInTheDocument();
+    expect(screen.queryByTestId('analysis-inspector')).toBeNull();
+    expect(screen.queryByText(HINT)).toBeNull();
   });
 });

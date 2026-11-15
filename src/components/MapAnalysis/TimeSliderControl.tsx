@@ -6,7 +6,8 @@ import styles from './TimeSliderControl.module.css';
 const LIVE_THRESHOLD_MS = 60_000;
 const LIVE_TICK_MS = 10_000;
 
-export default function TimeSliderControl() {
+/** `docked`: the foot of the Workspace phone map's bottom dock (#6365). Classic passes nothing. */
+export default function TimeSliderControl({ docked = false }: { docked?: boolean } = {}) {
   const { config, setTimeSlider } = useMapAnalysisCtx();
   const [start, setStart] = useState<number>(
     config.timeSlider.windowStartMs ?? Date.now() - 86_400_000,
@@ -35,7 +36,7 @@ export default function TimeSliderControl() {
   const max = Date.now();
 
   return (
-    <div className={styles.slider} data-testid="time-slider">
+    <div className={docked ? `${styles.slider} ${styles.docked}` : styles.slider} data-testid="time-slider">
       <div className={styles.label}>
         Window: {new Date(start).toLocaleString()} <UiIcon name="forward" size={14} /> {new Date(end).toLocaleString()}
         {liveRef.current && <span className={styles.live}>(live)</span>}
