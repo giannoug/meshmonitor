@@ -5,7 +5,8 @@
  * "Last run … · from storage", the evidence preface, the summary tiles, the
  * filter bar, By issue / By node, and the sections with their tables, bulk
  * menus and Mute rule. On the phone the filter bar moves into a Filters
- * sheet (6-15). Run is a server-side analysis of stored data; nothing here
+ * sheet (6-15), and By issue lists findings as rows with a detail sheet
+ * (MeshIssuesPhoneSections, 6-09). Run is a server-side analysis of stored data; nothing here
  * sends on the mesh.
  */
 import { useState } from 'react';
@@ -20,6 +21,7 @@ import ByNodeView from '../../components/Analysis/meshIssues/ByNodeView';
 import type { MeshIssuesFilters } from '../../components/Analysis/meshIssueTypes';
 import Sheet from '../patterns/Sheet';
 import { useIsPhone } from '../shell/useIsPhone';
+import MeshIssuesPhoneSections from './MeshIssuesPhoneSections';
 import ReportFrame from './ReportFrame';
 import styles from './MeshIssuesPage.module.css';
 
@@ -121,6 +123,8 @@ export default function MeshIssuesPage() {
 
           {m.total === 0 ? (
             <p className={styles.banner}>{t('analysis.mesh_issues.empty', 'No mesh issues detected.')}</p>
+          ) : isPhone && m.viewState.view === 'byIssue' ? (
+            <MeshIssuesPhoneSections m={m} />
           ) : m.viewState.view === 'byIssue' ? (
             <ByIssueView
               summary={m.summary}
@@ -171,11 +175,14 @@ export default function MeshIssuesPage() {
         title={t('common.filters')}
         footer={
           <button type="button" className={styles.show} onClick={() => setFiltersOpen(false)}>
-            {t('workspace.reports.show_issues', { count: m.total })}
+            {/* No count while the summary reloads or failed: a stale or zero count would mislead. */}
+            {m.summary && !m.summaryQuery.isFetching
+              ? t('workspace.reports.show_issues', { count: m.total })
+              : t('workspace.reports.show_issues_plain')}
           </button>
         }
       >
-        {filterBar}
+        <div className={styles.sheetBody}>{filterBar}</div>
       </Sheet>
     </ReportFrame>
   );

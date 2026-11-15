@@ -21,20 +21,15 @@ const ROUTE = '/overview/reports/mesh-issues';
 
 describe('6-09-mesh-issues', () => {
   it('6-09-mesh-issues shows the board', async () => {
-    const { container } = renderReports(ROUTE, {
+    renderReports(ROUTE, {
       phone: true,
       meshIssuesView: { expandedTypes: ['B1_router_cluster'], filters: { ...DEFAULT_MESH_ISSUES_FILTERS, includeDismissed: true } },
     });
-    const header = await screen.findAllByRole('button', { name: /^B1 Router cluster/, expanded: true }, { timeout: 5000 });
-    const cluster = header[0].closest('section')!;
-    fireEvent.click(await within(cluster).findByRole('button', { name: 'Show details' }));
-    fireEvent.click(within(cluster).getByRole('button', { name: /^Bulk actions for/ }));
-    fireEvent.click(within(cluster).getByRole('menuitem', { name: 'Mute this rule' }));
-    await screen.findByRole('button', { name: 'Mute rule' });
-    // The bulk menu's items, as the sheet's Dismiss (one menu at a time on the board, D9c).
-    fireEvent.click(within(cluster).getByRole('button', { name: /^Bulk actions for/ }));
-    await within(cluster).findByRole('menuitem', { name: /^Dismiss all/ });
-    expectBoard('6-09-mesh-issues', container);
+    const list = await screen.findByRole('list', { name: 'B1 Router cluster' }, { timeout: 5000 });
+    fireEvent.click(within(list).getByText('Cluster of 2'));
+    await screen.findByRole('dialog');
+    // The page and its finding sheet (portalled to <body>), as the board draws them.
+    expectBoard('6-09-mesh-issues', document.body);
   });
 
   it('has its own header back to Reports, and no device header', async () => {

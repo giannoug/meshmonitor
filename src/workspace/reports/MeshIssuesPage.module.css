@@ -125,3 +125,18 @@
   margin: 0;
   color: var(--color-error);
 }
+
+/* Today's FilterBar in the phone sheet (6-15): its chips, check rows and search box as 44 px targets.
+   Element selectors under this class outrank FilterBar's single-class rules without touching them. */
+.sheetBody button,
+.sheetBody label,
+.sheetBody input[type='text'] {
+  box-sizing: border-box;
+  min-height: 44px;
+}
+
+.sheetBody button,
+.sheetBody label {
+  display: inline-flex;
+  align-items: center;
+}

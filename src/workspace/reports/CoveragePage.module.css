@@ -190,3 +190,17 @@
 [data-phone] .button {
   min-height: 44px;
 }
+
+/* Today's survey bar, receivers list and summary inside the phone panel (6-10): 44 px targets.
+   Element selectors under these classes outrank the parts' single-class rules without changing them. */
+.phoneBar button,
+.phoneBar select,
+.phoneBar input:not([type='checkbox']),
+.panel button,
+.panel select,
+.panel input:not([type='checkbox']),
+.panel label {
+  box-sizing: border-box;
+  min-height: 44px;
+}
+

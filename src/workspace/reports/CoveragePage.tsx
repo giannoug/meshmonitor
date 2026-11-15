@@ -285,10 +285,10 @@ export default function CoveragePage() {
     >
       {isPhone ? (
         <>
-          {surveyBar}
+          <div className={styles.phoneBar} data-testid="coverage-survey">{surveyBar}</div>
           {banners}
           {map}
-          <section className={styles.panel}>
+          <section className={styles.panel} data-testid="coverage-panel">
             {summary}
             <h2 className={styles.label}>{t('common.filters')}</h2>
             <CoverageControls c={c} />

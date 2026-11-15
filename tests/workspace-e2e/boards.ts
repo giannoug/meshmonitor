@@ -708,12 +708,16 @@ export const BOARDS: Board[] = [
     },
   },
   {
+    // The router cluster's finding sheet over the list, its map shown, as the board draws it.
     id: '6-09-mesh-issues',
     size: 'phone',
     path: '/overview/reports/mesh-issues',
     setup: async (page) => {
       await presetMeshIssues(page, ['B1_router_cluster'], {});
-      await showClusterDetails(page);
+      await page.getByRole('list', { name: 'B1 Router cluster' }).getByText('Cluster of 2').click();
+      const sheet = page.getByRole('dialog');
+      await sheet.getByRole('button', { name: 'Show map' }).click();
+      await sheet.locator('.leaflet-container').waitFor();
     },
   },
   {

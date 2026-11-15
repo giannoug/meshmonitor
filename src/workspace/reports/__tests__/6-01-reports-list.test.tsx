@@ -21,6 +21,8 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
   WebSocketProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
+// Leaflet's canvas renderer needs a 2D context jsdom lacks (the Coverage page is opened for the sidebar check).
+vi.mock('../../../components/Analysis/CoverageMap', () => ({ CoverageMap: () => <div data-testid="coverage-map" /> }));
 
 const en = JSON.parse(readFileSync(join(process.cwd(), 'public/locales/en.json'), 'utf8')) as Record<string, string>;
 const meshRow = () => screen.findByTestId('report-row-mesh-issues', {}, { timeout: 5000 });
@@ -42,7 +44,7 @@ describe('6-01-reports-list', () => {
     expect(within(list).getAllByRole('row')).toHaveLength(ANALYSIS_REPORTS.length + 1);
   });
 
-  it.each(['/overview/reports/mesh-issues', '/reports', '/reports/coverage'])('%s marks Reports as the current Overview row', async (route) => {
+  it.each(['/overview/reports/coverage', '/reports', '/reports/mesh-issues'])('%s marks Reports as the current Overview row', async (route) => {
     renderReports(route);
     const sidebar = await screen.findByRole('complementary', { name: 'Overview' });
     expect(await within(sidebar).findByRole('link', { name: 'Analysis & Reports' })).toHaveAttribute('aria-current', 'page');
