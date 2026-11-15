@@ -13,7 +13,9 @@ import { configurationNavItems, settingsNavItems } from '../../../components/sea
 import {
   CATEGORIES,
   SECTION_TO_CATEGORY,
+  categoryById,
   categoryIndex,
+  readOnlyFor,
   moduleAvailable,
   resolveSettingsPath,
   visibleCategories,
@@ -120,6 +122,36 @@ describe('categories', () => {
     expect(moduleAvailable('modules/neighbor', s)).toBe(true);
     expect(moduleAvailable('modules/statusmessage', { ...s, statusmessage: false })).toBe(false);
     expect(moduleAvailable('modules/audio', null)).toBe(true);
+  });
+
+  describe('View only follows the grant each category saves with', () => {
+    const only = (...grants: string[]) => ((r: string, a: string) => grants.includes(`${r}:${a}`)) as GateCtx['hasPermission'];
+    const ro = (id: string, ...grants: string[]) => readOnlyFor(categoryById(id), only(...grants), 's1');
+
+    it('radio categories and group indexes: configuration:write', () => {
+      expect(ro('lora', 'settings:write')).toBe(true);
+      expect(ro('lora', 'configuration:write')).toBe(false);
+      expect(readOnlyFor(undefined, only('configuration:write'), 's1')).toBe(false);
+    });
+
+    it('pki-dm saves with configuration:write, not settings:write', () => {
+      expect(ro('pki-dm', 'settings:write')).toBe(true);
+      expect(ro('pki-dm', 'configuration:write')).toBe(false);
+    });
+
+    it('the bridge setup uses the sources grant', () => {
+      expect(ro('mqtt-bridge', 'settings:write', 'configuration:write')).toBe(true);
+      expect(ro('mqtt-bridge', 'sources:write')).toBe(false);
+    });
+
+    it('notifications are the viewer\'s own, never View only', () => {
+      expect(ro('notifications')).toBe(false);
+    });
+
+    it('other MeshMonitor categories: settings:write', () => {
+      expect(ro('node-display', 'configuration:write')).toBe(true);
+      expect(ro('node-display', 'settings:write')).toBe(false);
+    });
   });
 
   it('categoryIndex lists every category with today\'s keywords', () => {

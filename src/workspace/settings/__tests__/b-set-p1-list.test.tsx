@@ -72,7 +72,14 @@ describe('b-set-p1-list', () => {
     });
     const nav = await list();
     await within(nav).findByRole('link', { name: /Node Identity/ });
-    expect(within(nav).getAllByText('View only')).toHaveLength(2);
+    // All of On the radio: one badge on the group.
+    const radioTitle = within(nav).getByText('On the radio').closest('h2')!;
+    expect(within(radioTitle).getByText('View only')).toBeInTheDocument();
+    // In MeshMonitor is mixed (Notifications is the viewer's own): a badge on each row they may only look at.
+    const mm = within(nav).getByRole('list', { name: 'In MeshMonitor' });
+    expect(within(within(nav).getByText('In MeshMonitor').closest('h2')!).queryByText('View only')).toBeNull();
+    expect(within(mm).getByRole('link', { name: /^Node Display/ })).toHaveTextContent('View only');
+    expect(within(mm).getByRole('link', { name: /^Notifications/ })).not.toHaveTextContent('View only');
   });
 
   it('a device with no radio lists only In MeshMonitor', async () => {

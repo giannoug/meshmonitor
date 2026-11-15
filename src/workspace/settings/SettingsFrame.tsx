@@ -87,7 +87,7 @@ function Frame({ sourceId, source, path: rest }: SettingsFrameProps) {
         categories={categories}
         sourceId={sourceId}
         target={LOCAL}
-        readOnly={readOnlyFor(def?.scope ?? 'radio', hasPermission, sourceId)}
+        readOnly={readOnlyFor(def, hasPermission, sourceId)}
       />
     );
   } else if (categories.length > 0) {

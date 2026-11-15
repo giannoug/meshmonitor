@@ -67,6 +67,7 @@ import ReliablePkiSection from '../../components/settings/ReliablePkiSection';
 import CoverageMqttRecordingSection from '../../components/settings/CoverageMqttRecordingSection';
 import MqttBridgeConfigurationView from '../../components/MQTT/MqttBridgeConfigurationView';
 import { useSource } from '../../contexts/SourceContext';
+import { canOpenSourceSettings } from '../../components/nav/sourceSettingsAccess';
 import type { DeviceConfigState } from '../../hooks/deviceConfig/useDeviceConfigState';
 import { useHashTarget } from '../rehost/useHashTarget';
 import { Redirect } from '../rehost/pages';
@@ -75,6 +76,8 @@ import { useSettingsCategory } from './kit/useFieldRegistry';
 import { useSharedDeviceConfig, type SharedDeviceConfig } from './sharedDeviceConfig';
 import '../../styles/settings.css';
 import styles from './ClassicCategories.module.css';
+// Today's Import/Export classes, so the reload button and warning look as on Device Configuration.
+import classic from '../../components/ConfigurationTab.module.css';
 
 type Stripped<T, P extends string> = {
   [K in keyof T as K extends `${P}${infer R}`
@@ -362,12 +365,19 @@ export function BackupCategory({ readOnly }: CategoryProps) {
             title={t('config.import_export_title')}
             description={t('config.import_export_description')}
             headerActions={
-              <button type="button" className={styles.button} onClick={() => void saves.reload()} disabled={state.isReloading}>
-                <UiIcon name="refresh" /> {t(state.isReloading ? 'config.reloading' : 'config.reload_config')}
+              <button type="button" className={classic.reloadButton} onClick={() => void saves.reload()} disabled={state.isReloading}>
+                {state.isReloading ? (
+                  <>
+                    <span className={classic.spin}><UiIcon name="refresh" /></span>
+                    {' '}{t('config.reloading')}
+                  </>
+                ) : (
+                  <><UiIcon name="refresh" /> {t('config.reload_config')}</>
+                )}
               </button>
             }
             notice={
-              <p className={styles.notice} role="note">
+              <p className={classic.pageWarning} role="note">
                 <UiIcon name="alert" /> <span>{t('config.warning_text')}</span>
               </p>
             }
@@ -381,27 +391,32 @@ export function BackupCategory({ readOnly }: CategoryProps) {
               </button>
             </div>
             {state.configChanges.length > 0 && (
-              <details className={styles.changes} open={state.showChanges} onToggle={(e) => state.setShowChanges(e.currentTarget.open)}>
-                <summary>{t('config.changes_detected', { count: state.configChanges.length })}</summary>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>{t('config.field')}</th>
-                      <th>{t('config.old_value')}</th>
-                      <th>{t('config.new_value')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {state.configChanges.map((change, i) => (
-                      <tr key={i}>
-                        <td>{change.field}</td>
-                        <td>{change.oldValue}</td>
-                        <td>{change.newValue}</td>
+              <div className={styles.changes}>
+                <button type="button" className={styles.button} onClick={() => state.setShowChanges(!state.showChanges)}>
+                  <span><UiIcon name={state.showChanges ? 'chevronDown' : 'forward'} /></span>
+                  {t('config.changes_detected', { count: state.configChanges.length })}
+                </button>
+                {state.showChanges && (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>{t('config.field')}</th>
+                        <th>{t('config.old_value')}</th>
+                        <th>{t('config.new_value')}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </details>
+                    </thead>
+                    <tbody>
+                      {state.configChanges.map((change, idx) => (
+                        <tr key={idx}>
+                          <td>{change.field}</td>
+                          <td className={styles.old}>{change.oldValue}</td>
+                          <td className={styles.new}>{change.newValue}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             )}
           </ConfigSection>
           <BackupManagementSection protocol="meshtastic" canWrite={!readOnly} />
@@ -440,6 +455,7 @@ export function DangerCategory({ readOnly, sourceId }: CategoryProps) {
         <>
           <DangerZone
             id="config-danger"
+            canWrite={!readOnly}
             description={t('config.danger_zone_description', 'These actions restart the node or erase data. They cannot be undone.')}
             footer={
               authStatus?.user?.isAdmin ? (
@@ -480,6 +496,7 @@ export function DangerCategory({ readOnly, sourceId }: CategoryProps) {
             confirmWord="PURGE"
             confirmLabel={t('config.purge_node_db')}
             danger
+            busy={state.isSaving}
             onConfirm={() => {
               setConfirm(null);
               void saves.purgeNodeDb();
@@ -569,13 +586,18 @@ export function SourceSettingsCategory({ scroll = true }: { scroll?: boolean }) 
   );
 }
 
-/** Today's Notifications tab, then the Settings page that holds Notifications & Security. */
+/**
+ * Today's Notifications tab, then the Settings page that holds Notifications
+ * & Security, which only a viewer who may open today's Settings tab sees
+ * (canOpenSourceSettings): the tab is open to every signed-in user, the page is not.
+ */
 export function NotificationsCategory() {
-  const { authStatus } = useAuth();
+  const { authStatus, hasPermission } = useAuth();
+  const { sourceType } = useSource();
   return (
     <>
       <NotificationsTab isAdmin={authStatus?.user?.isAdmin ?? false} />
-      <SourceSettingsCategory scroll={false} />
+      {canOpenSourceSettings(hasPermission, sourceType) && <SourceSettingsCategory scroll={false} />}
     </>
   );
 }

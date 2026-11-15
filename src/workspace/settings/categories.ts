@@ -214,9 +214,18 @@ export function firstSectionOf(categoryId: string): string | undefined {
   return Object.keys(SECTION_TO_CATEGORY).find((s) => SECTION_TO_CATEGORY[s] === categoryId);
 }
 
-/** Today's write gate for a scope on this device: without it the viewer may only look. */
-export function readOnlyFor(scope: CategoryDef['scope'], hasPermission: GateCtx['hasPermission'], sourceId: string): boolean {
-  return !hasPermission(scope === 'radio' ? 'configuration' : 'settings', 'write', { sourceId });
+/**
+ * Today's write gate for a category's controls on this device; without it the
+ * viewer may only look. A group index (no category) follows the radio's.
+ */
+export function readOnlyFor(def: CategoryDef | undefined, hasPermission: GateCtx['hasPermission'], sourceId: string): boolean {
+  // The viewer's own notification choices, open to every signed-in user.
+  if (def?.id === 'notifications') return false;
+  // The bridge setup saves to the source row (MqttBridgeConfigurationView checks sources:write).
+  if (def?.id === 'mqtt-bridge') return !hasPermission('sources', 'write');
+  // PKI DM decryption saves this source's configuration.
+  const configuration = !def || def.scope === 'radio' || def.id === 'pki-dm';
+  return !hasPermission(configuration ? 'configuration' : 'settings', 'write', { sourceId });
 }
 
 /** Categories this viewer may open on this device, in list order. */

@@ -122,3 +122,42 @@ describe('categories until Tasks 5.3–5.8: today\'s section', () => {
     expect(within(screen.getByRole('main')).getByText('View only')).toBeInTheDocument();
   });
 });
+
+describe('today\'s gates inside the placeholders', () => {
+  it('Notifications shows today\'s tab to a viewer without Settings, but not the Settings page', async () => {
+    const { container } = renderSettings(`${g2}/settings/notifications`, {
+      permissions: { bySource: { [SOURCE_IDS.g2]: { configuration: { read: true, write: true } } } },
+    });
+    await waitFor(() => expect(container.querySelector('#notif-services')).not.toBeNull(), { timeout: 10_000 });
+    await new Promise((r) => setTimeout(r, 300));
+    expect(container.querySelector('#settings-notifications')).toBeNull();
+    expect(within(screen.getByRole('main')).queryByText('View only')).toBeNull();
+  });
+
+  it('a viewer with Settings sees the Settings page under it', async () => {
+    const { container } = renderSettings(`${g2}/settings/notifications`, {
+      permissions: { bySource: { [SOURCE_IDS.g2]: { settings: { read: true, write: false } } } },
+    });
+    await waitFor(() => expect(container.querySelector('#settings-notifications')).not.toBeNull(), { timeout: 10_000 });
+    expect(container.querySelector('#notif-services')).not.toBeNull();
+  });
+
+  it('PKI DMs are View only without configuration:write, even with settings:write', async () => {
+    renderSettings(`${g2}/settings/pki-dm`, {
+      permissions: { bySource: { [SOURCE_IDS.g2]: { configuration: { read: true, write: false }, settings: { read: true, write: true } } } },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'PKI Direct Message Decryption' }, { timeout: 5000 });
+    expect(within(screen.getByRole('main')).getByText('View only')).toBeInTheDocument();
+  });
+
+  it('the danger zone is today\'s: off for a read-only viewer (DangerZone canWrite, buttons)', async () => {
+    const { container } = renderSettings(`${g2}/settings/maintenance/danger`, {
+      permissions: { bySource: { [SOURCE_IDS.g2]: { configuration: { read: true, write: false } } } },
+    });
+    const reboot = await screen.findByTestId('config-reboot-button', {}, { timeout: 10_000 });
+    expect(reboot).toBeDisabled();
+    expect(screen.getByTestId('config-purge-button')).toBeDisabled();
+    // DangerZone's canWrite={false} wraps its body in a disabled fieldset, as on Device Configuration.
+    expect(container.querySelector('[data-testid="danger-zone"]')!.closest('fieldset')).toBeDisabled();
+  });
+});

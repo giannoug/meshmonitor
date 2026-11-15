@@ -52,6 +52,8 @@ interface Row {
   active: boolean;
   chevron: boolean;
   child?: boolean;
+  /** The viewer may only look (shown per row when its group is mixed). */
+  readOnly: boolean;
 }
 
 export interface SettingsListProps {
@@ -85,6 +87,7 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
     active: open.categoryId === c.id,
     chevron: false,
     child,
+    readOnly: readOnlyFor(c, hasPermission, sourceId),
   });
 
   const pinned: Row[] = (Array.isArray(pins) ? pins : [])
@@ -104,6 +107,7 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
       tone: 'device',
       active: open.group === g,
       chevron: true,
+      readOnly: children.every((c) => readOnlyFor(c, hasPermission, sourceId)),
     });
     const openChild = children.find((c) => c.id === open.categoryId);
     if (variant === 'sidebar' && openGroup === g && openChild) radio.push(row(openChild, 'device', true));
@@ -139,24 +143,24 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
           rows={radio}
           sidebar={sidebar}
           onNavigate={onNavigate}
-          viewOnly={radio.length > 0 && readOnlyFor('radio', hasPermission, sourceId)}
         />
         <Section
           title={t('workspace.settings.in_meshmonitor')}
           rows={meshmonitor}
           sidebar={sidebar}
           onNavigate={onNavigate}
-          viewOnly={meshmonitor.length > 0 && readOnlyFor('meshmonitor', hasPermission, sourceId)}
         />
       </nav>
     </div>
   );
 }
 
-function Section({ title, rows, sidebar, viewOnly, onNavigate }: { title: string; rows: Row[]; sidebar: boolean; viewOnly?: boolean; onNavigate?: () => void }) {
+/** "View only" beside the group when the viewer may only look at all of it, else beside each such row. */
+function Section({ title, rows, sidebar, onNavigate }: { title: string; rows: Row[]; sidebar: boolean; onNavigate?: () => void }) {
   const { t } = useTranslation();
   const id = useId();
   if (rows.length === 0) return null;
+  const viewOnly = rows.every((r) => r.readOnly);
   return (
     <section className={styles.section}>
       <h2 className={styles.sectionTitle}>
@@ -180,6 +184,7 @@ function Section({ title, rows, sidebar, viewOnly, onNavigate }: { title: string
               )}
               {sidebar && r.tone === 'pin' && <UiIcon name="favorite" size={14} />}
               <span className={styles.label}>{r.label}</span>
+              {!viewOnly && r.readOnly && <span className={styles.viewOnly}>{t('workspace.settings.view_only')}</span>}
               {(r.chevron || !sidebar) && <UiIcon name="chevronRight" size={sidebar ? 16 : 20} />}
             </Link>
           </li>
