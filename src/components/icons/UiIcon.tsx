@@ -73,6 +73,7 @@ import {
   Maximize2,
   Menu,
   Minimize2,
+  Minus,
   Megaphone,
   MessageCircle,
   MessageSquare,
@@ -225,6 +226,7 @@ export const UI_ICON_DEFINITIONS = {
   pin: { lucide: Pin, emoji: '📌', usage: 'pinning and sticky state' },
   play: { lucide: Play, emoji: '▶️', usage: 'play and resume controls' },
   plus: { lucide: Plus, emoji: '➕', usage: 'add and create controls' },
+  minus: { lucide: Minus, emoji: '➖', usage: 'step a number down' },
   power: { lucide: Power, emoji: '⚡', usage: 'power controls' },
   radio: { lucide: Radio, emoji: '📻', usage: 'MeshCore and radio state' },
   // Three-state status dots (#4217 follow-up). Emoji counterparts are the

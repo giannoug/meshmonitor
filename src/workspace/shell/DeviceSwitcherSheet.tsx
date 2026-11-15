@@ -4,12 +4,13 @@
  * and unread (disabled ones drop out, note ds6), then Add device for admins.
  * On desktop the rail is the switcher.
  */
+import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { UiIcon } from '../../components/icons';
 import Sheet from '../patterns/Sheet';
 import TwoLineRow from '../patterns/TwoLineRow';
-import { isReceiveOnly, statusLabel } from './deviceTabs';
+import { deviceSquarePath, isReceiveOnly, statusLabel } from './deviceTabs';
 import type { WorkspaceSource } from './useWorkspaceSources';
 import styles from './DeviceSwitcherSheet.module.css';
 
@@ -33,6 +34,7 @@ const TYPE_KEYS: Record<string, string> = {
 
 export default function DeviceSwitcherSheet({ open, onClose, sources, openId, overviewActive }: DeviceSwitcherSheetProps) {
   const { t } = useTranslation();
+  const { pathname } = useLocation();
   const { authStatus } = useAuth();
   const isAdmin = authStatus?.authenticated === true && authStatus.user?.isAdmin === true;
 
@@ -63,7 +65,7 @@ export default function DeviceSwitcherSheet({ open, onClose, sources, openId, ov
             return (
               <TwoLineRow
                 key={s.id}
-                to={`/source/${encodeURIComponent(s.id)}`}
+                to={deviceSquarePath(pathname, sources.find((o) => o.id === openId), s)}
                 onClick={onClose}
                 active={current}
                 leading={

@@ -8,6 +8,7 @@ import { renumberedFixtures } from '../../src/workspace/node-page/__tests__/node
 import { captureOn } from '../../src/workspace/__fixtures__/packets';
 import { usersFixtures } from '../../src/workspace/__fixtures__/users';
 import type { FixtureHandler } from '../../src/workspace/__fixtures__/fixtureApi';
+import { deviceConfigFixtures } from '../../src/workspace/__fixtures__/deviceConfig';
 
 export interface Board {
   id: string;
@@ -18,6 +19,14 @@ export interface Board {
   /** Fixture overrides for this board (`routeFixtures`). */
   fixtures?: Partial<Record<string, FixtureHandler>>;
 }
+
+const PINS: Board['fixtures'] = {
+  ...deviceConfigFixtures,
+  'GET /api/user/preferences': () => ({
+    success: true,
+    data: { preferences: { ...athensFixture.userPreferences, 'settings.pins': ['modules/mqtt', 'modules/storeforward'] } },
+  }),
+};
 
 export const BOARDS: Board[] = [
   // Task 1.6 built the frame (rail + sidebar); Task 2.3 the channel list and the open channel.
@@ -1035,6 +1044,14 @@ export const BOARDS: Board[] = [
       await page.getByRole('dialog', { name: 'settings_updated' }).waitFor();
     },
   },
+  // Task 5.2: the device settings frame, its list and the Device / Modules indexes.
+  // Station G2's device configuration; the Pinned group shows from the user's pins (Task 5.4 adds pinning).
+  { id: 'b-set-p1-list', size: 'phone', path: '/source/src-g2/settings', fixtures: PINS },
+  { id: '12-06-device-index', size: 'desktop', path: '/source/src-g2/settings/device', fixtures: PINS },
+  { id: '12-22-device-index', size: 'phone', path: '/source/src-g2/settings/device', fixtures: deviceConfigFixtures },
+  { id: 'b-set-d2-modules', size: 'desktop', path: '/source/src-g2/settings/modules', fixtures: PINS },
+  { id: '12-07-modules-index', size: 'desktop', path: '/source/src-g2/settings/modules', fixtures: PINS },
+  { id: 'b-set-p4-modules', size: 'phone', path: '/source/src-g2/settings/modules', fixtures: deviceConfigFixtures },
 ];
 
 const ON_24H = { enabled: true, lookbackHours: 24 };

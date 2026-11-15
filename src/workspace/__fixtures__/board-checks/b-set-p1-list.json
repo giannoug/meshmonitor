@@ -1,10 +1,10 @@
 {
   "must": [
     "Search settings",
-    "PINNED",
-    "ON THE RADIO",
-    "IN MESHMONITOR",
-    "Node display",
+    "Pinned",
+    "On the radio",
+    "In MeshMonitor",
+    "Node Display",
     "Review",
     "Home",
     "DMs"

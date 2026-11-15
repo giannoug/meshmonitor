@@ -4,16 +4,11 @@
  * shows. Pure, so the whole table is testable without rendering. Paths are
  * router-relative (basename already stripped).
  */
-import type { TFunction } from 'i18next';
-import {
-  configurationNavItems,
-  GLOBAL_SETTINGS_SECTIONS,
-  hasDeviceConfigurationPage,
-  SOURCE_SETTINGS_SECTIONS,
-} from '../components/search/configSections';
+import { GLOBAL_SETTINGS_SECTIONS } from '../components/search/configSections';
 import { MESHCORE_VIEWS, type MeshCoreView } from '../components/MeshCore/meshCoreViewAccess';
 import { RETICULUM_VIEWS, type ReticulumView } from '../types/reticulum';
 import { classicFallback } from './layout/classicFallback';
+import { SECTION_TO_CATEGORY } from './settings/categories';
 
 type Loc = { pathname: string; hash: string; search: string };
 
@@ -39,9 +34,12 @@ export function workspaceRedirect(loc: Loc, { isAdmin = false }: { isAdmin?: boo
     const settings = `/source/${m[1]}/settings`;
     switch (m[2]) {
       case 'configuration':
-        return section.startsWith('config-') ? `${settings}/${section.slice('config-'.length)}` : settings;
-      case 'settings':
-        return section.startsWith('settings-') ? `${settings}/${section.slice('settings-'.length)}` : null;
+      case 'settings': {
+        // Each of today's sections has one category (settings/categories.ts).
+        const category = SECTION_TO_CATEGORY[section];
+        if (category) return `${settings}/${category}`;
+        return m[2] === 'configuration' ? settings : null;
+      }
       case 'admin':
         return `${settings}?node=`;
       default:
@@ -57,11 +55,6 @@ export function workspaceRedirect(loc: Loc, { isAdmin = false }: { isAdmin?: boo
   return null;
 }
 
-// Only the ids are read, so the labels need no translation.
-const CONFIG_SECTIONS = new Set(
-  configurationNavItems(((key: string) => key) as unknown as TFunction, { showFirmware: true }).map((i) => i.id),
-);
-
 /** The `#settings-<x>` section a `/preferences/<x>` or `/server/<x>` URL scrolls to, or '' for none. */
 export function globalSettingsHash(category: string): string {
   return GLOBAL_SETTINGS_SECTIONS.has(`settings-${category}`) ? `#settings-${category}` : '';
@@ -69,28 +62,15 @@ export function globalSettingsHash(category: string): string {
 
 /**
  * The location the re-hosted Meshtastic `App` sees for a Workspace source URL
- * (App picks its tab from the last path segment). `/settings[/<category>]`
- * goes to the Classic tab that holds the category, with its `#section`; other
- * Workspace-only paths go where `classicFallback` sends Classic users.
- *
- * shortcut: a category id both tabs use (telemetry, danger) opens the
- * Configuration one; Phase 5 replaces this with the Workspace settings frame.
+ * (App picks its tab from the last path segment): Workspace-only paths go
+ * where `classicFallback` sends Classic users. Device settings are the
+ * Workspace's own (Task 5.2); only the remote target (`?node=`) still opens
+ * today's Admin Commands, until Task 5.9.
  */
-export function classicSourceLocation(loc: Loc, sourceType: string | null | undefined): { pathname: string; hash: string } {
-  const m = loc.pathname.match(/^\/source\/([^/]+)\/settings(?:\/([^/]+))?/);
-  if (!m) return { pathname: classicFallback(loc.pathname) ?? loc.pathname, hash: loc.hash };
-  const base = `/source/${m[1]}`;
-  const category = m[2];
-  const device = hasDeviceConfigurationPage(sourceType);
-  if (new URLSearchParams(loc.search).has('node')) return { pathname: `${base}/admin`, hash: '' };
-  if (category === 'notifications') return { pathname: `${base}/notifications`, hash: '' };
-  if (device && CONFIG_SECTIONS.has(`config-${category}`)) {
-    return { pathname: `${base}/configuration`, hash: `#config-${category}` };
-  }
-  if (SOURCE_SETTINGS_SECTIONS.has(`settings-${category}`)) {
-    return { pathname: `${base}/settings`, hash: `#settings-${category}` };
-  }
-  return { pathname: device ? `${base}/configuration` : `${base}/settings`, hash: '' };
+export function classicSourceLocation(loc: Loc): { pathname: string; hash: string } {
+  const m = loc.pathname.match(/^\/source\/([^/]+)\/settings(?:\/|$)/);
+  if (m && new URLSearchParams(loc.search).has('node')) return { pathname: `/source/${m[1]}/admin`, hash: '' };
+  return { pathname: classicFallback(loc.pathname) ?? loc.pathname, hash: loc.hash };
 }
 
 const MESHCORE_ALIASES: Record<string, MeshCoreView> = { channel: 'channels', dm: 'dms', room: 'rooms', node: 'nodes' };

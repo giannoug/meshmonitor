@@ -193,7 +193,6 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
         {showSidebar && mode !== 'overview' && (
           <DeviceSidebar
             mode={mode}
-            sourceId={openId}
             source={source}
             onNavigate={() => setDrawerOpen(false)}
             onSearch={openSearch}

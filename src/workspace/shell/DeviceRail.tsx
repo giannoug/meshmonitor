@@ -5,12 +5,13 @@
  */
 import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import LoginModal from '../../components/LoginModal';
 import { UiIcon } from '../../components/icons';
 import { globalSettingsNav } from '../../components/nav/sourceNavEntries';
+import { deviceSquarePath } from './deviceTabs';
 import { abbrevOf, type WorkspaceSource } from './useWorkspaceSources';
 import styles from './DeviceRail.module.css';
 
@@ -26,6 +27,7 @@ const cx = (...names: Array<string | false>) => names.filter(Boolean).join(' ');
 
 export default function DeviceRail({ sources, openId, overviewActive, drawerToggle }: DeviceRailProps) {
   const { t } = useTranslation();
+  const { pathname } = useLocation();
   const { authStatus } = useAuth();
   const [loginOpen, setLoginOpen] = useState(false);
   const user = authStatus?.authenticated ? authStatus.user : null;
@@ -53,7 +55,7 @@ export default function DeviceRail({ sources, openId, overviewActive, drawerTogg
           return (
             <NavLink
               key={s.id}
-              to={`/source/${encodeURIComponent(s.id)}`}
+              to={deviceSquarePath(pathname, sources.find((o) => o.id === openId), s)}
               className={cx(styles.square, on && styles.on)}
               style={{ background: s.colorToken }}
               data-status={s.status}

@@ -47,14 +47,14 @@ function activeTab(pathname: string, mode: SidebarMode): PhoneTab {
 
 export default function PhoneShell({ sources, openId, home, mode, children }: PhoneShellProps) {
   const { t } = useTranslation();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const shell = useShellDevices();
   // Following a row (or any link) closes the switcher.
   useEffect(() => setSwitcherOpen(false), [pathname]);
 
   const source = sources.find((s) => s.id === openId);
-  // A Meshtastic conversation draws its own header (boards 10-06, 10-14; DMs 10-07), and so do the inbox (c-home-e3), Activity (c-home-e4), the full-screen map (g1-map), Nodes (g3-nodes), the node page (g4-node) and an MQTT device's packet monitor (18-04).
+  // A Meshtastic conversation draws its own header (boards 10-06, 10-14; DMs 10-07), and so do the inbox (c-home-e3), Activity (c-home-e4), the full-screen map (g1-map), Nodes (g3-nodes), the node page (g4-node), an MQTT device's packet monitor (18-04) and device settings (b-set-p1-list).
   const ownHeader =
     !!source &&
     isMeshtasticFamily(source.type) &&
@@ -65,7 +65,9 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
       !!matchPath('/source/:id/map', pathname) ||
       !!matchPath('/source/:id/nodes', pathname) ||
       !!matchPath('/source/:id/node/*', pathname) ||
-      (isMqttOnlySourceType(source.type) && !!matchPath('/source/:id/packetmonitor', pathname)));
+      (isMqttOnlySourceType(source.type) && !!matchPath('/source/:id/packetmonitor', pathname)) ||
+      // Device settings (b-set-p1-list, 12-22): the list and each page have Back; the remote target keeps today's page.
+      (!!matchPath('/source/:id/settings/*', pathname) && !new URLSearchParams(search).has('node')));
   // The all-devices map is full screen with its own Back, as the device map (5-08); Reports (6-08 … 6-10), Messages (7-06, 7-09), Users (13-18, q4) and the Audit log (16-03) draw their own header.
   const overviewMap = mode === 'overview' && (pathname === '/' || !!matchPath('/overview/map', pathname));
   const ownPageHeader = /^\/((overview\/)?(reports|users)|overview\/audit|(overview|unified)\/(messages|telemetry|packets))(\/|$)/.test(pathname);

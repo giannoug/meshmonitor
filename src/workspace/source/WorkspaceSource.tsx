@@ -10,8 +10,11 @@
  *   DmInbox, Activity (`activity`) its ActivityFeed (Task 2.8), the device map
  *   (`map`) its DeviceMap (Task 3.1), Nodes (`nodes`) its NodesPage (Task 3.3), an MQTT
  *   source's packet monitor (`packetmonitor`) its MqttReceptions (Task 4.7), and the bare
- *   source URL on a phone its PhoneHome (Task 2.6), with
- *   App not mounted (Ruling AD: one owner of the message state per screen).
+ *   source URL on a phone its PhoneHome (Task 2.6), and device settings
+ *   (`settings[/…]`, and the Classic URLs that redirect there) its
+ *   SettingsFrame (Task 5.2), with App not mounted (Ruling AD: one owner of
+ *   the message state per screen). The remote target (`settings?node=`) keeps
+ *   today's Admin Commands until Task 5.9.
  *   A desktop bare source URL keeps the re-hosted App.
  * - MeshCore / Reticulum: the view comes from the URL and view changes
  *   navigate. A MeshCore view the viewer may not open is replaced in the URL
@@ -81,6 +84,9 @@ const NODE_TABS: readonly string[] = ['telemetry', 'links', 'position', 'admin']
 /** `packetmonitor` on an MQTT source: the Workspace receptions page (Task 4.7); other sources keep today's until Task 8.5. */
 const MqttReceptions = lazy(() => import('../tools/MqttReceptions.tsx'));
 const PACKETS_PATH = /^packetmonitor\/?$/;
+/** `settings[/<category>[/<sub>]]`: the Workspace device settings (Task 5.2). */
+const SettingsFrame = lazy(() => import('../settings/SettingsFrame.tsx'));
+const SETTINGS_PATH = /^settings(\/|$)/;
 
 export default function WorkspaceSource() {
   const { t } = useTranslation();
@@ -94,7 +100,7 @@ export default function WorkspaceSource() {
   const base = `/source/${encodeURIComponent(sourceId)}`;
   const goToView = useCallback((view: string) => void navigate(`${base}/${view}`), [navigate, base]);
   // What the re-hosted App sees (Meshtastic family), and the hash the real URL needs for it.
-  const classic = classicSourceLocation(location, source?.type);
+  const classic = classicSourceLocation(location);
   const hashTarget = useHashTarget(classic.hash);
 
   // Every branch below renders its page next to any <Redirect>, never in its
@@ -141,6 +147,22 @@ export default function WorkspaceSource() {
   }
 
   if (source?.type === 'meshcore_mqtt') return <Rehost>{renderSourceApp(PAGES, sourceId, source, splat)}</Rehost>;
+
+  // Device settings. A Classic settings URL is fixed up beside the frame, which already shows its category.
+  if (source && !new URLSearchParams(location.search).has('node')) {
+    const redirect = workspaceRedirect(location);
+    const to = redirect && !redirect.includes('?node=') ? redirect : null;
+    if (to || SETTINGS_PATH.test(splat)) {
+      const path = (to ?? location.pathname).replace(/^\/source\/[^/]+\/settings\/?/, '');
+      return (
+        <Redirect to={to}>
+          <Rehost>
+            <SettingsFrame key={sourceId} sourceId={sourceId} source={source} path={path} />
+          </Rehost>
+        </Redirect>
+      );
+    }
+  }
 
   const chat = source && splat.match(CHAT_PATH);
   if (chat) {

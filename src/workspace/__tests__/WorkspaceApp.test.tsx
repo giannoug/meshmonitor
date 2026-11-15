@@ -48,6 +48,8 @@ vi.mock('../overview/OverviewHome', async () => ({ default: (await import('./pag
 // Overview › Messages and its export are the Workspace's own (Task 4.6); their tests live in overview/__tests__.
 vi.mock('../overview/OverviewMessages', async () => ({ default: (await import('./pageStub')).pageStub('overview-messages') }));
 vi.mock('../overview/ExportMessagesPage', async () => ({ default: (await import('./pageStub')).pageStub('export-messages') }));
+// Device settings are the Workspace's own frame (Task 5.2); their tests live in settings/__tests__.
+vi.mock('../settings/SettingsFrame', async () => ({ default: (await import('./pageStub')).pageStub('settings-frame') }));
 
 /** Shows the real URL, and navigates client-side when its input changes. */
 function RealUrl() {
@@ -102,8 +104,11 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     ['/server/general', 'global-settings'],
     // Nodes is the Workspace's own table and list, with App not mounted (Task 3.3, Ruling AD).
     [`${g2}/nodes`, 'nodes'],
-    [`${g2}/settings`, 'app'],
-    [`${g2}/settings/lora`, 'app'],
+    // Device settings are the Workspace's own frame, with App not mounted (Task 5.2, Ruling AD); the remote target keeps App.
+    [`${g2}/settings`, 'settings-frame'],
+    [`${g2}/settings/lora`, 'settings-frame'],
+    [`/source/${SOURCE_IDS.mqtt}/settings/node-display`, 'settings-frame'],
+    [`${g2}/settings?node=`, 'app'],
     // A node is the Workspace's own node page, with App not mounted (Task 3.4, Ruling AD).
     [`${g2}/node/!a1b2c301`, 'node-page'],
     [`${g2}/node/!a1b2c301/telemetry`, 'node-page'],
@@ -287,8 +292,8 @@ describe('redirects', () => {
     ['/settings#settings-language', true, '/preferences/language#settings-language'],
     ['/settings#settings-remote-admin', true, '/server/remote-admin#settings-remote-admin'],
     [`${g2}/configuration`, true, `${g2}/settings`],
-    [`${g2}/configuration#config-lora`, true, `${g2}/settings/lora#config-lora`],
-    [`${g2}/settings#settings-node-display`, true, `${g2}/settings/node-display#settings-node-display`],
+    [`${g2}/configuration#config-lora`, true, `${g2}/settings/lora`],
+    [`${g2}/settings#settings-node-display`, true, `${g2}/settings/node-display`],
     [`${g2}/admin`, true, `${g2}/settings?node=`],
     [`${g2}/notifications`, true, `${g2}/settings/notifications`],
   ])('%s (admin=%s) lands on %s', async (route, isAdmin, to) => {
@@ -297,11 +302,8 @@ describe('redirects', () => {
   });
 
   it.each([
-    [`${g2}/settings/lora`, `${g2}/configuration#config-lora`],
-    [`${g2}/settings/node-display`, `${g2}/settings#settings-node-display`],
-    [`${g2}/settings/notifications`, `${g2}/notifications`],
     [`${g2}/settings?node=`, `${g2}/admin`],
-    [`${g2}/settings`, `${g2}/configuration`],
+    [`${g2}/settings/lora?node=!a1b2c3d4`, `${g2}/admin`],
   ])('the re-hosted App at %s sees %s', async (route, seen) => {
     renderAt(route);
     await expectPage('app');
@@ -375,7 +377,7 @@ describe('unknown sources (Review Focus 4)', () => {
 
 describe('sockets (Ruling N)', () => {
   it.each([
-    [`${g2}/settings`, 'app'],
+    [`${g2}/channels`, 'app'],
     [`${heltec}/nodes`, 'meshcore'],
     [`${rns}/destinations`, 'reticulum'],
     ['/overview/reports', 'reports-route'],
@@ -386,13 +388,19 @@ describe('sockets (Ruling N)', () => {
     await (page === 'overview-map' || page === 'reports-route' ? screen.findByTestId(`page-${page}`) : expectPage(page));
     expect(container.querySelectorAll('[data-ws-provider]')).toHaveLength(1);
   });
+
+  it('device settings open no socket (nothing on them is live)', async () => {
+    const { container } = renderAt(`${g2}/settings/lora`);
+    await expectPage('settings-frame');
+    expect(container.querySelectorAll('[data-ws-provider]')).toHaveLength(0);
+  });
 });
 
 describe('re-hosted pages stay mounted while the URL is fixed up', () => {
   it.each([
-    [`${g2}/channels`, `${g2}/settings/lora`, `${g2}/settings/lora#config-lora`, 'app'],
-    [`${g2}/channels`, `${g2}/configuration`, `${g2}/settings`, 'app'],
-    [`${g2}/channels`, `${g2}/configuration#config-lora`, `${g2}/settings/lora#config-lora`, 'app'],
+    [`${g2}/settings/lora`, `${g2}/settings/modules/mqtt`, `${g2}/settings/modules/mqtt`, 'settings-frame'],
+    [`${g2}/settings/identity`, `${g2}/configuration`, `${g2}/settings`, 'settings-frame'],
+    [`${g2}/settings/identity`, `${g2}/configuration#config-lora`, `${g2}/settings/lora`, 'settings-frame'],
     ['/server/general', '/server/backup', '/server/backup#settings-backup', 'global-settings'],
     [`${heltec}/nodes`, `${heltec}/admin`, `${heltec}/nodes`, 'meshcore'],
     // The rail's Overview square (`/overview`) and the sidebar's All-devices map row (`/overview/map`).

@@ -95,3 +95,14 @@ export function useDeviceTab(source: WorkspaceSource | null | undefined): (key: 
     return name && visible.includes(GATE[key]) ? `${base}/${name}` : null;
   };
 }
+
+/**
+ * Where a device square (rail or switcher) leads from `pathname`: while in a
+ * device's settings, the same settings page on the other device, which opens
+ * its first category if it lacks this one (Task 5.2); otherwise the device.
+ */
+export function deviceSquarePath(pathname: string, current: { type: string } | undefined, target: { id: string; type: string }): string {
+  const device = `/source/${encodeURIComponent(target.id)}`;
+  const settings = pathname.match(/^\/source\/[^/]+\/(settings(?:\/.*)?)$/);
+  return settings && current && isMeshtasticFamily(current.type) && isMeshtasticFamily(target.type) ? `${device}/${settings[1]}` : device;
+}

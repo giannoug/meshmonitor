@@ -9,8 +9,9 @@
  *   channels and DM conversations (Task 2.3); other types link to today's
  *   tabs. "Message a node" opens the DM inbox (Meshtastic family, Task 2.6)
  *   or today's DM tab.
- * - `settings` / `server` / `you`: the categories of the re-hosted settings
- *   pages, as links to their Workspace URLs (Phases 5 and 6 rebuild them).
+ * - `settings`: the device's settings list (Task 5.2, SettingsList).
+ * - `server` / `you`: the categories of the re-hosted settings pages, as
+ *   links to their Workspace URLs (Phase 6 rebuilds them).
  * - `overview` is OverviewSidebar's (Task 4.1).
  *
  * Rows follow today's permission gates, read with the same rules as MeshCore's
@@ -22,13 +23,10 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { UiIcon, type UiIconName } from '../../components/icons';
 import { deviceConfigurationNav, globalSettingsNav, mapNav } from '../../components/nav/sourceNavEntries';
-import {
-  configurationNavItems,
-  hasDeviceConfigurationPage,
-  settingsNavItems,
-} from '../../components/search/configSections';
+import { settingsNavItems } from '../../components/search/configSections';
 import { PREFERENCE_CATEGORIES } from '../routes';
 import SidebarSection from './SidebarSection';
+import SettingsList from '../settings/SettingsList';
 import { canReadMessages, isMeshtasticFamily, statusLabel, useDeviceTab } from './deviceTabs';
 import ActivityPanel from '../activity/ActivityPanel';
 import ChannelList from '../chat/ChannelList';
@@ -47,7 +45,6 @@ interface Row {
 
 interface DeviceSidebarProps {
   mode: SidebarMode;
-  sourceId: string | null;
   source: WorkspaceSource | undefined;
   /** Called after a row is followed (closes the drawer). */
   onNavigate?: () => void;
@@ -55,11 +52,10 @@ interface DeviceSidebarProps {
   onSearch?: (() => void) | null;
 }
 
-export default function DeviceSidebar({ mode, sourceId, source, onNavigate, onSearch }: DeviceSidebarProps) {
+export default function DeviceSidebar({ mode, source, onNavigate, onSearch }: DeviceSidebarProps) {
   const { t } = useTranslation();
   const { authStatus, hasPermission } = useAuth();
   const isAdmin = authStatus?.authenticated === true && authStatus.user?.isAdmin === true;
-  const base = sourceId ? `/source/${encodeURIComponent(sourceId)}` : '';
   const tab = useDeviceTab(source);
 
   const list = (rows: Row[]) => (
@@ -90,25 +86,11 @@ export default function DeviceSidebar({ mode, sourceId, source, onNavigate, onSe
   const header = <DeviceHeader source={source} />;
 
   if (mode === 'settings') {
-    const items = [
-      ...(hasDeviceConfigurationPage(source.type) ? configurationNavItems(t, { showFirmware: isAdmin }) : []),
-      ...settingsNavItems(t, {
-        mode: 'source',
-        isAdmin,
-        canWriteSettings: hasPermission('settings', 'write', { sourceId: source.id }),
-        sourceType: source.type,
-        canReadSources: hasPermission('sources', 'read'),
-        canReadConfiguration: hasPermission('configuration', 'read', { sourceId: source.id }),
-      }),
-    ];
-    const seen = new Set<string>();
-    const rows = items.flatMap((item) => {
-      const cat = item.id.replace(/^(config|settings)-/, '');
-      if (seen.has(cat)) return [];
-      seen.add(cat);
-      return [{ to: `${base}/settings/${cat}`, label: item.label }];
-    });
-    return <Frame title={source.name} header={header}>{list(rows)}</Frame>;
+    return (
+      <aside className={styles.sidebar} aria-label={source.name}>
+        <SettingsList sourceId={source.id} sourceName={source.name} sourceType={source.type} variant="sidebar" onNavigate={onNavigate} />
+      </aside>
+    );
   }
 
   // Device mode.

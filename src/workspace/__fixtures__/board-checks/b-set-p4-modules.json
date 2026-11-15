@@ -10,7 +10,7 @@
     "Serial",
     "Store & Forward",
     "Traffic Management",
-    "Hidden: Paxcounter, Audio, TAK (not supported here).",
+    "Hidden: Audio (Codec2), Paxcounter, TAK (not supported here).",
     "Why?"
   ],
   "absent": [

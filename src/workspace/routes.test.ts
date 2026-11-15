@@ -16,7 +16,12 @@ describe('workspaceRedirect', () => {
   it.each([
     // Classic #section deep links land on the category.
     ['/source/s1/configuration#config-lora', false, '/source/s1/settings/lora'],
-    ['/source/s1/configuration#config-node-identity', false, '/source/s1/settings/node-identity'],
+    ['/source/s1/configuration#config-node-identity', false, '/source/s1/settings/identity'],
+    ['/source/s1/configuration#config-mqtt', false, '/source/s1/settings/modules/mqtt'],
+    ['/source/s1/configuration#config-import-export', false, '/source/s1/settings/maintenance/backup'],
+    ['/source/s1/settings#settings-reset-ui', false, '/source/s1/settings/data'],
+    // A section id finds its category whichever retired tab carried it.
+    ['/source/s1/settings#config-lora', false, '/source/s1/settings/lora'],
     ['/source/s1/settings#settings-node-display', false, '/source/s1/settings/node-display'],
     ['/source/s1/settings#settings-mqtt-bridge', false, '/source/s1/settings/mqtt-bridge'],
     ['/settings#settings-language', true, '/preferences/language'],
@@ -52,7 +57,7 @@ describe('workspaceRedirect', () => {
 
   it.each([
     '/', '/source/s1/nodes', '/source/s1/settings', '/source/s1/settings/lora#config-lora',
-    '/source/s1/settings#config-lora', '/overview/reports', '/preferences/units', '/server/general',
+    '/overview/reports', '/preferences/units', '/server/general',
   ])('leaves %s alone', (url) => {
     expect(workspaceRedirect(loc(url), { isAdmin: true })).toBeNull();
   });
@@ -60,22 +65,17 @@ describe('workspaceRedirect', () => {
 
 describe('classicSourceLocation (what App sees for a Workspace URL)', () => {
   it.each([
-    ['/source/s1/settings', 'meshtastic_tcp', '/source/s1/configuration', ''],
-    ['/source/s1/settings', 'mqtt_broker', '/source/s1/settings', ''],
-    ['/source/s1/settings/lora', 'meshtastic_tcp', '/source/s1/configuration', '#config-lora'],
-    ['/source/s1/settings/lora/presets', 'meshtastic_tcp', '/source/s1/configuration', '#config-lora'],
-    ['/source/s1/settings/node-display', 'meshtastic_tcp', '/source/s1/settings', '#settings-node-display'],
-    ['/source/s1/settings/notifications', 'meshtastic_tcp', '/source/s1/notifications', ''],
-    ['/source/s1/settings?node=', 'meshtastic_tcp', '/source/s1/admin', ''],
-    ['/source/s1/settings/lora?node=!a1b2c3d4', 'meshtastic_tcp', '/source/s1/admin', ''],
-    ['/source/s1/node/!a1b2c3d4/telemetry', 'meshtastic_tcp', '/source/s1/messages', ''],
-    ['/source/s1/dm/!a1b2c3d4', 'meshtastic_tcp', '/source/s1/messages', ''],
-    ['/source/s1/channel/2', 'meshtastic_tcp', '/source/s1/channels', ''],
-    ['/source/s1/dms', 'meshtastic_tcp', '/source/s1/messages', ''],
-    ['/source/s1/nodes', 'meshtastic_tcp', '/source/s1/nodes', ''],
-    ['/source/s1/', 'meshtastic_tcp', '/source/s1/', ''],
-  ])('%s on %s → %s%s', (url, type, pathname, hash) => {
-    expect(classicSourceLocation(loc(url), type)).toEqual({ pathname, hash });
+    // Device settings are the Workspace's own; only the remote target still opens Admin Commands (Task 5.9).
+    ['/source/s1/settings?node=', '/source/s1/admin', ''],
+    ['/source/s1/settings/lora?node=!a1b2c3d4', '/source/s1/admin', ''],
+    ['/source/s1/node/!a1b2c3d4/telemetry', '/source/s1/messages', ''],
+    ['/source/s1/dm/!a1b2c3d4', '/source/s1/messages', ''],
+    ['/source/s1/channel/2', '/source/s1/channels', ''],
+    ['/source/s1/dms', '/source/s1/messages', ''],
+    ['/source/s1/nodes', '/source/s1/nodes', ''],
+    ['/source/s1/', '/source/s1/', ''],
+  ])('%s → %s%s', (url, pathname, hash) => {
+    expect(classicSourceLocation(loc(url))).toEqual({ pathname, hash });
   });
 });
 

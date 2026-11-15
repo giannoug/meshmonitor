@@ -1,7 +1,6 @@
 {
   "must": [
     "⌘,",
-    "AVAILABLE",
     "Canned Messages",
     "Detection Sensor",
     "External Notification",
@@ -10,7 +9,6 @@
     "Range Test",
     "Serial",
     "Traffic Management",
-    "Why?",
     "Search settings"
   ],
   "absent": [
