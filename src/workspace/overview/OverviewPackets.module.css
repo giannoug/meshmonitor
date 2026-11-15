@@ -289,7 +289,7 @@
 }
 
 .body[data-panel] {
-  grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-columns: minmax(0, 1fr) 280px;
 }
 
 .streamCol {

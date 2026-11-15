@@ -31,7 +31,11 @@ function safeJsonParse<T>(value: string | null, fallback: T): T {
 export type RangeHours = 1 | 24 | 0; // 0 = all
 export const RANGE_OPTIONS: RangeHours[] = [1, 24, 0];
 
-export function useUnifiedPacketMonitor() {
+/**
+ * `chartsShown`: the caller shows the charts somewhere other than the `showCharts` block (the
+ * Workspace's phone Charts sheet), so they load without writing the shared `showCharts` key.
+ */
+export function useUnifiedPacketMonitor({ chartsShown = false }: { chartsShown?: boolean } = {}) {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
 
@@ -106,7 +110,7 @@ export function useUnifiedPacketMonitor() {
   // ── Distribution charts ──────────────────────────────────────────────────
   const [distribution, setDistribution] = useState<UnifiedPacketDistribution | null>(null);
   useEffect(() => {
-    if (!canView || !showCharts) return;
+    if (!canView || !(showCharts || chartsShown)) return;
     let cancelled = false;
     const fetchDist = async () => {
       try {
@@ -120,7 +124,7 @@ export function useUnifiedPacketMonitor() {
     void fetchDist();
     const iv = paused ? undefined : setInterval(fetchDist, 30000);
     return () => { cancelled = true; if (iv) clearInterval(iv); };
-  }, [canView, showCharts, rangeHours, paused]);
+  }, [canView, showCharts, chartsShown, rangeHours, paused]);
 
   const bySourceData: ChartDataEntry[] = useMemo(
     () => (distribution?.bySource ?? []).map((s) => ({

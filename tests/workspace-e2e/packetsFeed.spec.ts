@@ -48,3 +48,31 @@ test('the pop-out window: the panel keeps the reader\'s place in the table', asy
   await page.getByRole('row').nth(5).waitFor();
   await scrollAndOpen(page, 32);
 });
+
+/** With the raw packet panel open at the board's 1280 px, # … Content sit inside the table's visible width (7-05, 18-01). */
+async function contentFits(page: Page) {
+  const [content, box] = await Promise.all([
+    page.getByRole('columnheader', { name: 'Content' }).boundingBox(),
+    scroller(page).boundingBox(),
+  ]);
+  expect(content!.width).toBeGreaterThan(40);
+  expect(content!.x + content!.width).toBeLessThanOrEqual(box!.x + box!.width + 0.5);
+}
+
+test('Overview › Packets: # through Content fit beside the open panel', async ({ page }) => {
+  await routeFixtures(page, captureOn);
+  await page.goto('/overview/packets');
+  await page.getByRole('row').filter({ hasText: 'Hearing you direct from Marousi' }).first().click();
+  await page.getByRole('complementary', { name: /Raw packet/ }).waitFor();
+  await contentFits(page);
+  await expect(page.getByRole('button', { name: /4 more columns/ })).toBeVisible();
+});
+
+test('the pop-out window: # through Content fit beside the open panel, the rest behind the cue', async ({ page }) => {
+  await routeFixtures(page, captureOn);
+  await page.goto('/packet-monitor');
+  await page.getByRole('row').filter({ hasText: 'Hearing you direct from Marousi' }).first().click();
+  await page.getByRole('complementary', { name: /Raw packet/ }).waitFor();
+  await contentFits(page);
+  await expect(page.getByRole('button', { name: /4 more columns/ })).toBeVisible();
+});

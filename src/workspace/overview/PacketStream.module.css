@@ -13,12 +13,23 @@
   overflow: auto;
 }
 
+/*
+ * # … Content share the scroller's visible width (From, To and Content take what the fixed columns
+ * leave), so they fit beside the raw packet panel at 1280 px, as 7-05 and 18-01 draw. With the cue,
+ * the table is four column widths wider: Date, Slot, RSSI and Size sit right of the visible width.
+ */
 .table {
-  min-width: 1240px;
+  --more-col: 64px;
   width: 100%;
+  min-width: 560px;
   border-collapse: collapse;
   table-layout: fixed;
-  font-size: 14px;
+  font-size: 13px;
+}
+
+.table[data-more='behind'] {
+  width: calc(100% + 4 * var(--more-col));
+  min-width: calc(560px + 4 * var(--more-col));
 }
 
 .table th {
@@ -26,44 +37,32 @@
   top: 0;
   z-index: 1;
   height: 40px;
-  padding: 0 8px;
+  padding: 0 5px;
   background: var(--color-bg);
   border-bottom: 1px solid var(--color-surface);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.03em;
   text-align: left;
   text-transform: uppercase;
   color: var(--color-text-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* #, Dir, Via, Time, From, To, Type, SNR, Hops, Content, Date, Slot, RSSI, Size; Source after # when shown. */
-.table th:nth-child(1) { width: 56px; }
-.table th:nth-child(2) { width: 48px; }
-.table th:nth-child(3) { width: 64px; }
-.table th:nth-child(4) { width: 64px; }
-.table th:nth-child(5),
-.table th:nth-child(6) { width: 150px; }
-.table th:nth-child(7) { width: 150px; }
-.table th:nth-child(8) { width: 70px; }
-.table th:nth-child(9) { width: 70px; }
-.table[data-source] th:nth-child(2) { width: 72px; }
-.table[data-source] th:nth-child(3) { width: 48px; }
-.table[data-source] th:nth-child(4) { width: 64px; }
-.table[data-source] th:nth-child(5) { width: 64px; }
-.table[data-source] th:nth-child(6),
-.table[data-source] th:nth-child(7) { width: 150px; }
-.table[data-source] th:nth-child(8) { width: 150px; }
-.table[data-source] th:nth-child(9),
-.table[data-source] th:nth-child(10) { width: 70px; }
-
-.table th.contentCol { width: 260px; }
-
-.table th:nth-last-child(-n + 4) { width: 80px; }
+.colNum { width: 32px; }
+.colSource { width: 52px; }
+.colDir { width: 36px; }
+.colVia { width: 50px; }
+.colTime { width: 56px; }
+.colType { width: 88px; }
+.colNarrow { width: 44px; }
+.colMore { width: var(--more-col); }
 
 .table td {
   height: 44px;
-  padding: 0 8px;
+  padding: 0 5px;
   border-bottom: 1px solid var(--color-surface);
   overflow: hidden;
   text-overflow: ellipsis;

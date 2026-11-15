@@ -77,6 +77,26 @@ describe('7-08-packets', () => {
     expect(within(sheet).getByRole('group', { name: 'Time range' })).toBeInTheDocument();
   });
 
+  it('Escape with the relay estimate open closes only the estimate, not the raw packet sheet (Ruling CR)', async () => {
+    renderPage('/overview/packets', { phone: true });
+    fireEvent.click(await packetRow('Nikos T-Echo'));
+    const sheet = await screen.findByRole('dialog', { name: 'Raw packet #4821' });
+    fireEvent.click(within(sheet).getByRole('button', { name: 'via 0x12' }));
+    await screen.findByText('Message Relay Information');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByText('Message Relay Information')).toBeNull());
+    expect(screen.getByRole('dialog', { name: 'Raw packet #4821' })).toBeInTheDocument();
+  });
+
+  it('the Charts sheet draws the charts even when the charts are off on desktop (shared setting untouched)', async () => {
+    renderPage('/overview/packets', { phone: true, storage: { 'unifiedPacketMonitor.showCharts': 'false' } });
+    await packetRow('Nikos T-Echo');
+    fireEvent.click(screen.getByRole('button', { name: 'Charts' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Charts' });
+    expect(await within(within(sheet).getByRole('region', { name: 'By Source' })).findByText('612')).toBeInTheDocument();
+    expect(localStorage.getItem('unifiedPacketMonitor.showCharts')).toBe('false');
+  });
+
   it('Pause sits in the top bar', async () => {
     renderPage('/overview/packets', { phone: true });
     await packetRow('Nikos T-Echo');

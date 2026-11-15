@@ -822,6 +822,17 @@ describe('ApiService BASE_URL Support', () => {
       );
     });
 
+    it('getDirectNeighborStats scopes to a source when given one', async () => {
+      mockFetch.mockResolvedValue(createMockResponse({ success: true, data: {} }));
+
+      await apiService.getDirectNeighborStats(24, 'src a');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/direct-neighbors?hours=24&sourceId=src%20a',
+        expect.objectContaining({ credentials: 'include' })
+      );
+    });
+
     it('getLongestActiveRouteSegment should call route segment endpoint', async () => {
       mockFetch.mockResolvedValue(createMockResponse({ segment: null }));
 

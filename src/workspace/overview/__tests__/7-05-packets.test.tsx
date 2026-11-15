@@ -82,7 +82,8 @@ describe('7-05-packets', () => {
     const panel = await screen.findByRole('complementary', { name: 'Raw packet #4821' });
     fireEvent.click(within(panel).getByRole('button', { name: 'via 0x12' }));
     expect(await screen.findByText('Message Relay Information')).toBeInTheDocument();
-    expect(fetched().some((u) => u.includes('/api/direct-neighbors?hours=24'))).toBe(true);
+    // The packet's own device's direct neighbours, not every readable device's pooled.
+    expect(fetched().some((u) => u.includes('/api/direct-neighbors?hours=24&sourceId=src-g2'))).toBe(true);
   });
 
   it('the panel shows today\'s packet markers: XEdDSA signed, decrypted by device or server, and the spoof warning', async () => {

@@ -218,11 +218,12 @@ export default function OverviewPackets() {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const { loading: authLoading } = useAuth();
-  const m = useUnifiedPacketMonitor();
+  const [chartsOpen, setChartsOpen] = useState(false);
+  // The phone's Charts sheet loads the charts while open, whatever the shared showCharts says.
+  const m = useUnifiedPacketMonitor({ chartsShown: isPhone && chartsOpen });
   const readable = useReadableSourceIds();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [chartsOpen, setChartsOpen] = useState(false);
 
   const packets = useMemo(() => m.packets.filter((p) => readable.has(p.sourceId ?? '')), [m.packets, readable]);
   const sources = useMemo(() => m.sources.filter((s) => readable.has(s.id)), [m.sources, readable]);

@@ -275,7 +275,7 @@ function PopoutWindow() {
       <div className={styles.body} data-panel={selected ? '' : undefined}>
         <div className={styles.streamCol}>
           {states}
-          {m.packets.length > 0 && <PacketTable {...stream} />}
+          {m.packets.length > 0 && <PacketTable {...stream} moreCue />}
         </div>
         {detail}
       </div>

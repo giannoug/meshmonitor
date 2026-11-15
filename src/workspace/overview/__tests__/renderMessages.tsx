@@ -11,11 +11,14 @@ import WorkspaceApp from '../../WorkspaceApp';
 
 export interface MessagesOptions extends RenderWorkspaceOptions {
   channel?: string;
+  /** localStorage entries preset before the render (raw strings), as a returning user has them. */
+  storage?: Record<string, string>;
 }
 
 export function renderMessages(route = '/overview/messages', opts: MessagesOptions = {}) {
   localStorage.clear();
   if (opts.channel) localStorage.setItem(UNIFIED_CHANNEL_STORAGE_KEY, opts.channel);
+  for (const [k, v] of Object.entries(opts.storage ?? {})) localStorage.setItem(k, v);
   onTestFinished(() => localStorage.clear());
   return renderWorkspace(<WorkspaceApp />, { route, ...opts });
 }

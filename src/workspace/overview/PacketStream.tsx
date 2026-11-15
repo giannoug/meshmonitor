@@ -95,21 +95,21 @@ export function PacketTable({
   return (
     <div className={styles.tableWrap}>
       <div className={styles.scroll} ref={scrollRef} data-testid="packet-table-scroll">
-        <table className={styles.table} data-source={withSource ? '' : undefined}>
+        <table className={styles.table} data-more={moreCue ? 'behind' : undefined}>
           <thead>
             <tr>
-              <th scope="col">#</th>
-              {withSource && <th scope="col">{t('unified.packets.column_source')}</th>}
-              <th scope="col">{t('packet_monitor.column.dir')}</th>
-              <th scope="col">{t('packet_monitor.column.via')}</th>
-              <th scope="col">{t('packet_monitor.column.time')}</th>
+              <th scope="col" className={styles.colNum}>#</th>
+              {withSource && <th scope="col" className={styles.colSource}>{t('unified.packets.column_source')}</th>}
+              <th scope="col" className={styles.colDir}>{t('packet_monitor.column.dir')}</th>
+              <th scope="col" className={styles.colVia}>{t('packet_monitor.column.via')}</th>
+              <th scope="col" className={styles.colTime}>{t('packet_monitor.column.time')}</th>
               <th scope="col">{t('packet_monitor.column.from')}</th>
               <th scope="col">{t('packet_monitor.column.to')}</th>
-              <th scope="col">{t('packet_monitor.column.type')}</th>
-              <th scope="col">{t('packet_monitor.column.snr')}</th>
-              <th scope="col">{t('packet_monitor.column.hops')}</th>
-              <th scope="col" className={styles.contentCol}>{t('packet_monitor.column.content')}</th>
-              {more.map((label) => <th key={label} scope="col">{label}</th>)}
+              <th scope="col" className={styles.colType}>{t('packet_monitor.column.type')}</th>
+              <th scope="col" className={styles.colNarrow}>{t('packet_monitor.column.snr')}</th>
+              <th scope="col" className={styles.colNarrow}>{t('packet_monitor.column.hops')}</th>
+              <th scope="col">{t('packet_monitor.column.content')}</th>
+              {more.map((label) => <th key={label} scope="col" className={styles.colMore}>{label}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -144,7 +144,7 @@ export function PacketTable({
                   <td><TypeBadge packet={p} meshcore={!!p.sourceId && !!meshcoreSourceIds?.has(p.sourceId)} /></td>
                   <td>{p.snr != null ? p.snr.toFixed(1) : text.na}</td>
                   <td>{hops !== null ? `${hops}/${p.hop_start}` : text.na}</td>
-                  <td className={styles.contentCol} title={text.content(p)}>{text.content(p)}</td>
+                  <td title={text.content(p)}>{text.content(p)}</td>
                   <td>{formatPacketDateColumn(p.timestamp, dateFormat, t('packet_monitor.today', 'Today'))}</td>
                   <td>{packetSlot(p, text.na)}</td>
                   <td>{p.rssi != null ? p.rssi.toFixed(0) : text.na}</td>

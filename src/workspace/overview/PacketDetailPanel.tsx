@@ -44,14 +44,15 @@ function RelayModal({ packet, onClose }: { packet: PacketLog; onClose(): void })
   useEffect(() => {
     let cancelled = false;
     apiService
-      .getDirectNeighborStats(24)
+      // The packet's own device: pooled stats would rank its relays by another device's neighbours.
+      .getDirectNeighborStats(24, packet.sourceId)
       .then((s) => !cancelled && setStats(s))
       .catch((error) => {
         console.error('Failed to fetch direct neighbor stats:', error);
         if (!cancelled) setStats({});
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [packet.sourceId]);
   if (!stats) return null;
   return (
     <RelayNodeModal
@@ -162,7 +163,8 @@ export default function PacketDetailPanel({ packet: p, onClose, meshcore = false
 
   if (isPhone) {
     return (
-      <Sheet open onClose={onClose} title={title}>
+      // Escape reaches every open dialog; while the relay estimate is open over this sheet, only it closes (Ruling CR).
+      <Sheet open onClose={() => (relayOpen ? setRelayOpen(false) : onClose())} title={title}>
         <div className={styles.sheetBody}>
           <TypeBadge packet={p} meshcore={meshcore} />
           {body}

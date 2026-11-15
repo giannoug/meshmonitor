@@ -1351,9 +1351,11 @@ class ApiService {
     return data.nodes || [];
   }
 
-  async getDirectNeighborStats(hoursBack: number = 24): Promise<Record<number, { avgRssi: number; packetCount: number; lastHeard: number }>> {
+  /** `sourceId` scopes the stats to one source; without it the server pools every readable source. */
+  async getDirectNeighborStats(hoursBack: number = 24, sourceId?: string): Promise<Record<number, { avgRssi: number; packetCount: number; lastHeard: number }>> {
     await this.ensureBaseUrl();
-    const response = await fetch(`${this.baseUrl}/api/direct-neighbors?hours=${hoursBack}`, {
+    const scope = sourceId ? `&sourceId=${encodeURIComponent(sourceId)}` : '';
+    const response = await fetch(`${this.baseUrl}/api/direct-neighbors?hours=${hoursBack}${scope}`, {
       credentials: 'include',
     });
     if (!response.ok) {
