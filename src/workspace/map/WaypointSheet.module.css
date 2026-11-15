@@ -115,6 +115,10 @@
   color: var(--color-error);
 }
 
+.pad {
+  padding: 0 20px 8px;
+}
+
 .dangerTitle {
   display: inline-flex;
   align-items: center;

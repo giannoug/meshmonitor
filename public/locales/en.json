@@ -8707,7 +8707,7 @@
   "workspace.map_edit.add_marker": "Add local marker here",
   "workspace.map_edit.add_marker_hint": "A note on your map; never sent to the mesh",
   "workspace.map_edit.measure": "Measure from here",
-  "workspace.map_edit.measure_hint": "Turns on Measure Distance: click two points; snaps to nodes",
+  "workspace.map_edit.measure_hint": "Click a second point; snaps to nodes",
   "workspace.waypoint.new_title": "New waypoint",
   "workspace.waypoint.edit_title": "Edit waypoint",
   "workspace.waypoint.name": "Name (≤29 bytes)",

@@ -4,7 +4,7 @@
  * today's save), a right sheet from 768 px and a bottom sheet below. A local
  * marker is stored in MeshMonitor only and never sent to the mesh.
  */
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NumberInput } from '../../components/common/NumberInput';
 import { NumberInputScope } from '../../components/common/NumberInputScope';
@@ -97,6 +97,7 @@ export default function LocalMarkerSheet({ open, initial, defaultCoords, onClose
 /** Delete a local marker: today's question, in a plain confirm. It sends nothing. */
 export function DeleteMarkerSheet({ marker, onClose, onDelete }: { marker: MapMarker | null; onClose(): void; onDelete(m: MapMarker): Promise<unknown> }) {
   const { t } = useTranslation();
+  const [busy, setBusy] = useState(false);
   if (!marker) return null;
   return (
     <ConfirmSheet
@@ -105,10 +106,16 @@ export function DeleteMarkerSheet({ marker, onClose, onDelete }: { marker: MapMa
       title={t('localMarkers.confirmDelete', { label: marker.label })}
       body={<div className={styles.form}><SendsLine>{t('workspace.node_dialogs.override_sends')}</SendsLine></div>}
       confirmLabel={t('common.delete')}
+      busy={busy}
       onCancel={onClose}
       onConfirm={async () => {
-        await onDelete(marker);
-        onClose();
+        setBusy(true);
+        try {
+          await onDelete(marker);
+          onClose();
+        } finally {
+          setBusy(false);
+        }
       }}
     />
   );

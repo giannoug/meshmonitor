@@ -79,6 +79,8 @@ export default function WaypointSheet(p: WaypointSheetProps) {
       (form.hopLimit !== '' ? t('workspace.waypoint.sends_hops', { hops: form.hopLimit }) : '') +
       (form.rebroadcast.trim() ? t('workspace.waypoint.sends_repeat', { minutes: form.rebroadcast.trim() }) : '');
   const geofence = isPhone && step === 'geofence';
+  // #5649: a rejected field reports valid when it unmounts, so the phone step may not change past one.
+  const stepLocked = form.numberScope.invalid;
 
   return (
     <ConfirmSheet
@@ -94,7 +96,7 @@ export default function WaypointSheet(p: WaypointSheetProps) {
         <NumberInputScope scope={form.numberScope}>
           {geofence ? (
             <div className={styles.form}>
-              <GeofencePage value={form.geofence} onChange={form.setGeofence} center={center} onDone={() => setStep('form')} backLabel={title} />
+              <GeofencePage value={form.geofence} onChange={form.setGeofence} center={center} onDone={() => setStep('form')} doneDisabled={stepLocked} backLabel={title} />
             </div>
           ) : (
             <div className={styles.form}>
@@ -199,14 +201,14 @@ export default function WaypointSheet(p: WaypointSheetProps) {
                 )}
               </label>
               {isPhone ? (
-                <GeofenceRow value={form.geofence} onOpen={() => setStep('geofence')} />
+                <GeofenceRow value={form.geofence} onOpen={() => setStep('geofence')} disabled={stepLocked} />
               ) : (
                 <GeofencePage value={form.geofence} onChange={form.setGeofence} center={center} />
               )}
-              {form.error && <p className={styles.error} role="alert">{form.error}</p>}
               <SendsLine>{sends}</SendsLine>
             </div>
           )}
+          {form.error && <p className={`${styles.error} ${styles.pad}`} role="alert">{form.error}</p>}
         </NumberInputScope>
       }
     />

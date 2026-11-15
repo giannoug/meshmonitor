@@ -53,3 +53,10 @@
   font-size: 13px;
   color: var(--color-text-subtle);
 }
+
+.back:disabled,
+.done:disabled,
+.row:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

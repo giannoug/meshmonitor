@@ -207,6 +207,8 @@ function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapP
   });
   const trails = useAircraftTrailLayer({ drawnNodes: data.visibleMapNodes, mode: { kind: 'source', sourceId }, available: !effective3D });
   const [measureActive, setMeasureActive] = useState(false);
+  /** Where "Measure from here" starts; null when Measure Distance is turned on from its button. */
+  const [measureStart, setMeasureStart] = useState<{ lat: number; lon: number } | null>(null);
   const [leaflet, setLeaflet] = useState<L.Map | null>(null);
   const edit = useMapEditing({
     sourceId,
@@ -217,7 +219,10 @@ function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapP
     isPhone,
     leaflet,
     measureDisabled: data.measurePoints.length < 2,
-    onMeasure: () => setMeasureActive(true),
+    onMeasure: (spot) => {
+      setMeasureStart(spot);
+      setMeasureActive(true);
+    },
     onMarkerCreated: () => map.setShowLocalMarkers(true),
   });
 
@@ -311,7 +316,10 @@ function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapP
       onFit={fitAll}
       measureActive={measureActive}
       measureDisabled={data.measurePoints.length < 2}
-      onMeasure={setMeasureActive}
+      onMeasure={(on) => {
+        setMeasureStart(null);
+        setMeasureActive(on);
+      }}
       onMenu={edit.openAtCentre}
     />
   );
@@ -362,7 +370,7 @@ function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapP
             {map.showWaypoints && <DashboardWaypoints sourceId={sourceId} actions={edit.waypointActions} />}
             {map.showLocalMarkers && <LocalMarkers sourceId={sourceId} actions={edit.markerActions} />}
             {map.showAtakContacts && <DashboardAtakContacts sourceId={sourceId} />}
-            {measureActive && <MeasureDistanceController active points={data.measurePoints} onExit={() => setMeasureActive(false)} />}
+            {measureActive && <MeasureDistanceController active points={data.measurePoints} startAt={measureStart} onExit={() => setMeasureActive(false)} />}
             {map.showAircraftTrails && <AircraftTrailsLayer trails={trails.trails} formatTooltip={trails.formatTooltip} />}
             <DeviceMapLayers
               mapState={{ showPolarGrid: map.showPolarGrid, showPaths: map.showPaths, showRoute: map.showRoute }}

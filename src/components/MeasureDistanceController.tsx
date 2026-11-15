@@ -13,6 +13,12 @@ export interface MeasureDistanceControllerProps {
   points: MeasurePoint[];
   /** Called when the user presses Escape so the parent can flip `active` off. */
   onExit?: () => void;
+  /**
+   * Seeds anchor A at the node nearest this spot (the Workspace map's
+   * "Measure from here", #6365), so the next pick measures from it. Omitted:
+   * the first pick sets A, as before.
+   */
+  startAt?: { lat: number; lon: number } | null;
 }
 
 /**
@@ -36,6 +42,7 @@ const MeasureDistanceController: React.FC<MeasureDistanceControllerProps> = ({
   active,
   points,
   onExit,
+  startAt,
 }) => {
   const { distanceUnit } = useSettings();
   const map = useMap();
@@ -65,6 +72,15 @@ const MeasureDistanceController: React.FC<MeasureDistanceControllerProps> = ({
   useEffect(() => {
     if (!enabled) setAnchors([]);
   }, [enabled]);
+
+  // "Measure from here": A is the node nearest the spot, picked once per spot.
+  const startLat = startAt?.lat;
+  const startLon = startAt?.lon;
+  useEffect(() => {
+    if (!enabled || startLat === undefined || startLon === undefined) return;
+    const picked = nearestPoint(pointsRef.current, startLat, startLon);
+    if (picked) setAnchors([picked]);
+  }, [enabled, startLat, startLon]);
 
   // Capture-phase click interception. Registered on the map container so it
   // fires before Leaflet's marker/map click handlers — letting a click land on

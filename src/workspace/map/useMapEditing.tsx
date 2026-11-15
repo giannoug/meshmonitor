@@ -41,7 +41,8 @@ export interface MapEditingOptions {
   leaflet: L.Map | null;
   /** Today's Measure Distance gate. */
   measureDisabled: boolean;
-  onMeasure(): void;
+  /** "Measure from here": Measure Distance with anchor A at the spot. */
+  onMeasure(spot: { lat: number; lon: number }): void;
   /** A new local marker turns its layer on, as today's "+ Local marker" does. */
   onMarkerCreated(): void;
 }
@@ -113,7 +114,7 @@ export function useMapEditing(o: MapEditingOptions) {
           measureDisabled={o.measureDisabled}
           onWaypoint={() => setOpen({ kind: 'waypoint', initial: null, coords: spotOf(open.spot) })}
           onMarker={() => setOpen({ kind: 'marker', initial: null, coords: spotOf(open.spot) })}
-          onMeasure={o.onMeasure}
+          onMeasure={() => o.onMeasure({ lat: open.spot.lat, lon: open.spot.lon })}
           onClose={close}
         />
       )}

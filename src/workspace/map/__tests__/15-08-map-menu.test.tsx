@@ -75,10 +75,20 @@ describe('15-08-map-menu', () => {
     await waitFor(() => expect(within(menu).getAllByRole('menuitem')[0]).toHaveFocus());
   });
 
-  it('Measure from here turns on Measure Distance', async () => {
+  it('Measure from here starts at the spot: anchor A is drawn at once, and the next click measures from it', async () => {
     renderChat(mapRoute);
-    await pick(await openMapMenu(), /^Measure from here/);
+    /** Today's measure rings (CircleMarker) and line, drawn in its own colour. */
+    const measurePaths = () => document.querySelectorAll('.leaflet-overlay-pane path[stroke="#38bdf8"]');
+    const menu = await openMapMenu();
+    expect(within(menu).getByText('Click a second point; snaps to nodes')).toBeInTheDocument();
+    await pick(menu, /^Measure from here/);
     expect(screen.getByRole('button', { name: 'Measure Distance' })).toHaveAttribute('aria-pressed', 'true');
+    // Anchor A: the node nearest the spot the menu opened on, before any click.
+    await waitFor(() => expect(measurePaths()).toHaveLength(1));
+    // A click far from the spot snaps to another node: B, and the line between them with its distance.
+    fireEvent.click(document.querySelector('.leaflet-container')!, { clientX: 2000, clientY: 2000 });
+    await waitFor(() => expect(measurePaths()).toHaveLength(3));
+    expect(document.querySelector('.measure-distance-label')?.textContent).toMatch(/\d/);
   });
 
   it('Add local marker here saves the spot to MeshMonitor only, and says it sends nothing', async () => {

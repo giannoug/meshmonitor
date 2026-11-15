@@ -21,15 +21,17 @@ export interface GeofencePageProps {
   center: { lat: number; lon: number } | null;
   /** The phone step: Back and Done return to the editor, whose title `backLabel` is. */
   onDone?(): void;
+  /** Back and Done stay off while a field here is rejected (#5649). */
+  doneDisabled?: boolean;
   backLabel?: string;
 }
 
-export default function GeofencePage({ value, onChange, center, onDone, backLabel }: GeofencePageProps) {
+export default function GeofencePage({ value, onChange, center, onDone, doneDisabled, backLabel }: GeofencePageProps) {
   const { t } = useTranslation();
   return (
     <div className={styles.page}>
       {onDone && (
-        <button type="button" className={styles.back} onClick={onDone}>
+        <button type="button" className={styles.back} onClick={onDone} disabled={doneDisabled}>
           <UiIcon name="back" size={18} />
           {backLabel}
         </button>
@@ -38,7 +40,7 @@ export default function GeofencePage({ value, onChange, center, onDone, backLabe
       {onDone && (
         <>
           <SendsLine>{t('workspace.waypoint.geofence_sends')}</SendsLine>
-          <button type="button" className={styles.done} onClick={onDone}>{t('common.done')}</button>
+          <button type="button" className={styles.done} onClick={onDone} disabled={doneDisabled}>{t('common.done')}</button>
         </>
       )}
     </div>
@@ -46,7 +48,7 @@ export default function GeofencePage({ value, onChange, center, onDone, backLabe
 }
 
 /** The phone editor's Geofence row: today's one-line summary, opening the page. */
-export function GeofenceRow({ value, onOpen }: { value: GeofenceDraft; onOpen(): void }) {
+export function GeofenceRow({ value, onOpen, disabled }: { value: GeofenceDraft; onOpen(): void; disabled?: boolean }) {
   const { t } = useTranslation();
   const body = geofenceBody(value);
   const summary = 'error' in body ? null : geofenceSummary({
@@ -57,7 +59,7 @@ export function GeofenceRow({ value, onOpen }: { value: GeofenceDraft; onOpen():
     notifyFavoritesOnly: body.notify_favorites_only,
   } as Waypoint);
   return (
-    <button type="button" className={styles.row} onClick={onOpen}>
+    <button type="button" className={styles.row} onClick={onOpen} disabled={disabled}>
       <span className={styles.rowText}>
         <strong>{t('waypoints.geofence.legend')}</strong>
         <span className={styles.summary}>{summary?.replace(/^Geofence: /, '') ?? t('common.none')}</span>

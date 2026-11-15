@@ -8,7 +8,7 @@
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, screen, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { renderChat } from '../../chat/__tests__/renderChat';
 
@@ -18,7 +18,7 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
 }));
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
 
-import { mapRoute, openWaypointPopup, sent, waypointsUrl } from './mapEditHelpers';
+import { mapRoute, openMapMenu, openWaypointPopup, pick, sent, waypointsUrl } from './mapEditHelpers';
 
 async function openGeofence() {
   fireEvent.click(within(await openWaypointPopup('Trailhead')).getByRole('button', { name: 'Edit' }));
@@ -43,5 +43,41 @@ describe('15-24-geofence', () => {
     const editor = await screen.findByRole('dialog', { name: 'Edit waypoint' });
     expect(within(editor).getByRole('button', { name: /^Geofence/ })).toHaveTextContent(/alerts on enter and exit/);
     expect(sent(waypointsUrl, 'PATCH')).toHaveLength(0);
+  });
+
+  // #5649: a value the field rejects never goes on air, whichever step the sheet is on.
+  it('a rejected field keeps Create off: the Geofence step cannot be opened past it, and nothing is sent', async () => {
+    renderChat(mapRoute, { phone: true, fixtures: { 'POST /api/sources/:id/waypoints': () => ({ success: true, data: {} }) } });
+    await pick(await openMapMenu(), /^Add waypoint here/);
+    const editor = within(await screen.findByRole('dialog', { name: 'New waypoint' }));
+    fireEvent.change(editor.getByLabelText(/^Rebroadcast every/), { target: { value: '5' } });
+    expect(editor.getByRole('button', { name: 'Create' })).toBeDisabled();
+    fireEvent.click(editor.getByRole('button', { name: /^Geofence/ }));
+    expect(screen.getByRole('dialog', { name: 'New waypoint' })).toBeInTheDocument();
+    expect(editor.getByRole('button', { name: 'Create' })).toBeDisabled();
+    fireEvent.click(editor.getByRole('button', { name: 'Create' }));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(sent(waypointsUrl, 'POST')).toHaveLength(0);
+  });
+
+  it('a rejected radius keeps Done and Back off, so Create stays off', async () => {
+    renderChat(mapRoute, { phone: true });
+    const page = within(await openGeofence());
+    fireEvent.change(page.getByRole('spinbutton', { name: /^Radius/ }), { target: { value: '50' } });
+    expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+    expect(page.getByRole('button', { name: 'Done' })).toBeDisabled();
+    expect(page.getByRole('button', { name: 'Edit waypoint' })).toBeDisabled();
+  });
+
+  it('a save error raised on the Geofence step is shown there', async () => {
+    renderChat(mapRoute, { phone: true });
+    await pick(await openMapMenu(), /^Add waypoint here/);
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'New waypoint' })).getByRole('button', { name: /^Geofence/ }));
+    const page = within(await screen.findByRole('dialog', { name: 'Geofence' }));
+    // A box the user has not drawn: today's check refuses it before anything is sent.
+    fireEvent.change(page.getByRole('combobox', { name: 'Shape' }), { target: { value: 'box' } });
+    fireEvent.click(page.getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(page.getByRole('alert')).toHaveTextContent('Draw the geofence box on the map'));
+    expect(sent(waypointsUrl, 'POST')).toHaveLength(0);
   });
 });

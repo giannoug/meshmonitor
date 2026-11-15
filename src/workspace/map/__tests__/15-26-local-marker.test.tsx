@@ -58,4 +58,20 @@ describe('15-26-local-marker', () => {
     fireEvent.click(confirm.getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(sent(`/api/sources/${SOURCE_IDS.g2}/markers/9`, 'DELETE')).toHaveLength(1));
   });
+
+  it('a double press on Delete sends one DELETE (busy while it runs)', async () => {
+    const siteB = { id: 9, sourceId: SOURCE_IDS.g2, label: 'Site B', description: null, latitude: 37.9715, longitude: 23.747,
+      altitude: null, icon: 'pin', color: 'accent', createdByUserId: 1, createdAt: 0, updatedAt: 0 };
+    renderChat(mapRoute, { phone: true, fixtures: {
+      'GET /api/sources/:id/markers': () => ({ success: true, data: [siteB] }),
+      'DELETE /api/sources/:id/markers/:markerId': () => ({ success: true }),
+    } });
+    fireEvent.click(await screen.findByTitle('Site B', {}, { timeout: 5000 }));
+    fireEvent.click(within(document.querySelector<HTMLElement>('.leaflet-popup')!).getByRole('button', { name: 'Delete' }));
+    const confirm = within(await screen.findByRole('dialog', { name: 'Delete local marker "Site B"?' }));
+    fireEvent.click(confirm.getByRole('button', { name: 'Delete' }));
+    fireEvent.click(confirm.getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(sent(`/api/sources/${SOURCE_IDS.g2}/markers/9`, 'DELETE')).toHaveLength(1);
+  });
 });
