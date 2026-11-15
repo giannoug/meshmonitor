@@ -1,14 +1,14 @@
 {
   "must": [
-    "Add user",
+    "Add User",
     "Inactive",
-    "Make admin",
-    "Set password",
-    "Password locked",
+    "Make Admin",
+    "Set Password",
+    "Password changes locked",
     "Passkeys",
     "Permissions",
     "Deactivate",
-    "Permanently delete"
+    "Permanently Delete"
   ],
   "absent": [],
   "source": "checks/s13.json"

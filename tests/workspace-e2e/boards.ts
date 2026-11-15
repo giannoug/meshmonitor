@@ -6,6 +6,7 @@ import type { Page } from '@playwright/test';
 import { athensFixture } from '../../src/workspace/__fixtures__/athens';
 import { renumberedFixtures } from '../../src/workspace/node-page/__tests__/nodePageFixtures';
 import { captureOn } from '../../src/workspace/__fixtures__/packets';
+import { usersFixtures } from '../../src/workspace/__fixtures__/users';
 import type { FixtureHandler } from '../../src/workspace/__fixtures__/fixtureApi';
 
 export interface Board {
@@ -960,6 +961,80 @@ export const BOARDS: Board[] = [
       await page.getByRole('dialog', { name: 'Packet Detail' }).getByText('Kifisia Rooftop').waitFor();
     },
   },
+  // Task 4.8: Users (admins only) and the Audit log (audit:read), install-wide.
+  {
+    id: 'o4-users',
+    fixtures: usersFixtures,
+    size: 'desktop',
+    path: '/overview/users',
+    setup: async (page) => {
+      await openUserRow(page, 'nikos');
+      await page.getByRole('tab', { name: 'Permissions' }).click();
+      await page.getByRole('button', { name: /^Node Details & DM on Station G2: / }).waitFor();
+    },
+  },
+  {
+    id: '13-13-manage-user',
+    fixtures: usersFixtures,
+    size: 'desktop',
+    path: '/overview/users',
+    setup: async (page) => {
+      await openUserRow(page, 'Field team');
+      await page.getByRole('tabpanel', { name: 'Account' }).waitFor();
+    },
+  },
+  {
+    id: '13-18-users',
+    fixtures: usersFixtures,
+    size: 'phone',
+    path: '/overview/users',
+    setup: async (page) => {
+      await openUserRow(page, 'Field team');
+      await page.getByRole('dialog', { name: 'Field team' }).getByRole('button', { name: 'Make Admin' }).waitFor();
+    },
+  },
+  {
+    id: 'q4-permissions',
+    fixtures: usersFixtures,
+    size: 'phone',
+    path: '/overview/users',
+    setup: async (page) => {
+      await openUserRow(page, 'nikos');
+      await page.getByRole('dialog', { name: 'nikos' }).getByRole('button', { name: /^Permissions/ }).click();
+      await page.getByRole('group', { name: 'Node Details & DM' }).waitFor();
+    },
+  },
+  {
+    id: 'o5-audit',
+    fixtures: usersFixtures,
+    size: 'desktop',
+    path: '/overview/audit',
+    setup: async (page) => {
+      await page.getByRole('row').filter({ hasText: 'settings_updated' }).click();
+      await page.locator('pre').filter({ hasText: 'maxNodeAgeHours' }).waitFor();
+    },
+  },
+  {
+    id: '16-03-audit-log',
+    fixtures: usersFixtures,
+    size: 'phone',
+    path: '/overview/audit',
+    setup: async (page) => {
+      await page.getByTestId('audit-row').first().waitFor();
+      await page.getByRole('button', { name: /^Filters/ }).click();
+      await page.getByRole('dialog', { name: 'Filters' }).waitFor();
+    },
+  },
+  {
+    id: '16-08-audit-entry',
+    fixtures: usersFixtures,
+    size: 'phone',
+    path: '/overview/audit',
+    setup: async (page) => {
+      await page.getByTestId('audit-row').first().click();
+      await page.getByRole('dialog', { name: 'settings_updated' }).waitFor();
+    },
+  },
 ];
 
 const ON_24H = { enabled: true, lookbackHours: 24 };
@@ -1078,4 +1153,9 @@ async function openMapMenu(page: Page, item?: string): Promise<void> {
 async function openTrailhead(page: Page, action: 'Edit' | 'Delete…'): Promise<void> {
   await page.locator('.waypoint-icon', { hasText: '\u26FA' }).dispatchEvent('click');
   await page.locator('.leaflet-popup').getByRole('button', { name: action }).click();
+}
+
+/** A row of the Users list (desktop column or phone list). */
+async function openUserRow(page: Page, name: string): Promise<void> {
+  await page.getByRole('list', { name: 'Users' }).getByRole('button', { name: new RegExp(`^${name}\\b`) }).click();
 }

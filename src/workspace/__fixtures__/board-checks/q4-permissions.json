@@ -1,15 +1,13 @@
 {
   "must": [
     "Home",
-    "ON STATION G2",
+    "On Station G2",
     "Nodes & map",
-    "Device settings",
+    "Device Configuration",
     "Packet monitor",
-    "Copy to all devices",
     "Across this MeshMonitor",
-    "Messages",
-    "Channels",
-    "Security"
+    "Node Details & DM",
+    "Channel 0 (Primary)"
   ],
   "absent": [],
   "source": "written"

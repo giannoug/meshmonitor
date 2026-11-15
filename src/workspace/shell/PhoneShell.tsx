@@ -66,9 +66,9 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
       !!matchPath('/source/:id/nodes', pathname) ||
       !!matchPath('/source/:id/node/*', pathname) ||
       (isMqttOnlySourceType(source.type) && !!matchPath('/source/:id/packetmonitor', pathname)));
-  // The all-devices map is full screen with its own Back, as the device map (5-08); Reports (6-08 … 6-10) and Messages (7-06, 7-09) draw their own header.
+  // The all-devices map is full screen with its own Back, as the device map (5-08); Reports (6-08 … 6-10), Messages (7-06, 7-09), Users (13-18, q4) and the Audit log (16-03) draw their own header.
   const overviewMap = mode === 'overview' && (pathname === '/' || !!matchPath('/overview/map', pathname));
-  const ownPageHeader = /^\/((overview\/)?reports|(overview|unified)\/(messages|telemetry|packets))(\/|$)/.test(pathname);
+  const ownPageHeader = /^\/((overview\/)?(reports|users)|overview\/audit|(overview|unified)\/(messages|telemetry|packets))(\/|$)/.test(pathname);
   const quick = source ? sources.filter((s) => s.id !== source.id).slice(0, QUICK_SQUARES) : [];
   const showHeader = mode !== 'you' && mode !== 'server' && !ownHeader && !overviewMap && !ownPageHeader;
   const title = source?.name ?? t('workspace.shell.overview');

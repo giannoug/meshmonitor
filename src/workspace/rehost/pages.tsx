@@ -15,7 +15,6 @@ import { useHashTarget } from './useHashTarget';
 const DashboardPage = lazy(() => import('../../pages/DashboardPage.tsx'));
 const AutomationsPage = lazy(() => import('../../components/automations/AutomationsPage.tsx'));
 const GlobalSettingsPage = lazy(() => import('../../pages/GlobalSettingsPage.tsx'));
-const UsersPage = lazy(() => import('../../pages/UsersPage.tsx'));
 
 const EMBEDDED = { embedded: true };
 
@@ -83,4 +82,3 @@ export function GlobalSettingsRehost({ above }: { above?: Record<string, ReactNo
 }
 
 export const AutomationsRehost = () => <Rehost><AutomationsPage /></Rehost>;
-export const UsersRehost = () => <Rehost><UsersPage /></Rehost>;

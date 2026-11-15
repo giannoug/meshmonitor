@@ -1,8 +1,7 @@
 {
   "must": [
-    "Audit log",
+    "Audit Log",
     "Who changed or sent what",
-    "Search the log",
     "All-devices map",
     "Dashboard",
     "Messages",
@@ -10,7 +9,7 @@
     "Packets",
     "Analysis",
     "Reports",
-    "Automations",
+    "Automation Engine",
     "Users",
     "Station G2",
     "Heltec MeshCore",
@@ -19,7 +18,7 @@
     "Athens MQTT",
     "CSV",
     "Last 24 h",
-    "Repeater consoles",
+    "MeshCore CLI activity",
     "Who changed or sent what, on every device"
   ],
   "absent": [],

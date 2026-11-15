@@ -1,15 +1,11 @@
 {
   "must": [
     "giannoug",
-    "IP address",
+    "IP Address",
     "192.168.1.23",
-    "Chrome on macOS",
-    "Station G2",
-    "config.lora.hop_limit",
-    "Before",
-    "After",
-    "restarted at 10:44:09",
-    "UI"
+    "settings_updated",
+    "Details",
+    "maxNodeAgeHours"
   ],
   "absent": [],
   "source": "checks/s16.json"

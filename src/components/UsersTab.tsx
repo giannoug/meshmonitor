@@ -12,72 +12,29 @@ import '../styles/users.css';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { logger } from '../utils/logger';
-import type { PermissionSet, ResourceType } from '../types/permission';
-import { RESOURCES, SOURCEY_RESOURCES } from '../types/permission';
+import type { PermissionSet } from '../types/permission';
 import { useToast } from './ToastContainer';
 import AdminPasskeysDialog from './AdminPasskeysDialog';
 import { isAnyMeshCoreSourceType } from '../utils/nodeTypeCategory';
-
-interface Source {
-  id: string;
-  name: string;
-  type: string;
-}
-
-interface User {
-  id: number;
-  username: string;
-  email: string | null;
-  displayName: string | null;
-  authProvider: 'local' | 'oidc' | 'proxy';
-  isAdmin: boolean;
-  isActive: boolean;
-  passwordLocked: boolean;
-  createdAt: number;
-  lastLoginAt: number | null;
-  /** Passkey-only account (#5841). */
-  passwordLoginDisabled?: boolean;
-  /** How many passkeys the user has (#5841). */
-  passkeyCount?: number;
-}
-
-interface ChannelDatabaseEntry {
-  id: number;
-  name: string;
-  protocol?: 'meshtastic' | 'meshcore';
-  description: string | null;
-  isEnabled: boolean;
-}
-
-interface ChannelDatabasePermission {
-  channelDatabaseId: number;
-  canViewOnMap: boolean;
-  canRead: boolean;
-  /**
-   * PR-C: write capability on individual channel-database entries. The
-   * server-side schema for `channel_database_permissions` does not yet
-   * carry a canWrite column — PR-B is expected to land that migration in
-   * parallel. Until then the UI sends the field and the server ignores it
-   * (or accepts and persists it once the schema catches up).
-   */
-  canWrite?: boolean;
-}
-
-const PERMISSION_KEYS = [
-  'dashboard', 'nodes', 'channel_0', 'channel_1', 'channel_2', 'channel_3',
-  'channel_4', 'channel_5', 'channel_6', 'channel_7', 'messages', 'settings',
-  'configuration', 'info', 'automation', 'connection', 'traceroute', 'audit',
-  'security', 'nodes_private', 'packetmonitor', 'waypoints'
-] as const;
-
-// PR-C: Global (non-sourcey) resources that surface above the per-source
-// grid. Derived from RESOURCES \ SOURCEY_RESOURCES so new globals (e.g.
-// `channel_database`, registered for migration 064 in PR-A) appear here
-// automatically. The source-scope dropdown does not affect these grants —
-// they are stored against sourceId=null.
-const GLOBAL_PERMISSION_RESOURCES = RESOURCES.filter(
-  (r) => !SOURCEY_RESOURCES.includes(r.id)
-).map((r) => r.id);
+import {
+  GLOBAL_PERMISSION_RESOURCES,
+  PERMISSION_KEYS,
+  PERMISSION_TOOLTIPS,
+  CHANNEL_TOOLTIP,
+  NODES_TOOLTIP,
+  channelIndex,
+  isMqttSourceType,
+  isSourceRowShown,
+  permissionsUrl,
+  putChannelDbPermissions,
+  putUserPermissions,
+  toggledChannelDbPermission,
+  withAdminDefaults,
+  type AdminUser as User,
+  type ChannelDatabaseEntry,
+  type ChannelDatabasePermission,
+  type PermissionSource as Source,
+} from './users/userPermissionModel';
 
 const UsersTab: React.FC = () => {
   const { t } = useTranslation();
@@ -192,30 +149,8 @@ const UsersTab: React.FC = () => {
 
   const loadPermissionsForUser = useCallback(async (user: User, scopeId: string | null) => {
     try {
-      const url = scopeId
-        ? `/api/users/${user.id}/permissions?sourceId=${scopeId}`
-        : `/api/users/${user.id}/permissions`;
-      const response = await api.get<{ permissions: PermissionSet }>(url);
-
-      // If user is admin and no permissions returned, set all permissions
-      // (including the global resources rendered in the Global Resources
-      // section — see GLOBAL_PERMISSION_RESOURCES).
-      if (user.isAdmin && Object.keys(response.permissions).length === 0) {
-        const allPermissions: PermissionSet = {};
-        PERMISSION_KEYS.forEach(resource => {
-          if (resource.startsWith('channel_')) {
-            allPermissions[resource] = { viewOnMap: true, read: true, write: true };
-          } else {
-            allPermissions[resource] = { read: true, write: true };
-          }
-        });
-        GLOBAL_PERMISSION_RESOURCES.forEach(resource => {
-          allPermissions[resource] = { read: true, write: true };
-        });
-        setPermissions(allPermissions);
-      } else {
-        setPermissions(response.permissions);
-      }
+      const response = await api.get<{ permissions: PermissionSet }>(permissionsUrl(user.id, scopeId));
+      setPermissions(withAdminDefaults(user, response.permissions));
     } catch (err) {
       logger.error('Failed to fetch user permissions:', err);
       setError(t('users.failed_load_permissions'));
@@ -237,20 +172,9 @@ const UsersTab: React.FC = () => {
     }
     try {
       const channels = await api.get<{ id: number; name: string }[]>(`/api/channels/all?sourceId=${encodeURIComponent(sourceId)}`);
-      const nameMap = new Map<number, string>();
-      const idSet = new Set<number>();
-      if (Array.isArray(channels)) {
-        channels.forEach(ch => {
-          // Some channels (notably Primary / channel_0) come back without a
-          // name set — still configured, just unlabeled. Track IDs
-          // independently from names so we can render an unnamed Primary
-          // row but skip slots the source doesn't actually use.
-          if (typeof ch.id === 'number') idSet.add(ch.id);
-          if (ch.name) nameMap.set(ch.id, ch.name);
-        });
-      }
-      setChannelNames(nameMap);
-      setConfiguredChannelIds(idSet);
+      const { names, ids } = channelIndex(channels);
+      setChannelNames(names);
+      setConfiguredChannelIds(ids);
     } catch {
       setChannelNames(new Map());
       setConfiguredChannelIds(new Set());
@@ -269,36 +193,7 @@ const UsersTab: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      // Filter out empty/undefined permissions and ensure valid structure.
-      // PR-C: also include any global (non-sourcey) resources the admin
-      // edited via the Global Resources section. The server PUT splits the
-      // payload by resource type and routes globals to sourceId=null,
-      // sourcey rows to the in-scope sourceId.
-      const validPermissions: PermissionSet = {};
-      const allKeys: ResourceType[] = [...PERMISSION_KEYS, ...GLOBAL_PERMISSION_RESOURCES];
-      allKeys.forEach(resource => {
-        if (!permissions[resource]) return;
-        // `nodes` carries viewOnMap alongside channel_* resources (#4559):
-        // read makes the node/contact list available, viewOnMap additionally
-        // publishes positions on the map — the same split channels already have.
-        if (resource.startsWith('channel_') || resource === 'nodes') {
-          validPermissions[resource] = {
-            viewOnMap: permissions[resource]?.viewOnMap || false,
-            read: permissions[resource]?.read || false,
-            write: permissions[resource]?.write || false
-          };
-        } else {
-          validPermissions[resource] = {
-            read: permissions[resource]?.read || false,
-            write: permissions[resource]?.write || false
-          };
-        }
-      });
-
-      await api.put(`/api/users/${selectedUser.id}/permissions`, {
-        permissions: validPermissions,
-        ...(permissionScope !== null ? { sourceId: permissionScope } : {})
-      });
+      await putUserPermissions(selectedUser.id, permissions, permissionScope);
       setError(null);
       showToast(t('users.permissions_updated'), 'success');
     } catch (err) {
@@ -520,37 +415,19 @@ const UsersTab: React.FC = () => {
   };
 
   const toggleChannelDbViewOnMap = (channelDbId: number) => {
-    const existing = getChannelDbPermission(channelDbId);
-    const newValue = !existing.canViewOnMap;
-    updateChannelDbPermission(channelDbId, {
-      canViewOnMap: newValue,
-      canRead: existing.canRead,
-      canWrite: existing.canWrite ?? false,
-    });
+    updateChannelDbPermission(channelDbId, toggledChannelDbPermission(getChannelDbPermission(channelDbId), 'canViewOnMap'));
   };
 
+  // Unchecking read forces canWrite off too — write without read is
+  // nonsensical and mirrors the channel_* grid behavior above.
   const toggleChannelDbRead = (channelDbId: number) => {
-    const existing = getChannelDbPermission(channelDbId);
-    const newValue = !existing.canRead;
-    // Unchecking read forces canWrite off too — write without read is
-    // nonsensical and mirrors the channel_* grid behavior above.
-    updateChannelDbPermission(channelDbId, {
-      canViewOnMap: existing.canViewOnMap,
-      canRead: newValue,
-      canWrite: newValue ? (existing.canWrite ?? false) : false,
-    });
+    updateChannelDbPermission(channelDbId, toggledChannelDbPermission(getChannelDbPermission(channelDbId), 'canRead'));
   };
 
   // PR-C: write toggle for channel-database entries. Checking write also
   // checks read (matches channel_* behavior). Persisted via the same PUT.
   const toggleChannelDbWrite = (channelDbId: number) => {
-    const existing = getChannelDbPermission(channelDbId);
-    const newValue = !(existing.canWrite ?? false);
-    updateChannelDbPermission(channelDbId, {
-      canViewOnMap: existing.canViewOnMap,
-      canRead: newValue ? true : existing.canRead,
-      canWrite: newValue,
-    });
+    updateChannelDbPermission(channelDbId, toggledChannelDbPermission(getChannelDbPermission(channelDbId), 'canWrite'));
   };
 
   const updateChannelDbPermission = (
@@ -573,19 +450,7 @@ const UsersTab: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      // Normalize: always send canWrite so the server has a chance to
-      // persist it once PR-B's schema column lands. Existing servers
-      // ignore unknown fields (canViewOnMap/canRead are the only ones
-      // validated and stored today).
-      const payload = channelDbPermissions.map(p => ({
-        channelDatabaseId: p.channelDatabaseId,
-        canViewOnMap: p.canViewOnMap,
-        canRead: p.canRead,
-        canWrite: p.canWrite ?? false,
-      }));
-      await api.put(`/api/users/${selectedUser.id}/channel-database-permissions`, {
-        permissions: payload,
-      });
+      await putChannelDbPermissions(selectedUser.id, channelDbPermissions);
       showToast(t('users.channel_db_permissions_updated'), 'success');
     } catch (err) {
       logger.error('Failed to update channel database permissions:', err);
@@ -667,26 +532,7 @@ const UsersTab: React.FC = () => {
     channel_database: 'Channel Database',
   };
 
-  const tooltipMap: Record<string, string> = {
-    dashboard: 'Controls visibility of source cards on the main dashboard. Does NOT include node or message access — grant those separately.',
-    nodes: 'Read: view node list, neighbor info, and map markers. Write: edit node names/notes.',
-    nodes_private: 'Read: view detailed position history for individual nodes.',
-    messages: 'Read: view node details, messages, and channel list. Write: send direct messages.',
-    settings: 'Read: view global settings. Write: change settings, map styles, GeoJSON layers.',
-    configuration: 'Read: view device configuration. Write: change device radio/module settings.',
-    info: 'Read: view device info and statistics.',
-    automation: 'Read: view automation rules. Write: create/edit automation rules.',
-    connection: 'Connect/disconnect the Meshtastic device for this source.',
-    // #5898: read and write are separate, like every other resource.
-    traceroute: 'Read: view traceroutes and route data. Write: send traceroutes and NeighborInfo requests over the mesh.',
-    audit: 'Read: view the audit log. Write: purge audit log entries.',
-    security: 'Read: view security scan results. Write: run scans, manage flagged/dead nodes.',
-    packetmonitor: 'Read: view raw Meshtastic packets in the packet monitor.',
-    waypoints: 'Read: view map waypoints. Write: create, edit, and delete waypoints (WAYPOINT_APP).',
-    themes: 'Read: view custom color themes. Write: create and edit custom themes.',
-    sources: 'Read: view per-source status. Write: create, edit, enable/disable, and delete data sources.',
-    channel_database: 'Read: list global PSK library entries. Write: create/edit/delete entries used for MQTT decryption.',
-  };
+  const tooltipMap = PERMISSION_TOOLTIPS;
 
   return (
     <div className="users-tab">
@@ -954,7 +800,7 @@ const UsersTab: React.FC = () => {
                 grant access. */}
               {(() => {
                 const scopedSource = sources.find(s => s.id === permissionScope);
-                const isMqttScope = scopedSource?.type === 'mqtt_broker' || scopedSource?.type === 'mqtt_bridge';
+                const isMqttScope = isMqttSourceType(scopedSource?.type);
                 return isMqttScope ? (
                   <div
                     className="permission-hint"
@@ -983,24 +829,8 @@ const UsersTab: React.FC = () => {
                   MQTT scopes additionally hide channel_0..7 rows — see the
                   hint banner just above this grid for the rationale. */}
               {PERMISSION_KEYS.filter(r => {
-                if (!SOURCEY_RESOURCES.includes(r as ResourceType)) return false;
                 const scopedSource = sources.find(s => s.id === permissionScope);
-                const isMqttScope = scopedSource?.type === 'mqtt_broker' || scopedSource?.type === 'mqtt_bridge';
-                if (isMqttScope && String(r).startsWith('channel_')) return false;
-                // Only render channel_N rows for channels actually
-                // configured on the scoped source. MeshCore sources have
-                // no per-slot channels, and Meshtastic sources with fewer
-                // than 8 active channels shouldn't expose empty slots
-                // (which was the source of "channel 1 (Gauntlet) still
-                // shows after disabling all perms" — the row was painted
-                // from hardcoded PERMISSION_KEYS, not from the source's
-                // real channel list).
-                const channelMatch = /^channel_(\d+)$/.exec(String(r));
-                if (channelMatch) {
-                  const id = Number(channelMatch[1]);
-                  if (!configuredChannelIds.has(id)) return false;
-                }
-                return true;
+                return isSourceRowShown(String(r), scopedSource?.type, configuredChannelIds);
               }).map(resource => {
                 // Get label from translated map or format it
                 let label = resource.charAt(0).toUpperCase() + resource.slice(1);
@@ -1015,9 +845,9 @@ const UsersTab: React.FC = () => {
                 }
 
                 const tooltip = resource.startsWith('channel_')
-                  ? 'View on Map: show nodes heard on this channel. Read: view messages. Write: send messages.'
+                  ? CHANNEL_TOOLTIP
                   : resource === 'nodes'
-                  ? 'View on Map: publish node/contact positions on the map. Read: view the node list.'
+                  ? NODES_TOOLTIP
                   : tooltipMap[resource] || '';
 
                 // MeshCore has no per-channel device slots, so map visibility

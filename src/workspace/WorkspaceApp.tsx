@@ -26,7 +26,7 @@ import YouHome from './you/YouHome';
 import LayoutPage from './you/LayoutPage';
 import GeneralLayoutCard from './server/GeneralLayoutCard';
 import { workspaceRedirect } from './routes';
-import { AutomationsRehost, GlobalSettingsRehost, OverviewRehost, UsersRehost } from './rehost/pages';
+import { AutomationsRehost, GlobalSettingsRehost, OverviewRehost } from './rehost/pages';
 
 const OverviewMap = lazy(() => import('./overview/OverviewMap.tsx'));
 const OverviewHome = lazy(() => import('./overview/OverviewHome.tsx'));
@@ -35,6 +35,8 @@ const ExportMessagesPage = lazy(() => import('./overview/ExportMessagesPage.tsx'
 const OverviewTelemetry = lazy(() => import('./overview/OverviewTelemetry.tsx'));
 const OverviewPackets = lazy(() => import('./overview/OverviewPackets.tsx'));
 const ReportsRoute = lazy(() => import('./reports/ReportsRoute.tsx'));
+const UsersPage = lazy(() => import('./overview/users/UsersPage.tsx'));
+const AuditPage = lazy(() => import('./overview/audit/AuditPage.tsx'));
 
 /**
  * `/`, `/overview`, `/overview/map`, `/analysis` and `/overview/analysis`: the
@@ -72,8 +74,7 @@ function WorkspaceRoutes() {
           <Route index element={<OverviewIndex landing />} />
           <Route path="overview" element={<OverviewIndex />} />
           <Route path="overview/map" element={<OverviewIndex />} />
-          {/* `/overview/dashboard` and `/overview/audit`, which have no cross-source Classic page:
-              today's Dashboard until Phases 4 and 8. */}
+          {/* `/overview/dashboard`, which has no cross-source Classic page: today's Dashboard until Phase 8. */}
           <Route path="overview/*" element={<OverviewRehost />} />
           {/* Overview › Messages and its export (Task 4.6), with no Classic page mounted (Ruling AD). */}
           <Route path="overview/messages" element={<OverviewMessages />} />
@@ -86,7 +87,9 @@ function WorkspaceRoutes() {
           {/* Reports (Task 4.4): the list, Mesh Issues, Coverage; the other reports re-hosted until 4.5. */}
           <Route path="overview/reports/:report?" element={<ReportsRoute />} />
           <Route path="overview/automations" element={<AutomationsRehost />} />
-          <Route path="overview/users" element={<UsersRehost />} />
+          {/* Users and Audit log (Task 4.8), with no Classic page mounted (Ruling AD). */}
+          <Route path="overview/users" element={<UsersPage />} />
+          <Route path="overview/audit" element={<AuditPage />} />
 
           <Route path="unified/messages" element={<OverviewMessages />} />
           <Route path="unified/telemetry" element={<OverviewTelemetry />} />
@@ -94,7 +97,7 @@ function WorkspaceRoutes() {
           <Route path="analysis" element={<OverviewIndex />} />
           <Route path="reports/:report?" element={<ReportsRoute />} />
           <Route path="automations/*" element={<AutomationsRehost />} />
-          <Route path="users" element={<UsersRehost />} />
+          <Route path="users" element={<UsersPage />} />
 
           <Route path="preferences/*" element={<GlobalSettingsRehost />} />
           {/* General's Layout and Sources cards sit above today's page (Task 1.8); 6.4 rebuilds the rest. */}

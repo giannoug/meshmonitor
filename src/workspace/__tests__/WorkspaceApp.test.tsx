@@ -26,6 +26,8 @@ vi.mock('../../pages/UnifiedPacketMonitorPage', async () => ({ default: (await i
 // Overview › Telemetry and Packets and the MQTT receptions page are the Workspace's own (Task 4.7).
 vi.mock('../overview/OverviewTelemetry', async () => ({ default: (await import('./pageStub')).pageStub('overview-telemetry') }));
 vi.mock('../overview/OverviewPackets', async () => ({ default: (await import('./pageStub')).pageStub('overview-packets') }));
+vi.mock('../overview/users/UsersPage', async () => ({ default: (await import('./pageStub')).pageStub('overview-users') }));
+vi.mock('../overview/audit/AuditPage', async () => ({ default: (await import('./pageStub')).pageStub('overview-audit') }));
 vi.mock('../tools/MqttReceptions', async () => ({ default: (await import('./pageStub')).pageStub('mqtt-receptions') }));
 vi.mock('../../pages/GlobalSettingsPage', async () => ({ default: (await import('./pageStub')).pageStub('global-settings') }));
 vi.mock('../../pages/UsersPage', async () => ({ default: (await import('./pageStub')).pageStub('users') }));
@@ -91,14 +93,11 @@ const rns = `/source/${SOURCE_IDS.rns}`;
 describe('WorkspaceApp routes (spec §5.5)', () => {
   it.each([
     ['/overview/dashboard', 'dashboard'],
-    ['/overview/audit', 'dashboard'],
     ['/overview/automations', 'automations'],
-    ['/overview/users', 'users'],
     ['/automations', 'automations'],
     ['/automations/12', 'automations'],
     ['/automations/12/runs', 'automations'],
     ['/automations/12/trace', 'automations'],
-    ['/users', 'users'],
     ['/preferences/units', 'global-settings'],
     ['/server/general', 'global-settings'],
     // Nodes is the Workspace's own table and list, with App not mounted (Task 3.3, Ruling AD).
@@ -219,6 +218,18 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     expect(realUrl()).toBe(route);
   });
 
+  it.each([
+    ['/overview/users', 'overview-users'],
+    ['/users', 'overview-users'],
+    ['/overview/audit', 'overview-audit'],
+  ])('%s shows the Workspace %s (Task 4.8), not today\'s page', async (route, page) => {
+    renderAt(route);
+    expect(await screen.findByTestId(`page-${page}`)).toHaveAttribute('data-embedded', 'false');
+    expect(screen.queryByTestId('page-users')).toBeNull();
+    expect(screen.queryByTestId('page-dashboard')).toBeNull();
+    expect(realUrl()).toBe(route);
+  });
+
   it('an MQTT device\'s packet monitor is the Workspace receptions page, with App not mounted (Task 4.7)', async () => {
     renderAt(`/source/${SOURCE_IDS.mqtt}/packetmonitor`);
     expect(await screen.findByTestId('page-mqtt-receptions')).toBeInTheDocument();
@@ -256,7 +267,7 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     expect(screen.queryByTestId('page-dashboard')).toBeNull();
   });
 
-  it.each(['/overview/dashboard', '/overview/audit'])('%s shows today\'s Dashboard without the landing jump', async (route) => {
+  it.each(['/overview/dashboard'])('%s shows today\'s Dashboard without the landing jump', async (route) => {
     renderAt(route);
     await waitFor(() => expect(screen.getByTestId('page-dashboard')).toHaveAttribute('data-show-list', 'true'));
     expect(realUrl()).toBe(route);
@@ -383,7 +394,6 @@ describe('re-hosted pages stay mounted while the URL is fixed up', () => {
     [`${g2}/channels`, `${g2}/configuration`, `${g2}/settings`, 'app'],
     [`${g2}/channels`, `${g2}/configuration#config-lora`, `${g2}/settings/lora#config-lora`, 'app'],
     ['/server/general', '/server/backup', '/server/backup#settings-backup', 'global-settings'],
-    ['/overview/dashboard', '/overview/audit', '/overview/audit', 'dashboard'],
     [`${heltec}/nodes`, `${heltec}/admin`, `${heltec}/nodes`, 'meshcore'],
     // The rail's Overview square (`/overview`) and the sidebar's All-devices map row (`/overview/map`).
     ['/overview', '/overview/map', '/overview/map', 'overview-map'],

@@ -1,0 +1,504 @@
+/*
+ * Overview › Audit log (o5): fixed to the page column like Overview › Packets.
+ * Phone (16-03, 16-08): its own header, two-line rows, Filters and entry sheets.
+ */
+.page {
+  position: fixed;
+  top: var(--app-header-height);
+  right: 0;
+  bottom: var(--app-nav-bar-height);
+  left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 20px 16px 16px 24px;
+  overflow-y: auto;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.headText {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.search,
+.select,
+.button,
+.chip,
+.primary {
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.search {
+  min-width: 220px;
+}
+
+.button,
+.chip,
+.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chip {
+  border-radius: 999px;
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.button:disabled,
+.iconButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.primary {
+  width: 100%;
+  min-height: 44px;
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.select option {
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+}
+
+.selectField {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.dates {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.search:focus-visible,
+.select:focus-visible,
+.button:focus-visible,
+.chip:focus-visible,
+.primary:focus-visible,
+.row:focus-visible,
+.back:focus-visible,
+.iconButton:focus-visible,
+.textButton:focus-visible,
+.segments button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.stat {
+  padding: 10px 14px;
+  border: 1px solid var(--color-surface);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+}
+
+.stat h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-subtle);
+}
+
+.stat p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.statValue {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-surface);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-surface);
+  text-align: left;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-surface);
+  vertical-align: top;
+}
+
+.row {
+  cursor: pointer;
+}
+
+.row:hover,
+.row[aria-expanded='true'] {
+  background: var(--color-surface-hover);
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.action[data-tone='error'] {
+  color: var(--color-error);
+}
+
+.action[data-tone='warning'] {
+  color: var(--color-warning);
+}
+
+.action[data-tone='success'] {
+  color: var(--color-success);
+}
+
+.detailsCell {
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expanded td {
+  background: var(--color-bg);
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.comparison {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.pre {
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  max-height: 320px;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--color-surface);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.muted {
+  color: var(--color-text-subtle);
+}
+
+/* Phone */
+.page[data-phone] {
+  padding: 0 12px 12px;
+  gap: 10px;
+}
+
+.phoneHead {
+  flex: none;
+  min-height: 56px;
+  margin: 0 -12px;
+  padding: 0 4px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-surface);
+  background: var(--color-bg-sunken);
+}
+
+.back {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border-radius: 10px;
+  color: var(--color-accent);
+  font-size: 17px;
+  text-decoration: none;
+}
+
+.phoneTitle {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.iconButton {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.scope {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.phoneBar {
+  display: flex;
+  gap: 8px;
+}
+
+.page[data-phone] .search {
+  flex: 1;
+  min-width: 0;
+}
+
+.page[data-phone] .search,
+.page[data-phone] .button,
+.page[data-phone] .chip,
+.page[data-phone] .select {
+  min-height: 44px;
+}
+
+.badge {
+  min-width: 22px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  font-size: 13px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-surface);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-bg-raised);
+}
+
+.time {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-subtle);
+}
+
+/* Sheets render in <body>: their controls carry their own phone sizes. */
+.sheetBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 20px 12px;
+}
+
+.sheetBody .selectField {
+  min-height: 52px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.sheetBody .select {
+  min-height: 44px;
+}
+
+.segmentField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.segmentLabel {
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.segments {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.segments button {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.segments button[aria-pressed='true'] {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.textButton {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.when {
+  margin: 0;
+  color: var(--color-text-subtle);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-surface);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+}
+
+.field {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--color-surface);
+}
+
+.field:last-child {
+  border-bottom: 0;
+}
+
+.fieldLabel {
+  color: var(--color-text-subtle);
+}
+
+.fieldValue {
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+/* Phone: today's three stats in one compact row above the list. */
+.page[data-phone] .stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.page[data-phone] .stat {
+  padding: 6px 8px;
+}
+
+.page[data-phone] .stat h3,
+.page[data-phone] .stat p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+
+.page[data-phone] .statValue {
+  font-size: 16px;
+}

@@ -1,11 +1,11 @@
 {
   "must": [
-    "Add user",
+    "Add User",
     "Username",
-    "Display name",
+    "Display Name",
     "Email",
-    "Make admin",
-    "Set password",
+    "Make Admin",
+    "Set Password",
     "Passkeys",
     "Deactivate",
     "Delete"
