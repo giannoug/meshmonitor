@@ -633,7 +633,7 @@ Ruling: 4.8 o5/16-03 — "Repeater consoles" is today's "MeshCore CLI activity" 
 Ruling: 4.8 o4/q4/13-13/13-18/o5/16-03/16-08 checks — D9b swaps and Ruling Q / D9d drops as listed under "Per-board check strings changed" — cost if wrong: string edits.
 
 ## Phase 4 summary (gate)
-- Commits f3c67b7..15590e4 (tasks 4.1–4.8, 27 commits, each task reviewed; 4.1, 4.2, 4.3, 4.5, 4.6, 4.7 and 4.8 each took one fix round; 4.4 passed its first review).
+- Commits f3c67b7..15590e4 (tasks 4.1–4.8, 27 commits, each task reviewed; 4.4 took two fix rounds and every other task one).
 - Boards accepted (49): f6-overview, 5-01 through 5-13, 6-01 through 6-15, 7-01 through 7-09, o4-users, o5-audit, q4-permissions, 13-13, 13-18, 16-03, 16-08, 18-01 through 18-04.
 - Contact sheet (private artifact): https://claude.ai/artifact/GHvemytgjFdE2u6W8nERTm. Screenshots were re-encoded as JPEG to fit the 16 MB artifact limit; the canonical PNGs are produced by `npm run test:workspace-e2e`.
 - CI has not run on this fork (Actions off). The gate was verified locally at 970caf3:
