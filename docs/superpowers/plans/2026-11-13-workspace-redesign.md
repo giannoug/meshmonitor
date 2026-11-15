@@ -820,7 +820,7 @@ Boards: `5-01-overview-analysis`, `5-02-layers-analysis`, `5-03-time-trails`, `5
 
 ### Task 4.3: Analysis on phone
 
-Boards: `5-09-tools-time`, `5-10-inspector-sheet`, `5-11-link-profile-sheet`, `5-12-layers-sheet`, `5-13-planner-dop-sheet`.
+Boards: `5-08-overview-map` (full board check; 4.1 built only its frame — Ruling CA), `5-09-tools-time`, `5-10-inspector-sheet`, `5-11-link-profile-sheet`, `5-12-layers-sheet`, `5-13-planner-dop-sheet`.
 
 **Files:**
 - Create: `src/workspace/overview/analysis/Phone*.tsx` + tests
