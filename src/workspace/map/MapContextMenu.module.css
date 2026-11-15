@@ -1,0 +1,96 @@
+/*
+ * The device map's context menu and hint chip (boards 15-08, 15-20): a card at
+ * the spot pressed (desktop), across the map under it (phone).
+ */
+.menu {
+  position: absolute;
+  z-index: 1001;
+  width: 340px;
+  max-width: calc(100% - 32px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-surface);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  overflow: hidden;
+}
+
+.menu[data-phone] {
+  left: 16px;
+  right: 16px;
+  width: auto;
+}
+
+.head {
+  margin: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.item {
+  min-height: 52px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--color-surface);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:last-child {
+  border-bottom: 0;
+}
+
+.item:hover:not(:disabled),
+.item:focus-visible {
+  background: var(--color-surface);
+  outline: none;
+}
+
+.item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.item > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sub {
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}
+
+.hint {
+  margin: 0;
+  min-height: 40px;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  box-sizing: border-box;
+  border: 1px solid var(--color-surface);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  font-size: 14px;
+}

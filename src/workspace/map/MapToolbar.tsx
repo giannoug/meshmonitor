@@ -64,12 +64,17 @@ export interface MapControlsProps {
   /** Today's gate: no measuring in 3D, or with fewer than two positioned nodes. */
   measureDisabled: boolean;
   onMeasure(active: boolean): void;
+  /** Opens the map's context menu at the centre: the keyboard path to it (3.6). */
+  onMenu(): void;
 }
 
-export function MapControls({ canFit, onFit, measureActive, measureDisabled, onMeasure }: MapControlsProps) {
+export function MapControls({ canFit, onFit, measureActive, measureDisabled, onMeasure, onMenu }: MapControlsProps) {
   const { t } = useTranslation();
   return (
     <div className={styles.controls}>
+      <button type="button" className={styles.control} onClick={onMenu} aria-label={t('workspace.map_edit.menu')} title={t('workspace.map_edit.menu')}>
+        <UiIcon name="target" size={20} />
+      </button>
       <button type="button" className={styles.control} onClick={onFit} disabled={!canFit} aria-label={t('workspace.map.fit_all')} title={t('workspace.map.fit_all')}>
         <UiIcon name="fitBounds" size={20} />
       </button>

@@ -1,7 +1,6 @@
 {
   "must": [
     "Sending source",
-    "Pick on map",
     "Name",
     "Description",
     "Icon",

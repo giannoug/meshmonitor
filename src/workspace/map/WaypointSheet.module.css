@@ -1,0 +1,174 @@
+/* The waypoint editor and delete confirm (boards 15-07, 15-13, 15-23). */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 20px 8px;
+}
+
+/* The delete confirm's body: today's words, what happens, the Sends line. */
+.confirmBody {
+  composes: form;
+}
+
+.confirmBody > p:first-child {
+  margin: 0;
+}
+
+.effects {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--color-text-subtle);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  align-items: end;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.label {
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}
+
+.input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-sunken);
+  color: var(--color-text);
+  font: inherit;
+  resize: vertical;
+}
+
+.icons {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.icons > legend {
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.iconPick {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-sunken);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.iconPick[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-surface);
+}
+
+.custom {
+  width: 88px;
+}
+
+.check {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}
+
+.warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-warning);
+}
+
+.error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-error);
+}
+
+.dangerTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dangerTitle > svg {
+  flex: none;
+  color: var(--color-error);
+}
+
+/* The waypoint popup's actions (15-07, 15-08). */
+.popup {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.locked {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}
+
+.popupButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.popupButton {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.popupDanger {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.popupButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

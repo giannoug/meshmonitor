@@ -27,6 +27,8 @@ const fixtures = {
   'GET /api/poll': () => ({ ...athensFixture.poll, nodes: athensFixture.poll.nodes!.map((n) => (n.nodeNum === ROVER ? { ...n, isMobile: true, asset: undefined } : n)) }),
   // One page, then the empty page that ends the walk back.
   'GET /api/nodes/:id/position-history': (url: URL) => (url.searchParams.has('before') ? [] : fixes),
+  // No waypoints: a waypoint's geofence draws in the same overlay pane the trail is counted in (3.6 fixture).
+  'GET /api/sources/:id/waypoints': () => ({ success: true, data: [] }),
 };
 const trailPaths = () => document.querySelectorAll('.leaflet-overlay-pane path');
 

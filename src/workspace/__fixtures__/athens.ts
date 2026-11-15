@@ -18,6 +18,7 @@ import type { MessageEvent } from '../../types/message';
 import type { ActivityItem } from '../../types/activity';
 import type { EnrichedNeighborInfo } from '../../contexts/MapContext';
 import type { MergePreview } from '../../types/nodeIdentityChange';
+import type { Waypoint } from '../../types/waypoint';
 
 export const SOURCE_IDS = {
   g2: 'src-g2',
@@ -406,7 +407,25 @@ const mergePreview: MergePreview = {
   detectionBasis: 'manual',
 };
 
+/**
+ * Station G2's waypoints (map editing, 15-07 / 15-08 / 15-23 / 15-24): Trailhead is its own, on
+ * LongFast at hop limit 3, with a circle-and-box geofence; Lycabettus summit is locked to another node.
+ */
+const waypoints: Waypoint[] = [
+  { sourceId: SOURCE_IDS.g2, waypointId: 101, ownerNodeNum: 0xa1b2c300, latitude: 37.9762, longitude: 23.7398,
+    expireAt: null, lockedTo: null, name: 'Trailhead', description: 'Meet 08:00 Sat at the trailhead',
+    iconCodepoint: 0x26fa, iconEmoji: '\u26FA', isVirtual: false, channel: 0, rebroadcastIntervalS: 1800, hopLimit: 3,
+    geofenceRadiusM: 400, boundingBox: { west: 23.735, south: 37.9724, east: 23.7446, north: 37.98 },
+    notifyOnEnter: true, notifyOnExit: false, notifyFavoritesOnly: true,
+    lastBroadcastAt: NOW_S - 600, firstSeenAt: NOW_S - 86_400, lastUpdatedAt: NOW_S - 600 },
+  { sourceId: SOURCE_IDS.g2, waypointId: 102, ownerNodeNum: 0xa1b2c307, latitude: 37.9819, longitude: 23.7432,
+    expireAt: null, lockedTo: 0xa1b2c307, name: 'Lycabettus summit', description: '',
+    iconCodepoint: 0x26f0, iconEmoji: '\u26F0', isVirtual: false, channel: 0, rebroadcastIntervalS: null, hopLimit: null,
+    lastBroadcastAt: null, firstSeenAt: NOW_S - 7200, lastUpdatedAt: NOW_S - 7200 },
+];
+
 export const athensFixture = {
+  waypoints,
   sources,
   statuses,
   unifiedStatus,

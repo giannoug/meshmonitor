@@ -480,6 +480,64 @@ export const BOARDS: Board[] = [
       await page.getByRole('dialog', { name: 'Request Telemetry' }).waitFor();
     },
   },
+  // Task 3.6: map editing. Boards drawing several things at once are built one at a time (D9c).
+  {
+    id: '15-07-waypoint-editor',
+    size: 'desktop',
+    path: '/source/src-g2/map',
+    setup: async (page) => {
+      await openMapMenu(page, 'Add waypoint here');
+      const sheet = page.getByRole('dialog', { name: 'New waypoint' });
+      await sheet.getByLabel('Name (≤29 bytes)').fill('Trailhead');
+      await sheet.getByLabel(/^Rebroadcast every/).fill('30');
+      await sheet.getByRole('combobox', { name: 'Shape' }).selectOption('circle');
+    },
+  },
+  {
+    // 15-08 also draws the marker form and the delete confirm; the shot shows the menu.
+    id: '15-08-map-menu',
+    size: 'desktop',
+    path: '/source/src-g2/map',
+    setup: (page) => openMapMenu(page),
+  },
+  {
+    id: '15-13-waypoint-editor',
+    size: 'phone',
+    path: '/source/src-g2/map',
+    setup: async (page) => {
+      await openMapMenu(page, 'Add waypoint here');
+      await page.getByRole('dialog', { name: 'New waypoint' }).getByLabel(/^Rebroadcast every/).fill('30');
+    },
+  },
+  { id: '15-20-long-press-menu', size: 'phone', path: '/source/src-g2/map', setup: (page) => openMapMenu(page) },
+  {
+    id: '15-23-delete-waypoint',
+    size: 'phone',
+    path: '/source/src-g2/map',
+    setup: async (page) => {
+      await openTrailhead(page, 'Delete…');
+      await page.getByRole('dialog', { name: 'Delete waypoint “Trailhead”?' }).waitFor();
+    },
+  },
+  {
+    id: '15-24-geofence',
+    size: 'phone',
+    path: '/source/src-g2/map',
+    setup: async (page) => {
+      await openTrailhead(page, 'Edit');
+      await page.getByRole('dialog', { name: 'Edit waypoint' }).getByRole('button', { name: /^Geofence/ }).click();
+      await page.getByRole('dialog', { name: 'Geofence' }).getByRole('button', { name: 'Done' }).waitFor();
+    },
+  },
+  {
+    id: '15-26-local-marker',
+    size: 'phone',
+    path: '/source/src-g2/map',
+    setup: async (page) => {
+      await openMapMenu(page, 'Add local marker here');
+      await page.getByRole('dialog', { name: 'New local marker' }).getByLabel('Label').fill('Site B');
+    },
+  },
 ];
 
 /** Kifisia Rooftop's detected renumbering, served for this shot, then the page reloads. */
@@ -528,4 +586,21 @@ async function searchRelay(page: Page): Promise<void> {
 async function openDm(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Message anyway' }).click();
   await page.getByText('Running one now').waitFor();
+}
+
+/** Right-clicks the map (a long-press on touch fires the same event), then picks `item` if given. */
+async function openMapMenu(page: Page, item?: string): Promise<void> {
+  const map = page.locator('.leaflet-container');
+  const box = (await map.boundingBox())!;
+  // Clear of the desktop's node list (left) and the phone's map buttons (right).
+  await map.click({ button: 'right', position: { x: box.width * 0.45, y: box.height * 0.4 } });
+  const menu = page.getByRole('menu', { name: 'Map actions' });
+  await menu.waitFor();
+  if (item) await menu.getByRole('menuitem', { name: new RegExp(`^${item}`) }).click();
+}
+
+/** Trailhead's popup (its marker may sit under the phone's overlay: the DOM click goes to Leaflet), then one of its actions. */
+async function openTrailhead(page: Page, action: 'Edit' | 'Delete…'): Promise<void> {
+  await page.locator('.waypoint-icon', { hasText: '\u26FA' }).dispatchEvent('click');
+  await page.locator('.leaflet-popup').getByRole('button', { name: action }).click();
 }

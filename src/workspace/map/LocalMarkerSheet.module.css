@@ -1,0 +1,8 @@
+/* The local marker editor (boards 15-08, 15-26): the waypoint sheet's form parts. */
+.form { composes: form from "./WaypointSheet.module.css"; }
+.row { composes: row from './WaypointSheet.module.css'; }
+.field { composes: field from './WaypointSheet.module.css'; }
+.label { composes: label from './WaypointSheet.module.css'; }
+.input { composes: input from './WaypointSheet.module.css'; }
+.hint { composes: hint from './WaypointSheet.module.css'; margin: 0; }
+.error { composes: error from './WaypointSheet.module.css'; }

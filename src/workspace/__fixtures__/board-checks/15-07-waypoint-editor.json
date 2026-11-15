@@ -1,8 +1,6 @@
 {
   "must": [
-    "Click the map to place the waypoint",
     "Sending source",
-    "Pick on map",
     "Name",
     "29",
     "Description",

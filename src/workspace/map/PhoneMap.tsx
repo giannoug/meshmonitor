@@ -36,6 +36,8 @@ export interface PhoneMapProps {
   controls: ReactNode;
   /** The mode lines the desktop shows at the foot (neighbours hint, Traceroute mode). */
   status: ReactNode;
+  /** The map editing hint chip (15-20), under the top bar. */
+  hint?: ReactNode;
 }
 
 export default function PhoneMap(p: PhoneMapProps) {
@@ -55,6 +57,7 @@ export default function PhoneMap(p: PhoneMapProps) {
             <UiIcon name="map" size={22} />
           </button>
         </div>
+        {p.hint && <div className={styles.status}>{p.hint}</div>}
         <div className={styles.side}>
           <button type="button" className={styles.button} aria-label={nodeList} title={nodeList} onClick={() => p.onSheet('list')}>
             <UiIcon name="list" size={22} />

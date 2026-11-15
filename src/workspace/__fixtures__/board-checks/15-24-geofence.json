@@ -4,7 +4,7 @@
     "None",
     "Circle",
     "Rectangle",
-    "Both",
+    "Circle and rectangle",
     "Radius (metres)",
     "160 m to 16 km",
     "Bounding box",
@@ -15,7 +15,7 @@
     "Alert when a node enters",
     "Alert when a node leaves",
     "Only for favourite nodes",
-    "Each receiving node alerts its own user"
+    "Every node that receives this waypoint alerts its user"
   ],
   "absent": [],
   "source": "checks/s15.json"

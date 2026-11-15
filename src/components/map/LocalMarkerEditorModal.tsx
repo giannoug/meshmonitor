@@ -5,26 +5,18 @@
  * stored in MeshMonitor only and never transmitted; the dialog says so, so
  * nobody mistakes it for the waypoint editor.
  */
-import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Modal from '../common/Modal';
 import { NumberInput } from '../common/NumberInput';
 import { NumberInputScope } from '../common/NumberInputScope';
-import { useNumberInputScope } from '../common/numberInputScopeContext';
 import { UiIcon } from '../icons';
 import {
   MAP_MARKER_COLORS, MAP_MARKER_ICONS, MAP_MARKER_LABEL_MAX, MAP_MARKER_DESCRIPTION_MAX,
   type MapMarker, type MapMarkerColor, type MapMarkerIcon, type MapMarkerInput,
 } from '../../types/mapMarker';
 import PinSourcePicker, { type PinSourceChoice } from './PinSourcePicker';
+import { COLOR_LABELS, ICON_LABELS, useLocalMarkerForm } from './useLocalMarkerForm';
 import styles from './LocalMarkerEditorModal.module.css';
-
-const ICON_LABELS: Record<MapMarkerIcon, string> = {
-  pin: 'Pin', star: 'Star', target: 'Target', antenna: 'Antenna', home: 'Home', warning: 'Warning',
-};
-const COLOR_LABELS: Record<MapMarkerColor, string> = {
-  accent: 'Blue', success: 'Green', warning: 'Amber', error: 'Red', info: 'Teal', muted: 'Grey',
-};
 
 export interface LocalMarkerEditorModalProps {
   isOpen: boolean;
@@ -39,54 +31,13 @@ export interface LocalMarkerEditorModalProps {
   storingSource?: PinSourceChoice;
 }
 
-/** A map click gives ~15 decimals; 6 (about 0.1 m) is plenty and fits the field. */
-const roundCoord = (v: number | null | undefined): number | null =>
-  v == null || !Number.isFinite(v) ? null : Math.round(v * 1e6) / 1e6;
-
-export default function LocalMarkerEditorModal({ isOpen, initial, defaultCoords, onClose, onSave, storingSource }: LocalMarkerEditorModalProps) {
+export default function LocalMarkerEditorModal(props: LocalMarkerEditorModalProps) {
+  const { isOpen, initial, onClose, storingSource } = props;
   const { t } = useTranslation();
-  const numberScope = useNumberInputScope();
-  const [label, setLabel] = useState('');
-  const [description, setDescription] = useState('');
-  const [lat, setLat] = useState<number | null>(null);
-  const [lon, setLon] = useState<number | null>(null);
-  const [altitude, setAltitude] = useState<number | null>(null);
-  const [icon, setIcon] = useState<MapMarkerIcon>('pin');
-  const [color, setColor] = useState<MapMarkerColor>('accent');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    setLabel(initial?.label ?? '');
-    setDescription(initial?.description ?? '');
-    setLat(roundCoord(initial?.latitude ?? defaultCoords?.lat));
-    setLon(roundCoord(initial?.longitude ?? defaultCoords?.lon));
-    setAltitude(initial?.altitude ?? null);
-    setIcon(initial?.icon ?? 'pin');
-    setColor(initial?.color ?? 'accent');
-    setError(null);
-    setSaving(false);
-  }, [isOpen, initial, defaultCoords]);
-
-  const sourceMissing = Boolean(storingSource) && !storingSource?.value;
-  const canSave = !sourceMissing && label.trim().length > 0 && lat !== null && lon !== null && !numberScope.invalid && !saving;
-
-  const save = async () => {
-    if (!canSave) return;
-    setSaving(true);
-    setError(null);
-    try {
-      await onSave({
-        label: label.trim(), description: description.trim() || null,
-        latitude: lat as number, longitude: lon as number, altitude, icon, color,
-      });
-      onClose();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t('localMarkers.saveFailed', 'Could not save the marker'));
-      setSaving(false);
-    }
-  };
+  const {
+    numberScope, label, setLabel, description, setDescription, lat, setLat, lon, setLon,
+    altitude, setAltitude, icon, setIcon, color, setColor, saving, error, canSave, save,
+  } = useLocalMarkerForm(props);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} maxWidth="460px"

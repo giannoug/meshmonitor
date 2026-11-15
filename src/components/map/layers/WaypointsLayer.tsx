@@ -15,7 +15,7 @@
  * MapAnalysis-only; `PerSourceWaypoints` has no such dependency and is the
  * cross-surface piece Dashboard consumes directly.
  */
-import { Fragment, useMemo } from 'react';
+import { Fragment, useMemo, type ReactNode } from 'react';
 import { Circle, Marker, Popup, Rectangle } from 'react-leaflet';
 import L from 'leaflet';
 import {
@@ -143,6 +143,12 @@ export interface WaypointPopupActions {
   lockedToOther?: (wp: Waypoint) => boolean;
   /** Tooltip for the disabled buttons. */
   lockedTitle?: string;
+  /**
+   * Draws the popup's actions in place of the Edit / Delete buttons (the
+   * Workspace map, #6365, shows the lock reason as text). Omitted: the
+   * buttons above.
+   */
+  renderActions?: (wp: Waypoint, locked: boolean) => ReactNode;
 }
 
 export function PerSourceWaypoints({
@@ -235,7 +241,8 @@ export function PerSourceWaypoints({
                     )}
                   </div>
 
-                  {(actions?.canEdit || actions?.canDelete) && (
+                  {actions?.renderActions?.(wp, locked)}
+                  {!actions?.renderActions && (actions?.canEdit || actions?.canDelete) && (
                     <div className="waypoint-popup-actions">
                       {actions.canEdit && (
                         <button

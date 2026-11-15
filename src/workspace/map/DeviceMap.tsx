@@ -63,7 +63,8 @@ import { appBasename } from '../../init';
 import api from '../../services/api';
 import type { DbTraceroute } from '../../services/database';
 import type { DeviceInfo } from '../../types/device';
-import { getEffectivePosition } from '../../utils/nodeHelpers';
+import { getEffectivePosition, parseNodeId } from '../../utils/nodeHelpers';
+import { canSourceSendWaypoints } from '../../utils/waypointSources';
 import { resolveClusteredMapCenterTargetZoom } from '../../utils/mapZoomAnimation';
 import type { PacketFlightStats } from '../../utils/packetFlightEdges';
 import ChatProviders from '../chat/ChatProviders';
@@ -81,6 +82,7 @@ import { peekCenterTarget } from './peekCenter';
 import { themeColors } from './themeColors';
 import { useIsPhone } from '../shell/useIsPhone';
 import { markerKey, useDeviceMap } from './useDeviceMap';
+import { useMapEditing } from './useMapEditing';
 import styles from './DeviceMap.module.css';
 
 export interface DeviceMapRouteProps {
@@ -101,7 +103,7 @@ export default function DeviceMapRoute({ sourceId, source }: DeviceMapRouteProps
   return (
     <ChatProviders sourceId={sourceId} source={source} classicTab="nodes">
       <MapProvider>
-        <DeviceMap sourceId={sourceId} focusNodeId={focusNodeId} onFocusHandled={onFocusHandled} />
+        <DeviceMap sourceId={sourceId} source={source} focusNodeId={focusNodeId} onFocusHandled={onFocusHandled} />
       </MapProvider>
     </ChatProviders>
   );
@@ -114,11 +116,12 @@ const noop = () => {};
 
 interface DeviceMapProps {
   sourceId: string;
+  source: DashboardSource;
   focusNodeId: string | null;
   onFocusHandled(): void;
 }
 
-function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
+function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const { pollData } = useChatRuntime(-1);
@@ -205,6 +208,18 @@ function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
   const trails = useAircraftTrailLayer({ drawnNodes: data.visibleMapNodes, mode: { kind: 'source', sourceId }, available: !effective3D });
   const [measureActive, setMeasureActive] = useState(false);
   const [leaflet, setLeaflet] = useState<L.Map | null>(null);
+  const edit = useMapEditing({
+    sourceId,
+    sourceName: source.name,
+    canSendWaypoints: canSourceSendWaypoints(source),
+    channels,
+    selfNodeNum: currentNodeId ? parseNodeId(currentNodeId) : null,
+    isPhone,
+    leaflet,
+    measureDisabled: data.measurePoints.length < 2,
+    onMeasure: () => setMeasureActive(true),
+    onMarkerCreated: () => map.setShowLocalMarkers(true),
+  });
 
   const positionOf = useCallback(
     (node: DeviceInfo): [number, number] | null => {
@@ -297,6 +312,7 @@ function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
       measureActive={measureActive}
       measureDisabled={data.measurePoints.length < 2}
       onMeasure={setMeasureActive}
+      onMenu={edit.openAtCentre}
     />
   );
 
@@ -335,6 +351,7 @@ function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
             resizeTrigger={`${layers.showPacketMonitor}`}
           >
             <MapInstanceBridge onMap={setLeaflet} />
+            {edit.bridge}
             <MapCenterController
               centerTarget={map.mapCenterTarget}
               onCenterComplete={() => setMapCenterTarget(null)}
@@ -342,8 +359,8 @@ function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
             />
             <ZoomHandler onZoomChange={mapView.setZoom} />
             <MapPositionHandler />
-            {map.showWaypoints && <DashboardWaypoints sourceId={sourceId} />}
-            {map.showLocalMarkers && <LocalMarkers sourceId={sourceId} />}
+            {map.showWaypoints && <DashboardWaypoints sourceId={sourceId} actions={edit.waypointActions} />}
+            {map.showLocalMarkers && <LocalMarkers sourceId={sourceId} actions={edit.markerActions} />}
             {map.showAtakContacts && <DashboardAtakContacts sourceId={sourceId} />}
             {measureActive && <MeasureDistanceController active points={data.measurePoints} onExit={() => setMeasureActive(false)} />}
             {map.showAircraftTrails && <AircraftTrailsLayer trails={trails.trails} formatTooltip={trails.formatTooltip} />}
@@ -388,6 +405,7 @@ function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
           />
         )}
         {isLoading && <MapLoadingOverlay />}
+        {edit.overlay}
 
         {isPhone ? (
           <PhoneMap
@@ -401,11 +419,13 @@ function DeviceMap({ sourceId, focusNodeId, onFocusHandled }: DeviceMapProps) {
             hopsOf={data.hopsOf}
             onPick={(node) => openNode(node, true)}
             controls={controls}
+            hint={!effective3D && edit.hint}
             status={status}
           />
         ) : (
           <div className={styles.overlay}>
             <MapToolbar layersOpen={panel?.kind === 'layers'} onLayers={() => (panel?.kind === 'layers' ? closePanel() : setPanel({ kind: 'layers' }))} />
+            {!effective3D && edit.hint}
             <div className={styles.columns}>
               <MapNodeList
                 sourceId={sourceId}

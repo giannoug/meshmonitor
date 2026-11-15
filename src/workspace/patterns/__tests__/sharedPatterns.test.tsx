@@ -48,6 +48,18 @@ describe('ConfirmSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Purge now' }));
     expect(onConfirm).toHaveBeenCalled();
   });
+  it('Enter submits the form by default', () => {
+    const { onConfirm } = confirm({ confirmWord: undefined });
+    fireEvent.submit(screen.getByRole('dialog').querySelector('form')!);
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+  it('submitOnEnter={false}: Enter in a field does not confirm; the button still does (Ruling BH)', () => {
+    const { onConfirm } = confirm({ confirmWord: undefined, submitOnEnter: false });
+    fireEvent.submit(screen.getByRole('dialog').querySelector('form')!);
+    expect(onConfirm).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Purge now' }));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('ConfirmSheet failure and busy', () => {

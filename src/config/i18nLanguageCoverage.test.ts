@@ -70,7 +70,8 @@ function leafStrings(obj: Record<string, unknown>, prefix = ''): Record<string, 
 
 function coveragePct(): Record<string, number> {
   const en = leafStrings(JSON.parse(readFileSync(join(LOCALE_DIR, 'en.json'), 'utf8')));
-  const keys = Object.keys(en);
+  // `workspace.*` is left out while the opt-in Workspace layout (#6365) is in preview; remove this exclusion when Workspace ships.
+  const keys = Object.keys(en).filter((k) => !k.startsWith('workspace.'));
   const out: Record<string, number> = {};
   for (const file of readdirSync(LOCALE_DIR).filter((f) => f.endsWith('.json'))) {
     const code = file.replace(/\.json$/, '');

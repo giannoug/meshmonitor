@@ -92,6 +92,8 @@ const defaults: Record<string, FixtureHandler> = {
   // The device map (Main, f2-layers, 15-09): Station G2's neighbour links; no GeoJSON layers.
   'GET /api/sources/:id/neighbor-info': (url) => (url.pathname.split('/')[3] === SOURCE_IDS.g2 ? A.neighborInfo : []),
   'GET /api/geojson/layers': () => [],
+  'GET /api/sources/:id/waypoints': (url) => ({ success: true, data: url.pathname.split('/')[3] === SOURCE_IDS.g2 ? A.waypoints : [] }),
+  'GET /api/sources/:id/markers': () => ({ success: true, data: [] }),
   // Today's other node charts and the signal trend (the node page's Telemetry tab and Overview, f4 / f5).
   'GET /api/telemetry/:nodeId/smarthops': () => ({
     success: true,

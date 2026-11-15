@@ -28,6 +28,8 @@ export interface ConfirmSheetProps {
    */
   onConfirm(): void | Promise<void>;
   onCancel(): void;
+  /** false: Enter in a field does not confirm; only the button does (sheets that transmit, Ruling BH). Default true. */
+  submitOnEnter?: boolean;
 }
 
 export default function ConfirmSheet(props: ConfirmSheetProps) {
@@ -35,7 +37,7 @@ export default function ConfirmSheet(props: ConfirmSheetProps) {
 }
 
 /** Mounted only while open, so the typed word starts empty on every open. */
-function OpenConfirm({ title, body, consequences, confirmLabel, cancelLabel, confirmWord, danger, busy, confirmDisabled, onConfirm, onCancel }: ConfirmSheetProps) {
+function OpenConfirm({ title, body, consequences, confirmLabel, cancelLabel, confirmWord, danger, busy, confirmDisabled, onConfirm, onCancel, submitOnEnter = true }: ConfirmSheetProps) {
   const { t } = useTranslation();
   const id = useId();
   const [typed, setTyped] = useState('');
@@ -43,8 +45,7 @@ function OpenConfirm({ title, body, consequences, confirmLabel, cancelLabel, con
   const needsWord = !!confirmWord?.trim();
   const canConfirm = !busy && !confirmDisabled && (!needsWord || typed.trim() === confirmWord!.trim());
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
+  const confirm = () => {
     if (!canConfirm) return;
     setError(null);
     void (async () => {
@@ -54,6 +55,10 @@ function OpenConfirm({ title, body, consequences, confirmLabel, cancelLabel, con
         setError(err instanceof Error && err.message ? err.message : t('errors.generic'));
       }
     })();
+  };
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (submitOnEnter) confirm();
   };
 
   return (
@@ -67,8 +72,9 @@ function OpenConfirm({ title, body, consequences, confirmLabel, cancelLabel, con
             {cancelLabel ?? t('common.cancel')}
           </button>
           <button
-            type="submit"
-            form={id}
+            type={submitOnEnter ? 'submit' : 'button'}
+            form={submitOnEnter ? id : undefined}
+            onClick={submitOnEnter ? undefined : confirm}
             className={danger ? `${styles.confirm} ${styles.danger}` : styles.confirm}
             disabled={!canConfirm}
             aria-busy={busy || undefined}

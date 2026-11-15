@@ -1,0 +1,55 @@
+/* The waypoint geofence (boards 15-07, 15-24): inline on desktop, a step of the sheet on phone. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.back,
+.done,
+.row {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.back {
+  align-self: flex-start;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+}
+
+.done {
+  justify-content: center;
+  border: 0;
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  font-weight: 600;
+}
+
+.row {
+  min-height: 52px;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-sunken);
+  color: var(--color-text);
+  text-align: left;
+}
+
+.rowText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.summary {
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}
