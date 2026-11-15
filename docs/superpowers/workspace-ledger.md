@@ -631,3 +631,18 @@ Ruling: 4.8 o5/16-03 — time presets (1 h, Last 24 h, 7 d) send `startDate = no
 Ruling: 4.8 o5/16-08 — today's columns (Timestamp, User, Action, Resource, IP Address, Details) and fields; no Device, From/origin, Client, field-change table or restart note — why: D9d: entries carry no device or origin, `user_agent` is stored null, `valueBefore`/`valueAfter` are never returned; today's Before / After blocks kept for entries that carry them — cost if wrong: server work to add those fields.
 Ruling: 4.8 o5/16-03 — "Repeater consoles" is today's "MeshCore CLI activity" view as a chip; "From" is today's "Source" (All Sources / UI Only / API Token Only) — why: D9b; s16n3 — cost if wrong: string swaps.
 Ruling: 4.8 o4/q4/13-13/13-18/o5/16-03/16-08 checks — D9b swaps and Ruling Q / D9d drops as listed under "Per-board check strings changed" — cost if wrong: string edits.
+
+## Phase 4 summary (gate)
+- Commits f3c67b7..15590e4 (tasks 4.1–4.8, 27 commits, each task reviewed; 4.1, 4.2, 4.3, 4.5, 4.6, 4.7 and 4.8 each took one fix round; 4.4 passed its first review).
+- Boards accepted (49): f6-overview, 5-01 through 5-13, 6-01 through 6-15, 7-01 through 7-09, o4-users, o5-audit, q4-permissions, 13-13, 13-18, 16-03, 16-08, 18-01 through 18-04.
+- Contact sheet (private artifact): https://claude.ai/artifact/GHvemytgjFdE2u6W8nERTm. Screenshots were re-encoded as JPEG to fit the 16 MB artifact limit; the canonical PNGs are produced by `npm run test:workspace-e2e`.
+- CI has not run on this fork (Actions off). The gate was verified locally at 970caf3:
+  - lint:ci filter: 0 FAIL lines
+  - tsc: client and server both clean
+  - full Vitest (--maxWorkers=4): 40,096 total, 39,966 passed, 0 failed, 109 pending
+  - build and bundle check: pass
+  - Playwright: 147 passed
+- Backend changes this phase: none. The only `src/server` files touched are two new route-scope tests (unifiedRoutes.messagesScope / packetsScope) that pin today's per-source behaviour. The client `getDirectNeighborStats` gained an optional `sourceId` that the route already accepted.
+- Mesh impact this phase: no new send paths, no automatic sends, no new timers. Packet capture is a server-side logging setting under today's `settings:write` gate and transmits nothing. Enrichment keeps today's unpaced send (Ruling CM, FINAL REPORT ITEM).
+- Pre-existing issues found and left for follow-up (FINAL REPORT ITEMs): any Users save clears MeshCore `remote_admin` grants in both layouts (Ruling DA); Classic's relay-estimate modal pools direct-neighbour stats across sources.
+- No PR created (requester's instruction).
