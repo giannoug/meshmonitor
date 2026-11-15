@@ -39,9 +39,16 @@ import {
 const OverviewMap = lazy(() => import('./overview/OverviewMap.tsx'));
 const OverviewHome = lazy(() => import('./overview/OverviewHome.tsx'));
 
-/** `/overview`: the phone's Overview Home (5-07); on desktop the sidebar holds the tools, so the map. */
-function OverviewIndex() {
-  return useIsPhone() ? <OverviewHome /> : <OverviewMap />;
+/**
+ * `/`, `/overview` and `/overview/map`: the all-devices map, except the phone's
+ * `/overview`, which is the Overview Home (5-07). One element type for all
+ * three routes, so moving between them (the rail's Overview square, the
+ * sidebar's All-devices map row) keeps the one map mounted.
+ */
+function OverviewIndex({ landing = false }: { landing?: boolean }) {
+  const isPhone = useIsPhone();
+  const { pathname } = useLocation();
+  return isPhone && /^\/overview\/?$/.test(pathname) ? <OverviewHome /> : <OverviewMap landing={landing} />;
 }
 
 function WorkspaceRoutes() {
@@ -64,9 +71,9 @@ function WorkspaceRoutes() {
         {/* Every other route shares one app-level socket, kept across navigation (Ruling N). */}
         <Route element={<WebSocketProvider><Outlet /></WebSocketProvider>}>
           {/* The all-devices map (Task 4.1); the admin's default landing page applies on `/` only. */}
-          <Route index element={<OverviewMap landing />} />
+          <Route index element={<OverviewIndex landing />} />
           <Route path="overview" element={<OverviewIndex />} />
-          <Route path="overview/map" element={<OverviewMap />} />
+          <Route path="overview/map" element={<OverviewIndex />} />
           {/* `/overview/dashboard` and `/overview/audit`, which have no cross-source Classic page:
               today's Dashboard until Phases 4 and 8. */}
           <Route path="overview/*" element={<OverviewRehost />} />

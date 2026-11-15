@@ -341,9 +341,13 @@ describe('re-hosted pages stay mounted while the URL is fixed up', () => {
     ['/server/general', '/server/backup', '/server/backup#settings-backup', 'global-settings'],
     ['/overview/dashboard', '/overview/audit', '/overview/audit', 'dashboard'],
     [`${heltec}/nodes`, `${heltec}/admin`, `${heltec}/nodes`, 'meshcore'],
+    // The rail's Overview square (`/overview`) and the sidebar's All-devices map row (`/overview/map`).
+    ['/overview', '/overview/map', '/overview/map', 'overview-map'],
+    ['/overview/map', '/overview', '/overview', 'overview-map'],
+    ['/', '/overview', '/overview', 'overview-map'],
   ])('%s → %s (lands on %s) keeps one %s', async (from, to, lands, page) => {
     renderAt(from);
-    await expectPage(page);
+    await (page === 'overview-map' ? screen.findByTestId('page-overview-map') : expectPage(page));
     goTo(to);
     await waitFor(() => expect(realUrl()).toBe(lands));
     expect(mounts[page]).toBe(1);
