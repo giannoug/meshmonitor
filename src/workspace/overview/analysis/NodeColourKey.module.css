@@ -1,0 +1,33 @@
+/* The ring colour key, bottom right over the map (DashboardMap's source/gateway legend). */
+.key {
+  position: absolute;
+  right: 12px;
+  bottom: 28px;
+  z-index: 1500;
+  max-width: 240px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-surface);
+  border-radius: 10px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.title {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+}
+
+.swatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}

@@ -21,7 +21,8 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
 describe('5-08-overview-map', () => {
   it.each(['/', '/overview/map'])('%s on a phone is the full-screen map: Back, the search pill, no device header', async (route) => {
     renderWorkspace(<WorkspaceApp />, { route, phone: true });
-    expect(await screen.findByRole('searchbox', { name: 'Filter nodes' })).toBeInTheDocument();
+    // The map's chunk holds today's Map Analysis canvas (Task 4.2): a cold load can take over a second in jsdom.
+    expect(await screen.findByRole('searchbox', { name: 'Filter nodes' }, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute('href', '/overview');
     expect(screen.queryByRole('banner')).toBeNull();
     expect(screen.getByRole('link', { name: /Home/ })).toHaveAttribute('aria-current', 'page');

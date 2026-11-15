@@ -5,7 +5,7 @@
  * with automatic polling every 15 seconds.
  */
 
-import { useMemo, useRef } from 'react';
+import { useContext, useMemo, useRef } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { appBasename } from '../init';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,6 +17,7 @@ import { unifiedNodeKey } from '../utils/nodeIdentity';
 import { isBlankMacAddr, isPlaceholderLongName, isPlaceholderShortName } from '../utils/nodeFieldBlanks';
 import type { SourceRadioSummary } from '../types/elevation';
 import { isAnyMeshCoreSourceType } from '../utils/nodeTypeCategory';
+import { DashboardDataOptionsContext } from './dashboardDataScope';
 
 /**
  * A data source configured in MeshMonitor
@@ -167,8 +168,10 @@ export interface MqttGatewayMembershipRow {
  * `ageWindow`: ask the server to leave out nodes the Dashboard map hides by
  * age (`?ageWindow=settings`). The server uses the widest node-age setting
  * across every source, keeps favourites, aged-out aircraft and local nodes,
- * and keeps every row of a node that any source heard inside the window. Only
- * DashboardPage sets it: Map Analysis draws nodes of any age.
+ * and keeps every row of a node that any source heard inside the window.
+ * DashboardPage sets it, and the Workspace Overview map for every Map Analysis
+ * call under it (`DashboardDataOptionsContext`); Classic Map Analysis draws
+ * nodes of any age.
  */
 export interface DashboardDataOptions {
   ageWindow?: boolean;
@@ -869,7 +872,9 @@ export function useDashboardUnifiedData(
   options?: DashboardDataOptions,
 ): DashboardSourceData {
   const { isAuthenticated, authResolved } = useDashboardAuthGate();
-  const ageWindow = options?.ageWindow === true;
+  // An explicit `options` wins; otherwise a surrounding scope's (the Workspace Overview, #6365).
+  const scoped = useContext(DashboardDataOptionsContext);
+  const ageWindow = (options ?? scoped)?.ageWindow === true;
   // Accept either bare source-id strings (MapAnalysis layers, which never use
   // the per-node `sources` field) or full DashboardSource objects (the Unified
   // dashboard map, which needs source names + protocol for the popup).

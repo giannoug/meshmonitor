@@ -1,9 +1,10 @@
 /**
  * @vitest-environment jsdom
  *
- * OverviewMap's landing wiring: the admin's default landing page applies on
- * `/` only. Today's Map Analysis canvas is mocked here (the map itself is
- * covered by the 5-01 … 5-06 board tests).
+ * OverviewMap's wiring around today's Map Analysis canvas (mocked here, to
+ * read what the Overview gives it): a popup's source row opens that device,
+ * and the admin's default landing page applies on `/` only. The map itself is
+ * covered by the 5-01 … 5-06 board tests.
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -13,10 +14,15 @@ import { renderWorkspace, type RenderWorkspaceOptions } from '../../test/renderW
 import { athensFixture, SOURCE_IDS } from '../../__fixtures__/athens';
 import { SettingsProvider } from '../../../contexts/SettingsContext';
 import { ToastProvider } from '../../../components/ToastContainer';
+import { useAnalysisSurface, type AnalysisSurface } from '../../../components/MapAnalysis/analysisSurface';
 import OverviewMap from '../OverviewMap';
 
+const seen: { surface: AnalysisSurface | null } = { surface: null };
 vi.mock('../../../components/MapAnalysis/MapAnalysisCanvas', () => ({
-  default: () => <div data-testid="analysis-canvas" />,
+  default: function Canvas() {
+    seen.surface = useAnalysisSurface();
+    return <div data-testid="analysis-canvas" />;
+  },
 }));
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
@@ -24,6 +30,7 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
 }));
 
 beforeEach(() => {
+  seen.surface = null;
   // SettingsContext caches the landing page in localStorage.
   localStorage.clear();
 });
@@ -50,6 +57,15 @@ const realUrl = () => screen.getByTestId('real-url').textContent;
 const withLanding = (value: string) => ({ 'GET /api/settings': () => ({ ...athensFixture.settings, defaultLandingPage: value }) });
 
 describe('OverviewMap', () => {
+  it('a popup\'s source row opens that device: a Meshtastic node page, a MeshCore device', async () => {
+    renderMap('/overview/map');
+    await map();
+    seen.surface!.onSourceSelect!({ sourceId: SOURCE_IDS.g2, sourceName: 'Station G2', protocol: 'Meshtastic' }, '!a1b2c301');
+    await waitFor(() => expect(realUrl()).toBe(`/source/${SOURCE_IDS.g2}/node/!a1b2c301`));
+    seen.surface!.onSourceSelect!({ sourceId: SOURCE_IDS.heltec, sourceName: 'Heltec MeshCore', protocol: 'MeshCore' }, 'n1');
+    await waitFor(() => expect(realUrl()).toBe(`/source/${SOURCE_IDS.heltec}`));
+  });
+
   it.each([
     ['reports', '/reports'],
     ['unified-messages', '/unified/messages'],

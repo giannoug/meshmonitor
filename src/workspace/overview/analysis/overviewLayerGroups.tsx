@@ -4,14 +4,18 @@
  * Overlays. Map Analysis's View and Layers menus are placed here with their
  * labels, gates and 3D rule (`analysisControls`), beside today's all-devices
  * toggles that the Map Analysis canvas also draws (MapContext: aircraft,
- * spread, cross-source links, GeoJSON, ducting, packet flights).
+ * spread, cross-source links, GeoJSON, ducting, packet flights) and today's
+ * Dashboard map controls (Ruling CE: the map age filter, Colour nodes by, Hide
+ * nodes without a current position advert, Show Route Segments, Show
+ * Traceroute, Show Neighbor Info).
  *
  * Not here, and where it is: Time is the bar's Time Slider button; the tools
- * are the Tools menu; the node filters are the bar over the map.
+ * are the Tools menu; the node filters and Zoom to fit are the bar over the map.
  */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../../components/icons';
+import MapAgeFilterControl from '../../../components/map/MapAgeFilterControl';
 import MapAircraftDisplayControl from '../../../components/map/MapAircraftDisplayControl';
 import { DuctingControl } from '../../../components/map/DuctingControl';
 import { PacketFlightsControl } from '../../../components/map/PacketFlightsControl';
@@ -38,14 +42,28 @@ const GROUP_OF: Partial<Record<LayerKey, 'nodes' | 'overlays'>> = {
   atakContacts: 'overlays',
 };
 
+/** Today's Dashboard map controls that live outside MapContext (Ruling CE). */
+export interface DashboardControls {
+  /** 2+ devices: the Unified map, where Colour nodes by applies (DashboardMap's rule). */
+  unified: boolean;
+  /** #5578, offered while the map holds MeshCore nodes. */
+  hidePositionless: boolean;
+  onHidePositionless(v: boolean): void;
+  hasMeshCoreNodes: boolean;
+  /** The widest node-age setting across devices, and the map age filter over it. */
+  maxNodeAgeHours: number;
+  mapAgeHours: number;
+}
+
 export interface OverviewLayerParams {
   controls: ReturnType<typeof useAnalysisControls>;
   packetFlightsStats: PacketFlightStats | null;
   aircraftCount: number;
   agedOutCount: number;
+  dashboard: DashboardControls;
 }
 
-export function useOverviewLayerGroups({ controls, packetFlightsStats, aircraftCount, agedOutCount }: OverviewLayerParams): LayerGroupSpec[] {
+export function useOverviewLayerGroups({ controls, packetFlightsStats, aircraftCount, agedOutCount, dashboard }: OverviewLayerParams): LayerGroupSpec[] {
   const { t } = useTranslation();
   const m = useMapContext();
   const s = useSettings();
@@ -99,6 +117,19 @@ export function useOverviewLayerGroups({ controls, packetFlightsStats, aircraftC
   ];
 
   const nodes: LayerItem[] = [
+    // Today's Dashboard map age filter (#3322, #5344): narrows the devices' window for markers and links.
+    {
+      kind: 'custom',
+      id: 'age',
+      label: t('map.ageFilter', { defaultValue: 'Map age filter' }),
+      node: (
+        <MapAgeFilterControl
+          maxNodeAgeHours={dashboard.maxNodeAgeHours}
+          effectiveMaxAgeHours={dashboard.mapAgeHours}
+          onChange={m.setMapMaxAgeHours}
+        />
+      ),
+    },
     ...placed('nodes'),
     // Map Analysis follows the aircraft and spread choices of today's map panels (useAnalysisNodes).
     {
@@ -123,9 +154,46 @@ export function useOverviewLayerGroups({ controls, packetFlightsStats, aircraftC
     toggle('spread', t('map.spreadNodes', 'Spread Nodes'), m.spreadNodes, m.setSpreadNodes, {
       title: t('map.spreadNodesHelp', 'Offset low-precision nodes within their accuracy area so same-cell markers do not stack. Turn off to pin every node at exactly the position it reported.'),
     }),
+    // #6125/#6175: Off / By source / By gateway, one 3-state mode; Unified map only, as DashboardMap.
+    ...(dashboard.unified
+      ? [{
+          kind: 'custom' as const,
+          id: 'colour-by',
+          label: t('map.colorNodesBy', 'Colour nodes by'),
+          node: (
+            <div className={drawer.row} role="radiogroup" aria-label={t('map.colorNodesBy', 'Colour nodes by')}>
+              <span className={drawer.label}>{t('map.colorNodesBy', 'Colour nodes by')}</span>
+              <span className={drawer.segmented}>
+                {([
+                  ['off', t('map.colorNodesOff', 'Off'), t('map.colorNodesOffHelp'), !m.colorNodesBySource && !m.colorNodesByGateway,
+                    () => { m.setColorNodesBySource(false); m.setColorNodesByGateway(false); }],
+                  ['source', t('map.colorNodesBySource', 'Colour nodes by source'), t('map.colorNodesBySourceHelp'), m.colorNodesBySource && !m.colorNodesByGateway,
+                    () => m.setColorNodesBySource(true)],
+                  ['gateway', t('map.colorNodesByGateway', 'Colour nodes by gateway'), t('map.colorNodesByGatewayHelp'), m.colorNodesByGateway,
+                    () => m.setColorNodesByGateway(true)],
+                ] as const).map(([id, label, title, on, pick]) => (
+                  <button key={id} type="button" role="radio" aria-checked={on} aria-label={label} title={title} onClick={pick}>
+                    {id === 'off' ? label : t(id === 'source' ? 'workspace.overview.colour_source' : 'workspace.overview.colour_gateway')}
+                  </button>
+                ))}
+              </span>
+            </div>
+          ),
+        }]
+      : []),
+    // #5578: MeshCore only — offered when the map holds MeshCore nodes.
+    ...(dashboard.hasMeshCoreNodes
+      ? [toggle('positionless', t('map.hidePositionlessAdverts', 'Hide nodes without a current position advert'), dashboard.hidePositionless, dashboard.onHidePositionless, {
+          title: t('map.hidePositionlessAdvertsHelp'),
+        })]
+      : []),
   ];
 
+  // Today's Dashboard map links (MapContext): drawn by DashboardMap's own functions in OverviewOverlays.
   const links: LayerItem[] = [
+    toggle('paths', t('map.showRouteSegments'), m.showPaths, m.setShowPaths),
+    toggle('route', t('map.showTraceroute'), m.showRoute, m.setShowRoute),
+    toggle('neighbors', t('map.showNeighborInfo'), m.showNeighborInfo, m.setShowNeighborInfo),
     toggle('cross-source', t('map.cross_source.toggle', 'Show Cross-Source Links'), m.showCrossSourceLinks, m.setShowCrossSourceLinks, {
       disabled: in3D,
       title: off3D ?? t('map.cross_source.toggle_hint', 'One-way edges: one of your sources was heard by another. Dotted = likely relay (inferred). Dashed = heard by an MQTT gateway.'),

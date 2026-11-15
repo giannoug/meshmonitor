@@ -20,6 +20,12 @@ import { MapAnalysisProvider } from '../../../components/MapAnalysis/MapAnalysis
 import MapAnalysisToolbar from '../../../components/MapAnalysis/MapAnalysisToolbar';
 import { TIMED_LAYERS, UNTIMED_LAYERS } from '../../../components/MapAnalysis/analysisControls';
 import { MapProvider } from '../../../contexts/MapContext';
+import { SettingsProvider } from '../../../contexts/SettingsContext';
+import { ToastProvider } from '../../../components/ToastContainer';
+import DashboardMap from '../../../components/Dashboard/DashboardMap';
+import { UNIFIED_SOURCE_ID } from '../../../hooks/useDashboardData';
+import { athensFixture as A, SOURCE_IDS } from '../../__fixtures__/athens';
+import { dbRow } from '../../__fixtures__/fixtureApi';
 import { DEFAULT_CONFIG, type LayerKey } from '../../../hooks/useMapAnalysisConfig';
 import { openLayers, openTools, renderOverview, storedConfig } from './renderOverview';
 
@@ -139,6 +145,100 @@ describe('every control of today\'s Map Analysis toolbar is on the Overview map'
       const scope = where === 'bar' ? bar : where === 'drawer' ? await openLayers() : await openTools();
       if (!has(scope, there)) missing.push(`${name} → ${where} "${there}"`);
       if (where === 'tools') fireEvent.keyDown(document, { key: 'Escape' });
+    }
+    expect(missing).toEqual([]);
+  });
+});
+
+/** DashboardMap names whose Overview control is named otherwise, with where it is. */
+const DASHBOARD_ELSEWHERE: Record<string, { place: 'bar' | 'drawer' | 'tools' | 'map'; name: string; why: string }> = {
+  'Measure Distance': { place: 'tools', name: 'Measure', why: 'the same MeasureDistanceController, as Map Analysis\'s Measure tool' },
+  '3D Terrain': { place: 'drawer', name: '3D View', why: 'the map\'s one 2D/3D switch (Map Analysis\'s, same DEM gate)' },
+  'Show Neighbors': { place: 'drawer', name: 'Show Neighbor Info', why: 'the same MapContext flag; en.json\'s label for it (D9b)' },
+  'Show RF': { place: 'bar', name: 'All transports', why: 'the map\'s Transport filter holds Show RF / UDP / MQTT' },
+  'Show UDP': { place: 'bar', name: 'All transports', why: 'as Show RF' },
+  'Show MQTT': { place: 'bar', name: 'All transports', why: 'as Show RF' },
+  'Show Waypoints': { place: 'drawer', name: 'Waypoints', why: 'Map Analysis\'s waypoints layer is the map\'s waypoints' },
+  'Show Local Markers': { place: 'drawer', name: 'Local Markers', why: 'as Waypoints' },
+  'Show ATAK Contacts': { place: 'drawer', name: 'ATAK Contacts', why: 'as Waypoints' },
+  'Show Accuracy Regions': { place: 'drawer', name: 'Accuracy Regions', why: 'as Waypoints' },
+  'Show Polar Grid': { place: 'drawer', name: 'Polar Grid', why: 'as Waypoints' },
+  'Show Tile Selection': { place: 'drawer', name: 'Tiles', why: 'the Base map group\'s Tiles row opens the same TilesetSelector' },
+  'Show Legend': { place: 'map', name: 'Collapse legend', why: 'today\'s Map Analysis legend shows and folds itself' },
+};
+
+/** The accessible name of every control in today's Dashboard map panel (Unified, a MeshCore node on it, DEM tiles on). */
+const MESHCORE_NODE = {
+  sourceId: SOURCE_IDS.heltec, isMeshCore: true, nodeNum: 900_001, publicKey: 'a'.repeat(64), nodeId: 'a'.repeat(64),
+  shortName: 'MC', longName: 'MeshCore', latitude: 37.97, longitude: 23.7, lastHeard: Math.floor(Date.now() / 1000),
+};
+
+async function dashboardControls(): Promise<string[]> {
+  const nodes = [...A.nodes.map((n) => dbRow(n, SOURCE_IDS.g2)), MESHCORE_NODE];
+  const { container, unmount } = renderWorkspace(
+    <SettingsProvider>
+      <ToastProvider>
+        <MapProvider>
+          <DashboardMap
+            nodes={nodes} neighborInfo={[]} meshcoreNeighbors={[]} traceroutes={[]} channels={[]}
+            tilesetId="osm" customTilesets={[]} defaultCenter={{ lat: 37.98, lng: 23.72 }}
+            sourceId={UNIFIED_SOURCE_ID} maxNodeAgeHours={24} maxInfraNodeAgeHours={720}
+          />
+        </MapProvider>
+      </ToastProvider>
+    </SettingsProvider>,
+    { fixtures: { 'GET /api/elevation/capabilities': () => ({ success: true, data: { enabled: true, terrainTiles: true } }) } },
+  );
+  await screen.findByText('3D Terrain', {}, { timeout: 5000 });
+  const panel = container.querySelector<HTMLElement>('.map-controls-body')!;
+  const names = new Set<string>();
+  for (const el of panel.querySelectorAll<HTMLElement>('input, button, select')) {
+    const label = el.closest('label');
+    const name = el.getAttribute('aria-label') ?? (label ? label.textContent!.trim() : el.textContent!.trim());
+    if (name) names.add(name);
+  }
+  unmount();
+  localStorage.clear();
+  return [...names];
+}
+
+describe('every control of today\'s Dashboard map is on the Overview map (Ruling CE)', () => {
+  it('each one is there under its name, or the name the table gives', async () => {
+    const controls = await dashboardControls();
+    // The read must have found the panel's controls.
+    expect(controls).toEqual(expect.arrayContaining(['Zoom to fit all nodes', 'Show Route Segments', 'Show Traceroute', 'Spread Nodes']));
+
+    // The same conditions: a MeshCore node on the map (Hide nodes without a current position advert).
+    renderOverview('/overview/map', {
+      fixtures: {
+        'GET /api/unified/dashboard': (url: URL) =>
+          (url.searchParams.get('sources') ?? '').split(',').filter(Boolean).map((sourceId) => ({
+            sourceId,
+            nodes: sourceId === SOURCE_IDS.g2 ? A.nodes.map((n) => dbRow(n, sourceId)) : sourceId === SOURCE_IDS.heltec ? [MESHCORE_NODE] : [],
+            traceroutes: [], neighborInfo: [], channels: [],
+          })),
+      },
+    });
+    await screen.findByRole('button', { name: /^Layers/ }, { timeout: 5000 });
+    const bar = screen.getByRole('toolbar', { name: 'Map' });
+    const drawer = await openLayers();
+    await within(drawer).findByRole('switch', { name: 'Hide nodes without a current position advert' }, { timeout: 5000 });
+    const has = (scope: HTMLElement, name: string) =>
+      within(scope).queryAllByLabelText(name, { exact: false }).length > 0
+      || within(scope).queryAllByRole('button', { name }).length > 0
+      || within(scope).queryAllByRole('radio', { name }).length > 0
+      || within(scope).queryAllByRole('switch', { name }).length > 0
+      || within(scope).queryAllByText(name).length > 0;
+    const missing: string[] = [];
+    for (const name of controls) {
+      const elsewhere = DASHBOARD_ELSEWHERE[name];
+      if (!elsewhere) {
+        if (!has(document.body, name)) missing.push(`${name} (same name)`);
+        continue;
+      }
+      const scope = elsewhere.place === 'bar' ? bar : elsewhere.place === 'drawer' ? drawer : elsewhere.place === 'map' ? document.body : await openTools();
+      if (!has(scope, elsewhere.name)) missing.push(`${name} → ${elsewhere.place} "${elsewhere.name}"`);
+      if (elsewhere.place === 'tools') fireEvent.keyDown(document, { key: 'Escape' });
     }
     expect(missing).toEqual([]);
   });

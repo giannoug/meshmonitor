@@ -8523,6 +8523,8 @@
   "workspace.overview.lookback": "Lookback",
   "workspace.overview.two_d_only": "2D only",
   "workspace.overview.open_node_page": "Open node page",
+  "workspace.overview.colour_source": "Source",
+  "workspace.overview.colour_gateway": "Gateway",
   "workspace.you.account": "Account",
   "workspace.you.sign_in_security": "Sign-in & security",
   "workspace.you.layout": "Layout",

@@ -14,9 +14,7 @@
 import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import 'leaflet/dist/leaflet.css';
-import { Popup, useMap } from 'react-leaflet';
-import type { PathOptions } from 'leaflet';
-import L from 'leaflet';
+import { Popup } from 'react-leaflet';
 import { createNodeIcon } from '../../utils/mapIcons';
 import { markerAgeOpacity } from '../../utils/markerAgeOpacity';
 import { getNodeTypeCategory, categoryGlyphFamily, markerRoleProps } from '../../utils/nodeTypeCategory';
@@ -27,7 +25,13 @@ import DashboardWaypoints from './DashboardWaypoints';
 import { LocalMarkers } from '../map/layers/MapMarkersLayer';
 import DashboardAtakContacts from './DashboardAtakContacts';
 import DashboardNodePopup, { type NodeSourceRef } from './DashboardNodePopup';
-import DashboardNeighborPopup from './DashboardNeighborPopup';
+import { FitAllNodesController, MapBoundsUpdater } from './mapFitControllers';
+import {
+  dashboardMeshCoreNeighborLinks,
+  dashboardMeshtasticNeighborLinks,
+  dashboardTracerouteSegments,
+  passesDashboardAgeGate,
+} from './dashboardMapLinks';
 import GeoJsonOverlay from '../GeoJsonOverlay';
 import PolarGridOverlay from '../PolarGridOverlay';
 import MapLegend from '../MapLegend';
@@ -49,12 +53,6 @@ import { nodeSourceRingColor, nodeGatewayRingColor, applyNodeSourceRing } from '
 import type { NodeGatewayRef } from '../../hooks/useDashboardData';
 import { getOwnNodePositions } from '../../utils/ownNodePositions';
 import { nodePassesTransportFilter, isMqttOnlySourceType } from '../../utils/nodeTransport';
-import {
-  hopTransportClass,
-  segmentPassesTransportFilter,
-  tracerouteTransportClass,
-  transportFilterIsInert,
-} from '../../utils/tracerouteTransport';
 import { shouldDiscardPosition } from '../../utils/nullIsland';
 import { getDiscardInvalidPositions } from '../../utils/positionDisplayConfig';
 import { effectiveMapMaxAgeHours } from '../../utils/mapAge';
@@ -69,7 +67,6 @@ import MapAircraftDisplayControl from '../map/MapAircraftDisplayControl';
 import { isAgedOutAircraft, AGED_OUT_AIRCRAFT_OPACITY } from '../map/agedOutAircraft';
 import AircraftTrailsLayer from '../map/layers/AircraftTrailsLayer';
 import { useAircraftTrailLayer } from '../map/useAircraftTrailLayer';
-import { resolveMapEndpoint } from '../../utils/nodeHelpers';
 import api from '../../services/api';
 import { useCsrfFetch } from '../../hooks/useCsrfFetch';
 import { BaseMap } from '../map/BaseMap';
@@ -90,15 +87,8 @@ import DuctingLayer from '../map/layers/DuctingLayer';
 import { DuctingControl } from '../map/DuctingControl';
 import subToggleStyles from '../map/MapSubToggle.module.css';
 import { AccuracyRegionsLayer, type AccuracyRegionDescriptor } from '../map/layers/AccuracyRegionsLayer';
-import { snrToNeighborOpacity, dedupByUnorderedPair } from '../../utils/neighborLinks';
 import { UiIcon } from '../icons';
-import {
-  parseSnapshotRoutePositions,
-  resolveSegmentPosition,
-  buildLiveNodePositionMap,
-  decomposeTraceroute,
-  type TracerouteRenderSegment,
-} from '../../utils/tracerouteSegments';
+import { buildLiveNodePositionMap, type TracerouteRenderSegment } from '../../utils/tracerouteSegments';
 
 export interface DashboardMapProps {
   nodes: any[];
@@ -144,66 +134,6 @@ function getNodeLatLng(node: any): { lat: number; lng: number } | null {
   if (lat != null && lng != null && !shouldDiscardPosition(lat, lng, undefined, getDiscardInvalidPositions())) {
     return { lat, lng };
   }
-  return null;
-}
-
-// ---------------------------------------------------------------------------
-// MapBoundsUpdater — internal helper that calls fitBounds inside the map ctx
-// ---------------------------------------------------------------------------
-
-interface MapBoundsUpdaterProps {
-  positions: [number, number][];
-  sourceId: string | null;
-  /**
-   * When true, an admin has configured a Default Map Center (lat/lon/zoom), so
-   * the map should open there and we must NOT auto-fit to node bounds. Mirrors
-   * the per-source classic map priority in NodesTab (issue #4125).
-   */
-  skip: boolean;
-}
-
-export function MapBoundsUpdater({ positions, sourceId, skip }: MapBoundsUpdaterProps) {
-  const map = useMap();
-  const hasFittedRef = useRef(false);
-
-  useEffect(() => {
-    // A configured Default Map Center wins over auto-fit (issue #4125).
-    if (skip) return;
-    // Only auto-fit once on initial load, then let the user control the view
-    if (hasFittedRef.current) return;
-    if (positions.length === 0) return;
-    const bounds = L.latLngBounds(positions);
-    if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [40, 40] });
-      hasFittedRef.current = true;
-    }
-  }, [map, positions, sourceId, skip]);
-
-  return null;
-}
-
-/**
- * One-tap "Zoom to fit" for the Dashboard / Unified map (#4898), mirroring the
- * classic /nodes map (#4496). `MapBoundsUpdater` only auto-fits once on load
- * (and not at all when a Default Map Center is set), so this gives an explicit
- * re-frame that always works. `request` is a monotonic counter so repeated
- * clicks re-fit even when the node set is unchanged.
- */
-function FitAllNodesController({ request, positions }: { request: number; positions: Array<[number, number]> }) {
-  const map = useMap();
-  const lastHandled = useRef(0);
-
-  useEffect(() => {
-    if (request === 0 || request === lastHandled.current) return;
-    lastHandled.current = request;
-    if (positions.length === 0) return;
-    if (positions.length === 1) {
-      map.setView(positions[0], Math.max(map.getZoom(), 14), { animate: true });
-      return;
-    }
-    map.fitBounds(positions, { padding: [50, 50], animate: true, duration: 0.5, maxZoom: 15 });
-  }, [request, positions, map]);
-
   return null;
 }
 
@@ -417,21 +347,9 @@ export default function DashboardMap({
     const referenceNowMs = Date.now();
     const ageCutoffTime = referenceNowMs / 1000 - effectiveMaxAge * 60 * 60;
     const infraCutoffTime = referenceNowMs / 1000 - effectiveInfraMaxAge * 60 * 60;
-    // #4899: per-node age gate — MeshCore infrastructure (advType 2/3) uses the
-    // infra window (or never expires when it's 0); everything else uses the
-    // companion window. Favorites bypass both, as before.
-    const passesAgeGate = (n: typeof nodes[number]): boolean => {
-      if (n.isFavorite) return true;
-      // #5364/#5365 Phase 2: an aged-out aircraft is by definition older than
-      // its age-out window, which is often the map window too. It is only
-      // kept when "Show aged-out" is on (below), so let it past the age gate.
-      if (isAgedOutAircraft(n)) return true;
-      if (n.lastHeard == null) return false;
-      if (n.isMeshCore && isMeshCoreInfrastructureAdvType(n.advType)) {
-        return infraNever || n.lastHeard >= infraCutoffTime;
-      }
-      return n.lastHeard >= ageCutoffTime;
-    };
+    // #4899: per-node age gate (dashboardMapLinks, shared with the Workspace Overview map).
+    const passesAgeGate = (n: typeof nodes[number]): boolean =>
+      passesDashboardAgeGate(n, { ageCutoffTime, infraCutoffTime, infraNever });
     // #5364/#5365 Phase 2: ignored nodes are dropped, except aged-out aircraft,
     // which stay in `eligible` so the "N aged out" hint counts exactly what the
     // map would draw; they are dropped below unless "Show aged-out" is on.
@@ -666,45 +584,7 @@ export default function DashboardMap({
   // map below), so there is no stale-embedded-coordinate fallback to fix here.
   const meshcoreNeighborLinks = useMemo<NeighborLinkDescriptor[]>(() => {
     if (!showNeighborInfo) return [];
-    // Untyped intermediate (publicKey/neighborPublicKey/positions/snr only —
-    // no `edge` reference kept) so the dedup + descriptor steps below never
-    // need an explicit `any`; matches the implicit-any the original inline
-    // `for (const e of meshcoreNeighbors)` loop relied on.
-    const withPositions: {
-      publicKey: string;
-      neighborPublicKey: string;
-      a: [number, number];
-      b: [number, number];
-      snr: number | null;
-    }[] = [];
-    for (const e of (meshcoreNeighbors ?? [])) {
-      const pk = e?.publicKey;
-      const npk = e?.neighborPublicKey;
-      if (typeof pk !== 'string' || typeof npk !== 'string') continue;
-      const a = positionByPublicKey.get(pk);
-      const b = positionByPublicKey.get(npk);
-      if (!a || !b) continue;
-      withPositions.push({ publicKey: pk, neighborPublicKey: npk, a, b, snr: e?.snr ?? null });
-    }
-    const deduped = dedupByUnorderedPair(
-      withPositions,
-      (x) => x.publicKey,
-      (x) => x.neighborPublicKey,
-    );
-    return deduped.map(({ publicKey: pk, neighborPublicKey: npk, a, b, snr }) => {
-      const pairKey = pk < npk ? `${pk}~${npk}` : `${npk}~${pk}`;
-      const positions: [[number, number], [number, number]] = [a, b];
-      return {
-        key: `mc-neighbor-${pairKey}`,
-        positions,
-        pathOptions: {
-          color: '#06b6d4',
-          weight: 1.5,
-          opacity: snrToNeighborOpacity(snr),
-          dashArray: '6 4',
-        },
-      };
-    });
+    return dashboardMeshCoreNeighborLinks(meshcoreNeighbors, positionByPublicKey);
   }, [meshcoreNeighbors, positionByPublicKey, showNeighborInfo]);
 
   // Traceroute render segments: one TracerouteRenderSegment per hop, forward
@@ -723,58 +603,10 @@ export default function DashboardMap({
     () => ({ showRfNodes, showUdpNodes, showMqttNodes }),
     [showRfNodes, showUdpNodes, showMqttNodes],
   );
-  // All three on means the filter can remove nothing — skip the per-hop work.
-  const transportFilterActive = !transportFilterIsInert(transportFlags);
-
   const tracerouteRenderSegments = useMemo<TracerouteRenderSegment[]>(() => {
     if (!showPaths && !showRoute) return [];
-    // Map Features age slider (#3322): hide traceroutes/route segments older
-    // than the chosen age. Default (slider at max) keeps the prior behavior.
-    const trCutoffMs = Date.now() - effectiveMaxAge * 60 * 60 * 1000;
-    const segs: TracerouteRenderSegment[] = [];
-    for (const tr of (traceroutes ?? [])) {
-      const trTimestamp = Number(tr?.timestamp ?? tr?.createdAt ?? 0);
-      if (trTimestamp && trTimestamp < trCutoffMs) continue;
-      const fromNum = Number(tr?.fromNodeNum);
-      const toNum = Number(tr?.toNodeNum);
-      if (!Number.isFinite(fromNum) || !Number.isFinite(toNum)) continue;
-      const snapshot = parseSnapshotRoutePositions(tr?.routePositions);
-      // #4162: gate on the rendered-marker map (`positionByNodeNum` is built
-      // from `nodesWithPosition`, which excludes hidden/aged nodes) so route
-      // segments never dangle to a node that has no marker.
-      const resolvePosition = (nodeNum: number): [number, number] | null =>
-        resolveSegmentPosition(nodeNum, snapshot, positionByNodeNum, true);
-      const keyPrefix = `tr-${tr.sourceId ?? 'x'}-${tr.id}`;
-      const decomposed = decomposeTraceroute(
-        {
-          fromNodeNum: fromNum,
-          toNodeNum: toNum,
-          route: tr?.route,
-          routeBack: tr?.routeBack,
-          snrTowards: tr?.snrTowards,
-          snrBack: tr?.snrBack,
-          timestamp: tr?.timestamp,
-          createdAt: tr?.createdAt,
-        },
-        { resolvePosition },
-      );
-      // #5097 — Show RF / UDP / MQTT. One traceroute per iteration, so a hop's
-      // class is this record's transport unless the hop's own unknown-SNR
-      // sentinel says MQTT. Same rule the neighbor links above use, and the
-      // same rule `useTraceroutePaths` applies on the Nodes map.
-      const recordClass = tracerouteTransportClass(tr);
-      for (const seg of decomposed) {
-        if (
-          transportFilterActive &&
-          !segmentPassesTransportFilter([hopTransportClass(recordClass, seg.isMqtt)], transportFlags)
-        ) {
-          continue;
-        }
-        segs.push({ ...seg, key: `${keyPrefix}-${seg.key}` });
-      }
-    }
-    return segs;
-  }, [traceroutes, positionByNodeNum, showPaths, showRoute, effectiveMaxAge, transportFilterActive, transportFlags]);
+    return dashboardTracerouteSegments(traceroutes, positionByNodeNum, effectiveMaxAge, transportFlags);
+  }, [traceroutes, positionByNodeNum, showPaths, showRoute, effectiveMaxAge, transportFlags]);
 
   const hasNodes = nodesWithPosition.length > 0;
 
@@ -955,48 +787,7 @@ export default function DashboardMap({
   // The embedded coordinates remain a fallback for a node that currently has
   // no marker on the map (filtered off by age/transport/etc).
   const meshtasticNeighborLinks: NeighborLinkDescriptor[] = showNeighborInfo
-    ? neighborInfo
-        .filter((link: any) => {
-          const tc = link.transportClass ?? 'rf';
-          if (tc === 'mqtt' && !showMqttNodes) return false;
-          if (tc === 'udp' && !showUdpNodes) return false;
-          if (tc === 'rf' && !showRfNodes) return false;
-          return true;
-        })
-        .map((link: any, idx: number): NeighborLinkDescriptor | null => {
-          const nodeEndpoint = resolveMapEndpoint(positionByNodeNum, link.nodeNum, link.nodeLatitude, link.nodeLongitude);
-          const neighborEndpoint = resolveMapEndpoint(positionByNodeNum, link.neighborNodeNum, link.neighborLatitude, link.neighborLongitude);
-          // Skip if either endpoint has no resolvable position (no marker AND no embedded coords).
-          if (!nodeEndpoint || !neighborEndpoint) {
-            return null;
-          }
-
-          const positions: [[number, number], [number, number]] = [nodeEndpoint, neighborEndpoint];
-
-          const tc = link.transportClass ?? 'rf';
-          const colorByTransport = tc === 'mqtt' ? '#22c55e' : tc === 'udp' ? '#f97316' : 'blue';
-          const pathOptions: PathOptions = link.bidirectional
-            ? { color: colorByTransport, weight: 2, opacity: 0.6 }
-            : { color: colorByTransport, weight: 1, opacity: 0.6, dashArray: '5, 5' };
-
-          // Stable key by canonical node-pair (not array index) so the deduped
-          // line keeps its identity across polls.
-          const pairKey = link.nodeNum != null && link.neighborNodeNum != null
-            ? `${Math.min(Number(link.nodeNum), Number(link.neighborNodeNum))}-${Math.max(Number(link.nodeNum), Number(link.neighborNodeNum))}`
-            : `idx-${idx}`;
-
-          return {
-            key: `neighbor-link-${pairKey}`,
-            positions,
-            pathOptions,
-            children: (
-              <Popup>
-                <DashboardNeighborPopup link={link} />
-              </Popup>
-            ),
-          };
-        })
-        .filter((d): d is NeighborLinkDescriptor => d !== null)
+    ? dashboardMeshtasticNeighborLinks(neighborInfo, positionByNodeNum, { showRfNodes, showUdpNodes, showMqttNodes })
     : [];
 
   return (

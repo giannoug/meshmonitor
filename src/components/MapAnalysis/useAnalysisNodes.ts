@@ -15,6 +15,8 @@ import { useMapContextOptional } from '../../contexts/MapContext';
 import { DEFAULT_AIRCRAFT_DISPLAY_MODE } from '../../utils/aircraftClassification';
 import { isAgedOutAircraft } from '../map/agedOutAircraft';
 import type { NodeSourceRef } from '../Dashboard/DashboardNodePopup';
+import { passesDashboardAgeGate } from '../Dashboard/dashboardMapLinks';
+import { useAnalysisSurface } from './analysisSurface';
 
 /**
  * Node shape consumed across the Map Analysis surface (markers, picker,
@@ -118,9 +120,23 @@ export function useAnalysisNodes(): AnalysisNode[] {
   // cannot lose data when merging nodes from N sources onto one map.
   const activeWindowHours = useMaxNodeAgeHoursAcross(sourceIds);
   const transportCutoff = transportCutoffSec(activeWindowHours);
+  // The Workspace Overview (#6365) applies today's Dashboard map age gate; Classic Map Analysis has none.
+  const { ageGate } = useAnalysisSurface();
+  const gateHours = ageGate?.maxAgeHours;
+  const gateInfraHours = ageGate?.infraMaxAgeHours;
 
   return useMemo(() => {
+    const nowS = Date.now() / 1000;
+    const cutoffs = gateHours === undefined || gateInfraHours === undefined
+      ? null
+      : {
+          ageCutoffTime: nowS - gateHours * 60 * 60,
+          infraCutoffTime: nowS - gateInfraHours * 60 * 60,
+          infraNever: gateInfraHours === 0,
+        };
     const visible = ((nodes ?? []) as NodeRecord[])
+      // DashboardMap's rule: ignored nodes are dropped (except aged-out aircraft), then the age gate.
+      .filter((n) => !cutoffs || ((!n.isIgnored || isAgedOutAircraft(n)) && passesDashboardAgeGate(n, cutoffs)))
       .map((n) => ({ node: n, latLng: resolveNodeLatLng(n) }))
       .filter(
         (
@@ -192,5 +208,5 @@ export function useAnalysisNodes(): AnalysisNode[] {
     // TanStack query hook rather than a plain mutable-variable read, so it is a
     // real reactive dependency (its value changes when a source's setting loads
     // or changes) — safe and correct to list, unlike the old #4240 mirror read.
-  }, [nodes, nodeFilter, config.nodeTypes, config.transports, config.sources, transportCutoff, spreadNodes, aircraftMode, showAgedOut]);
+  }, [nodes, nodeFilter, config.nodeTypes, config.transports, config.sources, transportCutoff, spreadNodes, aircraftMode, showAgedOut, gateHours, gateInfraHours]);
 }

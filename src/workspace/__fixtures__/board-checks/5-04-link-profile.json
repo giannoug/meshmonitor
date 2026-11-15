@@ -15,7 +15,11 @@
     "Add Waypoint",
     "Add Local Marker",
     "Sends a waypoint",
-    "Pick two points on the map to build a link profile"
+    "Fresnel",
+    "Margin",
+    "Clear",
+    "Drag A or B on the map to move it",
+    "Reset"
   ],
   "absent": [],
   "source": "checks/s05.json"

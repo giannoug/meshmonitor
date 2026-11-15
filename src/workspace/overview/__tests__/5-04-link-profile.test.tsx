@@ -17,6 +17,14 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   WebSocketProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
+/** Two clicks on the map, apart: Link Profile's A and B (the fixture serves their terrain). */
+async function pickTwoPoints() {
+  const map = document.querySelector<HTMLElement>('.leaflet-container')!;
+  fireEvent.click(map, { clientX: 200, clientY: 500 });
+  fireEvent.click(map, { clientX: 700, clientY: 150 });
+  await within(screen.getByTestId('link-profile-drawer')).findByTestId('link-profile-endpoints');
+}
+
 const item = (menu: HTMLElement, name: string) => within(menu).getByRole('menuitemradio', { name: new RegExp(`^${name}`) });
 
 describe('5-04-link-profile', () => {
@@ -24,8 +32,34 @@ describe('5-04-link-profile', () => {
     const { container } = renderOverview('/overview/map');
     fireEvent.click(item(await openTools(), 'Link Profile'));
     await screen.findByTestId('link-profile-drawer');
+    await pickTwoPoints();
+    await within(screen.getByTestId('link-profile-drawer')).findByText('Margin', {}, { timeout: 5000 });
     await openTools();
     expectBoard('5-04-link-profile', container);
+  });
+
+  it('two picks draw today\'s profile: the verdict with its margin, and the link budget', async () => {
+    renderOverview('/overview/map');
+    fireEvent.click(item(await openTools(), 'Link Profile'));
+    await pickTwoPoints();
+    const drawer = within(screen.getByTestId('link-profile-drawer'));
+    expect(await drawer.findByText(/^Clear · \+[\d.]+ dB margin$/, {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(drawer.getByText('Fresnel clearance')).toBeInTheDocument();
+    // The terrain comes from the server's elevation service: a read, nothing on the mesh.
+    const posts = vi.mocked(fetch).mock.calls.filter(([, i]) => (i?.method ?? 'GET') !== 'GET').map(([u]) => String(u));
+    expect(posts.every((u) => u.includes('/api/elevation/profile'))).toBe(true);
+  });
+
+  it('a path over 500 km shows today\'s error', async () => {
+    renderOverview('/overview/map', {
+      fixtures: {
+        'POST /api/elevation/profile': () =>
+          new Response(JSON.stringify({ success: false, error: 'too long', code: 'PATH_TOO_LONG' }), { status: 400, headers: { 'content-type': 'application/json' } }),
+      },
+    });
+    fireEvent.click(item(await openTools(), 'Link Profile'));
+    await pickTwoPoints();
+    expect(await screen.findByText('That link is too long to profile (max 500 km).', {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it('lists the tools in board order, each with what it does', async () => {

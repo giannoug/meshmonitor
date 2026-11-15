@@ -581,7 +581,14 @@ export const BOARDS: Board[] = [
     path: '/overview/map',
     setup: async (page) => {
       await openTools(page, 'Link Profile');
-      await page.getByTestId('link-profile-drawer').waitFor();
+      const drawer = page.getByTestId('link-profile-drawer');
+      await drawer.waitFor();
+      // A and B: two clicks on the map, clear of the legend and the drawer; the fixture serves the terrain.
+      const map = page.locator('.leaflet-container');
+      const box = (await map.boundingBox())!;
+      await map.click({ position: { x: box.width * 0.45, y: box.height * 0.3 } });
+      await map.click({ position: { x: box.width * 0.75, y: box.height * 0.45 } });
+      await drawer.getByText('Margin', { exact: true }).waitFor();
       await openTools(page);
     },
   },
@@ -610,8 +617,12 @@ export const BOARDS: Board[] = [
     path: '/overview/map',
     setup: async (page) => {
       await presetAnalysis(page, { traceroutes: ON_24H });
+      // A node first, so its segments carry a direction.
+      await page.locator('.leaflet-marker-icon', { hasText: 'KFR' }).dispatchEvent('click');
+      await page.getByTestId('analysis-inspector').getByText('Traceroute Links').waitFor();
       await page.locator('.leaflet-paths-pane path.leaflet-interactive').first().dispatchEvent('click');
       await page.getByTestId('analysis-inspector').getByText('Route Segment').waitFor();
+      await page.getByTestId('analysis-inspector').getByText(/^\d+ m$/).first().waitFor();
     },
   },
 ];

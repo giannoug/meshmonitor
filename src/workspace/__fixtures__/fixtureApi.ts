@@ -15,7 +15,7 @@ export type FixtureHandler = (url: URL, init?: RequestInit) => unknown | Respons
  * A node as the server's dashboard routes send it: the stored row's flat fields (names, position,
  * device metrics), which Map Analysis reads; the poll's nested fields are kept beside them.
  */
-function dbRow(n: (typeof A.nodes)[number], sourceId: string) {
+export function dbRow(n: (typeof A.nodes)[number], sourceId: string) {
   return {
     ...n,
     sourceId,
@@ -41,13 +41,13 @@ const defaults: Record<string, FixtureHandler> = {
   'GET /api/sources': () => A.sources,
   'GET /api/sources/:id/status': (url) => A.statuses[url.pathname.split('/')[3]],
   'GET /api/unified/status': () => A.unifiedStatus,
-  // The all-devices map (f6, 5-08): Station G2's nodes; the other devices' bundles are empty.
+  // The all-devices map (f6, 5-01 …, 5-08): Station G2's nodes, traceroutes and neighbour links; the other devices' bundles are empty.
   'GET /api/unified/dashboard': (url) =>
     (url.searchParams.get('sources') ?? '').split(',').filter(Boolean).map((sourceId) => ({
       sourceId,
       nodes: sourceId === SOURCE_IDS.g2 ? A.nodes.map((n) => dbRow(n, sourceId)) : [],
-      traceroutes: [],
-      neighborInfo: [],
+      traceroutes: sourceId === SOURCE_IDS.g2 ? A.traceroutes.map((r) => ({ ...r, sourceId })) : [],
+      neighborInfo: sourceId === SOURCE_IDS.g2 ? A.neighborInfo : [],
       channels: sourceId === SOURCE_IDS.g2 ? A.channels : [],
     })),
   'GET /api/messages/unread-by-source': () => A.unreadBySource,
@@ -143,8 +143,7 @@ const defaults: Record<string, FixtureHandler> = {
     ],
   }),
   // Analysis on the Overview map (5-01 … 5-06): Station G2's traceroutes, neighbour links, Athens
-  // Rover's trail and the hop counts; elevation is on without DEM tiles (no 3D). The terrain
-  // profile is left unanswered by default, so the link profile shows "Loading elevation profile…".
+  // Rover's trail and the hop counts; elevation is on without DEM tiles (no 3D).
   'GET /api/analysis/traceroutes': () => ({
     items: A.traceroutes.map((r) => ({ ...r, sourceId: SOURCE_IDS.g2 })), hasMore: false, nextCursor: null,
   }),
@@ -160,6 +159,19 @@ const defaults: Record<string, FixtureHandler> = {
     entries: A.nodes.map((n) => ({ sourceId: SOURCE_IDS.g2, nodeNum: n.nodeNum, hops: n.hopsAway ?? 0 })),
   }),
   'GET /api/elevation/capabilities': () => ({ success: true, data: { enabled: true, terrainTiles: false } }),
+  // The terrain between two points (Link Profile 5-04, the segment inspector 5-06): 32 samples across a valley (a clear path).
+  'POST /api/elevation/profile': (_url, init) => {
+    const { pointA: a, pointB: b } = JSON.parse(String(init?.body ?? '{}')) as Record<'pointA' | 'pointB', { lat: number; lng: number }>;
+    const toRad = Math.PI / 180;
+    const meters = 6_371_000 * 2 * Math.asin(Math.sqrt(
+      Math.sin(((b.lat - a.lat) * toRad) / 2) ** 2 + Math.cos(a.lat * toRad) * Math.cos(b.lat * toRad) * Math.sin(((b.lng - a.lng) * toRad) / 2) ** 2,
+    ));
+    const samples = Array.from({ length: 32 }, (_, i) => {
+      const f = i / 31;
+      return { distance: meters * f, lat: a.lat + (b.lat - a.lat) * f, lng: a.lng + (b.lng - a.lng) * f, elevation: Math.round(300 - 290 * Math.sin(f * Math.PI)) };
+    });
+    return { success: true, data: { distanceMeters: meters, provider: 'fixture', samples } };
+  },
   'GET /api/telemetry/:nodeId': (url) => {
     const nodeId = decodeURIComponent(url.pathname.split('/')[3]);
     return A.telemetry.filter((row) => row.nodeId === nodeId);

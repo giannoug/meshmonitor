@@ -26,7 +26,7 @@
  * as on Classic's `/`.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type L from 'leaflet';
 import { UiIcon } from '../../components/icons';
@@ -39,20 +39,27 @@ import TransportFilterControl from '../../components/MapAnalysis/TransportFilter
 import { MapAnalysisProvider, useMapAnalysisCtx } from '../../components/MapAnalysis/MapAnalysisContext';
 import { TIMED_LAYERS, useAnalysisControls } from '../../components/MapAnalysis/analysisControls';
 import { isAgedOutAircraft } from '../../components/map/agedOutAircraft';
-import { MapProvider } from '../../contexts/MapContext';
+import { AnalysisSurfaceContext, type AnalysisSurface } from '../../components/MapAnalysis/analysisSurface';
+import type { NodeSourceRef } from '../../components/Dashboard/DashboardNodePopup';
+import { nodeGatewayRingColor, nodeSourceRingColor } from '../../components/Dashboard/nodeSourceRing';
+import { MapProvider, useMapContext } from '../../contexts/MapContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useDashboardSources } from '../../hooks/useDashboardData';
+import { useDashboardSources, useDashboardUnifiedData, type NodeGatewayRef } from '../../hooks/useDashboardData';
+import { DashboardDataOptionsContext } from '../../hooks/dashboardDataScope';
 import { useDefaultLandingRedirect } from '../../hooks/useDefaultLandingRedirect';
-import { useMaxNodeAgeHoursAcross } from '../../hooks/useNodeDisplaySettings';
+import { useMaxInfraNodeAgeHoursAcross, useMaxNodeAgeHoursAcross } from '../../hooks/useNodeDisplaySettings';
+import { effectiveMapMaxAgeHours } from '../../utils/mapAge';
+import { readHidePositionlessAdverts, writeHidePositionlessAdverts } from '../../utils/meshcoreAdvertPosition';
 import type { PacketFlightStats } from '../../utils/packetFlightEdges';
 import LayersDrawer from '../map/LayersDrawer';
 import { useIsPhone } from '../shell/useIsPhone';
 import AnalysisChips from './analysis/AnalysisChips';
 import InspectorPanelD from './analysis/InspectorPanelD';
+import NodeColourKey from './analysis/NodeColourKey';
 import MapToolsMenu from './analysis/MapToolsMenu';
 import OverviewOverlays from './analysis/OverviewOverlays';
 import TimeControl from './analysis/TimeControl';
-import { useOverviewLayerGroups } from './analysis/overviewLayerGroups';
+import { useOverviewLayerGroups, type DashboardControls } from './analysis/overviewLayerGroups';
 import { useOverviewPins } from './analysis/useOverviewPins';
 import '../../styles/map-analysis.css';
 import styles from './OverviewMap.module.css';
@@ -60,17 +67,108 @@ import styles from './OverviewMap.module.css';
 /** `/analysis` and `/overview/analysis` open on the Analysis group (s5n1). */
 const ANALYSIS_ROUTE = /^\/(overview\/)?analysis\/?$/;
 
+/** As 4.1 (DashboardPage): the server leaves out nodes the Dashboard map hides by age. */
+const AGE_WINDOW = { ageWindow: true };
+
 export default function OverviewMap({ landing = false }: { landing?: boolean }) {
   return (
     <MapProvider>
       <MapAnalysisProvider>
-        <AllDevicesMap landing={landing} />
+        <DashboardDataOptionsContext.Provider value={AGE_WINDOW}>
+          <OverviewSurface landing={landing} />
+        </DashboardDataOptionsContext.Provider>
       </MapAnalysisProvider>
     </MapProvider>
   );
 }
 
-function AllDevicesMap({ landing }: { landing: boolean }) {
+/**
+ * Today's Dashboard map rules, given to the Map Analysis components through
+ * `AnalysisSurfaceContext` (Ruling CE): the per-node age gate (the map age
+ * filter over each device's window, MeshCore infrastructure by its own,
+ * #4899), hiding MeshCore nodes without a current position advert (#5578),
+ * the colour ring by source or gateway (#6125, #6175), and a popup's "seen by"
+ * row opening the Workspace node page (4.1).
+ */
+function OverviewSurface({ landing }: { landing: boolean }) {
+  const navigate = useNavigate();
+  const m = useMapContext();
+  const { data: sources = [] } = useDashboardSources();
+  const sourceIds = useMemo(() => sources.map((s) => s.id), [sources]);
+  const maxNodeAgeHours = useMaxNodeAgeHoursAcross(sourceIds);
+  const maxInfraNodeAgeHours = useMaxInfraNodeAgeHoursAcross(sourceIds);
+  const mapAgeHours = effectiveMapMaxAgeHours(m.mapMaxAgeHours, maxNodeAgeHours);
+  // DashboardMap's infra window: the map age filter narrows it too; 0 = never expires.
+  const infraAgeHours = maxInfraNodeAgeHours === 0 ? 0 : effectiveMapMaxAgeHours(m.mapMaxAgeHours, maxInfraNodeAgeHours);
+
+  // #5578: the MeshCore map's browser setting, as DashboardMap.
+  const [hidePositionless, setHidePositionless] = useState(readHidePositionlessAdverts);
+  useEffect(() => writeHidePositionlessAdverts(hidePositionless), [hidePositionless]);
+
+  // #6125/#6175: Unified only (2+ devices), as DashboardMap; the colour domains are sorted ids.
+  const { nodes } = useDashboardUnifiedData(sources, sourceIds.length > 0);
+  const colorSourceIds = useMemo(() => [...sourceIds].sort(), [sourceIds]);
+  const gatewayIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const n of nodes as Array<{ gateways?: NodeGatewayRef[] }>) {
+      for (const g of n.gateways ?? []) if (g?.gatewayId) ids.add(g.gatewayId);
+    }
+    return Array.from(ids).sort();
+  }, [nodes]);
+  const unified = sources.length >= 2;
+  const { colorNodesBySource, colorNodesByGateway } = m;
+  const ringColor = useCallback(
+    (node: { sourceId?: string; gateways?: unknown }) =>
+      colorNodesByGateway
+        ? nodeGatewayRingColor(colorNodesByGateway, unified, node.gateways as NodeGatewayRef[] | undefined, gatewayIds)
+        : nodeSourceRingColor(colorNodesBySource, unified, node.sourceId, colorSourceIds),
+    [colorNodesBySource, colorNodesByGateway, unified, gatewayIds, colorSourceIds],
+  );
+
+  // 4.1: a popup's "seen by" row opens that device's node page (Meshtastic) or the device (MeshCore).
+  const onSourceSelect = useCallback(
+    (source: NodeSourceRef, nodeId: string | undefined) => {
+      const base = `/source/${encodeURIComponent(source.sourceId)}`;
+      void navigate(source.protocol !== 'MeshCore' && nodeId ? `${base}/node/${encodeURIComponent(nodeId)}` : base);
+    },
+    [navigate],
+  );
+
+  const surface = useMemo<AnalysisSurface>(
+    () => ({
+      ageGate: { maxAgeHours: mapAgeHours, infraMaxAgeHours: infraAgeHours },
+      hidePositionlessAdverts: hidePositionless,
+      ringColor,
+      onSourceSelect,
+    }),
+    [mapAgeHours, infraAgeHours, hidePositionless, ringColor, onSourceSelect],
+  );
+  const colourKey = unified && (colorNodesBySource || colorNodesByGateway)
+    ? { title: colorNodesByGateway ? 'gateway' as const : 'source' as const, ids: colorNodesByGateway ? gatewayIds : colorSourceIds }
+    : null;
+
+  return (
+    <AnalysisSurfaceContext.Provider value={surface}>
+      <AllDevicesMap
+        landing={landing}
+        unified={unified}
+        hidePositionless={hidePositionless}
+        onHidePositionless={setHidePositionless}
+        hasMeshCoreNodes={(nodes as Array<{ isMeshCore?: boolean }>).some((n) => n.isMeshCore)}
+        maxNodeAgeHours={maxNodeAgeHours}
+        mapAgeHours={mapAgeHours}
+        colourKey={colourKey && { ...colourKey, names: new Map(sources.map((s) => [s.id, s.name])) }}
+      />
+    </AnalysisSurfaceContext.Provider>
+  );
+}
+
+interface AllDevicesMapProps extends DashboardControls {
+  landing: boolean;
+  colourKey: ({ title: 'source' | 'gateway'; ids: string[]; names: Map<string, string> }) | null;
+}
+
+function AllDevicesMap({ landing, colourKey, ...dashboard }: AllDevicesMapProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const { pathname } = useLocation();
@@ -83,8 +181,6 @@ function AllDevicesMap({ landing }: { landing: boolean }) {
   const controls = useAnalysisControls();
   const { analysisNodes, in3D } = controls;
 
-  const sourceIds = useMemo(() => sources.map((s) => s.id), [sources]);
-  const maxNodeAgeHours = useMaxNodeAgeHoursAcross(sourceIds);
 
   // The Layers drawer: open on the analysis URLs, also when the map was already open.
   const analysisRoute = ANALYSIS_ROUTE.test(pathname);
@@ -104,7 +200,9 @@ function AllDevicesMap({ landing }: { landing: boolean }) {
 
   const aircraftCount = analysisNodes.filter(({ node }) => node.likelyAircraft === true && !isAgedOutAircraft(node)).length;
   const agedOutCount = analysisNodes.filter(({ node }) => isAgedOutAircraft(node)).length;
-  const groups = useOverviewLayerGroups({ controls, packetFlightsStats, aircraftCount, agedOutCount });
+  const groups = useOverviewLayerGroups({ controls, packetFlightsStats, aircraftCount, agedOutCount, dashboard });
+  // #4898: Zoom to fit, a monotonic request as DashboardMap's.
+  const [fitRequest, setFitRequest] = useState(0);
 
   // Today's node picker options (MapAnalysisToolbar): the nodes the map draws, by name.
   const nodeOptions = useMemo(() => {
@@ -118,9 +216,12 @@ function AllDevicesMap({ landing }: { landing: boolean }) {
   const onMap = useCallback((map: L.Map) => setLeaflet(map), []);
   const layers = (
     <OverviewOverlays
-      sourceIds={sourceIds}
+      sources={sources}
       nodes={analysisNodes}
-      lookbackHours={maxNodeAgeHours}
+      lookbackHours={dashboard.maxNodeAgeHours}
+      mapAgeHours={dashboard.mapAgeHours}
+      transports={config.transports}
+      fitRequest={fitRequest}
       onPacketFlightsStats={setPacketFlightsStats}
       onMap={onMap}
       hasDefaultCenter={defaultMapCenterLat != null && defaultMapCenterLon != null && defaultMapCenterZoom != null}
@@ -169,6 +270,20 @@ function AllDevicesMap({ landing }: { landing: boolean }) {
                   <NodeMultiSelect nodes={nodeOptions} value={config.selectedNodeIds} onChange={ctx.setSelectedNodeIds} />
                 </div>
                 <div className={styles.actions}>
+                  <button
+                    type="button"
+                    className={styles.fit}
+                    onClick={() => setFitRequest((n) => n + 1)}
+                    disabled={analysisNodes.length === 0}
+                    title={
+                      analysisNodes.length === 0
+                        ? 'No positioned nodes to zoom to'
+                        : `Zoom to fit all ${analysisNodes.length} positioned nodes`
+                    }
+                    aria-label="Zoom to fit all nodes"
+                  >
+                    <UiIcon name="fitBounds" size={18} />
+                  </button>
                   <MapToolsMenu tools={controls.tools} />
                   <TimeControl />
                   <button
@@ -207,6 +322,7 @@ function AllDevicesMap({ landing }: { landing: boolean }) {
           </div>
         )}
         {!isPhone && <MapLegend />}
+        {!isPhone && colourKey && <NodeColourKey {...colourKey} />}
       </div>
       {pins.overlay}
     </div>

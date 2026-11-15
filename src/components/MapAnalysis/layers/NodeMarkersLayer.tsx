@@ -14,6 +14,9 @@ import { NodeMarkersLayer as SharedNodeMarkersLayer, type NodeMarkerDescriptor }
 import { useMapContextOptional } from '../../../contexts/MapContext';
 import { DEFAULT_AIRCRAFT_DISPLAY_MODE } from '../../../utils/aircraftClassification';
 import { isAgedOutAircraft, AGED_OUT_AIRCRAFT_OPACITY } from '../../map/agedOutAircraft';
+import { applyNodeSourceRing } from '../../Dashboard/nodeSourceRing';
+import { isHiddenByPositionlessAdvert } from '../../../utils/meshcoreAdvertPosition';
+import { useAnalysisSurface } from '../analysisSurface';
 import '../../../styles/nodes.css'; // `.node-popup-*` classes used by DashboardNodePopup
 
 /**
@@ -87,7 +90,15 @@ export default function NodeMarkersLayer() {
   const windowStartMs = ts.windowStartMs ?? 0;
   const windowEndMs = ts.windowEndMs ?? 0;
 
-  const markers: NodeMarkerDescriptor[] = filteredNodes.map(({ node: n, latLng, key: unifiedKey }) => {
+  // What the surface adds (analysisSurface): nothing on Classic Map Analysis.
+  const surface = useAnalysisSurface();
+  // #5578 (Workspace Overview): the marker only; the node keeps its place in every other list.
+  const markerNodes = surface.hidePositionlessAdverts
+    ? filteredNodes.filter(({ node }) => !(node.isMeshCore && isHiddenByPositionlessAdvert(node as Parameters<typeof isHiddenByPositionlessAdvert>[0], true)))
+    : filteredNodes;
+  const onSourceSelect = surface.onSourceSelect ?? handleSourceSelect;
+
+  const markers: NodeMarkerDescriptor[] = markerNodes.map(({ node: n, latLng, key: unifiedKey }) => {
     const [lat, lon] = latLng;
     const sourceId = n.sourceId ?? '';
     const hopVal = lookupHops(hopByKey, sourceId, n);
@@ -112,7 +123,9 @@ export default function NodeMarkersLayer() {
     // returns identical data doesn't churn the marker and collapse an active
     // spiderfy fan. Selection IS part of the signature, so highlighting the
     // chosen node still re-renders just that marker.
-    const iconSig = `${hops}|${isSelected ? 1 : 0}|${isRouter ? 1 : 0}|${roleCategory}|${n.isUnmessagable ? 1 : 0}|${markAircraft ? 1 : 0}|${n.shortName ?? ''}|${mapPinStyle}|${mapPinColorMode}`;
+    // #6125/#6175 (Workspace Overview): the colour ring, folded into the icon signature.
+    const ringColor = surface.ringColor?.(n) ?? null;
+    const iconSig = `${hops}|${isSelected ? 1 : 0}|${isRouter ? 1 : 0}|${roleCategory}|${n.isUnmessagable ? 1 : 0}|${markAircraft ? 1 : 0}|${n.shortName ?? ''}|${mapPinStyle}|${mapPinColorMode}${ringColor ? `|${ringColor}` : ''}`;
     // A missing lastHeard sits at the floor here (treated as "oldest
     // visible"), intentionally diverging from DashboardMap where a missing
     // timestamp stays fully opaque — that surface age-gates upstream, this
@@ -137,7 +150,7 @@ export default function NodeMarkersLayer() {
       position: [lat, lon],
       iconSig,
       buildIcon: () =>
-        createNodeIcon({
+        applyNodeSourceRing(createNodeIcon({
           hops,
           isSelected,
           isRouter,
@@ -149,7 +162,7 @@ export default function NodeMarkersLayer() {
           pinStyle: mapPinStyle,
           colorMode: mapPinColorMode,
           nodeNum: Number.isFinite(Number(n.nodeNum)) ? Number(n.nodeNum) : undefined,
-        }),
+        }), ringColor),
       opacity: finalOpacity,
       eventHandlers: {
         click: () =>
@@ -171,7 +184,7 @@ export default function NodeMarkersLayer() {
           <DashboardNodePopup
             node={hopVal !== undefined ? { ...n, hopsAway: hopVal } : n}
             pos={{ lat, lng: lon }}
-            onSourceSelect={handleSourceSelect}
+            onSourceSelect={onSourceSelect}
           />
         </Popup>
       ),

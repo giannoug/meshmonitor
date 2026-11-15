@@ -4,7 +4,10 @@
     "From",
     "To",
     "Observations",
-    "Avg SNR"
+    "Avg SNR",
+    "Direction",
+    "From Elevation",
+    "View terrain profile"
   ],
   "absent": [],
   "source": "checks/s05.json"
