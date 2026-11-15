@@ -101,27 +101,30 @@ export function MqttHint({ sources }: { sources: PermissionSource[] }) {
   return sources.some((s) => isMqttSourceType(s.type)) ? <p className={styles.note}>{t('users.mqtt_channel_permissions_hint', MQTT_HINT)}</p> : null;
 }
 
+/** The card's class names; the phone passes its own (its sizes), the desktop uses this module's. */
+export type ChannelDbClasses = Partial<Record<'card' | 'heading' | 'row' | 'name' | 'boxes' | 'save', string>>;
+
 /** Today's Virtual Channel Permissions: checkboxes, then one Save for the list (today's whole-list PUT). */
-export function ChannelDbCard({ model, className }: { model: PermissionMatrixModel; className?: string }) {
+export function ChannelDbCard({ model, classes = {} }: { model: PermissionMatrixModel; classes?: ChannelDbClasses }) {
   const { t } = useTranslation();
   const headingId = useId();
   const { entries, get, toggle, save } = model.channelDb;
   if (entries.length === 0) return <p className={styles.note}>{t('users.no_channel_database_entries')}</p>;
   return (
-    <section className={className ?? styles.card} aria-labelledby={headingId}>
-      <h3 id={headingId} className={styles.heading}>{t('users.channel_database_permissions')}</h3>
+    <section className={classes.card ?? styles.card} aria-labelledby={headingId}>
+      <h3 id={headingId} className={classes.heading ?? styles.heading}>{t('users.channel_database_permissions')}</h3>
       {entries.map((e) => {
         const p = get(e.id);
         // Only Read applies to a MeshCore key (#5552), as today.
         const meshcore = e.protocol === 'meshcore';
         return (
-          <fieldset key={e.id} aria-label={e.name} className={styles.dbRow}>
-            <span className={styles.dbName}>
+          <fieldset key={e.id} aria-label={e.name} className={classes.row ?? styles.dbRow}>
+            <span className={classes.name ?? styles.dbName}>
               {e.name}
               {meshcore && <span className={styles.muted}>{t('channel_database.protocol_meshcore', 'MeshCore')}</span>}
               {e.description && <span className={styles.muted}>({e.description})</span>}
             </span>
-            <span className={styles.dbBoxes}>
+            <span className={classes.boxes ?? styles.dbBoxes}>
               <label hidden={meshcore}>
                 <input type="checkbox" checked={p.canViewOnMap} onChange={() => toggle(e.id, 'canViewOnMap')} />
                 {t('users.view_on_map')}
@@ -138,7 +141,7 @@ export function ChannelDbCard({ model, className }: { model: PermissionMatrixMod
           </fieldset>
         );
       })}
-      <button type="button" className={styles.save} onClick={() => void save()}>{t('users.save_channel_db_permissions')}</button>
+      <button type="button" className={classes.save ?? styles.save} onClick={() => void save()}>{t('users.save_channel_db_permissions')}</button>
     </section>
   );
 }

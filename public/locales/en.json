@@ -8868,7 +8868,6 @@
   "workspace.users.resource.waypoints": "Waypoints",
   "workspace.users.resource.themes": "Custom Themes",
   "workspace.users.resource.sources": "Sources",
-  "workspace.users.resource.remote_admin": "Remote Administration",
   "workspace.users.on_each_device": "On each device",
   "workspace.users.can_use": "Can use",
   "workspace.users.across": "Across this MeshMonitor",

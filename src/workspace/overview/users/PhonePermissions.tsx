@@ -28,7 +28,7 @@ export default function PhonePermissions({ user, sources, model, onBack }: {
   const rules = GLOBAL_PERMISSION_RESOURCES.filter((r) => levelOf(model.globals[r]) !== 'none').length;
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-testid="phone-permissions">
       <header className={styles.phoneHead}>
         <button type="button" className={styles.back} onClick={onBack}>
           <UiIcon name="back" size={20} />
@@ -84,7 +84,10 @@ export default function PhonePermissions({ user, sources, model, onBack }: {
               <GlobalRows model={model} scope={deviceId} rowClassName={styles.row} segmentsClassName={styles.segments} />
             </div>
           )}
-          <ChannelDbCard model={model} className={styles.card} />
+          <ChannelDbCard
+            model={model}
+            classes={{ card: styles.card, heading: styles.dbHeading, row: styles.dbRow, name: styles.dbName, boxes: styles.dbBoxes, save: styles.dbSave }}
+          />
         </>
       )}
     </div>

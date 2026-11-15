@@ -62,6 +62,20 @@ describe('q4-permissions', () => {
     expect(pressed(screen.getByRole('group', { name: 'Info' }))).toBe('Read');
   });
 
+  it('Virtual Channel Permissions are on the phone page too, with today\'s Save', async () => {
+    await permissions();
+    const card = await screen.findByRole('region', { name: 'Virtual Channel Permissions' });
+    fireEvent.click(within(within(card).getByRole('group', { name: '#athens' })).getByLabelText('Read Messages'));
+    fireEvent.click(within(card).getByRole('button', { name: 'Save Virtual Channel Permissions' }));
+    await waitFor(() => expect(writes()).toEqual([{
+      method: 'PUT', url: '/api/users/3/channel-database-permissions',
+      body: { permissions: [
+        { channelDatabaseId: 11, canViewOnMap: true, canRead: true, canWrite: false },
+        { channelDatabaseId: 12, canViewOnMap: false, canRead: true, canWrite: false },
+      ] },
+    }]));
+  });
+
   it('the back link returns to the list', async () => {
     await permissions();
     fireEvent.click(screen.getByRole('button', { name: 'Users' }));

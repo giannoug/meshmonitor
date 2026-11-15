@@ -53,12 +53,12 @@ export function useAuditLog() {
     search: '',
     startDate: '',
     endDate: '',
+    // Workspace's time presets (1 h / 24 h / 7 d), a window ending now. Classic never sets it.
     sinceMs: 0,
     limit: 100,
     offset: 0
   });
 
-  // sinceMs: Workspace's time presets (1 h / 24 h / 7 d), a window ending now. Classic never sets it.
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = filters.limit;

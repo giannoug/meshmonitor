@@ -200,3 +200,82 @@
   font-size: 15px;
   color: var(--color-text-subtle);
 }
+
+/* Virtual Channel Permissions on the phone: the card renders here, so its sizes are this module's. */
+.dbHeading {
+  margin: 0;
+  padding: 14px 14px 4px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.dbRow {
+  min-height: 52px;
+  margin: 0;
+  padding: 4px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 0;
+  border-bottom: 1px solid var(--color-surface);
+}
+
+.dbName {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 16px;
+}
+
+.dbName span {
+  color: var(--color-text-subtle);
+}
+
+.dbBoxes {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 16px;
+}
+
+.dbBoxes label {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.dbBoxes label[hidden] {
+  display: none;
+}
+
+.dbBoxes input {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+}
+
+.dbSave {
+  align-self: stretch;
+  min-height: 44px;
+  margin: 12px 14px;
+  border: 1px solid var(--color-accent);
+  border-radius: 10px;
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dbSave:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
