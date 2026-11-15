@@ -61,6 +61,31 @@ describe('6-11-traceroute-explorer', () => {
     expect(screen.getByRole('button', { name: 'Filters · 1' })).toBeInTheDocument();
   });
 
+  it('Every run, set in the Filters sheet, lists each run as a row that opens it (Ruling CO)', async () => {
+    renderReports(ROUTE, { phone: true });
+    await screen.findAllByTestId('explorer-pair-item');
+    fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Filters' });
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Every run' }));
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Close' }));
+    const runs = screen.getAllByTestId('explorer-run-item');
+    expect(runs).toHaveLength(10);
+    expect(screen.queryByTestId('explorer-pair-item')).toBeNull();
+    expect(runs.filter((r) => r.textContent?.includes('No response'))).toHaveLength(1);
+    fireEvent.click(within(runs[0]).getByRole('button'));
+    expect(await screen.findByTestId('traceroute-explorer-detail')).toBeInTheDocument();
+  });
+
+  it('a range other than 24h counts in Filters · N (Ruling CP)', async () => {
+    renderReports(ROUTE, { phone: true });
+    await screen.findAllByTestId('explorer-pair-item');
+    fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Filters' });
+    fireEvent.click(within(sheet).getByRole('button', { name: '7d' }));
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Close' }));
+    expect(screen.getByRole('button', { name: 'Filters · 1' })).toBeInTheDocument();
+  });
+
   it('Show map draws the map above the rows', async () => {
     renderReports(ROUTE, { phone: true });
     await screen.findAllByTestId('explorer-pair-item');

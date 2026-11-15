@@ -8561,6 +8561,7 @@
   "workspace.reports.explorer_line": "{{runs}} traceroutes · {{pairs}} pairs · {{answered}} answered",
   "workspace.reports.enrichment_sends": "Sends 1 NodeInfo request per row from the target device, on that node’s channel",
   "workspace.reports.enrichment_sends_all": "Fix all now ≈ {{count}} packets, more with hops",
+  "workspace.reports.packets_count": "Packets · {{count}}",
   "workspace.you.account": "Account",
   "workspace.you.sign_in_security": "Sign-in & security",
   "workspace.you.layout": "Layout",

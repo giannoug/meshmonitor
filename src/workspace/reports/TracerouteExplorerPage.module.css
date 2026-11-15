@@ -18,3 +18,32 @@
   flex-direction: column;
   align-items: stretch;
 }
+
+/* Desktop (Ruling CN): the map and table, and the run's detail in a column beside them, as 6-04 draws it. */
+.main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+  align-items: start;
+}
+
+.workColumn,
+.detailColumn {
+  min-width: 0;
+}
+
+/* Today's detail is two columns (strip | paths); in this column they stack. An attribute selector under this
+   class, so the Classic part and its CSS stay as they are. */
+.detailColumn [data-testid='traceroute-explorer-detail'] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Group by pair / Every run in the phone Filters sheet (Ruling CO). */
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}

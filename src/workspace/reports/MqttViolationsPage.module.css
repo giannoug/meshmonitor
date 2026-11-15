@@ -39,7 +39,17 @@
   gap: 8px;
 }
 
-/* The packet sheet's Export CSV: the sheet sits in <body>, outside the page's [data-phone], so it sizes itself. */
+/* The packet sheet's Export CSV and pager: the sheet sits in <body>, outside the page's [data-phone], so they size themselves. */
 .sheetAction {
   min-height: 44px;
+}
+
+/* "Packets · N" above the gateway's name in the packet sheet's title (6-13). */
+.eyebrow {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
 }

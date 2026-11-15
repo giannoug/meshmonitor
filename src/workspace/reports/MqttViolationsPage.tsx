@@ -144,7 +144,19 @@ export default function MqttViolationsPage() {
       <Sheet
         open={!filtersOpen && open != null}
         onClose={() => open && x.handleRowToggle(rowKeyOf(open))}
-        title={openDisplay ? openDisplay.primary : ''}
+        title={
+          openDisplay && (
+            <>
+              {/* "Packets · N" from today's drill total, as 6-13 draws it (Ruling CQ). */}
+              {x.packetsQuery.data && (
+                <>
+                  <span className={styles.eyebrow}>{t('workspace.reports.packets_count', { count: x.drillTotal })}</span>{' '}
+                </>
+              )}
+              {openDisplay.primary}
+            </>
+          )
+        }
         actions={
           open?.gatewayId && (
             <button
@@ -207,10 +219,10 @@ export default function MqttViolationsPage() {
                   {t('analysis.mqtt_violations.page', 'Page {{page}} of {{pages}}', { page: x.drillCurrentPage, pages: x.drillTotalPages })}
                 </span>
                 <span className={styles.pager}>
-                  <button type="button" className={parts.ghost} onClick={() => x.handleDrillPageChange(x.drillCurrentPage - 1)} disabled={x.drillCurrentPage <= 1}>
+                  <button type="button" className={`${parts.ghost} ${styles.sheetAction}`} onClick={() => x.handleDrillPageChange(x.drillCurrentPage - 1)} disabled={x.drillCurrentPage <= 1}>
                     {t('analysis.mqtt_violations.prev', 'Previous')}
                   </button>
-                  <button type="button" className={parts.ghost} onClick={() => x.handleDrillPageChange(x.drillCurrentPage + 1)} disabled={x.drillCurrentPage >= x.drillTotalPages}>
+                  <button type="button" className={`${parts.ghost} ${styles.sheetAction}`} onClick={() => x.handleDrillPageChange(x.drillCurrentPage + 1)} disabled={x.drillCurrentPage >= x.drillTotalPages}>
                     {t('analysis.mqtt_violations.next', 'Next')}
                   </button>
                 </span>

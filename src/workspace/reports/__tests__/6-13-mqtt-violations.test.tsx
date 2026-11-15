@@ -50,12 +50,28 @@ describe('6-13-mqtt-violations', () => {
     renderReports(ROUTE, { phone: true, fixtures: { 'GET /api/analysis/mqtt-violations/packets': packets } });
     const rows = await runReport();
     fireEvent.click(within(rows[1]).getByRole('button'));
-    const sheet = await screen.findByRole('dialog', { name: 'Kifisia Rooftop' });
+    const sheet = await screen.findByRole('dialog', { name: /Kifisia Rooftop/ });
     await waitFor(() => expect(packets).toHaveBeenCalled());
     expect(new URL(String((packets.mock.calls[0] as unknown[])[0])).searchParams.get('gateway')).toBe('!a3f9c2e1');
     expect(within(sheet).getByRole('button', { name: 'Export CSV' })).toBeInTheDocument();
     fireEvent.click(within(sheet).getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('the packet sheet is titled Packets · N from the drill total (Ruling CQ)', async () => {
+    renderReports(ROUTE, { phone: true });
+    const rows = await runReport();
+    fireEvent.click(within(rows[0]).getByRole('button'));
+    expect(await screen.findByRole('dialog', { name: 'Packets · 2 Athens MQTT gw' })).toBeInTheDocument();
+  });
+
+  it('a window other than 7 days counts in Filters · N (Ruling CP)', async () => {
+    renderReports(ROUTE, { phone: true });
+    fireEvent.click(await screen.findByRole('button', { name: 'Filters' }, { timeout: 5000 }));
+    const sheet = await screen.findByRole('dialog', { name: 'Filters' });
+    fireEvent.click(within(sheet).getByRole('button', { name: '30 days' }));
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Close' }));
+    expect(screen.getByRole('button', { name: 'Filters · 1' })).toBeInTheDocument();
   });
 
   it('Filters opens today’s window and toggles in a sheet', async () => {

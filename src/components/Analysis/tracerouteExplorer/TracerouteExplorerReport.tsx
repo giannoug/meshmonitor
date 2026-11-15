@@ -27,7 +27,7 @@ export type { ViewMode };
 const TRANSPORTS: NodeTransportClass[] = ['rf', 'mqtt', 'udp'];
 const HOP_CAPS = [1, 2, 3, 5];
 
-function Segmented<T extends string>({
+export function Segmented<T extends string>({
   value,
   options,
   onChange,

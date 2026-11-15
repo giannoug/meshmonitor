@@ -75,6 +75,14 @@ describe('6-04-traceroute-explorer', () => {
     expect(screen.getAllByTestId('explorer-pair-row')).toHaveLength(6);
   });
 
+  it('the detail sits in the column beside the map and table (Ruling CN)', async () => {
+    renderReports(ROUTE);
+    const detail = await selectKifisiaRun();
+    const aside = screen.getByTestId('explorer-detail-column');
+    expect(aside).toContainElement(detail);
+    expect(aside.previousElementSibling).toContainElement(screen.getByTestId('traceroute-explorer-workspace'));
+  });
+
   it('a selected run shows its detail with Pair history and the paths the pair used', async () => {
     renderReports(ROUTE);
     const detail = await selectKifisiaRun();

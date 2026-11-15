@@ -6,6 +6,7 @@
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { routeFixtures } from './fixtureRoutes';
+import * as R from '../../src/workspace/__fixtures__/reports';
 
 test.use({ viewport: { width: 390, height: 844 }, colorScheme: 'dark' });
 
@@ -186,4 +187,41 @@ test('NodeInfo Enrichment: the push card, Fix All, target rows and Fix are phone
   expect(rows).toHaveLength(4);
   expect(rows.filter((h) => h < 52)).toEqual([]);
   await noSidewaysScroll(page);
+});
+
+test('ok_to_mqtt: the packet sheet pager is a phone target (fix round 1)', async ({ page }) => {
+  // A drill total over one page (limit 100), so today's Previous / Next show.
+  await routeFixtures(page, {
+    'GET /api/analysis/mqtt-violations/packets': (url) => {
+      const reply = R.mqttPacketsReply(url);
+      return { ...reply, data: { ...reply.data, total: 250 } };
+    },
+  });
+  await page.goto('/overview/reports/mqtt-violations');
+  await page.getByRole('button', { name: 'Run report' }).click();
+  await page.getByTestId('mqtt-gateway-item').first().getByRole('button').click();
+  const sheet = page.getByRole('dialog', { name: /Athens MQTT gw/ });
+  await sheet.getByRole('button', { name: 'Next' }).waitFor();
+  await expect(sheet.getByText('Page 1 of 3')).toBeVisible();
+  expect(await shortTargets(sheet)).toEqual([]);
+});
+
+test('Traceroute Explorer: Pair history over the pair sheet; Escape and Close shut only the history (Ruling CR)', async ({ page }) => {
+  await routeFixtures(page);
+  await page.goto('/overview/reports/traceroute-explorer');
+  await page.getByTestId('explorer-pair-item').first().getByRole('button').click();
+  const pair = page.getByRole('dialog', { name: 'Pair' });
+  const history = page.getByRole('dialog', { name: /Traceroute History/i });
+
+  await pair.getByRole('button', { name: 'Pair history' }).click();
+  await expect(history).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(history).toHaveCount(0);
+  await expect(pair).toBeVisible();
+
+  await pair.getByRole('button', { name: 'Pair history' }).click();
+  await expect(history).toBeVisible();
+  await history.getByRole('button', { name: 'Close dialog' }).click();
+  await expect(history).toHaveCount(0);
+  await expect(pair).toBeVisible();
 });
