@@ -18,6 +18,27 @@ import { usePackets } from '../hooks/usePackets';
 import { windowToSince, type TimeWindowKey } from './packets/timeWindow';
 import { PORTNUM_NAMES } from '../utils/packetFormat';
 import type { SearchableSelectOption } from './common/SearchableSelect';
+import type { DeviceInfo } from '../types/device';
+
+/** Direct-neighbour stats by node number, as `/api/direct-neighbors` returns them. */
+export type DirectNeighborStats = Record<number, { avgRssi: number; packetCount: number; lastHeard: number }>;
+
+/** Nodes in the shape RelayNodeModal reads, with each node's direct-hearing stats. */
+export function relayModalNodes(nodes: DeviceInfo[], directNeighborStats: DirectNeighborStats) {
+  return nodes.map(node => {
+    const stats = directNeighborStats[node.nodeNum];
+    return {
+      nodeNum: node.nodeNum,
+      nodeId: node.user?.id || `!${node.nodeNum.toString(16).padStart(8, '0')}`,
+      longName: node.user?.longName || `Node ${node.nodeNum}`,
+      shortName: node.user?.shortName || node.nodeNum.toString(16).padStart(8, '0').slice(-4),
+      hopsAway: node.hopsAway,
+      role: typeof node.user?.role === 'string' ? parseInt(node.user.role, 10) : node.user?.role,
+      avgDirectRssi: stats?.avgRssi,
+      heardDirectly: stats !== undefined,
+    };
+  });
+}
 
 // Full portnum filter list, derived from the shared PORTNUM_NAMES map so the
 // dropdown covers every known type (incl. NODE_STATUS and MESH_BEACON) rather

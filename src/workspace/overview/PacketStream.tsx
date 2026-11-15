@@ -13,7 +13,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import type { PacketLog } from '../../types/packet';
 import { formatPacketDateColumn, getTransportMechanismName, toMs } from '../../utils/packetFormat';
 import DeviceTag from '../patterns/DeviceTag';
-import { packetHops, packetKey, packetSlot } from './packetRows';
+import { packetHops, packetKey, packetSlot, packetTypeFamily } from './packetRows';
 import styles from './PacketStream.module.css';
 
 /** A table row's height before it is measured. */
@@ -33,6 +33,27 @@ export interface PacketStreamProps {
   onSelect(packet: PacketLog): void;
   /** The stream spans devices: a device tag on each row. */
   withSource?: boolean;
+  /** MeshCore devices in the stream: their rows' types are payload types, drawn muted. */
+  meshcoreSourceIds?: ReadonlySet<string>;
+}
+
+/** A packet's type badge, coloured by its Meshtastic type family. */
+export function TypeBadge({ packet: p, meshcore = false }: { packet: PacketLog; meshcore?: boolean }) {
+  return (
+    <span className={styles.type} data-family={packetTypeFamily(p, meshcore)}>{p.portnum_name || p.portnum}</span>
+  );
+}
+
+/** Today's Dir cell: the spoof warning in place of RX/TX, with today's title. */
+function Dir({ packet: p }: { packet: PacketLog }) {
+  const { t } = useTranslation();
+  if (!p.spoof_suspected) return <>{p.direction === 'tx' ? 'TX' : 'RX'}</>;
+  const label = t('packet_monitor.spoof_suspected', 'Possible impersonation: claims your node id but arrived over RF');
+  return (
+    <span className={styles.spoof} title={label} role="img" aria-label={label}>
+      <UiIcon name="alert" size={15} />
+    </span>
+  );
 }
 
 function useRowText() {
@@ -43,7 +64,6 @@ function useRowText() {
     to: (p: PacketLog) =>
       p.to_node_id === '!ffffffff' ? t('packet_monitor.broadcast') : p.to_node_longName || p.to_node_id || String(p.to_node ?? na),
     content: (p: PacketLog) => (p.encrypted ? t('packet_monitor.encrypted') : p.payload_preview || t('packet_monitor.no_preview')),
-    dir: (p: PacketLog) => (p.direction === 'tx' ? 'TX' : 'RX'),
     na,
   };
 }
@@ -57,7 +77,7 @@ const activate = (run: () => void) => (e: KeyboardEvent) => {
 
 /** Desktop: one row per packet, the four columns right of Content behind `moreCue` and the sideways scroll. */
 export function PacketTable({
-  packets, hasMore, loadingMore, loadMore, selectedKey, onSelect, withSource = false, moreCue = false,
+  packets, hasMore, loadingMore, loadMore, selectedKey, onSelect, withSource = false, moreCue = false, meshcoreSourceIds,
 }: PacketStreamProps & { moreCue?: boolean }) {
   const { t } = useTranslation();
   const { timeFormat, dateFormat } = useSettings();
@@ -116,12 +136,12 @@ export function PacketTable({
                 >
                   <td className={styles.num}>{index + 1}</td>
                   {withSource && <td>{p.sourceId && <DeviceTag sourceId={p.sourceId} />}</td>}
-                  <td>{text.dir(p)}</td>
+                  <td><Dir packet={p} /></td>
                   <td title={getTransportMechanismName(p.transport_mechanism).full}>{getTransportMechanismName(p.transport_mechanism).short}</td>
                   <td className={styles.mono}>{clock(p.timestamp, timeFormat)}</td>
                   <td className={styles.strong} title={text.from(p)}>{text.from(p)}</td>
                   <td title={text.to(p)}>{text.to(p)}</td>
-                  <td><span className={styles.type} data-encrypted={p.encrypted || undefined}>{p.portnum_name || p.portnum}</span></td>
+                  <td><TypeBadge packet={p} meshcore={!!p.sourceId && !!meshcoreSourceIds?.has(p.sourceId)} /></td>
                   <td>{p.snr != null ? p.snr.toFixed(1) : text.na}</td>
                   <td>{hops !== null ? `${hops}/${p.hop_start}` : text.na}</td>
                   <td className={styles.contentCol} title={text.content(p)}>{text.content(p)}</td>
@@ -154,7 +174,7 @@ export function PacketTable({
 }
 
 /** Phone: two lines per packet — tag, type and sender; direction, transport, destination, hops, SNR — and the time. */
-export function PacketList({ packets, hasMore, loadingMore, loadMore, selectedKey, onSelect, withSource = false }: PacketStreamProps) {
+export function PacketList({ packets, hasMore, loadingMore, loadMore, selectedKey, onSelect, withSource = false, meshcoreSourceIds }: PacketStreamProps) {
   const { t } = useTranslation();
   const { timeFormat } = useSettings();
   const text = useRowText();
@@ -190,11 +210,11 @@ export function PacketList({ packets, hasMore, loadingMore, loadMore, selectedKe
           >
             <span className={styles.line1}>
               {withSource && p.sourceId && <DeviceTag sourceId={p.sourceId} />}
-              <span className={styles.type} data-encrypted={p.encrypted || undefined}>{p.portnum_name || p.portnum}</span>
+              <TypeBadge packet={p} meshcore={!!p.sourceId && !!meshcoreSourceIds?.has(p.sourceId)} />
               <span className={styles.from}>{text.from(p)}</span>
             </span>
             <span className={styles.line2}>
-              {text.dir(p)} {getTransportMechanismName(p.transport_mechanism).short} ·{' '}
+              <Dir packet={p} /> {getTransportMechanismName(p.transport_mechanism).short} ·{' '}
               <UiIcon name="forward" size={14} />
               {text.to(p)}
               {hops !== null && ` · ${t('unified.messages.hop_count', { count: hops })}`}

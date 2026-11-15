@@ -109,15 +109,28 @@
   vertical-align: middle;
   padding: 2px 6px;
   border-radius: 6px;
-  background: var(--color-accent);
-  color: var(--color-accent-text);
+  background: var(--color-surface);
+  color: var(--color-text-subtle);
   font-size: 12px;
   font-weight: 700;
 }
 
-.type[data-encrypted] {
-  background: var(--color-surface);
-  color: var(--color-text-subtle);
+/* The board's per-type colours as role tokens, by Meshtastic PortNum family (packetRows.ts); encrypted and other types stay muted. */
+.type[data-family] {
+  color: var(--color-bg);
+}
+
+.type[data-family='text'] { background: var(--color-info); }
+.type[data-family='telemetry'] { background: var(--color-warning); }
+.type[data-family='traceroute'] { background: var(--color-accent-alt); }
+.type[data-family='nodeinfo'] { background: var(--color-accent); }
+.type[data-family='position'] { background: var(--color-success); }
+.type[data-family='routing'] { background: var(--color-caution); }
+
+.spoof {
+  display: inline-flex;
+  vertical-align: middle;
+  color: var(--color-warning);
 }
 
 .loader td {

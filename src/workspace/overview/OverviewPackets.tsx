@@ -24,6 +24,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import type { CrossSourcePacketFilter, UnifiedPacketFilters } from '../../types/packet';
 import { MESHCORE_PAYLOAD_TYPES, MESHCORE_ROUTE_TYPES } from '../../utils/meshcorePacketDecode';
 import { TRANSPORT_MECHANISM_NAMES } from '../../utils/packetFormat';
+import { isAnyMeshCoreSourceType } from '../../utils/nodeTypeCategory';
 import { RANGE_OPTIONS, useUnifiedPacketMonitor } from '../../pages/useUnifiedPacketMonitor';
 import DeviceTag from '../patterns/DeviceTag';
 import Sheet from '../patterns/Sheet';
@@ -225,6 +226,11 @@ export default function OverviewPackets() {
 
   const packets = useMemo(() => m.packets.filter((p) => readable.has(p.sourceId ?? '')), [m.packets, readable]);
   const sources = useMemo(() => m.sources.filter((s) => readable.has(s.id)), [m.sources, readable]);
+  // A MeshCore row's type is a payload type, not a PortNum: its badge stays muted.
+  const meshcoreSourceIds = useMemo(
+    () => new Set(m.sources.filter((s) => isAnyMeshCoreSourceType(s.type)).map((s) => s.id)),
+    [m.sources],
+  );
   const selected = packets.find((p) => packetKey(p) === selectedKey) ?? null;
   const title = t('unified.packets.title');
 
@@ -261,7 +267,7 @@ export default function OverviewPackets() {
   const pauseLabel = m.paused ? t('packet_monitor.resume_autoscroll') : t('packet_monitor.pause_autoscroll');
   const note = <p className={styles.note}>{t('workspace.packets.capture_all')}</p>;
   const stream = {
-    packets, hasMore: m.hasMore, loadingMore: m.loadingMore, loadMore: m.loadMore, selectedKey, withSource: true,
+    packets, hasMore: m.hasMore, loadingMore: m.loadingMore, loadMore: m.loadMore, selectedKey, withSource: true, meshcoreSourceIds,
     onSelect: (p: (typeof packets)[number]) => setSelectedKey(packetKey(p)),
   };
   const states = (
@@ -274,7 +280,13 @@ export default function OverviewPackets() {
       ) : null}
     </>
   );
-  const detail = selected && <PacketDetailPanel packet={selected} onClose={() => setSelectedKey(null)} />;
+  const detail = selected && (
+    <PacketDetailPanel
+      packet={selected}
+      meshcore={!!selected.sourceId && meshcoreSourceIds.has(selected.sourceId)}
+      onClose={() => setSelectedKey(null)}
+    />
+  );
 
   if (isPhone) {
     return (

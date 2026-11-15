@@ -49,6 +49,14 @@ describe('18-01-packets-popout', () => {
     expect(screen.queryByText('GRP_TXT')).toBeNull();
   });
 
+  it('the raw packet panel keeps today\'s relay estimate', async () => {
+    renderWindow();
+    fireEvent.click(await row('Hearing you direct from Marousi'));
+    const panel = await screen.findByRole('complementary', { name: 'Raw packet #4821' });
+    fireEvent.click(within(panel).getByRole('button', { name: 'via 0x12' }));
+    expect(await screen.findByText('Message Relay Information')).toBeInTheDocument();
+  });
+
   it('Close window closes the window, as today', async () => {
     const close = vi.spyOn(window, 'close').mockImplementation(() => {});
     renderWindow();

@@ -23,6 +23,8 @@ interface Row {
   id: number; sourceId?: string; dir?: 'rx' | 'tx'; via: number; time: number; from: [number, string];
   to?: [number, string]; type: [number, string]; snr?: number; rssi?: number; hops?: [number, number];
   content?: string; size: number; encrypted?: boolean; relay?: number;
+  /** Today's per-packet markers. */
+  marks?: Pick<PacketLog, 'xeddsa_signed' | 'decrypted_by' | 'spoof_suspected'>;
 }
 
 function packet(r: Row): PacketLog {
@@ -32,7 +34,7 @@ function packet(r: Row): PacketLog {
     to_node_longName: r.to?.[1], channel: 0, portnum: r.type[0], portnum_name: r.type[1], encrypted: r.encrypted ?? false,
     snr: r.snr, rssi: r.rssi, hop_start: r.hops?.[1], hop_limit: r.hops ? r.hops[1] - r.hops[0] : undefined,
     relay_node: r.relay, payload_size: r.size, payload_preview: r.content, direction: r.dir ?? 'rx',
-    transport_mechanism: r.via, ...(r.sourceId ? { sourceId: r.sourceId, sourceName: SOURCE_NAMES[r.sourceId] } : {}),
+    transport_mechanism: r.via, ...r.marks, ...(r.sourceId ? { sourceId: r.sourceId, sourceName: SOURCE_NAMES[r.sourceId] } : {}),
   };
 }
 
@@ -47,13 +49,13 @@ const TELEMETRY: [number, string] = [67, 'TELEMETRY_APP'];
 
 /** `/api/unified/packets`: one row per receiving device, newest first (7-05, 7-08). */
 export const unifiedPackets: PacketLog[] = [
-  packet({ id: 4821, sourceId: S.g2, via: 1, time: at(10, 42, 31, 402), from: NIKOS, type: TEXT, snr: -3, rssi: -95, hops: [2, 3], relay: 0x12, content: 'Hearing you direct from Marousi', size: 58 }),
+  packet({ id: 4821, sourceId: S.g2, via: 1, time: at(10, 42, 31, 402), from: NIKOS, type: TEXT, snr: -3, rssi: -95, hops: [2, 3], relay: 0x12, content: 'Hearing you direct from Marousi', size: 58, marks: { xeddsa_signed: true, decrypted_by: 'node' } }),
   packet({ id: 4820, sourceId: S.mqtt, via: 5, time: at(10, 42, 31, 120), from: NIKOS, type: TEXT, hops: [3, 3], content: 'Hearing you direct from Marousi', size: 58 }),
   packet({ id: 4819, sourceId: S.heltec, via: 1, time: at(10, 42, 24), from: MAROUSI, type: [5, 'GRP_TXT'], snr: 6, content: 'Heading to the beach', size: 44 }),
   packet({ id: 4818, sourceId: S.rak, via: 1, time: at(10, 42, 29), from: KIFISIA, type: TELEMETRY, snr: -7, rssi: -98, hops: [2, 3], content: 'Battery 87 %, 4.02 V', size: 41 }),
   packet({ id: 4817, sourceId: S.g2, dir: 'tx', via: 7, time: at(10, 42, 17), from: G2, to: KIFISIA, type: [70, 'TRACEROUTE_APP'], hops: [0, 3], content: 'Request', size: 22 }),
   packet({ id: 4816, sourceId: S.heltec, via: 1, time: at(10, 42, 12), from: GLYFADA, type: [4, 'ADVERT'], snr: -2, content: 'Advert · Glyfada Beach', size: 101 }),
-  packet({ id: 4815, sourceId: S.g2, via: 1, time: at(10, 42, 11), from: HYMETTUS, type: [4, 'NODEINFO_APP'], snr: 2, rssi: -90, hops: [0, 3], content: 'Hymettus Relay · RAK4631', size: 67 }),
+  packet({ id: 4815, sourceId: S.g2, via: 1, time: at(10, 42, 11), from: HYMETTUS, type: [4, 'NODEINFO_APP'], snr: 2, rssi: -90, hops: [0, 3], content: 'Hymettus Relay · RAK4631', size: 67, marks: { spoof_suspected: true, decrypted_by: 'server' } }),
   packet({ id: 4814, sourceId: S.mqtt, via: 5, time: at(10, 41, 58), from: MAROUSI, type: [3, 'POSITION_APP'], hops: [2, 3], content: '38.03, 23.80', size: 36 }),
   packet({ id: 4813, sourceId: S.g2, via: 1, time: at(10, 41, 56), from: [0xc41e09aa, '!c41e09aa'], to: [0xa1b2c309, 'Penteli Hiker'], type: [1, 'TEXT_MESSAGE_APP'], snr: -4, rssi: -97, hops: [1, 3], size: 74, encrypted: true }),
   packet({ id: 4812, sourceId: S.rak, via: 6, time: at(10, 41, 50), from: GLYFADA, type: TELEMETRY, snr: -11, rssi: -110, hops: [2, 3], content: 'Battery 71 %, 3.88 V', size: 41 }),
@@ -91,10 +93,10 @@ export const unifiedDistribution: UnifiedPacketDistribution = {
 
 /** The pop-out window: the primary device's monitor (18-01, 18-02), Meshtastic rows only. */
 const popoutRows: PacketLog[] = [
-  packet({ id: 4821, via: 1, time: at(10, 42, 31, 402), from: NIKOS, type: TEXT, snr: -3, rssi: -95, hops: [2, 3], relay: 0x12, content: 'Hearing you direct from Marousi', size: 58 }),
+  packet({ id: 4821, via: 1, time: at(10, 42, 31, 402), from: NIKOS, type: TEXT, snr: -3, rssi: -95, hops: [2, 3], relay: 0x12, content: 'Hearing you direct from Marousi', size: 58, marks: { xeddsa_signed: true, decrypted_by: 'node' } }),
   packet({ id: 4818, via: 1, time: at(10, 42, 29), from: KIFISIA, type: TELEMETRY, snr: -7, rssi: -98, hops: [2, 3], content: 'Battery 87 %, 4.02 V', size: 41 }),
   packet({ id: 4817, dir: 'tx', via: 7, time: at(10, 42, 17), from: G2, to: KIFISIA, type: [70, 'TRACEROUTE_APP'], hops: [0, 3], content: 'Request', size: 22 }),
-  packet({ id: 4815, via: 1, time: at(10, 42, 11), from: HYMETTUS, type: [4, 'NODEINFO_APP'], snr: 2, rssi: -90, hops: [0, 3], content: 'Hymettus Relay · RAK4631', size: 67 }),
+  packet({ id: 4815, via: 1, time: at(10, 42, 11), from: HYMETTUS, type: [4, 'NODEINFO_APP'], snr: 2, rssi: -90, hops: [0, 3], content: 'Hymettus Relay · RAK4631', size: 67, marks: { spoof_suspected: true, decrypted_by: 'server' } }),
   packet({ id: 4814, via: 5, time: at(10, 41, 58), from: MAROUSI, type: [3, 'POSITION_APP'], hops: [2, 3], content: '38.03, 23.80', size: 36 }),
   packet({ id: 4813, via: 1, time: at(10, 41, 56), from: [0xc41e09aa, '!c41e09aa'], to: [0xa1b2c309, 'Penteli Hiker'], type: TEXT, snr: -4, rssi: -97, hops: [1, 3], size: 74, encrypted: true }),
   packet({ id: 4812, via: 6, time: at(10, 41, 50), from: GLYFADA, type: TELEMETRY, snr: -11, rssi: -110, hops: [2, 3], content: 'Battery 71 %, 3.88 V', size: 41 }),

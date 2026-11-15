@@ -76,6 +76,49 @@ describe('7-05-packets', () => {
     expect(screen.queryByRole('complementary', { name: /Raw packet/ })).toBeNull();
   });
 
+  it('the relay link in the panel opens today\'s relay estimate, with the direct-neighbour stats', async () => {
+    renderPage('/overview/packets');
+    fireEvent.click(await row('Hearing you direct from Marousi'));
+    const panel = await screen.findByRole('complementary', { name: 'Raw packet #4821' });
+    fireEvent.click(within(panel).getByRole('button', { name: 'via 0x12' }));
+    expect(await screen.findByText('Message Relay Information')).toBeInTheDocument();
+    expect(fetched().some((u) => u.includes('/api/direct-neighbors?hours=24'))).toBe(true);
+  });
+
+  it('the panel shows today\'s packet markers: XEdDSA signed, decrypted by device or server, and the spoof warning', async () => {
+    renderPage('/overview/packets');
+    fireEvent.click(await row('Hearing you direct from Marousi'));
+    const signed = await screen.findByRole('complementary', { name: 'Raw packet #4821' });
+    expect(signed).toHaveTextContent('Signed packet: XEdDSA signature verified by the device (firmware 2.8+)');
+    expect(signed).toHaveTextContent('Decrypted by device');
+    expect(signed).not.toHaveTextContent('Possible impersonation');
+    fireEvent.click(await row('Hymettus Relay · RAK4631'));
+    const spoofed = await screen.findByRole('complementary', { name: 'Raw packet #4815' });
+    expect(spoofed).toHaveTextContent('Possible impersonation: claims your node id but arrived over RF');
+    expect(spoofed).toHaveTextContent('Decrypted by server (channel database)');
+  });
+
+  it('a spoofed row keeps today\'s alert cue in Dir, with today\'s title', async () => {
+    renderPage('/overview/packets');
+    const spoofed = await row('Hymettus Relay · RAK4631');
+    const cue = within(spoofed).getByRole('img', { name: 'Possible impersonation: claims your node id but arrived over RF' });
+    expect(cue).toHaveAttribute('title', 'Possible impersonation: claims your node id but arrived over RF');
+    expect(spoofed).not.toHaveTextContent(/RXLoRa/);
+  });
+
+  it('type badges take their family\'s colour; MeshCore and encrypted types stay muted', async () => {
+    renderPage('/overview/packets');
+    const badge = async (text: string, type: string) => within(await row(text)).getByText(type);
+    expect(await badge('Hearing you direct from Marousi', 'TEXT_MESSAGE_APP')).toHaveAttribute('data-family', 'text');
+    expect(await badge('Battery 87 %, 4.02 V', 'TELEMETRY_APP')).toHaveAttribute('data-family', 'telemetry');
+    expect(await badge('Request', 'TRACEROUTE_APP')).toHaveAttribute('data-family', 'traceroute');
+    expect(await badge('Hymettus Relay · RAK4631', 'NODEINFO_APP')).toHaveAttribute('data-family', 'nodeinfo');
+    expect(await badge('38.03, 23.80', 'POSITION_APP')).toHaveAttribute('data-family', 'position');
+    expect(await badge('Heading to the beach', 'GRP_TXT')).not.toHaveAttribute('data-family');
+    const encrypted = (await row('Penteli Hiker')).querySelector('[data-family]');
+    expect(encrypted).toBeNull();
+  });
+
   it('Stop capturing turns server-side logging off, and the button becomes Start capturing', async () => {
     renderPage('/overview/packets', { fixtures: { 'POST /api/settings': () => ({ success: true }) } });
     await row('Hearing you direct from Marousi');
