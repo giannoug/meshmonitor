@@ -538,6 +538,10 @@ export const BOARDS: Board[] = [
       await page.getByRole('dialog', { name: 'New local marker' }).getByLabel('Label').fill('Site B');
     },
   },
+  // Task 4.1: the Overview. 5-08 is the frame; Tools, Time and the Analysis chips are 4.2 / 4.3's.
+  { id: 'f6-overview', size: 'desktop', path: '/overview/map' },
+  { id: '5-07-overview-home', size: 'phone', path: '/overview' },
+  { id: '5-08-overview-map', size: 'phone', path: '/overview/map' },
 ];
 
 /** Kifisia Rooftop's detected renumbering, served for this shot, then the page reloads. */

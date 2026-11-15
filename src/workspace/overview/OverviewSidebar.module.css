@@ -1,0 +1,22 @@
+/* The Overview sidebar (board f6-overview); the frame and rows are DeviceSidebar.module.css. */
+.group {
+  margin: 16px 10px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.swatch {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

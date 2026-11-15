@@ -38,6 +38,8 @@ vi.mock('../chat/PhoneHome', async () => ({ default: (await import('./pageStub')
 vi.mock('../activity/ActivityFeed', async () => ({ default: (await import('./pageStub')).pageStub('activity') }));
 vi.mock('../nodes/NodesPage', async () => ({ default: (await import('./pageStub')).pageStub('nodes') }));
 vi.mock('../node-page/NodePage', async () => ({ default: (await import('./pageStub')).pageStub('node-page') }));
+vi.mock('../overview/OverviewMap', async () => ({ default: (await import('./pageStub')).pageStub('overview-map') }));
+vi.mock('../overview/OverviewHome', async () => ({ default: (await import('./pageStub')).pageStub('overview-home') }));
 
 /** Shows the real URL, and navigates client-side when its input changes. */
 function RealUrl() {
@@ -82,9 +84,6 @@ const rns = `/source/${SOURCE_IDS.rns}`;
 
 describe('WorkspaceApp routes (spec §5.5)', () => {
   it.each([
-    ['/', 'dashboard'],
-    ['/overview', 'dashboard'],
-    ['/overview/map', 'dashboard'],
     ['/overview/dashboard', 'dashboard'],
     ['/overview/audit', 'dashboard'],
     ['/overview/messages', 'unified-messages'],
@@ -176,9 +175,22 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     expect(screen.queryByTestId('page-phone-home')).toBeNull();
   });
 
-  it('honours the default landing page only on /', async () => {
-    renderAt('/');
-    expect(await expectPage('dashboard')).toHaveAttribute('data-show-list', 'false');
+  // The landing jump itself is OverviewMap's (overview/__tests__/OverviewMap.test.tsx).
+  it.each([
+    ['/', 'overview-map'],
+    ['/overview', 'overview-map'],
+    ['/overview/map', 'overview-map'],
+  ])('%s shows the Workspace all-devices map (Task 4.1), not today\'s Dashboard', async (route, page) => {
+    renderAt(route);
+    expect(await screen.findByTestId(`page-${page}`)).toHaveAttribute('data-embedded', 'false');
+    expect(screen.queryByTestId('page-dashboard')).toBeNull();
+    expect(realUrl()).toBe(route);
+  });
+
+  it('/overview on a phone is the Overview Home (5-07)', async () => {
+    renderAt('/overview', { phone: true });
+    await screen.findByTestId('page-overview-home');
+    expect(screen.queryByTestId('page-overview-map')).toBeNull();
   });
 
   it('/you/layout shows the Layout page (Task 1.8)', async () => {
@@ -200,14 +212,14 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     expect(screen.queryByTestId('page-dashboard')).toBeNull();
   });
 
-  it.each(['/overview', '/overview/map'])('%s shows the overview without the landing jump', async (route) => {
+  it.each(['/overview/dashboard', '/overview/audit'])('%s shows today\'s Dashboard without the landing jump', async (route) => {
     renderAt(route);
     await waitFor(() => expect(screen.getByTestId('page-dashboard')).toHaveAttribute('data-show-list', 'true'));
     expect(realUrl()).toBe(route);
   });
 
   it('renders inside the Workspace shell', async () => {
-    const { container } = renderAt('/overview');
+    const { container } = renderAt('/overview/dashboard');
     const page = await expectPage('dashboard');
     expect(container.querySelector('[data-workspace-shell]')).toContainElement(page);
   });
@@ -312,11 +324,11 @@ describe('sockets (Ruling N)', () => {
     [`${heltec}/nodes`, 'meshcore'],
     [`${rns}/destinations`, 'reticulum'],
     ['/overview/reports', 'reports'],
-    ['/', 'dashboard'],
+    ['/', 'overview-map'],
     ['/source/no-such-device/nodes', 'dashboard'],
   ])('%s has exactly one WebSocketProvider', async (route, page) => {
     const { container } = renderAt(route);
-    await expectPage(page);
+    await (page === 'overview-map' ? screen.findByTestId('page-overview-map') : expectPage(page));
     expect(container.querySelectorAll('[data-ws-provider]')).toHaveLength(1);
   });
 });
@@ -327,7 +339,7 @@ describe('re-hosted pages stay mounted while the URL is fixed up', () => {
     [`${g2}/channels`, `${g2}/configuration`, `${g2}/settings`, 'app'],
     [`${g2}/channels`, `${g2}/configuration#config-lora`, `${g2}/settings/lora#config-lora`, 'app'],
     ['/server/general', '/server/backup', '/server/backup#settings-backup', 'global-settings'],
-    ['/overview', '/overview/map', '/overview/map', 'dashboard'],
+    ['/overview/dashboard', '/overview/audit', '/overview/audit', 'dashboard'],
     [`${heltec}/nodes`, `${heltec}/admin`, `${heltec}/nodes`, 'meshcore'],
   ])('%s → %s (lands on %s) keeps one %s', async (from, to, lands, page) => {
     renderAt(from);

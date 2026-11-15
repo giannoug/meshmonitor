@@ -11,7 +11,7 @@
  *   or today's DM tab.
  * - `settings` / `server` / `you`: the categories of the re-hosted settings
  *   pages, as links to their Workspace URLs (Phases 5 and 6 rebuild them).
- * - `overview`: the all-devices tools (note ds3).
+ * - `overview` is OverviewSidebar's (Task 4.1).
  *
  * Rows follow today's permission gates, read with the same rules as MeshCore's
  * tabs (`visibleMeshCoreViews`), for the device in the URL.
@@ -75,21 +75,6 @@ export default function DeviceSidebar({ mode, sourceId, source, onNavigate, onSe
       ))}
     </ul>
   );
-
-  if (mode === 'overview') {
-    const rows: Row[] = [
-      { to: '/overview/map', label: mapNav(t).label, icon: 'map' },
-      { to: '/overview/messages', label: t('source.sidebar.unified_messages'), icon: 'messages' },
-      { to: '/overview/telemetry', label: t('source.sidebar.unified_telemetry'), icon: 'telemetry' },
-      { to: '/overview/packets', label: t('source.sidebar.unified_packets', 'Unified Packets'), icon: 'package' },
-      { to: '/overview/analysis', label: t('source.sidebar.map_analysis'), icon: 'map' },
-      { to: '/overview/reports', label: t('source.sidebar.reports', 'Analysis & Reports'), icon: 'reports' },
-      ...(hasPermission('automations', 'read') ? [{ to: '/overview/automations', label: t('source.sidebar.automations', 'Automation Engine'), icon: 'bot' as const }] : []),
-      ...(isAdmin ? [{ to: '/overview/users', label: t('nav.users'), icon: 'users' as const }] : []),
-      ...(hasPermission('audit', 'read') ? [{ to: '/overview/audit', label: t('nav.audit_log'), icon: 'reports' as const }] : []),
-    ];
-    return <Frame title={t('workspace.shell.overview')}>{list(rows)}</Frame>;
-  }
 
   if (mode === 'server' || mode === 'you') {
     const prefs = mode === 'you';

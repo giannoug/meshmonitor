@@ -34,6 +34,7 @@ import { canReadMessages, isMeshtasticFamily } from './deviceTabs';
 import DeviceRail from './DeviceRail';
 import DeviceSidebar, { type SidebarMode } from './DeviceSidebar';
 import PhoneShell from './PhoneShell';
+import OverviewSidebar from '../overview/OverviewSidebar';
 import { useIsNarrowDesktop, useIsPhone } from './useIsPhone';
 import { ShellDevicesContext } from './shellDevices';
 import { useWorkspaceSources } from './useWorkspaceSources';
@@ -188,7 +189,8 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
             )
           }
         />
-        {showSidebar && (
+        {showSidebar && mode === 'overview' && <OverviewSidebar sources={sources} onNavigate={() => setDrawerOpen(false)} />}
+        {showSidebar && mode !== 'overview' && (
           <DeviceSidebar
             mode={mode}
             sourceId={openId}

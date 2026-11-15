@@ -8,7 +8,7 @@
  * `/packet-monitor` never get here (LayoutGate renders Classic for them);
  * `/embed/:profileId` is a separate server-rendered page.
  */
-import { Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import './styles/fonts.css';
 import RouteLoading from '../components/RouteLoading/RouteLoading';
@@ -18,6 +18,7 @@ import { CsrfProvider } from '../contexts/CsrfContext';
 import { SettingsProvider } from '../contexts/SettingsContext';
 import { WebSocketProvider } from '../contexts/WebSocketContext';
 import WorkspaceShell from './shell/WorkspaceShell';
+import { useIsPhone } from './shell/useIsPhone';
 import WorkspaceSource from './source/WorkspaceSource';
 import YouHome from './you/YouHome';
 import LayoutPage from './you/LayoutPage';
@@ -34,6 +35,14 @@ import {
   UnifiedTelemetryRehost,
   UsersRehost,
 } from './rehost/pages';
+
+const OverviewMap = lazy(() => import('./overview/OverviewMap.tsx'));
+const OverviewHome = lazy(() => import('./overview/OverviewHome.tsx'));
+
+/** `/overview`: the phone's Overview Home (5-07); on desktop the sidebar holds the tools, so the map. */
+function OverviewIndex() {
+  return useIsPhone() ? <OverviewHome /> : <OverviewMap />;
+}
 
 function WorkspaceRoutes() {
   const location = useLocation();
@@ -54,9 +63,12 @@ function WorkspaceRoutes() {
 
         {/* Every other route shares one app-level socket, kept across navigation (Ruling N). */}
         <Route element={<WebSocketProvider><Outlet /></WebSocketProvider>}>
-          <Route index element={<OverviewRehost landing />} />
-          {/* `/overview`, `/overview/map`, and `/overview/dashboard` and `/overview/audit`,
-              which have no cross-source Classic page: the Overview until Phases 4 and 8. */}
+          {/* The all-devices map (Task 4.1); the admin's default landing page applies on `/` only. */}
+          <Route index element={<OverviewMap landing />} />
+          <Route path="overview" element={<OverviewIndex />} />
+          <Route path="overview/map" element={<OverviewMap />} />
+          {/* `/overview/dashboard` and `/overview/audit`, which have no cross-source Classic page:
+              today's Dashboard until Phases 4 and 8. */}
           <Route path="overview/*" element={<OverviewRehost />} />
           <Route path="overview/messages" element={<UnifiedMessagesRehost />} />
           <Route path="overview/telemetry" element={<UnifiedTelemetryRehost />} />

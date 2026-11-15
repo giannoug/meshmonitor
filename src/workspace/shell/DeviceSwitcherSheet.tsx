@@ -9,7 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { UiIcon } from '../../components/icons';
 import Sheet from '../patterns/Sheet';
 import TwoLineRow from '../patterns/TwoLineRow';
-import { statusLabel } from './deviceTabs';
+import { isReceiveOnly, statusLabel } from './deviceTabs';
 import type { WorkspaceSource } from './useWorkspaceSources';
 import styles from './DeviceSwitcherSheet.module.css';
 
@@ -20,10 +20,6 @@ interface DeviceSwitcherSheetProps {
   openId: string | null;
   overviewActive: boolean;
 }
-
-/** Receive-only: MQTT ingest with no radio of its own, or a MeshCore node set never to transmit. */
-const isReceiveOnly = (s: WorkspaceSource) =>
-  s.type === 'mqtt_broker' || s.type === 'meshcore_mqtt' || s.radio?.receiveOnly === true;
 
 const TYPE_KEYS: Record<string, string> = {
   meshtastic_tcp: 'meshtastic',

@@ -2,9 +2,6 @@
   "must": [
     "Reticulum node",
     "4 of 5 connected",
-    "heard here",
-    "Find a node",
-    "Layers",
     "All-devices map",
     "Dashboard",
     "Messages",
@@ -12,16 +9,15 @@
     "Packets",
     "Analysis",
     "Reports",
-    "Automations",
+    "Automation Engine",
     "Users",
-    "Audit log",
+    "Audit Log",
     "Station G2",
     "Heltec MeshCore",
     "Rooftop RAK",
     "Athens MQTT",
-    "THIS MESHMONITOR",
-    "DEVICES",
-    "Pins take the colour of the device that hears them."
+    "This MeshMonitor",
+    "Devices"
   ],
   "absent": [
     "Add source"

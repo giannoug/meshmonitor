@@ -26,6 +26,15 @@ const defaults: Record<string, FixtureHandler> = {
   'GET /api/sources': () => A.sources,
   'GET /api/sources/:id/status': (url) => A.statuses[url.pathname.split('/')[3]],
   'GET /api/unified/status': () => A.unifiedStatus,
+  // The all-devices map (f6, 5-08): Station G2's nodes; the other devices' bundles are empty.
+  'GET /api/unified/dashboard': (url) =>
+    (url.searchParams.get('sources') ?? '').split(',').filter(Boolean).map((sourceId) => ({
+      sourceId,
+      nodes: sourceId === SOURCE_IDS.g2 ? A.nodes : [],
+      traceroutes: [],
+      neighborInfo: [],
+      channels: sourceId === SOURCE_IDS.g2 ? A.channels : [],
+    })),
   'GET /api/messages/unread-by-source': () => A.unreadBySource,
   'GET /api/messages/unread-counts': () => A.unreadCounts,
   'GET /api/messages/first-unread': () => ({ success: true, data: A.firstUnread }),

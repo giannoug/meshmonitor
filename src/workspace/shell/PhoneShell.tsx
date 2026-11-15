@@ -3,7 +3,9 @@
  * s1-you): a header naming the open device (or the Overview) that opens the
  * device switcher, with up to two other devices as quick squares (a-chat-D-phone),
  * the page, and the tab bar. You, Preferences and Server pages, and a channel,
- * a DM or the DM inbox (their own header), have no device header.
+ * a DM or the DM inbox (their own header), have no device header. On the
+ * Overview the header reads "Overview ▾" and "All devices · N of M connected"
+ * (5-07); the all-devices map has none (5-08).
  *
  * Re-hosted Classic pages reserve room for their own header and bottom bar
  * from `--app-header-height` and `--app-nav-bar-height`; here those carry the
@@ -14,7 +16,7 @@ import { Link, matchPath, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import type { SidebarMode } from './DeviceSidebar';
-import { isMeshtasticFamily, statusLabel } from './deviceTabs';
+import { isMeshtasticFamily, overviewStatus, statusLabel } from './deviceTabs';
 import DeviceSwitcherSheet from './DeviceSwitcherSheet';
 import { ShellDevicesContext, useShellDevices } from './shellDevices';
 import TabBar, { type PhoneTab } from './TabBar';
@@ -62,15 +64,17 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
       !!matchPath('/source/:id/map', pathname) ||
       !!matchPath('/source/:id/nodes', pathname) ||
       !!matchPath('/source/:id/node/*', pathname));
+  // The all-devices map is full screen with its own Back, as the device map (5-08).
+  const overviewMap = mode === 'overview' && (pathname === '/' || !!matchPath('/overview/map', pathname));
   const quick = source ? sources.filter((s) => s.id !== source.id).slice(0, QUICK_SQUARES) : [];
-  const showHeader = mode !== 'you' && mode !== 'server' && !ownHeader;
+  const showHeader = mode !== 'you' && mode !== 'server' && !ownHeader && !overviewMap;
   const title = source?.name ?? t('workspace.shell.overview');
   const active = source?.live?.activeNodeCount;
-  const status =
-    source &&
-    (source.status === 'connected' && active !== undefined
+  const status = !source
+    ? overviewStatus(t, sources)
+    : source.status === 'connected' && active !== undefined
       ? `${statusLabel(t, source.status)} · ${t('workspace.shell.online_count', { count: active })}`
-      : statusLabel(t, source.status));
+      : statusLabel(t, source.status);
   const vars = {
     '--app-header-height': `${showHeader ? HEADER : 0}px`,
     '--app-nav-bar-height': `${TAB_BAR}px`,
@@ -100,12 +104,10 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
                   <span className={styles.name}>{title}</span>
                   <UiIcon name="chevronDown" size={18} />
                 </span>
-                {status && (
-                  <span className={styles.status}>
-                    <span className={styles.dot} data-status={source.status} />
-                    <span>{status}</span>
-                  </span>
-                )}
+                <span className={styles.status}>
+                  {source && <span className={styles.dot} data-status={source.status} />}
+                  <span>{status}</span>
+                </span>
               </span>
             </button>
             {quick.length > 0 && (

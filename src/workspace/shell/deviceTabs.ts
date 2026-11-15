@@ -46,6 +46,16 @@ export function statusLabel(t: TFunction, status: WorkspaceSource['status']): st
   }[status];
 }
 
+/** Receive-only: MQTT ingest with no radio of its own, or a MeshCore node set never to transmit. */
+export const isReceiveOnly = (s: WorkspaceSource) =>
+  s.type === 'mqtt_broker' || s.type === 'meshcore_mqtt' || s.radio?.receiveOnly === true;
+
+/** The Overview's status line: "All devices · 4 of 5 connected", over the enabled devices the viewer can read. */
+export function overviewStatus(t: TFunction, sources: WorkspaceSource[]): string {
+  const enabled = sources.filter((s) => s.status !== 'disabled');
+  return t('workspace.overview.status', { connected: enabled.filter((s) => s.status === 'connected').length, total: enabled.length });
+}
+
 /** The view gate each entry shares with MeshCore's tabs. */
 const GATE: Record<string, MeshCoreView> = {
   map: 'nodes', nodes: 'nodes', dashboard: 'telemetry', automation: 'automations', config: 'configuration',

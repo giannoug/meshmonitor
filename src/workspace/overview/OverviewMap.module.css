@@ -1,0 +1,92 @@
+/*
+ * The all-devices map (boards f6-overview, 5-08-overview-map): DashboardMap
+ * fills the page column; Back (phone) and the search pill float top left.
+ * DashboardMap keeps its own map controls panel on the right.
+ */
+.page {
+  position: fixed;
+  top: var(--app-header-height);
+  right: 0;
+  bottom: var(--app-nav-bar-height);
+  left: var(--sidebar-width);
+  display: flex;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* Leaflet's zoom buttons move below the search pill. */
+.page :global(.leaflet-top.leaflet-left) {
+  top: 64px;
+}
+
+/* Above Leaflet's panes and controls, below DashboardMap's controls panel; only the pill and Back take the pointer. */
+.overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 72px;
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.overlay > * {
+  pointer-events: auto;
+}
+
+/* 44 px: the board's map buttons (Ruling 3.1). */
+.back {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-surface);
+  border-radius: 10px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+}
+
+.search {
+  flex: 0 1 360px;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--color-surface);
+  border-radius: 10px;
+  background: var(--color-bg-raised);
+  color: var(--color-text-subtle);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+}
+
+.back:focus-visible,
+.search:focus-within {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

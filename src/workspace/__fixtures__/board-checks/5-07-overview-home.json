@@ -8,9 +8,9 @@
     "Packets",
     "Analysis",
     "Reports",
-    "Automations",
+    "Automation Engine",
     "Users",
-    "Audit log"
+    "Audit Log"
   ],
   "absent": [],
   "source": "checks/s05.json"
