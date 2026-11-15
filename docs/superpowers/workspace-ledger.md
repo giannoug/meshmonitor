@@ -427,3 +427,18 @@ Ruling: 3.6 — the Athens fixture adds Station G2's Trailhead (own, LongFast, h
 Ruling: 3.6 — Leaflet's zoom control on the device map moves from bottom 120 px to 172 px to clear the third map button — cost if wrong: one CSS value.
 Ruling: 3.6 fix — the phone waypoint sheet cannot change step while a number field is rejected (Geofence row, Back and Done off); the save error shows on both steps — why: #5649, a field that unmounts reports valid — cost if wrong: keep both steps mounted and hidden.
 Ruling: 3.6 fix (controller ruling) — MeasureDistanceController gains optional `startAt`; "Measure from here" seeds anchor A at the node nearest the spot, the Measure Distance button starts fresh; hint "Click a second point; snaps to nodes" — cost if wrong: drop the prop.
+
+## Phase 3 summary (gate)
+- Commits 7721622..e432880 (tasks 3.1–3.6, each reviewed; every task needed one fix round; 3.5 was clean first time).
+- Boards accepted (36): Main, f2-layers, f3-nodes, f4-node, f5-telemetry, g1-map, g2-layers, g3-nodes, g4-node, g5-links, 15-01 through 15-26.
+- Contact sheet (private artifact): https://claude.ai/artifact/VQoMgYmYEQDkeZ7ySSh1Jo. Screenshots were re-encoded as JPEG to fit the 16 MB artifact limit; the canonical PNGs are produced by `npm run test:workspace-e2e`.
+- CI has not run on this fork (Actions off). The gate was verified locally at e432880:
+  - lint:ci filter: 0 FAIL lines
+  - tsc: client and server both clean
+  - full Vitest (--maxWorkers=4, PG and MySQL containers up): 39,726 total, 39,596 passed, 0 failed, 109 pending
+  - build and bundle check: pass
+  - Playwright: 74 passed
+- Backend changes this phase: none. Server behaviour is untouched. Two existing waypoint-server issues are logged as a FINAL REPORT ITEM (Ruling BK).
+- Mesh impact this phase: no new send paths, no automatic sends and no new timers. Sends come only from today's controls, with today's requests and gates: node asks, Push to NodeDB on the node's channel, waypoint save/delete, and the existing server rebroadcast.
+- Test-policy change: Ruling BI leaves workspace.* out of i18nLanguageCoverage while the layout is in preview.
+- No PR created (requester's instruction).
