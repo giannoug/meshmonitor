@@ -1,12 +1,12 @@
 {
   "must": [
-    "Packets",
+    "Packet Monitor",
     "Athens MQTT",
     "Stop capturing",
     "Gateways",
     "Encrypted",
     "Receptions",
-    "Packet detail",
+    "Packet Detail",
     "Per-gateway receptions",
     "Gateway",
     "Rx time",

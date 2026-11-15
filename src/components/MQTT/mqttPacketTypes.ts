@@ -68,4 +68,6 @@ export interface MqttReception {
   /** 0 | 1 — server-computed, with the relayed/self-gateway guard already applied.
    *  Never recompute this client-side (#4114, Phase 2 spec §2(b)/§1 correction). */
   okToMqttViolation: number;
+  /** This reception's ingest outcome (the route returns the whole row). */
+  ingestOutcome?: string;
 }

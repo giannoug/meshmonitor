@@ -1,0 +1,435 @@
+/*
+ * Overview › Packets (boards 7-05, 7-08): fixed to the page column like
+ * Overview › Messages, so the stream scrolls inside itself (it is virtualised).
+ */
+.page {
+  position: fixed;
+  top: var(--app-header-height);
+  right: 0;
+  bottom: var(--app-nav-bar-height);
+  left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 20px 16px 12px 24px;
+  overflow-y: auto;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.headText {
+  flex: 1 1 300px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--color-success);
+  vertical-align: 1px;
+}
+
+.dot[data-paused] {
+  background: var(--color-text-subtle);
+}
+
+.button,
+.primary,
+.field,
+.select {
+  box-sizing: border-box;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.button,
+.primary,
+.select {
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.button[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.button[data-danger] {
+  color: var(--color-danger);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.primary {
+  width: 100%;
+  justify-content: center;
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.button:focus-visible,
+.primary:focus-visible,
+.select:focus-visible,
+.iconButton:focus-visible,
+.back:focus-visible,
+.segmented button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* A labelled select: the label as the chip's text, today's options in it. */
+.field {
+  padding: 0 4px 0 12px;
+  border-radius: 999px;
+  color: var(--color-text-subtle);
+  font-weight: 400;
+}
+
+.select {
+  min-height: 34px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+}
+
+.select option {
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+}
+
+.filters,
+.chartsBlock {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filterRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.segmentedRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.label {
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.segmented button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.hint,
+.note {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.chartsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.blockTitle {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.chart {
+  padding: 12px 16px;
+  border: 1px solid var(--color-surface);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+}
+
+.chartTitle {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.bars {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bar {
+  display: grid;
+  grid-template-columns: minmax(60px, 110px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.barLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barTrack {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--color-accent);
+}
+
+.barValue {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-subtle);
+}
+
+/* The stream and the raw packet panel; opening the panel narrows the table, rows keep their height. */
+.body {
+  flex: 1;
+  min-height: 320px;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.body[data-panel] {
+  grid-template-columns: minmax(0, 1fr) 380px;
+}
+
+.streamCol {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.state {
+  margin: 24px 0;
+  text-align: center;
+  color: var(--color-text-subtle);
+}
+
+.warning {
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-warning);
+}
+
+/* Phone (7-08): the page's own header, Capture and Filters above the list, rows of at least 52 px. */
+.page[data-phone] {
+  padding: 0 12px;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.phoneHead {
+  flex: none;
+  min-height: 56px;
+  margin: 0 -12px;
+  padding: 0 4px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-surface);
+  background: var(--color-bg-sunken);
+}
+
+.back {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border-radius: 10px;
+  color: var(--color-accent);
+  font-size: 17px;
+  text-decoration: none;
+}
+
+.phoneTitle {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.phoneActions {
+  display: flex;
+}
+
+.iconButton {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.phoneBar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.status {
+  flex: 1 1 auto;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.page[data-phone] .button {
+  min-height: 44px;
+}
+
+/* Sheets render in <body>: their controls carry their own phone sizes. */
+.sheetBody {
+  padding: 0 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sheetBody .filterRow,
+.sheetBody .segmentedRow {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.sheetBody .field {
+  min-height: 52px;
+  justify-content: space-between;
+  border-radius: 12px;
+}
+
+.sheetBody .select,
+.sheetBody .button,
+.sheetBody .segmented button {
+  min-height: 44px;
+}
+
+.sheetBody .segmented {
+  display: flex;
+}
+
+.sheetBody .segmented button {
+  flex: 1;
+  padding: 0 6px;
+}
+
+.sheetBody .charts {
+  grid-template-columns: 1fr;
+}
+
+.primary {
+  min-height: 48px;
+}

@@ -14,8 +14,6 @@ import { useHashTarget } from './useHashTarget';
 // The same chunks Classic loads (main.tsx).
 const DashboardPage = lazy(() => import('../../pages/DashboardPage.tsx'));
 const AutomationsPage = lazy(() => import('../../components/automations/AutomationsPage.tsx'));
-const UnifiedTelemetryPage = lazy(() => import('../../pages/UnifiedTelemetryPage.tsx'));
-const UnifiedPacketMonitorPage = lazy(() => import('../../pages/UnifiedPacketMonitorPage.tsx'));
 const GlobalSettingsPage = lazy(() => import('../../pages/GlobalSettingsPage.tsx'));
 const UsersPage = lazy(() => import('../../pages/UsersPage.tsx'));
 
@@ -85,6 +83,4 @@ export function GlobalSettingsRehost({ above }: { above?: Record<string, ReactNo
 }
 
 export const AutomationsRehost = () => <Rehost><AutomationsPage /></Rehost>;
-export const UnifiedTelemetryRehost = () => <Rehost><UnifiedTelemetryPage /></Rehost>;
-export const UnifiedPacketsRehost = () => <Rehost><UnifiedPacketMonitorPage /></Rehost>;
 export const UsersRehost = () => <Rehost><UsersPage /></Rehost>;

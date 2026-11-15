@@ -8,7 +8,8 @@
  *   channel (`channel/<n>[/beacons]`) is the Workspace's own ChannelThread,
  *   a DM (`dm/<nodeId>`) its own DmConversation, the DM inbox (`dms`) its
  *   DmInbox, Activity (`activity`) its ActivityFeed (Task 2.8), the device map
- *   (`map`) its DeviceMap (Task 3.1), Nodes (`nodes`) its NodesPage (Task 3.3), and the bare
+ *   (`map`) its DeviceMap (Task 3.1), Nodes (`nodes`) its NodesPage (Task 3.3), an MQTT
+ *   source's packet monitor (`packetmonitor`) its MqttReceptions (Task 4.7), and the bare
  *   source URL on a phone its PhoneHome (Task 2.6), with
  *   App not mounted (Ruling AD: one owner of the message state per screen).
  *   A desktop bare source URL keeps the re-hosted App.
@@ -43,6 +44,7 @@ import { OverviewRehost, Redirect, Rehost } from '../rehost/pages';
 import { useHashTarget } from '../rehost/useHashTarget';
 import type { NodeTab } from '../node-page/NodePage';
 import { useIsPhone } from '../shell/useIsPhone';
+import { isMqttOnlySourceType } from '../../utils/nodeTransport';
 import styles from './WorkspaceSource.module.css';
 
 // The same chunks Classic loads (main.tsx).
@@ -76,6 +78,9 @@ const NODES_PATH = /^nodes\/?$/;
 const NodePage = lazy(() => import('../node-page/NodePage.tsx'));
 const NODE_PATH = /^node\/([^/]+)(?:\/([^/]+))?\/?$/;
 const NODE_TABS: readonly string[] = ['telemetry', 'links', 'position', 'admin'];
+/** `packetmonitor` on an MQTT source: the Workspace receptions page (Task 4.7); other sources keep today's until Task 8.5. */
+const MqttReceptions = lazy(() => import('../tools/MqttReceptions.tsx'));
+const PACKETS_PATH = /^packetmonitor\/?$/;
 
 export default function WorkspaceSource() {
   const { t } = useTranslation();
@@ -183,6 +188,14 @@ export default function WorkspaceSource() {
     return (
       <Rehost>
         <NodesPage key={sourceId} sourceId={sourceId} source={source} />
+      </Rehost>
+    );
+  }
+
+  if (source && isMqttOnlySourceType(source.type) && PACKETS_PATH.test(splat)) {
+    return (
+      <Rehost>
+        <MqttReceptions key={sourceId} sourceId={sourceId} source={source} />
       </Rehost>
     );
   }

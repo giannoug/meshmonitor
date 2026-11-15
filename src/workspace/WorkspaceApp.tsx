@@ -4,9 +4,11 @@
  * the app-level WebSocketProvider wraps only non-source routes; a source route
  * has just its per-source one, else a second, join-all-sources socket would
  * refetch the open source's poll on every event from any source. Until each area's phase replaces it, a route renders its re-host
- * wrapper: today's page inside `ShellContext embedded`. `/privacy/*` and
- * `/packet-monitor` never get here (LayoutGate renders Classic for them);
- * `/embed/:profileId` is a separate server-rendered page.
+ * wrapper: today's page inside `ShellContext embedded`. `/privacy/*` never
+ * gets here (LayoutGate renders Classic for it), nor does `/packet-monitor`:
+ * LayoutGate renders the Workspace pop-out window for it without the shell
+ * (`tools/PacketsPopout`, 18-01 / 18-02). `/embed/:profileId` is a separate
+ * server-rendered page.
  */
 import { lazy, Suspense } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
@@ -24,19 +26,14 @@ import YouHome from './you/YouHome';
 import LayoutPage from './you/LayoutPage';
 import GeneralLayoutCard from './server/GeneralLayoutCard';
 import { workspaceRedirect } from './routes';
-import {
-  AutomationsRehost,
-  GlobalSettingsRehost,
-  OverviewRehost,
-  UnifiedPacketsRehost,
-  UnifiedTelemetryRehost,
-  UsersRehost,
-} from './rehost/pages';
+import { AutomationsRehost, GlobalSettingsRehost, OverviewRehost, UsersRehost } from './rehost/pages';
 
 const OverviewMap = lazy(() => import('./overview/OverviewMap.tsx'));
 const OverviewHome = lazy(() => import('./overview/OverviewHome.tsx'));
 const OverviewMessages = lazy(() => import('./overview/OverviewMessages.tsx'));
 const ExportMessagesPage = lazy(() => import('./overview/ExportMessagesPage.tsx'));
+const OverviewTelemetry = lazy(() => import('./overview/OverviewTelemetry.tsx'));
+const OverviewPackets = lazy(() => import('./overview/OverviewPackets.tsx'));
 const ReportsRoute = lazy(() => import('./reports/ReportsRoute.tsx'));
 
 /**
@@ -81,8 +78,9 @@ function WorkspaceRoutes() {
           {/* Overview › Messages and its export (Task 4.6), with no Classic page mounted (Ruling AD). */}
           <Route path="overview/messages" element={<OverviewMessages />} />
           <Route path="overview/messages/export" element={<ExportMessagesPage />} />
-          <Route path="overview/telemetry" element={<UnifiedTelemetryRehost />} />
-          <Route path="overview/packets" element={<UnifiedPacketsRehost />} />
+          {/* Overview › Telemetry and Packets (Task 4.7), with no Classic page mounted (Ruling AD). */}
+          <Route path="overview/telemetry" element={<OverviewTelemetry />} />
+          <Route path="overview/packets" element={<OverviewPackets />} />
           {/* Map Analysis is merged into the all-devices map (Task 4.2, s5n1): the same element, the Analysis group open. */}
           <Route path="overview/analysis" element={<OverviewIndex />} />
           {/* Reports (Task 4.4): the list, Mesh Issues, Coverage; the other reports re-hosted until 4.5. */}
@@ -91,8 +89,8 @@ function WorkspaceRoutes() {
           <Route path="overview/users" element={<UsersRehost />} />
 
           <Route path="unified/messages" element={<OverviewMessages />} />
-          <Route path="unified/telemetry" element={<UnifiedTelemetryRehost />} />
-          <Route path="unified/packets" element={<UnifiedPacketsRehost />} />
+          <Route path="unified/telemetry" element={<OverviewTelemetry />} />
+          <Route path="unified/packets" element={<OverviewPackets />} />
           <Route path="analysis" element={<OverviewIndex />} />
           <Route path="reports/:report?" element={<ReportsRoute />} />
           <Route path="automations/*" element={<AutomationsRehost />} />

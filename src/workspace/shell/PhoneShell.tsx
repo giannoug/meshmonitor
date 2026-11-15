@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import type { SidebarMode } from './DeviceSidebar';
 import { isMeshtasticFamily, overviewStatus, statusLabel } from './deviceTabs';
+import { isMqttOnlySourceType } from '../../utils/nodeTransport';
 import DeviceSwitcherSheet from './DeviceSwitcherSheet';
 import { ShellDevicesContext, useShellDevices } from './shellDevices';
 import TabBar, { type PhoneTab } from './TabBar';
@@ -53,7 +54,7 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
   useEffect(() => setSwitcherOpen(false), [pathname]);
 
   const source = sources.find((s) => s.id === openId);
-  // A Meshtastic conversation draws its own header (boards 10-06, 10-14; DMs 10-07), and so do the inbox (c-home-e3), Activity (c-home-e4), the full-screen map (g1-map), Nodes (g3-nodes) and the node page (g4-node).
+  // A Meshtastic conversation draws its own header (boards 10-06, 10-14; DMs 10-07), and so do the inbox (c-home-e3), Activity (c-home-e4), the full-screen map (g1-map), Nodes (g3-nodes), the node page (g4-node) and an MQTT device's packet monitor (18-04).
   const ownHeader =
     !!source &&
     isMeshtasticFamily(source.type) &&
@@ -63,10 +64,11 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
       !!matchPath('/source/:id/activity', pathname) ||
       !!matchPath('/source/:id/map', pathname) ||
       !!matchPath('/source/:id/nodes', pathname) ||
-      !!matchPath('/source/:id/node/*', pathname));
+      !!matchPath('/source/:id/node/*', pathname) ||
+      (isMqttOnlySourceType(source.type) && !!matchPath('/source/:id/packetmonitor', pathname)));
   // The all-devices map is full screen with its own Back, as the device map (5-08); Reports (6-08 … 6-10) and Messages (7-06, 7-09) draw their own header.
   const overviewMap = mode === 'overview' && (pathname === '/' || !!matchPath('/overview/map', pathname));
-  const ownPageHeader = /^\/((overview\/)?reports|(overview|unified)\/messages)(\/|$)/.test(pathname);
+  const ownPageHeader = /^\/((overview\/)?reports|(overview|unified)\/(messages|telemetry|packets))(\/|$)/.test(pathname);
   const quick = source ? sources.filter((s) => s.id !== source.id).slice(0, QUICK_SQUARES) : [];
   const showHeader = mode !== 'you' && mode !== 'server' && !ownHeader && !overviewMap && !ownPageHeader;
   const title = source?.name ?? t('workspace.shell.overview');

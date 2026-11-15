@@ -7,6 +7,7 @@ import { fixtureApi } from '../../__fixtures__/fixtureApi';
 import LayoutGate from '../../LayoutGate';
 
 vi.mock('../../WorkspaceApp', () => ({ default: () => <div data-testid="workspace-app" /> }));
+vi.mock('../../tools/PacketsPopout', () => ({ default: () => <div data-testid="packets-popout" /> }));
 
 function Where() {
   const { pathname } = useLocation();
@@ -130,10 +131,28 @@ describe('LayoutGate', () => {
   });
 
   it.each([
-    ['/privacy/terms', undefined],
     ['/packet-monitor', undefined],
-    ['/meshmonitor/privacy/terms', '/meshmonitor'],
     ['/meshmonitor/packet-monitor', '/meshmonitor'],
+  ])('renders the Workspace pop-out window, without the shell, for %s and a Workspace user (18-01)', async (route, basename) => {
+    renderGate(
+      { 'GET /api/config': config(true), 'GET /api/user/preferences': prefs('workspace') },
+      { route, basename },
+    );
+    expect(await screen.findByTestId('packets-popout')).toBeInTheDocument();
+    expect(screen.queryByTestId('workspace-app')).toBeNull();
+    expect(screen.queryByTestId('classic')).toBeNull();
+  });
+
+  it('keeps today\'s pop-out window for a Classic user', async () => {
+    renderGate({ 'GET /api/config': config(true), 'GET /api/user/preferences': prefs('classic') }, { route: '/packet-monitor' });
+    await waitFor(() => expect(localStorage.getItem('mm.layout')).toBe('classic'));
+    expect(screen.getByTestId('classic').textContent).toBe('/packet-monitor');
+    expect(screen.queryByTestId('packets-popout')).toBeNull();
+  });
+
+  it.each([
+    ['/privacy/terms', undefined],
+    ['/meshmonitor/privacy/terms', '/meshmonitor'],
   ])('renders Classic for public page %s even for a Workspace user', async (route, basename) => {
     renderGate(
       { 'GET /api/config': config(true), 'GET /api/user/preferences': prefs('workspace') },

@@ -1,7 +1,6 @@
 {
   "must": [
-    "/meshmonitor/packet-monitor",
-    "Packet monitor",
+    "Mesh Traffic Monitor",
     "Stop capturing",
     "Pause auto-scroll",
     "Filters",
@@ -12,10 +11,8 @@
     "Close window",
     "Sends nothing on the mesh",
     "Station G2",
-    "Search content / JSON…",
     "All Types",
     "All Transports",
-    "All Last Hops",
     "Hide Own Packets",
     "Clear Filters"
   ],

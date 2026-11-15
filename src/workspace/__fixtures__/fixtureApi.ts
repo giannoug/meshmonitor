@@ -10,6 +10,8 @@
 import { athensFixture as A, SOURCE_IDS } from './athens';
 import * as R from './reports';
 import * as M from './messages';
+import * as P from './packets';
+import * as T from './telemetry';
 
 export type FixtureHandler = (url: URL, init?: RequestInit) => unknown | Response;
 
@@ -56,6 +58,22 @@ const defaults: Record<string, FixtureHandler> = {
   'GET /api/unified/channels': () => M.unifiedChannels,
   'GET /api/unified/messages': (url) => M.unifiedMessagesReply(url),
   'GET /api/channels/collisions': (url) => ({ collisions: M.channelCollisions[url.searchParams.get('sourceId') ?? ''] ?? [] }),
+  // Overview › Telemetry (7-03, 7-04, 7-07): favorited series and the latest readings.
+  'GET /api/unified/telemetry/series': () => ({ success: true, data: { series: T.telemetrySeries } }),
+  'GET /api/unified/telemetry': () => T.telemetryLatest,
+  // Overview › Packets (7-05, 7-08): the merged stream and its charts. Capture state is the
+  // `captureOn` override (packets.ts): as a default it would change Classic's chrome snapshot.
+  'GET /api/unified/packets': () => ({ packets: P.unifiedPackets, hasMore: false, nextCursor: null, sources: P.unifiedPacketSources }),
+  'GET /api/unified/packets/distribution': () => P.unifiedDistribution,
+  // The pop-out window (18-01, 18-02): the primary device's packets; a later page is empty.
+  'GET /api/packets': (url) => (Number(url.searchParams.get('offset') ?? 0) > 0 ? { ...P.popoutPackets, packets: [] } : P.popoutPackets),
+  'GET /api/packets/relay-nodes': () => ({ relayNodes: [] }),
+  // Athens MQTT's receptions (18-03, 18-04).
+  'GET /api/sources/:id/mqtt/packets': () => ({
+    success: true, data: { packets: P.mqttPackets, total: 214, offset: 0, limit: 5000, enabled: true, maxCount: 5000, maxAgeHours: 24 },
+  }),
+  'GET /api/sources/:id/mqtt/packets/gateways': () => ({ success: true, data: { gateways: P.mqttGateways } }),
+  'GET /api/sources/:id/mqtt/packets/receptions': () => ({ success: true, data: { receptions: P.mqttReceptions } }),
   'GET /api/messages/unread-by-source': () => A.unreadBySource,
   'GET /api/messages/unread-counts': () => A.unreadCounts,
   'GET /api/messages/first-unread': () => ({ success: true, data: A.firstUnread }),

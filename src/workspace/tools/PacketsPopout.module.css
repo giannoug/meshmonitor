@@ -1,0 +1,276 @@
+/*
+ * The packet monitor window (18-01, 18-02): the whole viewport, no shell.
+ * Today's filter controls are sized here with element selectors under
+ * `.filters`, without reaching into their Classic class names.
+ */
+.window {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 24px 16px;
+  overflow: hidden;
+  background: var(--color-bg);
+  color: var(--color-text);
+  /* The shell's Inter stack: the window has no shell. */
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+.head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.headText {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.status {
+  margin: 2px 0 0;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--color-success);
+  vertical-align: 1px;
+}
+
+.dot[data-paused] {
+  background: var(--color-text-subtle);
+}
+
+.controls {
+  flex: none;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.button {
+  box-sizing: border-box;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.button[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.button[data-danger] {
+  color: var(--color-danger);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.button:focus-visible,
+.link:focus-visible,
+.textLink:focus-visible,
+.iconButton:focus-visible,
+.filters input:focus-visible,
+.filters select:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.filters {
+  flex: none;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filters input:not([type='checkbox']),
+.filters select {
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.filters input[type='search'] {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.filters select option {
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+}
+
+.check {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.link {
+  min-height: 36px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.note {
+  flex: none;
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.state {
+  margin: 24px 0;
+  text-align: center;
+  color: var(--color-text-subtle);
+}
+
+.warning {
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-warning);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.body[data-panel] {
+  grid-template-columns: minmax(0, 1fr) 400px;
+}
+
+.streamCol {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Phone (18-02): the full-screen monitor in a browser tab. */
+.window[data-phone] {
+  padding: 0 12px;
+  gap: 8px;
+}
+
+.phoneHead {
+  flex: none;
+  min-height: 56px;
+  margin: 0 -12px;
+  padding: 0 4px 0 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  border-bottom: 1px solid var(--color-surface);
+  background: var(--color-bg-sunken);
+}
+
+.window[data-phone] .title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 20px;
+}
+
+.iconButton,
+.textLink {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.textLink {
+  color: var(--color-accent);
+  font-size: 17px;
+}
+
+.window[data-phone] .button {
+  min-height: 44px;
+}
+
+/* The filter sheet renders in <body>: today's controls carry their own phone sizes. */
+.sheetBody {
+  padding: 0 20px 12px;
+}
+
+.sheetBody .filters {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.sheetBody .filters input:not([type='checkbox']),
+.sheetBody .filters select,
+.sheetBody .filters button,
+.sheetBody .check,
+.sheetBody .link {
+  min-height: 44px;
+}
+
+.sheetBody .filters input[type='search'],
+.sheetBody .filters input[type='text'] {
+  flex: none;
+  width: 100%;
+}

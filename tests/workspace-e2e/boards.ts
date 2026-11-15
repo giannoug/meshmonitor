@@ -5,6 +5,8 @@
 import type { Page } from '@playwright/test';
 import { athensFixture } from '../../src/workspace/__fixtures__/athens';
 import { renumberedFixtures } from '../../src/workspace/node-page/__tests__/nodePageFixtures';
+import { captureOn } from '../../src/workspace/__fixtures__/packets';
+import type { FixtureHandler } from '../../src/workspace/__fixtures__/fixtureApi';
 
 export interface Board {
   id: string;
@@ -12,6 +14,8 @@ export interface Board {
   path: string;
   /** Opens the sheet or menu the board shows, after the page has loaded. */
   setup?: (page: Page) => Promise<void>;
+  /** Fixture overrides for this board (`routeFixtures`). */
+  fixtures?: Partial<Record<string, FixtureHandler>>;
 }
 
 export const BOARDS: Board[] = [
@@ -861,6 +865,101 @@ export const BOARDS: Board[] = [
     },
   },
   { id: '7-09-export-messages', size: 'phone', path: '/overview/messages/export' },
+  // Task 4.7: Overview › Telemetry and Packets, the pop-out window, an MQTT device's receptions.
+  {
+    // The board draws the Temperature card's menu open.
+    id: '7-03-telemetry-graphs',
+    size: 'desktop',
+    path: '/overview/telemetry',
+    setup: async (page) => {
+      const card = page.getByTestId('combined-telemetry-chart').filter({ has: page.getByRole('heading', { name: /^Temperature/ }) });
+      await card.getByRole('button', { name: 'Chart actions' }).click();
+      await page.getByRole('menu').waitFor();
+    },
+  },
+  {
+    id: '7-04-telemetry-latest',
+    size: 'desktop',
+    path: '/overview/telemetry',
+    setup: async (page) => {
+      await page.getByRole('tab', { name: 'Latest' }).click();
+      await page.getByRole('region', { name: 'Station G2' }).waitFor();
+    },
+  },
+  {
+    id: '7-05-packets',
+    fixtures: captureOn,
+    size: 'desktop',
+    path: '/overview/packets',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Filters' }).click();
+      await page.getByRole('row').filter({ hasText: 'Hearing you direct from Marousi' }).first().click();
+      await page.getByRole('complementary', { name: 'Raw packet #4821' }).waitFor();
+    },
+  },
+  {
+    id: '7-07-telemetry',
+    size: 'phone',
+    path: '/overview/telemetry',
+    setup: async (page) => {
+      await page.getByRole('heading', { name: /^Battery Level/ }).waitFor();
+    },
+  },
+  {
+    // The board draws the filter sheet open over the list.
+    id: '7-08-packets',
+    fixtures: captureOn,
+    size: 'phone',
+    path: '/overview/packets',
+    setup: async (page) => {
+      await page.getByTestId('packet-row').first().waitFor();
+      await page.getByRole('button', { name: 'Filters' }).click();
+      await page.getByRole('dialog', { name: 'Filters' }).waitFor();
+    },
+  },
+  {
+    id: '18-01-packets-popout',
+    fixtures: captureOn,
+    size: 'desktop',
+    path: '/packet-monitor',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Filters' }).click();
+      await page.getByRole('row').filter({ hasText: 'Hearing you direct from Marousi' }).first().click();
+      await page.getByRole('complementary', { name: 'Raw packet #4821' }).waitFor();
+    },
+  },
+  {
+    id: '18-02-packets-popout',
+    fixtures: captureOn,
+    size: 'phone',
+    path: '/packet-monitor',
+    setup: async (page) => {
+      await page.getByTestId('packet-row').first().waitFor();
+    },
+  },
+  {
+    // Five of the six gateways picked (the board's "5 of 6"), then the first packet's receptions.
+    id: '18-03-mqtt-receptions',
+    size: 'desktop',
+    path: '/source/src-mqtt/packetmonitor',
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Filters' }).click();
+      const gateways = page.getByRole('group', { name: 'Gateways' });
+      await gateways.getByRole('button', { name: 'Select all' }).click();
+      await gateways.getByRole('checkbox', { name: /Glyfada Beach/ }).uncheck();
+      await page.getByRole('button', { name: '4 Receptions' }).first().click();
+      await page.getByRole('complementary', { name: 'Packet Detail' }).getByText('Kifisia Rooftop').waitFor();
+    },
+  },
+  {
+    id: '18-04-mqtt-receptions',
+    size: 'phone',
+    path: '/source/src-mqtt/packetmonitor',
+    setup: async (page) => {
+      await page.getByTestId('packet-row').filter({ hasText: 'Marousi Mobile' }).click();
+      await page.getByRole('dialog', { name: 'Packet Detail' }).getByText('Kifisia Rooftop').waitFor();
+    },
+  },
 ];
 
 const ON_24H = { enabled: true, lookbackHours: 24 };

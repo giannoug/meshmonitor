@@ -10,18 +10,29 @@ import RouteLoading from '../components/RouteLoading/RouteLoading';
 import { useLayout } from './layout/useLayout';
 import { classicFallback } from './layout/classicFallback';
 
-// Its own chunk: Classic users never download Workspace code.
+// Their own chunks: Classic users never download Workspace code.
 const WorkspaceApp = lazy(() => import('./WorkspaceApp'));
+const PacketsPopout = lazy(() => import('./tools/PacketsPopout'));
 
-// Pages outside both layouts: the public legal page (§5.5) and the packet
-// monitor popout. Router-relative, so the basename is already stripped.
-const BYPASS = /^\/(privacy\/|packet-monitor(\/|$))/;
+// Router-relative, so the basename is already stripped. The public legal page
+// is outside both layouts (§5.5). The packet monitor window has no shell in
+// either layout: today's page in Classic, the 18-01 window in the Workspace.
+const BYPASS = /^\/privacy\//;
+const POPOUT = /^\/packet-monitor(\/|$)/;
 
 export default function LayoutGate({ classic }: { classic: ReactNode }) {
   const { layout, ready } = useLayout();
   const { pathname } = useLocation();
 
   if (BYPASS.test(pathname)) return <>{classic}</>;
+  if (POPOUT.test(pathname)) {
+    if (layout !== 'workspace') return <>{classic}</>;
+    return (
+      <Suspense fallback={<RouteLoading />}>
+        <PacketsPopout />
+      </Suspense>
+    );
+  }
   if (layout === 'workspace') {
     return (
       <Suspense fallback={<RouteLoading />}>

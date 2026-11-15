@@ -60,6 +60,26 @@ interface CombinedTelemetryChartProps {
   yRange?: ChartYRange | null;
   /** Save a new Y range (stored unit), or null for auto. Absent: no editor. */
   onYRangeChange?: (range: ChartYRange | null) => void;
+  /** Workspace (#6365): a device tag before each legend entry. Absent: names only. */
+  tagFor?: (sourceId: string) => React.ReactNode;
+  /**
+   * Workspace (#6365): draws the card's actions (Split by source, Y-axis
+   * range, Export CSV, Remove from favorites) in place of today's buttons.
+   * Absent: today's buttons.
+   */
+  renderActions?: (actions: CombinedChartActions) => React.ReactNode;
+}
+
+/** What `renderActions` can offer, each the same handler as today's button. */
+export interface CombinedChartActions {
+  title: string;
+  /** Null when the series has a single line or is observer-relative: nothing to split. */
+  split: { on: boolean; toggle(): void } | null;
+  /** Null without a Y-range editor. */
+  yRange: { fixed: boolean; toggleEditor(): void } | null;
+  exportCsv: { disabled: boolean; run(): void };
+  /** Null when the viewer may not change any favorites list holding it. */
+  removeFavorite: { busy: boolean; run(): void } | null;
 }
 
 /** Row key of line `i` in the merged chart data. */
@@ -79,6 +99,8 @@ const CombinedTelemetryChart: React.FC<CombinedTelemetryChartProps> = ({
   favoriteBusy = false,
   yRange = null,
   onYRangeChange,
+  tagFor,
+  renderActions,
 }) => {
   const { t } = useTranslation();
   const [yRangeEditorOpen, setYRangeEditorOpen] = useState(false);
@@ -165,6 +187,13 @@ const CombinedTelemetryChart: React.FC<CombinedTelemetryChartProps> = ({
           </h4>
           <span className={styles.subject} title={series.subjectKey}>{series.nodeName}</span>
         </div>
+        {renderActions ? renderActions({
+          title: `${title} · ${series.nodeName}`,
+          split: canMerge ? { on: split, toggle: () => setSplit((v) => !v) } : null,
+          yRange: onYRangeChange ? { fixed: yRangeFixed, toggleEditor: () => setYRangeEditorOpen((v) => !v) } : null,
+          exportCsv: { disabled: data.length === 0, run: handleExport },
+          removeFavorite: onRemoveFavorite ? { busy: favoriteBusy, run: onRemoveFavorite } : null,
+        }) : (
         <div className={styles.actions}>
           {canMerge && (
             <button
@@ -212,6 +241,7 @@ const CombinedTelemetryChart: React.FC<CombinedTelemetryChartProps> = ({
             </button>
           )}
         </div>
+        )}
       </div>
 
       {yRangeEditorOpen && onYRangeChange && (
@@ -226,11 +256,13 @@ const CombinedTelemetryChart: React.FC<CombinedTelemetryChartProps> = ({
         {merged ? (
           <li className={styles.legendItem}>
             <span className={`${styles.swatch} ${styles.mergedSwatch}`} aria-hidden="true" />
+            {tagFor && series.lines.map((l) => <React.Fragment key={l.sourceId}>{tagFor(l.sourceId)}</React.Fragment>)}
             {mergedLabel}
           </li>
         ) : series.lines.map((line) => (
           <li key={line.sourceId} className={styles.legendItem}>
             <span className={styles.swatch} style={{ background: colorFor(line.sourceId) }} aria-hidden="true" />
+            {tagFor?.(line.sourceId)}
             {lineLabel(line)}
           </li>
         ))}

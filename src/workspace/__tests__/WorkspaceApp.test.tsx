@@ -23,6 +23,10 @@ vi.mock('../../pages/DashboardPage', async () => ({ default: (await import('./pa
 vi.mock('../../components/automations/AutomationsPage', async () => ({ default: (await import('./pageStub')).pageStub('automations') }));
 vi.mock('../../pages/UnifiedTelemetryPage', async () => ({ default: (await import('./pageStub')).pageStub('unified-telemetry') }));
 vi.mock('../../pages/UnifiedPacketMonitorPage', async () => ({ default: (await import('./pageStub')).pageStub('unified-packets') }));
+// Overview › Telemetry and Packets and the MQTT receptions page are the Workspace's own (Task 4.7).
+vi.mock('../overview/OverviewTelemetry', async () => ({ default: (await import('./pageStub')).pageStub('overview-telemetry') }));
+vi.mock('../overview/OverviewPackets', async () => ({ default: (await import('./pageStub')).pageStub('overview-packets') }));
+vi.mock('../tools/MqttReceptions', async () => ({ default: (await import('./pageStub')).pageStub('mqtt-receptions') }));
 vi.mock('../../pages/GlobalSettingsPage', async () => ({ default: (await import('./pageStub')).pageStub('global-settings') }));
 vi.mock('../../pages/UsersPage', async () => ({ default: (await import('./pageStub')).pageStub('users') }));
 vi.mock('../../pages/MeshCoreSourcePage', async () => ({ default: (await import('./pageStub')).pageStub('meshcore') }));
@@ -88,12 +92,8 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
   it.each([
     ['/overview/dashboard', 'dashboard'],
     ['/overview/audit', 'dashboard'],
-    ['/overview/telemetry', 'unified-telemetry'],
-    ['/overview/packets', 'unified-packets'],
     ['/overview/automations', 'automations'],
     ['/overview/users', 'users'],
-    ['/unified/telemetry', 'unified-telemetry'],
-    ['/unified/packets', 'unified-packets'],
     ['/automations', 'automations'],
     ['/automations/12', 'automations'],
     ['/automations/12/runs', 'automations'],
@@ -204,6 +204,31 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     expect(await screen.findByTestId(`page-${page}`)).toHaveAttribute('data-embedded', 'false');
     expect(screen.queryByTestId('page-unified-messages')).toBeNull();
     expect(realUrl()).toBe(route);
+  });
+
+  it.each([
+    ['/overview/telemetry', 'overview-telemetry'],
+    ['/unified/telemetry', 'overview-telemetry'],
+    ['/overview/packets', 'overview-packets'],
+    ['/unified/packets', 'overview-packets'],
+  ])('%s shows the Workspace %s (Task 4.7), not today\'s Unified page', async (route, page) => {
+    renderAt(route);
+    expect(await screen.findByTestId(`page-${page}`)).toHaveAttribute('data-embedded', 'false');
+    expect(screen.queryByTestId('page-unified-telemetry')).toBeNull();
+    expect(screen.queryByTestId('page-unified-packets')).toBeNull();
+    expect(realUrl()).toBe(route);
+  });
+
+  it('an MQTT device\'s packet monitor is the Workspace receptions page, with App not mounted (Task 4.7)', async () => {
+    renderAt(`/source/${SOURCE_IDS.mqtt}/packetmonitor`);
+    expect(await screen.findByTestId('page-mqtt-receptions')).toBeInTheDocument();
+    expect(screen.queryByTestId('page-app')).toBeNull();
+  });
+
+  it('a Meshtastic device\'s packet monitor stays today\'s (Task 8.5)', async () => {
+    renderAt(`${g2}/packetmonitor`);
+    await expectPage('app');
+    expect(screen.queryByTestId('page-mqtt-receptions')).toBeNull();
   });
 
   it('/overview on a phone is the Overview Home (5-07)', async () => {

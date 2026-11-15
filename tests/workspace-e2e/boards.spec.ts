@@ -16,7 +16,7 @@ for (const board of BOARDS) {
     test.use({ viewport: VIEWPORTS[board.size], colorScheme: 'dark' });
 
     test(board.id, async ({ page }) => {
-      await routeFixtures(page);
+      await routeFixtures(page, board.fixtures);
       await page.goto(board.path);
       await page.waitForLoadState('networkidle');
       await board.setup?.(page);

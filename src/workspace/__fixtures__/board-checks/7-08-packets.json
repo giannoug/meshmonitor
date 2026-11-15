@@ -1,12 +1,12 @@
 {
   "must": [
-    "Packets",
+    "Unified Packet Monitor",
     "Filters",
     "Source",
     "Meshtastic type",
     "MeshCore payload type",
     "MeshCore route type",
-    "Encrypted only",
+    "Encrypted Only",
     "Transport",
     "Cross-source",
     "Clear",
