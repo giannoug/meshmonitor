@@ -3,8 +3,8 @@
  *
  * Board r2-you-layout (Task 1.8): You › Layout on desktop. The page is built
  * here; the board's You sidebar (account head, Account and Preferences
- * groups, Help & about, Sign out) is Task 6.1's `YouSidebar`, which owns the
- * rest of `expectBoard('r2-you-layout')`. Here only the page's must strings.
+ * groups, Help & about, Sign out) is Task 6.1's `YouSidebar`, which completes
+ * `expectBoard('r2-you-layout')`.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWorkspace, type RenderWorkspaceOptions } from '../../test/renderWorkspace';
+import { expectBoard } from '../../test/boardChecks';
 import { ToastProvider } from '../../../components/ToastContainer';
 import WorkspaceShell from '../../shell/WorkspaceShell';
 import { useLayout } from '../../layout/useLayout';
@@ -51,13 +52,12 @@ function renderLayout(opts: RenderWorkspaceOptions = {}) {
 beforeEach(() => localStorage.clear());
 
 describe('r2-you-layout', () => {
-  it('r2-you-layout shows the board (page)', async () => {
+  it('r2-you-layout shows the board', async () => {
     const { container } = renderLayout();
     await screen.findByText('Only you · on every browser you sign in from');
+    await screen.findByRole('link', { name: 'Help & about' });
     expect(check.must).toEqual(expect.arrayContaining(PAGE_MUST));
-    const text = (container.textContent ?? '').replace(/\s+/g, ' ');
-    for (const s of PAGE_MUST) expect(text).toContain(s);
-    for (const s of check.absent) expect(text).not.toContain(s);
+    expectBoard('r2-you-layout', container);
   });
 
   it('marks the current layout and shows the In Workspace defaults', async () => {

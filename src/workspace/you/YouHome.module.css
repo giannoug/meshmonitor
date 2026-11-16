@@ -106,6 +106,19 @@
   color: var(--color-text-subtle);
 }
 
-.sheetBody {
-  padding: 0 20px;
+/* b-set-p5-you: what Preferences apply to. */
+.note {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+.note > :first-child {
+  flex: none;
+  color: var(--color-accent);
 }

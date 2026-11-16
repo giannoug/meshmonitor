@@ -4,10 +4,9 @@
  * Allows users with local authentication to change their password
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import api from '../services/api';
-import { logger } from '../utils/logger';
+import { useChangePassword } from './account/useChangePassword';
 import Modal from './common/Modal';
 import { PasswordField } from './shared/config/PasswordField';
 
@@ -23,74 +22,10 @@ interface ChangePasswordModalProps {
 
 const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClose, forced = false }) => {
   const { t } = useTranslation();
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(false);
-
-    // Validation
-    if ((!forced && !currentPassword) || !newPassword || !confirmPassword) {
-      setError(t('change_password.all_fields_required'));
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      setError(t('change_password.min_length'));
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError(t('change_password.passwords_no_match'));
-      return;
-    }
-
-    if (!forced && currentPassword === newPassword) {
-      setError(t('change_password.must_be_different'));
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      await api.post('/api/auth/change-password', forced ? { newPassword } : {
-        currentPassword,
-        newPassword
-      });
-
-      setSuccess(true);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-
-      // Close modal after 2 seconds
-      setTimeout(() => {
-        onClose();
-        setSuccess(false);
-      }, 2000);
-    } catch (err: any) {
-      logger.error('Password change error:', err);
-      setError(err.response?.data?.error || t('change_password.failed'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleClose = () => {
-    if (forced && !success) return;
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setError(null);
-    setSuccess(false);
-    onClose();
-  };
+  const {
+    currentPassword, setCurrentPassword, newPassword, setNewPassword, confirmPassword, setConfirmPassword,
+    error, success, loading, submit: handleSubmit, close: handleClose, canSubmit,
+  } = useChangePassword(forced, onClose);
 
   return (
     <Modal
@@ -171,7 +106,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClo
           <button
             type="submit"
             className="button button-primary"
-            disabled={loading || success || (!forced && !currentPassword) || !newPassword || !confirmPassword}
+            disabled={!canSubmit}
           >
             {loading ? t('change_password.changing') : t('change_password.title')}
           </button>

@@ -1,4 +1,4 @@
-.form { display: flex; flex-direction: column; gap: 12px; }
+.form { display: flex; flex-direction: column; gap: 12px; padding: 4px 20px 12px; }
 .text { color: var(--color-text); line-height: 1.45; }
 .consequences { margin: 0; padding-left: 20px; color: var(--color-text-subtle); line-height: 1.5; }
 .field { display: flex; flex-direction: column; gap: 6px; }

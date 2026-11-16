@@ -4,25 +4,13 @@
  *
  * Below the list, the passkey-only switch and its recovery codes (PR 3).
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useToast } from './ToastContainer';
 import { UiIcon } from './icons';
-import { logger } from '../utils/logger';
-import { ApiError } from '../services/api';
-import {
-  deletePasskey,
-  isPasskeyCancel,
-  listPasskeys,
-  passkeysSupported,
-  registerPasskey,
-  renamePasskey,
-  type PasskeySummary,
-} from '../services/passkeyClient';
+import { passkeysSupported } from '../services/passkeyClient';
+import { NICKNAME_MAX, usePasskeys } from './account/usePasskeys';
 import PasswordLoginControl from './PasswordLoginControl';
 import styles from './PasskeyManagement.module.css';
-
-const NICKNAME_MAX = 64;
 
 function formatTime(ms: number | null, never: string): string {
   return ms ? new Date(ms).toLocaleString() : never;
@@ -35,79 +23,30 @@ interface PasskeyManagementProps {
 
 const PasskeyManagement: React.FC<PasskeyManagementProps> = ({ showHeading = true }) => {
   const { t } = useTranslation();
-  const { showToast } = useToast();
   const supported = passkeysSupported();
 
-  const [passkeys, setPasskeys] = useState<PasskeySummary[] | null>(null);
-  const [busy, setBusy] = useState(false);
+  const { passkeys, busy, add, rename, remove } = usePasskeys();
   const [adding, setAdding] = useState(false);
   const [newNickname, setNewNickname] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editNickname, setEditNickname] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      setPasskeys(await listPasskeys());
-    } catch (err) {
-      logger.error('Failed to load passkeys:', err);
-      setPasskeys([]);
-      showToast(t('passkey.load_failed'), 'error');
-    }
-  }, [showToast, t]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    setBusy(true);
-    try {
-      await registerPasskey(newNickname.trim() || null);
+    await add(newNickname, () => {
       setAdding(false);
       setNewNickname('');
-      showToast(t('passkey.added'), 'success');
-      await load();
-    } catch (err) {
-      if (isPasskeyCancel(err)) return;
-      logger.error('Failed to add passkey:', err);
-      const exists = err instanceof ApiError && err.code === 'PASSKEY_EXISTS';
-      showToast(exists ? t('passkey.already_registered') : t('passkey.add_failed'), 'error');
-    } finally {
-      setBusy(false);
-    }
+    });
   };
 
   const handleRename = async (e: React.FormEvent, id: number) => {
     e.preventDefault();
-    setBusy(true);
-    try {
-      await renamePasskey(id, editNickname.trim() || null);
-      setEditingId(null);
-      await load();
-    } catch (err) {
-      logger.error('Failed to rename passkey:', err);
-      showToast(t('passkey.rename_failed'), 'error');
-    } finally {
-      setBusy(false);
-    }
+    await rename(id, editNickname, () => setEditingId(null));
   };
 
   const handleDelete = async (id: number) => {
-    setBusy(true);
-    try {
-      await deletePasskey(id);
-      setConfirmDeleteId(null);
-      showToast(t('passkey.deleted'), 'success');
-      await load();
-    } catch (err) {
-      logger.error('Failed to delete passkey:', err);
-      const last = err instanceof ApiError && err.code === 'LAST_PASSKEY';
-      showToast(last ? t('passkey.last_passkey') : t('passkey.delete_failed'), 'error');
-    } finally {
-      setBusy(false);
-    }
+    await remove(id, () => setConfirmDeleteId(null));
   };
 
   return (

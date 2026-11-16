@@ -184,7 +184,8 @@ describe('DeviceSidebar', () => {
     ['/overview/reports', 'Overview', 'Analysis & Reports', '/overview/reports'],
     ['/source/src-g2/settings/lora', 'Station G2', 'LoRa', '/source/src-g2/settings/lora'],
     ['/server/general', 'Global Settings', 'System Backup', '/server/backup'],
-    ['/preferences/units', 'Preferences', 'Units & Formats', '/preferences/units'],
+    // The You sidebar since Task 6.1: Account, Preferences (today's categories), the rest.
+    ['/preferences/units', 'You', 'Units & Formats', '/preferences/units'],
   ])('%s shows the %s list', async (route, name, label, href) => {
     renderShell(route);
     const side = await screen.findByRole('complementary', { name });

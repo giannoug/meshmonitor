@@ -4,89 +4,20 @@
  * Allows users to generate, view, and revoke their API tokens for v1 API access
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useToast } from './ToastContainer';
-import { logger } from '../utils/logger';
-import api from '../services/api';
-
-interface APITokenInfo {
-  id: number;
-  prefix: string;
-  createdAt: number;
-  lastUsedAt: number | null;
-  isActive: boolean;
-}
-
-interface APITokenState {
-  hasToken: boolean;
-  token: APITokenInfo | null;
-}
+import { useApiToken } from './account/useApiToken';
 
 const APITokenManagement: React.FC = () => {
   const { t } = useTranslation();
-  const { showToast } = useToast();
-  const [tokenState, setTokenState] = useState<APITokenState>({ hasToken: false, token: null });
-  const [generatedToken, setGeneratedToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isRevoking, setIsRevoking] = useState(false);
+  const {
+    tokenState, generatedToken, loading, isGenerating, isRevoking,
+    generate: handleGenerateToken, revoke, copy: copyToClipboard, dismiss,
+  } = useApiToken();
   const [showConfirmRevoke, setShowConfirmRevoke] = useState(false);
 
-  useEffect(() => {
-    void loadTokenInfo();
-  }, []);
-
-  const loadTokenInfo = async () => {
-    try {
-      setLoading(true);
-      const data = await api.get<APITokenState>('/api/token');
-      setTokenState(data);
-    } catch (error) {
-      logger.error('Failed to load API token info:', error);
-      showToast(t('api_token.load_failed'), 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGenerateToken = async () => {
-    try {
-      setIsGenerating(true);
-      const data = await api.post<{ token: string; tokenInfo: APITokenInfo }>('/api/token/generate');
-      setGeneratedToken(data.token);
-      setTokenState({
-        hasToken: true,
-        token: data.tokenInfo
-      });
-      showToast(t('api_token.generated_success'), 'success');
-    } catch (error) {
-      logger.error('Failed to generate API token:', error);
-      showToast(error instanceof Error ? error.message : t('api_token.generate_failed'), 'error');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   const handleRevokeToken = async () => {
-    try {
-      setIsRevoking(true);
-      await api.delete('/api/token');
-      setTokenState({ hasToken: false, token: null });
-      setGeneratedToken(null);
-      setShowConfirmRevoke(false);
-      showToast(t('api_token.revoked_success'), 'success');
-    } catch (error) {
-      logger.error('Failed to revoke API token:', error);
-      showToast(error instanceof Error ? error.message : t('api_token.revoke_failed'), 'error');
-    } finally {
-      setIsRevoking(false);
-    }
-  };
-
-  const copyToClipboard = (text: string) => {
-    void navigator.clipboard.writeText(text);
-    showToast(t('api_token.copied'), 'success');
+    if (await revoke()) setShowConfirmRevoke(false);
   };
 
   const formatDate = (timestamp: number) => {
@@ -129,7 +60,7 @@ const APITokenManagement: React.FC = () => {
             </button>
           </div>
           <button
-            onClick={() => setGeneratedToken(null)}
+            onClick={dismiss}
             className="dismiss-btn"
           >
             {t('common.dismiss')}

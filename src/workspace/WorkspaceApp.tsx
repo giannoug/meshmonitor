@@ -38,6 +38,9 @@ const ReportsRoute = lazy(() => import('./reports/ReportsRoute.tsx'));
 const UsersPage = lazy(() => import('./overview/users/UsersPage.tsx'));
 const AuditPage = lazy(() => import('./overview/audit/AuditPage.tsx'));
 const YouNotifications = lazy(() => import('./you/NotificationsPage.tsx'));
+const YouSecurity = lazy(() => import('./you/SecurityPage.tsx'));
+const YouToken = lazy(() => import('./you/ApiTokenPage.tsx'));
+const YouPassword = lazy(() => import('./you/ChangePasswordPage.tsx'));
 
 /**
  * `/`, `/overview`, `/overview/map`, `/analysis` and `/overview/analysis`: the
@@ -107,6 +110,10 @@ function WorkspaceRoutes() {
           {/* Other You categories are Phase 6's. */}
           <Route path="you/layout" element={<LayoutPage />} />
           <Route path="you/notifications" element={<YouNotifications />} />
+          {/* Sign-in & security, API Token and Change password (Task 6.1), with no Classic dialog mounted (Ruling AD). */}
+          <Route path="you/security" element={<YouSecurity />} />
+          <Route path="you/token" element={<YouToken />} />
+          <Route path="you/password" element={<YouPassword />} />
           <Route path="you/*" element={<OverviewRehost />} />
 
           <Route path="*" element={<OverviewRehost />} />

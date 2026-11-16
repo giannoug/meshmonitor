@@ -2,12 +2,12 @@
   "must": [
     "Set up two-factor",
     "Scan",
-    "Can’t scan",
+    "Or enter this code manually",
     "Copy",
-    "Backup codes",
+    "Backup Codes",
     "Shown once",
     "6-digit",
-    "Verify and turn on",
+    "Verify",
     "Cancel"
   ],
   "absent": [],

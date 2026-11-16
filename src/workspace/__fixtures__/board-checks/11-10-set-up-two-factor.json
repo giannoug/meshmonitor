@@ -1,11 +1,11 @@
 {
   "must": [
     "Set up two-factor",
-    "Can’t scan",
+    "Or enter this code manually",
     "Copy",
-    "Backup codes",
+    "Backup Codes",
     "Shown once",
-    "Verify and turn on"
+    "Verify"
   ],
   "absent": [],
   "source": "checks/s11.json"

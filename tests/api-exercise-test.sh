@@ -618,15 +618,15 @@ echo ""
 echo -e "${BLUE}=== V1 API (with token) ===${NC}"
 
 TOKEN_RESPONSE=$(api_body POST /api/token/generate '{"name":"api-exercise-test"}')
-API_TOKEN=$(echo "$TOKEN_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('token',''))" 2>/dev/null || echo "")
+NEW_TOKEN_VALUE=$(echo "$TOKEN_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('token',''))" 2>/dev/null || echo "")
 
-if [ -n "$API_TOKEN" ]; then
+if [ -n "$NEW_TOKEN_VALUE" ]; then
   v1() {
     local method="$1"
     local path="$2"
     local url="${BASE_URL}${path}"
     curl -s -o /dev/null -w "%{http_code}" -X "$method" \
-      -H "Authorization: Bearer $API_TOKEN" \
+      -H "Authorization: Bearer $NEW_TOKEN_VALUE" \
       "$url" 2>/dev/null || echo "000"
   }
 
@@ -636,7 +636,7 @@ if [ -n "$API_TOKEN" ]; then
     local path="$2"
     local url="${BASE_URL}${path}"
     curl -s -w "\n%{http_code}" -X "$method" \
-      -H "Authorization: Bearer $API_TOKEN" \
+      -H "Authorization: Bearer $NEW_TOKEN_VALUE" \
       "$url" 2>/dev/null || echo -e "\n000"
   }
 

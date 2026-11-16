@@ -14,6 +14,7 @@ import { boardChannels, g2On282, pollWith } from '../../src/workspace/settings/_
 import { flashFailed, maintenanceFixtures, reloadFixtures } from '../../src/workspace/settings/__tests__/maintenanceFixtures';
 import { bridgeFixtures, meshmonitorFixtures } from '../../src/workspace/settings/__tests__/meshmonitorFixtures';
 import { NODE, remoteFixtures } from '../../src/workspace/settings/__tests__/remoteBoardFixtures';
+import { accountFixtures, PASSKEYS, RECOVERY_CODES } from '../../src/workspace/__fixtures__/account';
 
 export interface Board {
   id: string;
@@ -117,6 +118,55 @@ async function openPurge(page: Page) {
 
 /** Station G2 holding Medium Fast, so a Long Fast edit reads as on b-set-d1 / d3 / p2. */
 const MEDIUM_FAST: Board['fixtures'] = { ...PINS, ...g2deviceConfigWith({ modemPreset: 4 }) };
+
+/** Task 6.1: the signed-in user as a local admin with password sign-in off (11-11, 11-12). */
+const PASSWORD_OFF: Board['fixtures'] = {
+  ...accountFixtures({ passwordLoginDisabled: true, recoveryCodesLeft: 10, passkeys: [PASSKEYS[1]] }),
+  'GET /api/auth/status': () => ({ ...athensFixture.authStatus, user: { ...athensFixture.authStatus.user!, passwordLoginDisabled: true } }),
+  'DELETE /api/auth/passkey/:id': () =>
+    new Response(JSON.stringify({ success: false, error: 'Last passkey', code: 'LAST_PASSKEY' }), { status: 409, headers: { 'content-type': 'application/json' } }),
+};
+
+/** Task 6.1: the server asks the only admin to type DISABLE once, then sends the recovery codes (11-04). */
+function onlyAdminFixtures(): Board['fixtures'] {
+  let asked = false;
+  return {
+    ...accountFixtures(),
+    'POST /api/auth/passkey/password-login': () => {
+      if (asked) return { success: true, data: { disabled: true, recoveryCodes: RECOVERY_CODES } };
+      asked = true;
+      return { success: true, data: { requireConfirm: true } };
+    },
+  };
+}
+
+/** The browser's passkey prompt answers at once (headless Chromium has no authenticator). */
+async function stubPasskeyPrompt(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const buf = () => new Uint8Array([1, 2, 3, 4]).buffer;
+    Object.defineProperty(navigator.credentials, 'get', {
+      configurable: true,
+      value: async () => ({
+        id: 'AQIDBA', rawId: buf(), type: 'public-key', authenticatorAttachment: 'platform',
+        response: { authenticatorData: buf(), clientDataJSON: buf(), signature: buf(), userHandle: null },
+        getClientExtensionResults: () => ({}),
+      }),
+    });
+  });
+}
+
+/** Turn off password sign-in up to the step the board shows (11-04: Type DISABLE; 11-12: the codes). */
+async function turnOffPasswordSignIn(page: Page, until: 'confirm' | 'codes'): Promise<void> {
+  await stubPasskeyPrompt(page);
+  await page.getByRole('button', { name: 'Turn off password sign-in' }).click();
+  await page.getByRole('button', { name: 'Continue with a passkey' }).click();
+  if (until === 'confirm') {
+    await page.getByLabel('Type DISABLE to confirm').fill('DISABLE');
+    return;
+  }
+  await page.getByRole('dialog', { name: 'Your recovery codes' }).waitFor();
+  await page.getByLabel('I saved these codes').check();
+}
 
 export const BOARDS: Board[] = [
   // Task 1.6 built the frame (rail + sidebar); Task 2.3 the channel list and the open channel.
@@ -1301,6 +1351,81 @@ export const BOARDS: Board[] = [
     setup: async (page) => {
       await page.getByRole('switch', { name: 'Emoji Reactions' }).click();
       await page.getByText('Saved').first().waitFor();
+    },
+  },
+  // Task 6.1: You › Sign-in & security, two-factor setup, passkeys, passkey-only, API Token, Change password.
+  { id: 'r1-you-security', size: 'desktop', path: '/you/security', fixtures: accountFixtures() },
+  { id: 's4-security', size: 'phone', path: '/you/security', fixtures: accountFixtures() },
+  { id: 'b-set-p5-you', size: 'phone', path: '/you' },
+  {
+    id: '11-03-set-up-two-factor',
+    size: 'desktop',
+    path: '/you/security',
+    fixtures: accountFixtures({ mfa: false }),
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Enable Two-Factor Authentication' }).click();
+      await page.getByLabel('Verification Code').fill('482913');
+    },
+  },
+  {
+    id: '11-10-set-up-two-factor',
+    size: 'phone',
+    path: '/you/security',
+    fixtures: accountFixtures({ mfa: false }),
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Enable Two-Factor Authentication' }).click();
+      await page.getByLabel('Verification Code').fill('4829');
+    },
+  },
+  // Built one at a time (D9c): the only admin's DISABLE step; 11-12 shows the codes.
+  { id: '11-04-passkey-only', size: 'desktop', path: '/you/security', fixtures: onlyAdminFixtures(), setup: (page) => turnOffPasswordSignIn(page, 'confirm') },
+  { id: '11-12-passkey-only', size: 'phone', path: '/you/security', fixtures: accountFixtures(), setup: (page) => turnOffPasswordSignIn(page, 'codes') },
+  {
+    // The just-generated reveal; the Revoke confirm and the after-revoke row are one tap away (D9c).
+    id: '11-05-api-token',
+    size: 'desktop',
+    path: '/you/token',
+    fixtures: accountFixtures({ token: false }),
+    setup: async (page) => {
+      await page.getByRole('button', { name: /Generate API Token/ }).click();
+      await page.getByText('Token Generated!').waitFor();
+    },
+  },
+  {
+    id: '11-13-api-token',
+    size: 'phone',
+    path: '/you/token',
+    fixtures: accountFixtures({ token: false }),
+    setup: async (page) => {
+      await page.getByRole('button', { name: /Generate API Token/ }).click();
+      await page.getByText('Token Generated!').waitFor();
+    },
+  },
+  {
+    // From Sign-in & security, with today's mismatch error; the forced form is the same without Current and Cancel.
+    id: '11-06-change-password',
+    size: 'desktop',
+    path: '/you/password',
+    fixtures: accountFixtures(),
+    setup: async (page) => {
+      await page.getByLabel('Current Password').fill('old-password');
+      await page.getByLabel('New Password', { exact: true }).fill('brand-new-pass');
+      await page.getByLabel('Confirm New Password').fill('brand-new-pas');
+      await page.getByRole('button', { name: 'Change Password' }).click();
+      await page.getByText('New passwords do not match').waitFor();
+    },
+  },
+  {
+    // The last passkey with password sign-in off: today's LAST_PASSKEY refusal, the sheet still open.
+    id: '11-11-passkeys',
+    size: 'phone',
+    path: '/you/security',
+    fixtures: PASSWORD_OFF,
+    setup: async (page) => {
+      await page.getByTestId('passkey-row').getByRole('button', { name: 'Delete' }).click();
+      await page.getByRole('dialog', { name: 'Delete this passkey?' }).getByRole('button', { name: 'Delete' }).click();
+      await page.getByText(/This is your only passkey/).waitFor();
+      await page.waitForTimeout(400); // the toast's 0.3 s slide-in
     },
   },
   { id: 's2-notifications', size: 'phone', path: '/you/notifications', fixtures: { ...MESHMONITOR(), ...PUSH_HERE }, setup: pushInThisBrowser },

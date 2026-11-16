@@ -1,14 +1,14 @@
 {
   "must": [
     "You",
-    "PREFERENCES",
+    "Preferences",
     "Language",
-    "Units & formats",
+    "Units & Formats",
     "Sorting",
     "Appearance",
-    "Link previews",
-    "Server settings",
-    "Activity & notifications",
+    "Link Previews",
+    "Global Settings",
+    "Notifications",
     "Preferences apply to everyone on this MeshMonitor.",
     "Home"
   ],

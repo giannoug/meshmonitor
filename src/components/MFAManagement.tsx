@@ -5,111 +5,18 @@
  * Follows the same pattern as APITokenManagement.
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useToast } from './ToastContainer';
-import { logger } from '../utils/logger';
-import api from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-
-type MfaState = 'loading' | 'disabled' | 'setup' | 'enabled';
-
-interface SetupData {
-  qrCodeDataUrl: string;
-  secret: string;
-  backupCodes: string[];
-}
+import { useMfa } from './account/useMfa';
 
 const MFAManagement: React.FC = () => {
   const { t } = useTranslation();
-  const { showToast } = useToast();
-  const { refreshAuth } = useAuth();
-  const [state, setState] = useState<MfaState>('loading');
-  const [setupData, setSetupData] = useState<SetupData | null>(null);
-  const [verifyCode, setVerifyCode] = useState('');
-  const [disableCode, setDisableCode] = useState('');
-  const [useBackupCodeForDisable, setUseBackupCodeForDisable] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [showDisableConfirm, setShowDisableConfirm] = useState(false);
-  const [backupCodesCopied, setBackupCodesCopied] = useState(false);
-
-  useEffect(() => {
-    void loadStatus();
-  }, []);
-
-  const loadStatus = async () => {
-    try {
-      const data = await api.get<{ enabled: boolean }>('/api/mfa/status');
-      setState(data.enabled ? 'enabled' : 'disabled');
-    } catch (error) {
-      logger.error('Failed to load MFA status:', error);
-      setState('disabled');
-    }
-  };
-
-  const handleStartSetup = async () => {
-    try {
-      setLoading(true);
-      const data = await api.post<SetupData>('/api/mfa/setup');
-      setSetupData(data);
-      setState('setup');
-      setBackupCodesCopied(false);
-    } catch (error) {
-      logger.error('Failed to start MFA setup:', error);
-      showToast(t('mfa.error'), 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifySetup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      await api.post('/api/mfa/verify-setup', { token: verifyCode });
-      setState('enabled');
-      setSetupData(null);
-      setVerifyCode('');
-      showToast(t('mfa.enabled_success'), 'success');
-      void refreshAuth();
-    } catch (error) {
-      logger.error('Failed to verify MFA setup:', error);
-      showToast(t('mfa.invalid_code'), 'error');
-      setVerifyCode('');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDisable = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      const body = useBackupCodeForDisable
-        ? { backupCode: disableCode }
-        : { token: disableCode };
-      await api.post('/api/mfa/disable', body);
-      setState('disabled');
-      setDisableCode('');
-      setShowDisableConfirm(false);
-      showToast(t('mfa.disabled_success'), 'success');
-      void refreshAuth();
-    } catch (error) {
-      logger.error('Failed to disable MFA:', error);
-      showToast(t('mfa.invalid_code'), 'error');
-      setDisableCode('');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const copyBackupCodes = () => {
-    if (setupData) {
-      void navigator.clipboard.writeText(setupData.backupCodes.join('\n'));
-      showToast(t('mfa.backup_codes_copied'), 'success');
-      setBackupCodesCopied(true);
-    }
-  };
+  const {
+    state, setupData, verifyCode, setVerifyCode, disableCode, setDisableCode,
+    useBackupCodeForDisable, setUseBackupCodeForDisable, loading,
+    showDisableConfirm, setShowDisableConfirm, backupCodesCopied,
+    startSetup: handleStartSetup, verifySetup: handleVerifySetup, disable: handleDisable, copyBackupCodes, cancelSetup,
+  } = useMfa();
 
   if (state === 'loading') {
     return (
@@ -197,7 +104,7 @@ const MFAManagement: React.FC = () => {
               <button
                 type="button"
                 className="button button-secondary"
-                onClick={() => { setState('disabled'); setSetupData(null); }}
+                onClick={cancelSetup}
                 disabled={loading}
               >
                 {t('common.cancel')}

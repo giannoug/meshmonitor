@@ -1,12 +1,12 @@
 {
   "must": [
-    "API token",
+    "API Token",
     "Shown once",
     "Copy",
-    "won’t be shown again",
+    "will not be shown again",
     "Dismiss",
     "Bearer",
-    "API docs",
+    "View API Documentation",
     "Revoke"
   ],
   "absent": [

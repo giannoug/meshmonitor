@@ -10,8 +10,8 @@
  *   tabs. "Message a node" opens the DM inbox (Meshtastic family, Task 2.6)
  *   or today's DM tab.
  * - `settings`: the device's settings list (Task 5.2, SettingsList).
- * - `server` / `you`: the categories of the re-hosted settings pages, as
- *   links to their Workspace URLs (Phase 6 rebuilds them).
+ * - `server`: the categories of the re-hosted settings page, as links to
+ *   their Workspace URLs (Phase 6 rebuilds them). `you` is YouSidebar's.
  * - `overview` is OverviewSidebar's (Task 4.1).
  *
  * Rows follow today's permission gates, read with the same rules as MeshCore's
@@ -72,13 +72,12 @@ export default function DeviceSidebar({ mode, source, onNavigate, onSearch }: De
     </ul>
   );
 
-  if (mode === 'server' || mode === 'you') {
-    const prefs = mode === 'you';
+  if (mode === 'server') {
     const rows = settingsNavItems(t, { mode: 'global', isAdmin, canWriteSettings: hasPermission('settings', 'write', { anySource: true }) })
       .map((item) => ({ cat: item.id.slice('settings-'.length), label: item.label }))
-      .filter(({ cat }) => PREFERENCE_CATEGORIES.includes(cat) === prefs)
-      .map(({ cat, label }) => ({ to: `/${prefs ? 'preferences' : 'server'}/${cat}`, label }));
-    return <Frame title={prefs ? t('workspace.shell.preferences') : globalSettingsNav(t).label}>{list(rows)}</Frame>;
+      .filter(({ cat }) => !PREFERENCE_CATEGORIES.includes(cat))
+      .map(({ cat, label }) => ({ to: `/server/${cat}`, label }));
+    return <Frame title={globalSettingsNav(t).label}>{list(rows)}</Frame>;
   }
 
   if (!source) return <Frame title={t('workspace.shell.devices')}>{null}</Frame>;

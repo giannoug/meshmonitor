@@ -269,8 +269,20 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
 
   it('/you shows the You page (Task 1.7)', async () => {
     renderAt('/you');
-    expect(await screen.findByText('Athens Ops')).toBeInTheDocument();
+    // The page's account head, and the You sidebar's (Task 6.1).
+    expect(await screen.findAllByText('Athens Ops')).toHaveLength(2);
     expect(screen.queryByTestId('page-dashboard')).toBeNull();
+  });
+
+  it.each([
+    ['/you/security', 'Only you · applies to your account on this MeshMonitor'],
+    ['/you/token', 'Only you · one token per user, for scripts and automations'],
+    ['/you/password', 'Current Password'],
+  ])('%s is the Workspace page, with no Classic page mounted (Task 6.1)', async (route, text) => {
+    renderAt(route);
+    expect(await screen.findByText(text)).toBeInTheDocument();
+    expect(screen.queryByTestId('page-dashboard')).toBeNull();
+    expect(realUrl()).toBe(route);
   });
 
   it.each(['/overview/dashboard'])('%s shows today\'s Dashboard without the landing jump', async (route) => {

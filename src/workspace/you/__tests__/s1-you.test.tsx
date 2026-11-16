@@ -1,14 +1,15 @@
 /**
  * @vitest-environment jsdom
  *
- * Board s1-you, frame (Task 1.7): the account head and the You rows, each
- * leading to today's page or dialog until Phase 6 rebuilds them.
+ * Board s1-you, frame (Task 1.7): the account head and the You rows. Since
+ * Task 6.1 Sign-in & security and API Token are pages, and Preferences lists
+ * today's categories (b-set-p5-you).
  */
 import { describe, it, expect, vi, onTestFinished } from 'vitest';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWorkspace, type RenderWorkspaceOptions } from '../../test/renderWorkspace';
 import { expectBoard } from '../../test/boardChecks';
-import { SOURCE_IDS } from '../../__fixtures__/athens';
+import { athensFixture, SOURCE_IDS } from '../../__fixtures__/athens';
 import { ToastProvider } from '../../../components/ToastContainer';
 import WorkspaceShell from '../../shell/WorkspaceShell';
 import YouHome from '../YouHome';
@@ -45,8 +46,12 @@ describe('s1-you', () => {
       'Sign-in & security',
       'API Token',
       'Layout',
-      'Language & units',
+      'Language',
+      'Units & Formats',
+      'Sorting',
       'Appearance',
+      'Link Previews',
+      'MeshCore Messaging',
       'Map',
       'Notifications',
       'Global Settings',
@@ -55,7 +60,7 @@ describe('s1-you', () => {
     ]);
     const link = (name: string) => screen.getByRole('link', { name: new RegExp(`^${name}`) });
     expect(link('Layout')).toHaveAttribute('href', '/you/layout');
-    expect(link('Language & units')).toHaveAttribute('href', '/preferences/language');
+    expect(link('Language')).toHaveAttribute('href', '/preferences/language');
     expect(link('Appearance')).toHaveAttribute('href', '/preferences/appearance');
     expect(link('Map')).toHaveAttribute('href', '/preferences/map');
     expect(link('Global Settings')).toHaveAttribute('href', '/server/general');
@@ -71,16 +76,17 @@ describe('s1-you', () => {
     expect(screen.getByRole('link', { name: /^Notifications/ })).toHaveAttribute('href', '/you/notifications');
   });
 
-  it('opens API Token and Sign-in & security in sheets', async () => {
+  it('leads to Sign-in & security and API Token (Task 6.1)', async () => {
     renderYou();
-    fireEvent.click(await screen.findByRole('button', { name: /^API Token/ }));
-    const sheet = await screen.findByRole('dialog', { name: 'API Token Management' });
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Close' }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(await screen.findByRole('link', { name: /^Sign-in & security/ })).toHaveAttribute('href', '/you/security');
+    expect(screen.getByRole('link', { name: /^API Token/ })).toHaveAttribute('href', '/you/token');
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: /^Sign-in & security/ }));
-    const security = await screen.findByRole('dialog', { name: 'Sign-in & security' });
-    expect(within(security).getByRole('button', { name: /Change Password/ })).toBeInTheDocument();
+  it('an OIDC account has no Sign-in & security, as the user menu', async () => {
+    renderYou({ fixtures: { 'GET /api/auth/status': () => ({ ...athensFixture.authStatus, user: { ...athensFixture.authStatus.user!, authProvider: 'oidc' } }) } });
+    expect(await screen.findByText('Administrator · OIDC account')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^API Token/ })).toBeInTheDocument();
+    expect(screen.queryByText('Sign-in & security')).toBeNull();
   });
 
   it('signs out with today\'s logout', async () => {

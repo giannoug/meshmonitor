@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import Modal from './common/Modal';
 import { UiIcon } from './icons';
 import { logger } from '../utils/logger';
+import { downloadRecoveryCodes } from './account/recoveryCodes';
 import styles from './PasskeyManagement.module.css';
 
 interface RecoveryCodesDialogProps {
@@ -32,17 +33,7 @@ const RecoveryCodesDialog: React.FC<RecoveryCodesDialogProps> = ({ codes, userna
     }
   };
 
-  const handleDownload = () => {
-    const body = `${t('passkey_only.codes_file_heading', { username })}\n\n${text}\n`;
-    const url = URL.createObjectURL(new Blob([body], { type: 'text/plain' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'meshmonitor-recovery-codes.txt';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  };
+  const handleDownload = () => downloadRecoveryCodes(codes, username, t);
 
   // Every close path (X, Esc, overlay) goes through here.
   const tryClose = () => {

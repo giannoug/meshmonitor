@@ -22,14 +22,13 @@
  * Also here: the open device going away (Review Focus 4), the hashchange
  * that Classic's SectionNav needs after a client-side move to a `#section`,
  * and the forced password change after a recovery-code sign-in (Classic shows
- * it from UserMenu, which the Workspace does not mount).
+ * it from UserMenu over every page): Task 6.1's form in a sheet that cannot
+ * be dismissed, except on `/you/password`, which draws the same form itself.
  */
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import { matchPath, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../../components/ToastContainer';
-import ChangePasswordModal from '../../components/ChangePasswordModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { UiIcon } from '../../components/icons';
 import { useDashboardSources } from '../../hooks/useDashboardData';
@@ -38,6 +37,10 @@ import SettingsSearch from '../settings/SettingsSearch';
 import { canReadMessages, isMeshtasticFamily } from './deviceTabs';
 import DeviceRail from './DeviceRail';
 import DeviceSidebar, { type SidebarMode } from './DeviceSidebar';
+import YouSidebar from '../you/YouSidebar';
+import { ChangePasswordForm } from '../you/ChangePasswordPage';
+import Sheet from '../patterns/Sheet';
+import accountStyles from '../you/YouAccount.module.css';
 import PhoneShell from './PhoneShell';
 import OverviewSidebar from '../overview/OverviewSidebar';
 import { useIsNarrowDesktop, useIsPhone } from './useIsPhone';
@@ -192,10 +195,14 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [drawerOpen]);
 
-  // Same component and props as UserMenu; portaled, so no shell stacking context traps it.
-  const forcedPasswordChange =
-    authStatus?.passwordChangeRequired === true &&
-    createPortal(<ChangePasswordModal isOpen forced onClose={() => void refreshAuth()} />, document.body);
+  // UserMenu's forced change, redrawn: no close, Esc or backdrop (Sheet portals to <body>).
+  const forcedPasswordChange = authStatus?.passwordChangeRequired === true && location.pathname !== '/you/password' && (
+    <Sheet open dismissible={false} onClose={() => {}} title={t('change_password.forced_title')}>
+      <div className={accountStyles.sheetPad}>
+        <ChangePasswordForm forced onClose={() => void refreshAuth()} />
+      </div>
+    </Sheet>
+  );
 
   if (isPhone) {
     return (
@@ -241,7 +248,8 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
           }
         />
         {showSidebar && mode === 'overview' && <OverviewSidebar sources={sources} onNavigate={() => setDrawerOpen(false)} />}
-        {showSidebar && mode !== 'overview' && (
+        {showSidebar && mode === 'you' && <YouSidebar onNavigate={() => setDrawerOpen(false)} />}
+        {showSidebar && mode !== 'overview' && mode !== 'you' && (
           <DeviceSidebar
             mode={mode}
             source={source}

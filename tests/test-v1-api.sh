@@ -252,15 +252,15 @@ API_RESPONSE=$(curl -sS -c "$COOKIE_FILE" -b "$COOKIE_FILE" \
     -H "Content-Type: application/json" \
     -H "x-csrf-token: $CSRF_TOKEN")
 
-API_TOKEN=$(echo "$API_RESPONSE" | jq -r '.token // empty')
+NEW_TOKEN_VALUE=$(echo "$API_RESPONSE" | jq -r '.token // empty')
 
-if [ -z "$API_TOKEN" ] || [ "$API_TOKEN" = "null" ]; then
+if [ -z "$NEW_TOKEN_VALUE" ] || [ "$NEW_TOKEN_VALUE" = "null" ]; then
     echo -e "${RED}✗ Failed to generate API token${NC}"
     echo "Response: $API_RESPONSE"
     exit 1
 fi
 
-echo -e "${GREEN}✓ API Token generated: ${API_TOKEN:0:15}...${NC}"
+echo -e "${GREEN}✓ API Token generated: ${NEW_TOKEN_VALUE:0:15}...${NC}"
 
 # Per-source route prefix. The legacy root shape (`/api/v1/nodes?sourceId=…`)
 # had a one-release deprecation window in 4.13 and was REMOVED in 4.14
@@ -278,7 +278,7 @@ V1_SRC="${BASE_URL}/api/v1/sources/default"
 # device — and a wrong index can land the message on the wrong channel
 # entirely if the test device's slot N happens to share a PSK (notably the
 # default `AQ==`) with another slot.
-GAUNTLET_SLOT=$(curl -sS -H "Authorization: Bearer $API_TOKEN" \
+GAUNTLET_SLOT=$(curl -sS -H "Authorization: Bearer $NEW_TOKEN_VALUE" \
     "${V1_SRC}/channels" \
     | jq -r '.data[]? | select((.name // "") | ascii_downcase == "gauntlet") | .id' \
     | head -n1)
@@ -298,67 +298,67 @@ echo ""
 
 # Test 1: API Root Endpoint
 run_test "GET /api/v1/ - API version info" \
-    "curl -sS -H 'Authorization: Bearer $API_TOKEN' \
+    "curl -sS -H 'Authorization: Bearer $NEW_TOKEN_VALUE' \
     '${BASE_URL}/api/v1/' \
     | jq -e '.version == \"v1\" and .endpoints.nodes != null'"
 
 # Test 2: Nodes List
 run_test "GET /api/v1/sources/default/nodes - List all nodes" \
-    "curl -sS -H 'Authorization: Bearer $API_TOKEN' \
+    "curl -sS -H 'Authorization: Bearer $NEW_TOKEN_VALUE' \
     '${V1_SRC}/nodes' \
     | jq -e '.success == true and .count > 0 and (.data | type) == \"array\"'"
 
 # Test 3: Verify node count is reasonable (at least 1 node, the test node)
 run_test "Verify node count >= 1" \
-    "curl -sS -H 'Authorization: Bearer $API_TOKEN' \
+    "curl -sS -H 'Authorization: Bearer $NEW_TOKEN_VALUE' \
     '${V1_SRC}/nodes' \
     | jq -e '.count >= 1'"
 
 # Test 4: Get specific node by ID (get first node's ID)
-NODE_ID=$(curl -sS -H "Authorization: Bearer $API_TOKEN" \
+NODE_ID=$(curl -sS -H "Authorization: Bearer $NEW_TOKEN_VALUE" \
     "${V1_SRC}/nodes" \
     | jq -r '.data[0].node_id')
 
 if [ -n "$NODE_ID" ] && [ "$NODE_ID" != "null" ]; then
     run_test "GET /api/v1/sources/default/nodes/:id - Get specific node" \
-        "curl -sS -H 'Authorization: Bearer $API_TOKEN' \
+        "curl -sS -H 'Authorization: Bearer $NEW_TOKEN_VALUE' \
         '${V1_SRC}/nodes/${NODE_ID}' \
         | jq -e '.success == true and .data.node_id == $NODE_ID'"
 fi
 
 # Test 5: Messages endpoint
 run_test "GET /api/v1/sources/default/messages - List messages" \
-    "curl -sS -H 'Authorization: Bearer $API_TOKEN' \
+    "curl -sS -H 'Authorization: Bearer $NEW_TOKEN_VALUE' \
     '${V1_SRC}/messages?limit=10' \
     | jq -e '.success == true and (.data | type) == \"array\"'"
 
 # Test 7: Telemetry endpoint
 run_test "GET /api/v1/sources/default/telemetry - List telemetry data" \
-    "curl -sS -H 'Authorization: Bearer $API_TOKEN' \
+    "curl -sS -H 'Authorization: Bearer $NEW_TOKEN_VALUE' \
     '${V1_SRC}/telemetry' \
     | jq -e '.success == true and (.data | type) == \"array\"'"
 
 # Test 8: Traceroutes endpoint
 run_test "GET /api/v1/sources/default/traceroutes - List traceroutes" \
-    "curl -sS -H 'Authorization: Bearer $API_TOKEN' \
+    "curl -sS -H 'Authorization: Bearer $NEW_TOKEN_VALUE' \
     '${V1_SRC}/traceroutes' \
     | jq -e '.success == true and (.data | type) == \"array\"'"
 
 # Test 6: Network stats endpoint
 run_test "GET /api/v1/sources/default/network - Get network stats" \
-    "curl -sS -H 'Authorization: Bearer $API_TOKEN' \
+    "curl -sS -H 'Authorization: Bearer $NEW_TOKEN_VALUE' \
     '${V1_SRC}/network' \
     | jq -e '.success == true and .data.totalNodes != null'"
 
 # Test 10: Packets endpoint
 run_test "GET /api/v1/sources/default/packets - List packet logs" \
-    "curl -sS -H 'Authorization: Bearer $API_TOKEN' \
+    "curl -sS -H 'Authorization: Bearer $NEW_TOKEN_VALUE' \
     '${V1_SRC}/packets?limit=50' \
     | jq -e '.success == true and .limit == 50 and (.data | type) == \"array\"'"
 
 # Test 11: Packets with filtering
 run_test "GET /api/v1/sources/default/packets with filter - Filter by encrypted" \
-    "curl -sS -H 'Authorization: Bearer $API_TOKEN' \
+    "curl -sS -H 'Authorization: Bearer $NEW_TOKEN_VALUE' \
     '${V1_SRC}/packets?encrypted=true&limit=10' \
     | jq -e '.success == true and (.data | type) == \"array\"'"
 
@@ -366,13 +366,13 @@ run_test "GET /api/v1/sources/default/packets with filter - Filter by encrypted"
 # the by-id read has to be scoped to a source or a caller on source A could
 # read source B's packet by guessing its id. The per-source path carries that
 # scope now, so no `?sourceId=` query param is needed.
-FIRST_PACKET=$(curl -sS -H "Authorization: Bearer $API_TOKEN" \
+FIRST_PACKET=$(curl -sS -H "Authorization: Bearer $NEW_TOKEN_VALUE" \
     "${V1_SRC}/packets?limit=1")
 PACKET_ID=$(echo "$FIRST_PACKET" | jq -r '.data[0].id // empty')
 
 if [ -n "$PACKET_ID" ] && [ "$PACKET_ID" != "null" ]; then
     run_test "GET /api/v1/sources/default/packets/:id - Get specific packet" \
-        "curl -sS -H 'Authorization: Bearer $API_TOKEN' \
+        "curl -sS -H 'Authorization: Bearer $NEW_TOKEN_VALUE' \
         '${V1_SRC}/packets/${PACKET_ID}' \
         | jq -e '.success == true and .data.id == $PACKET_ID'"
 fi
@@ -407,7 +407,7 @@ echo ""
 # dynamically above so this stays correct even when channels get reordered.
 run_test "POST /api/v1/sources/default/messages without CSRF token succeeds with Bearer auth" \
     "RESPONSE=\$(curl -sS -w '\\n%{http_code}' \
-        -H 'Authorization: Bearer $API_TOKEN' \
+        -H 'Authorization: Bearer $NEW_TOKEN_VALUE' \
         -H 'Content-Type: application/json' \
         -X POST '${V1_SRC}/messages' \
         -d '{\"text\": \"API v1 test message\", \"channel\": ${GAUNTLET_SLOT}}')
@@ -440,7 +440,7 @@ echo ""
 # Test 15: All list endpoints have consistent success field
 run_test "All list endpoints return success: true" \
     "for endpoint in nodes messages telemetry traceroutes packets; do
-        curl -sS -H 'Authorization: Bearer $API_TOKEN' \
+        curl -sS -H 'Authorization: Bearer $NEW_TOKEN_VALUE' \
             \"${V1_SRC}/\$endpoint\" \
             | jq -e '.success == true' > /dev/null || exit 1
     done"
@@ -448,7 +448,7 @@ run_test "All list endpoints return success: true" \
 # Test 16: All list endpoints have data array
 run_test "All list endpoints return data array" \
     "for endpoint in nodes messages telemetry traceroutes packets; do
-        curl -sS -H 'Authorization: Bearer $API_TOKEN' \
+        curl -sS -H 'Authorization: Bearer $NEW_TOKEN_VALUE' \
             \"${V1_SRC}/\$endpoint\" \
             | jq -e '(.data | type) == \"array\"' > /dev/null || exit 1
     done"
@@ -456,7 +456,7 @@ run_test "All list endpoints return data array" \
 # Test 17: All list endpoints have count field
 run_test "All list endpoints return count field" \
     "for endpoint in nodes messages telemetry traceroutes packets; do
-        curl -sS -H 'Authorization: Bearer $API_TOKEN' \
+        curl -sS -H 'Authorization: Bearer $NEW_TOKEN_VALUE' \
             \"${V1_SRC}/\$endpoint\" \
             | jq -e '.count != null' > /dev/null || exit 1
     done"

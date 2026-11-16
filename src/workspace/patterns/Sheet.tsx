@@ -4,6 +4,8 @@
  * element's stacking context can trap it. Esc, the backdrop and the close
  * button close it; Tab stays inside (`useDialogA11y`, as `common/Modal`).
  * A bottom sheet can opt in to `onSwipeUp` (the phone map peek, g1-map).
+ * `dismissible={false}` drops all three (must-ack reveals, the forced
+ * password change): only the sheet's own controls close it.
  */
 import { useId, useRef, type PointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -24,7 +26,11 @@ export interface SheetProps {
   actions?: ReactNode;
   /** Bottom sheets: called on an upward swipe of at least SWIPE_UP_PX. Keep a visible control for the same action. */
   onSwipeUp?(): void;
+  /** false: no close button, and Esc and the backdrop do nothing. Default true. */
+  dismissible?: boolean;
 }
+
+const ignore = () => {};
 
 const SWIPE_UP_PX = 64;
 
@@ -33,9 +39,10 @@ export default function Sheet(props: SheetProps) {
 }
 
 /** Mounted only while open: the a11y hook focuses on mount and restores focus on unmount. */
-function OpenSheet({ onClose, title, side = 'auto', children, footer, actions, onSwipeUp }: SheetProps) {
+function OpenSheet({ onClose: close, title, side = 'auto', children, footer, actions, onSwipeUp, dismissible = true }: SheetProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
+  const onClose = dismissible ? close : ignore;
   const { contentRef, onKeyDown } = useDialogA11y(onClose);
   const titleId = useId();
   const docked = side === 'auto' ? (isPhone ? 'bottom' : 'right') : side;
@@ -69,9 +76,11 @@ function OpenSheet({ onClose, title, side = 'auto', children, footer, actions, o
         <div className={styles.head}>
           <h2 id={titleId} className={styles.title}>{title}</h2>
           {actions}
-          <button type="button" className={styles.close} onClick={onClose} aria-label={t('common.close')}>
-            <UiIcon name="close" size={20} />
-          </button>
+          {dismissible && (
+            <button type="button" className={styles.close} onClick={onClose} aria-label={t('common.close')}>
+              <UiIcon name="close" size={20} />
+            </button>
+          )}
         </div>
         <div className={styles.body}>{children}</div>
         {footer && <div className={styles.footer}>{footer}</div>}

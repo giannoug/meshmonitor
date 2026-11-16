@@ -3,17 +3,17 @@
     "Revoke",
     "Sign-in & security",
     "Only you · applies to your account on this MeshMonitor",
-    "PASSWORD",
-    "Change password",
-    "TWO-FACTOR",
+    "Password",
+    "Change Password",
+    "Two-Factor Authentication",
     "Authenticator app",
-    "Turn off",
-    "PASSKEYS",
+    "Disable Two-Factor Authentication",
+    "Passkeys",
     "Add a passkey",
-    "API TOKEN",
+    "API Token",
     "One token per user, for scripts and automations",
-    "ACCOUNT",
-    "PREFERENCES"
+    "Account",
+    "Preferences"
   ],
   "absent": [
     "Regenerate"

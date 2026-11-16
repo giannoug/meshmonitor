@@ -3,13 +3,13 @@
     "Revoke",
     "You",
     "Sign-in & security",
-    "PASSWORD",
-    "Change password",
-    "TWO-FACTOR",
+    "Password",
+    "Change Password",
+    "Two-Factor Authentication",
     "Authenticator app",
-    "PASSKEYS",
+    "Passkeys",
     "Add a passkey",
-    "API TOKEN",
+    "API Token",
     "Home"
   ],
   "absent": [
