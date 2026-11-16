@@ -15,7 +15,7 @@
     "Relay traffic from other bridges",
     "ok_to_mqtt",
     "bounding box",
-    "Sweep",
+    "Last sweep",
     "Topic rewrites",
     "Downlink from",
     "Uplink to",

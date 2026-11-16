@@ -1,14 +1,14 @@
 {
   "must": [
     "Data",
-    "Reset UI positions",
-    "Reset settings to defaults",
-    "Danger zone",
-    "Erase nodes",
-    "Purge telemetry",
-    "Clean outliers",
-    "Purge messages",
-    "Reset traceroutes",
+    "Reset UI Positions",
+    "Reset to Defaults",
+    "Danger Zone",
+    "Erase Node List",
+    "Purge Telemetry",
+    "Clean telemetry outliers",
+    "Purge Messages",
+    "Reset Traceroutes",
     "Sends nothing on the mesh"
   ],
   "absent": [],

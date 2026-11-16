@@ -2,14 +2,15 @@
  * @vitest-environment jsdom
  *
  * The settings frame (Task 5.2): its routes, switching devices, the one shared
- * device-config instance (Ruling DG), today's section inside each category
- * until Tasks 5.3–5.8, and the redirects from Classic URLs.
+ * device-config instance (Ruling DG), today's gates inside the In MeshMonitor
+ * pages (Task 5.8), and the redirects from Classic URLs.
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { SOURCE_IDS } from '../../__fixtures__/athens';
 import { fetched, g2, goTo, mqtt, realUrl, renderSettings } from './renderSettings';
+import { meshmonitorFixtures } from './meshmonitorFixtures';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
@@ -123,23 +124,24 @@ describe('categories until Tasks 5.3–5.8: today\'s section', () => {
   });
 });
 
-describe('today\'s gates inside the placeholders', () => {
-  it('Notifications shows today\'s tab to a viewer without Settings, but not the Settings page', async () => {
-    const { container } = renderSettings(`${g2}/settings/notifications`, {
-      permissions: { bySource: { [SOURCE_IDS.g2]: { configuration: { read: true, write: true } } } },
+describe('today\'s gates inside the In MeshMonitor pages', () => {
+  it('Notifications opens to a viewer without Settings, with no Audio row (the Settings tab\'s section)', async () => {
+    renderSettings(`${g2}/settings/notifications`, {
+      permissions: { bySource: { [SOURCE_IDS.g2]: { configuration: { read: true, write: true }, messages: { read: true, write: false } } } },
+      fixtures: meshmonitorFixtures(),
     });
-    await waitFor(() => expect(container.querySelector('#notif-services')).not.toBeNull(), { timeout: 10_000 });
-    await new Promise((r) => setTimeout(r, 300));
-    expect(container.querySelector('#settings-notifications')).toBeNull();
+    await screen.findByRole('switch', { name: 'Direct Messages' }, { timeout: 10_000 });
+    expect(screen.queryByRole('switch', { name: 'Enable Audio Notifications' })).toBeNull();
     expect(within(screen.getByRole('main')).queryByText('View only')).toBeNull();
   });
 
-  it('a viewer with Settings sees the Settings page under it', async () => {
-    const { container } = renderSettings(`${g2}/settings/notifications`, {
-      permissions: { bySource: { [SOURCE_IDS.g2]: { settings: { read: true, write: false } } } },
+  it('a viewer with Settings also gets the Audio row', async () => {
+    renderSettings(`${g2}/settings/notifications`, {
+      permissions: { bySource: { [SOURCE_IDS.g2]: { settings: { read: true, write: false }, messages: { read: true, write: false } } } },
+      fixtures: meshmonitorFixtures(),
     });
-    await waitFor(() => expect(container.querySelector('#settings-notifications')).not.toBeNull(), { timeout: 10_000 });
-    expect(container.querySelector('#notif-services')).not.toBeNull();
+    expect(await screen.findByRole('switch', { name: 'Enable Audio Notifications' }, { timeout: 10_000 })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Direct Messages' })).toBeInTheDocument();
   });
 
   it('PKI DMs are View only without configuration:write, even with settings:write', async () => {

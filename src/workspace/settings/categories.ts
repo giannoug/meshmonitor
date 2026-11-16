@@ -10,10 +10,9 @@
  * - In MeshMonitor (`scope: 'meshmonitor'`): the source's Settings tab and
  *   Notifications, gated as `settingsNavItems(mode: 'source')` and App's tabs.
  *
- * Until Tasks 5.3–5.8 build each page, a category's `component` renders
- * today's section for it (`ClassicCategories`); LoRa is built (Task 5.3),
- * Identity, Channels and Security (Task 5.5, `categories/`), Device's
- * categories and the modules but MQTT (Task 5.6), Maintenance's (Task 5.7).
+ * Every page is built on the row kit (Tasks 5.3–5.8, `categories/`) but
+ * Modules › MQTT, which keeps today's section (`ClassicCategories`, Ruling 5.6).
+ * The In MeshMonitor pages save as you go (Task 5.8, useAutosaveSetting).
  */
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import type { TFunction } from 'i18next';
@@ -54,10 +53,8 @@ export type CategoryDef = {
 export type CategoryGroup = NonNullable<CategoryDef['group']>;
 export const GROUPS: readonly CategoryGroup[] = ['device', 'modules', 'maintenance'];
 
-type ClassicName = keyof typeof import('./ClassicCategories');
-// One chunk for every placeholder; each category takes its own export.
-const classic = (name: ClassicName) =>
-  lazy(() => import('./ClassicCategories.tsx').then((m) => ({ default: m[name] as ComponentType<CategoryProps> })));
+// Modules › MQTT keeps today's section (Ruling 5.6).
+const mqttModule = lazy(() => import('./ClassicCategories.tsx').then((m) => ({ default: m.MqttCategory as ComponentType<CategoryProps> })));
 
 export const RADIO: SourceType[] = ['meshtastic_tcp'];
 const ALL: SourceType[] = ['meshtastic_tcp', 'mqtt_broker', 'mqtt_bridge'];
@@ -69,34 +66,34 @@ const canReadSettings = (c: GateCtx) => c.hasPermission('settings', 'read', { an
 const radio = (
   id: string,
   labelKey: string,
-  component: ClassicName | CategoryDef['component'],
+  component: CategoryDef['component'],
   extra: Partial<Pick<CategoryDef, 'group' | 'saveSection' | 'gate'>> = {},
 ): CategoryDef => ({
   id,
   scope: 'radio',
   labelKey,
   sourceTypes: RADIO,
-  component: typeof component === 'string' ? classic(component) : component,
+  component,
   ...extra,
   gate: (c) => canReadConfig(c) && (extra.gate?.(c) ?? true),
 });
 
 // One chunk for every module page; each reads its module from the category id.
 const moduleCategory = lazy(() => import('./categories/ModuleCategory.tsx'));
-const mod = (name: string, labelKey: string, saveSection: ConfigSaveSection, component: ClassicName | CategoryDef['component'] = moduleCategory) =>
+const mod = (name: string, labelKey: string, saveSection: ConfigSaveSection, component: CategoryDef['component'] = moduleCategory) =>
   radio(`modules/${name}`, labelKey, component, { group: 'modules', saveSection });
 
 const meshmonitor = (
   id: string,
   labelKey: string,
-  component: ClassicName,
+  component: CategoryDef['component'],
   extra: Partial<Pick<CategoryDef, 'sourceTypes' | 'gate'>> = {},
 ): CategoryDef => ({
   id,
   scope: 'meshmonitor',
   labelKey,
   sourceTypes: ALL,
-  component: classic(component),
+  component,
   ...extra,
   gate: extra.gate ?? canReadSettings,
 });
@@ -118,7 +115,7 @@ export const CATEGORIES: CategoryDef[] = [
   mod('detectionsensor', 'detectionsensor_config.title', 'detectionsensor'),
   mod('extnotif', 'extnotif_config.title', 'extnotif'),
   mod('meshbeacon', 'workspace.settings.label.meshbeacon', 'meshbeacon'),
-  mod('mqtt', 'workspace.settings.label.mqtt', 'mqtt', 'MqttCategory'),
+  mod('mqtt', 'workspace.settings.label.mqtt', 'mqtt', mqttModule),
   mod('neighbor', 'workspace.settings.label.neighbor', 'neighborinfo'),
   mod('paxcounter', 'paxcounter_config.title', 'paxcounter'),
   mod('rangetest', 'rangetest_config.title', 'rangetest'),
@@ -138,20 +135,20 @@ export const CATEGORIES: CategoryDef[] = [
   radio('maintenance/danger', 'config.danger_zone', lazy(() => import('./categories/DangerCategory.tsx')), { group: 'maintenance' }),
 
   // The bridge setup reads `sources` (#5683 follow-up): its own grant, not the Settings tab's.
-  meshmonitor('mqtt-bridge', 'mqtt_bridge_config.title', 'MqttBridgeCategory', {
+  meshmonitor('mqtt-bridge', 'mqtt_bridge_config.title', lazy(() => import('./categories/MqttBridgeCategory.tsx')), {
     sourceTypes: ['mqtt_bridge'],
     gate: (c) => c.hasPermission('sources', 'read'),
   }),
-  meshmonitor('node-display', 'settings.node_display', 'SourceSettingsCategory'),
-  meshmonitor('telemetry', 'settings.telemetry', 'SourceSettingsCategory'),
-  // App's Notifications tab is open to every signed-in user; its Settings section rides along.
-  meshmonitor('notifications', 'nav.notifications', 'NotificationsCategory', { gate: (c) => c.isAuthenticated }),
-  meshmonitor('packet-monitor', 'settings.packet_monitor', 'SourceSettingsCategory'),
+  meshmonitor('node-display', 'settings.node_display', lazy(() => import('./categories/NodeDisplayCategory.tsx'))),
+  meshmonitor('telemetry', 'settings.telemetry', lazy(() => import('./categories/TelemetryCategory.tsx'))),
+  // App's Notifications tab is open to every signed-in user; its Audio row keeps the Settings tab's gate.
+  meshmonitor('notifications', 'nav.notifications', lazy(() => import('./categories/NotificationsCategory.tsx')), { gate: (c) => c.isAuthenticated }),
+  meshmonitor('packet-monitor', 'settings.packet_monitor', lazy(() => import('./categories/PacketMonitorCategory.tsx'))),
   // Its routes check this source's `configuration`; today a viewer without Settings finds it in Configuration instead.
-  meshmonitor('pki-dm', 'workspace.settings.label.pki_dm', 'PkiDmCategory', { sourceTypes: RADIO, gate: canReadConfig }),
-  meshmonitor('reliable-pki', 'settings.reliable_pki.title', 'ReliablePkiCategory', { sourceTypes: RADIO }),
-  meshmonitor('data', 'workspace.settings.label.data', 'SourceSettingsCategory'),
-  meshmonitor('coverage-recording', 'settings.coverage_mqtt_section', 'CoverageRecordingCategory', {
+  meshmonitor('pki-dm', 'workspace.settings.label.pki_dm', lazy(() => import('./categories/PkiDmCategory.tsx')), { sourceTypes: RADIO, gate: canReadConfig }),
+  meshmonitor('reliable-pki', 'settings.reliable_pki.title', lazy(() => import('./categories/ReliablePkiCategory.tsx')), { sourceTypes: RADIO }),
+  meshmonitor('data', 'workspace.settings.label.data', lazy(() => import('./categories/DataCategory.tsx'))),
+  meshmonitor('coverage-recording', 'settings.coverage_mqtt_section', lazy(() => import('./categories/CoverageRecordingCategory.tsx')), {
     sourceTypes: ['mqtt_broker', 'mqtt_bridge'],
     gate: (c) =>
       canReadSettings(c) && isCoverageMqttSourceType(c.sourceType) && c.hasPermission('settings', 'write', { sourceId: c.sourceId }),
@@ -211,11 +208,6 @@ const BY_ID = new Map(CATEGORIES.map((c) => [c.id, c]));
 
 export function categoryById(id: string): CategoryDef | undefined {
   return BY_ID.get(id);
-}
-
-/** Today's first section of a category, which the Classic page scrolls to. */
-export function firstSectionOf(categoryId: string): string | undefined {
-  return Object.keys(SECTION_TO_CATEGORY).find((s) => SECTION_TO_CATEGORY[s] === categoryId);
 }
 
 /**

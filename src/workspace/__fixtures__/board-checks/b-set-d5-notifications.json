@@ -1,15 +1,15 @@
 {
   "must": [
     "⌘,",
-    "DELIVERY",
+    "Delivery",
     "Web Push on this browser",
-    "Audio notifications",
-    "NOTIFY ME ABOUT",
-    "Emoji reactions",
-    "Newly found nodes",
-    "Low battery",
-    "Successful traceroutes",
-    "In MeshMonitor · changes save as you make them",
+    "Enable Audio Notifications",
+    "Notify me about",
+    "Emoji Reactions",
+    "Newly Found Nodes",
+    "Notify on Low Battery",
+    "Successful Traceroutes",
+    "changes save as you make them",
     "Advanced · message format"
   ],
   "absent": [

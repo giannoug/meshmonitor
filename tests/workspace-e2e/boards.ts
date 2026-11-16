@@ -12,6 +12,7 @@ import { deviceConfigFixtures } from '../../src/workspace/__fixtures__/deviceCon
 import { g2deviceConfigWith } from '../../src/workspace/settings/__tests__/radioFixtures';
 import { boardChannels, g2On282, pollWith } from '../../src/workspace/settings/__tests__/categoryFixtures';
 import { flashFailed, maintenanceFixtures, reloadFixtures } from '../../src/workspace/settings/__tests__/maintenanceFixtures';
+import { bridgeFixtures, meshmonitorFixtures } from '../../src/workspace/settings/__tests__/meshmonitorFixtures';
 
 export interface Board {
   id: string;
@@ -56,6 +57,30 @@ const SECURITY: Board['fixtures'] = {
 
 /** Task 5.7: Station G2's backups, releases (OTA on) and a reload that finds three changes. */
 const MAINTENANCE = (): Board['fixtures'] => ({ ...PINS, ...maintenanceFixtures, ...reloadFixtures() });
+
+/** Task 5.8: Station G2's MeshMonitor settings and notification preferences. */
+const MESHMONITOR: Board['fixtures'] = { ...PINS, ...meshmonitorFixtures() };
+
+/** This browser is subscribed for Station G2 and Heltec MeshCore (s2). */
+const PUSH_HERE: Board['fixtures'] = {
+  'POST /api/push/subscription-status': (_url, init) => ({
+    subscribed: [athensFixture.sources[0].id, athensFixture.sources[1].id].includes(JSON.parse(String(init?.body)).sourceId),
+    otherSources: 1,
+  }),
+};
+
+/** Push in this browser, granted and subscribed, before the page's scripts run (s2). */
+async function pushInThisBrowser(page: Page) {
+  await page.addInitScript(() => {
+    const subscription = { endpoint: 'https://push.example/abc', getKey: () => new ArrayBuffer(3), unsubscribe: async () => true };
+    const pushManager = { getSubscription: async () => subscription, subscribe: async () => subscription };
+    Object.defineProperty(window, 'Notification', { configurable: true, value: { permission: 'granted', requestPermission: async () => 'granted' } });
+    Object.defineProperty(window, 'PushManager', { configurable: true, value: function PushManager() {} });
+    Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: { ready: Promise.resolve({ pushManager }), register: async () => ({}), addEventListener: () => {} } });
+  });
+  await page.reload();
+  await page.getByText('DMs only').first().waitFor();
+}
 
 async function reloadFromRadio(page: Page) {
   await page.getByRole('button', { name: 'Reload Config' }).click();
@@ -1245,6 +1270,31 @@ export const BOARDS: Board[] = [
     fixtures: { ...MAINTENANCE(), ...flashFailed },
     setup: (page) => page.getByRole('button', { name: /Retry Flash/ }).waitFor(),
   },
+  // Task 5.8: the In MeshMonitor pages (saved as you go), the bridge setup (its own Save) and You › Notifications.
+  {
+    id: 'b-set-d5-notifications',
+    size: 'desktop',
+    path: '/source/src-g2/settings/notifications',
+    fixtures: MESHMONITOR,
+    setup: async (page) => {
+      await page.getByRole('switch', { name: 'Emoji Reactions' }).click();
+      await page.getByText('Saved').first().waitFor();
+    },
+  },
+  { id: 's2-notifications', size: 'phone', path: '/you/notifications', fixtures: { ...MESHMONITOR, ...PUSH_HERE }, setup: pushInThisBrowser },
+  {
+    id: '12-12-meshmonitor-data',
+    size: 'desktop',
+    path: '/source/src-g2/settings/node-display',
+    fixtures: MESHMONITOR,
+    setup: async (page) => {
+      await page.getByRole('switch', { name: 'Detect likely aircraft' }).click();
+      await page.getByText('Saved').first().waitFor();
+    },
+  },
+  { id: '12-23-meshmonitor-data', size: 'phone', path: '/source/src-g2/settings/data', fixtures: MESHMONITOR },
+  { id: '12-13-mqtt-bridge', size: 'desktop', path: '/source/src-bridge/settings/mqtt-bridge', fixtures: { ...PINS, ...bridgeFixtures() } },
+  { id: '12-24-mqtt-bridge', size: 'phone', path: '/source/src-bridge/settings/mqtt-bridge', fixtures: { ...PINS, ...bridgeFixtures() } },
 ];
 
 /** Identity: the short name G2 → SG2. */

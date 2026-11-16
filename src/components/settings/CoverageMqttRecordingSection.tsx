@@ -7,27 +7,8 @@ import { useCsrfFetch } from '../../hooks/useCsrfFetch';
 import { useToast } from '../ToastContainer';
 import { UiIcon } from '../icons';
 import Modal from '../common/Modal';
-import { COVERAGE_MQTT_ENABLED_SETTING, isCoverageMqttFlagOn } from '../../utils/coverage';
+import { COVERAGE_MQTT_ENABLED_SETTING, isCoverageMqttFlagOn, splitConfirmParagraphs } from '../../utils/coverage';
 import styles from './CoverageMqttRecordingSection.module.css';
-
-/**
- * Splits a confirm message into paragraphs on blank lines, dropping a
- * trailing "Continue?" line. That line read naturally as the last sentence
- * of a `window.confirm()` prompt; it is redundant once a real "Turn on
- * recording" button replaces the browser dialog (#5277 P4a WP6). The two
- * message keys themselves stay unchanged so their text is shared with any
- * other surface that still quotes them verbatim.
- */
-function splitConfirmParagraphs(text: string): string[] {
-  const paragraphs = text
-    .split('\n\n')
-    .map((paragraph) => paragraph.trim())
-    .filter((paragraph) => paragraph.length > 0);
-  if (paragraphs.length > 0 && paragraphs[paragraphs.length - 1] === 'Continue?') {
-    paragraphs.pop();
-  }
-  return paragraphs;
-}
 
 interface CoverageMqttRecordingSectionProps {
   /** App base URL (appBasename), as every other self-saving section takes it. */

@@ -1,0 +1,49 @@
+/* You › Notifications (board s2-notifications): push per device for this browser. */
+.intro {
+  margin: 0 0 8px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-text-subtle);
+}
+
+.foot {
+  margin: 12px 4px 0;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+/* The device's abbreviation in its own colour, as the rail draws it. */
+.tag {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-bg);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* The switch draws at the kit's size inside a 44 px tap target (D8). */
+.hit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.switch {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -37,6 +37,7 @@ const OverviewPackets = lazy(() => import('./overview/OverviewPackets.tsx'));
 const ReportsRoute = lazy(() => import('./reports/ReportsRoute.tsx'));
 const UsersPage = lazy(() => import('./overview/users/UsersPage.tsx'));
 const AuditPage = lazy(() => import('./overview/audit/AuditPage.tsx'));
+const YouNotifications = lazy(() => import('./you/NotificationsPage.tsx'));
 
 /**
  * `/`, `/overview`, `/overview/map`, `/analysis` and `/overview/analysis`: the
@@ -105,6 +106,7 @@ function WorkspaceRoutes() {
           <Route path="you" element={<YouHome />} />
           {/* Other You categories are Phase 6's. */}
           <Route path="you/layout" element={<LayoutPage />} />
+          <Route path="you/notifications" element={<YouNotifications />} />
           <Route path="you/*" element={<OverviewRehost />} />
 
           <Route path="*" element={<OverviewRehost />} />

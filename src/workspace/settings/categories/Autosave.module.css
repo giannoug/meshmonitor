@@ -1,0 +1,45 @@
+/* The In MeshMonitor pages (Task 5.8): a row's Saved / error line, and its blur commit wrapper. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 900px;
+}
+
+.saved,
+.error {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.saved {
+  color: var(--color-success);
+}
+
+.error {
+  white-space: normal;
+  color: var(--color-error);
+}
+
+/* Holds the blur / Enter handlers only; lays out as its child. */
+.commit {
+  display: contents;
+}
+
+/* Keyword lists and Apprise URLs: today's multi-line fields at the kit's metrics. */
+.textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: min(100%, 260px);
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 13px;
+}

@@ -7,8 +7,9 @@
  * - API Token: today's token panel in a sheet.
  * - Layout: `/you/layout` (Task 1.8). Language & units, Appearance, Map: the
  *   preference categories.
- * - Notifications and Help & about: the per-device Notifications page and Info
- *   tab of the device Home leads to, else of the first device.
+ * - Notifications: You › Notifications, push per device for this browser
+ *   (Task 5.8, s2), while some device has a Notifications page. Help & about:
+ *   the Info tab of the device Home leads to, else of the first device.
  * - Global Settings (admins), Logout. A guest gets Login instead of the
  *   account rows.
  */
@@ -44,12 +45,8 @@ interface Row {
   value?: string;
 }
 
-/** Today's per-device Notifications page, or null where the type has none. */
-function notificationsPath(s: WorkspaceSource): string | null {
-  const base = `/source/${encodeURIComponent(s.id)}`;
-  if (s.type === 'meshcore') return `${base}/notifications`;
-  return familyOf(s.type) === 'meshtastic' ? `${base}/settings/notifications` : null;
-}
+/** Whether the device has a Notifications page (Meshtastic and MeshCore; not Reticulum). */
+const hasNotifications = (s: WorkspaceSource) => s.type === 'meshcore' || familyOf(s.type) === 'meshtastic';
 
 export default function YouHome() {
   const { t } = useTranslation();
@@ -64,7 +61,7 @@ export default function YouHome() {
   // As the user menu: a passkey-only or locked account has no password to change (#5841).
   const canChangePassword = isLocal && !user?.passwordLocked && !user?.passwordLoginDisabled;
   const device = home ?? sources.find((s) => s.status !== 'disabled') ?? null;
-  const notifications = device ? notificationsPath(device) : null;
+  const notifications = sources.some((s) => s.status !== 'disabled' && hasNotifications(s)) ? '/you/notifications' : null;
   const help = device && device.type !== 'meshcore_mqtt' ? `/source/${encodeURIComponent(device.id)}/info` : null;
 
   const signOut = async () => {

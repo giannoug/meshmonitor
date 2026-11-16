@@ -59,8 +59,8 @@ describe('s1-you', () => {
     expect(link('Appearance')).toHaveAttribute('href', '/preferences/appearance');
     expect(link('Map')).toHaveAttribute('href', '/preferences/map');
     expect(link('Global Settings')).toHaveAttribute('href', '/server/general');
-    // No device opened yet: the first one in Server › Devices order.
-    expect(link('Notifications')).toHaveAttribute('href', `/source/${SOURCE_IDS.g2}/settings/notifications`);
+    // Push per device for this browser (Task 5.8, s2).
+    expect(link('Notifications')).toHaveAttribute('href', '/you/notifications');
     expect(link('Help & about')).toHaveAttribute('href', `/source/${SOURCE_IDS.g2}/info`);
   });
 
@@ -68,7 +68,7 @@ describe('s1-you', () => {
     renderYou({ permissions: { bySource: { [SOURCE_IDS.heltec]: { nodes: { read: true, write: false } } } } });
     await waitFor(() => expect(rows()).toContain('Notifications'));
     expect(rows()).not.toContain('Global Settings');
-    expect(screen.getByRole('link', { name: /^Notifications/ })).toHaveAttribute('href', `/source/${SOURCE_IDS.heltec}/notifications`);
+    expect(screen.getByRole('link', { name: /^Notifications/ })).toHaveAttribute('href', '/you/notifications');
   });
 
   it('opens API Token and Sign-in & security in sheets', async () => {
