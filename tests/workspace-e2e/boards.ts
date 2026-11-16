@@ -44,8 +44,6 @@ const CHANNELS: Board['fixtures'] = {
     ],
     loraConfig: { region: 3, modemPreset: 0, hopLimit: 3 },
   }),
-  // The import never answers, so the page stays on its first step for the screenshot.
-  'POST /api/channels/import-config': () => new Promise(() => {}),
 };
 
 /** Station G2 after the 2.8.2 update, with two admin keys (12-04). */
@@ -1228,6 +1226,10 @@ export const BOARDS: Board[] = [
     path: '/source/src-g2/settings/channels/share',
     fixtures: CHANNELS,
     setup: async (page) => {
+      // Hold the import's reply so the page stays on its first step for the screenshot. A fixture handler
+      // cannot do this: fixtureApi answers synchronously, so a pending promise went out as `{}` at once and
+      // the page moved on to Syncing, sometimes before the wait below saw "Sending" (the flake).
+      await page.route('**/api/channels/import-config', () => {});
       await page.getByLabel('Meshtastic Configuration URL').fill('https://meshtastic.org/e/#CgcSAQE6AggNEg8IATgDQANIAVAeaAHABgE');
       await page.getByRole('button', { name: 'Decode URL' }).click();
       await page.getByRole('button', { name: 'Import Selected' }).click();
