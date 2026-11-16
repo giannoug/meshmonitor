@@ -65,4 +65,21 @@ describe('leave guard', () => {
     fireEvent.click(railLink());
     await waitFor(() => expect(realUrl()).toBe(`${mqtt}/settings/node-display`));
   });
+
+  // The phone switcher is not reachable from settings (their pages draw their own bar, no device header);
+  // the 768–1023 px drawer is the guarded link whose own onClick closes a layer.
+  it('a guarded link still runs its own onClick: the drawer closes, then one sheet asks (D9c)', async () => {
+    renderSettings(`${g2}/settings/lora`, { width: 900 });
+    const hops = await screen.findByLabelText('Hop Limit', {}, { timeout: 5000 });
+    await waitFor(() => expect(hops).toHaveValue(3));
+    fireEvent.change(hops, { target: { value: '5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Show sidebar' }));
+    fireEvent.click(await screen.findByTestId('settings-back'));
+    await screen.findByRole('dialog', { name: 'Discard unsaved changes?' });
+    expect(screen.queryByRole('navigation', { name: 'Settings' })).toBeNull();
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    // Discard changes follows the link though the drawer (and its link) is gone.
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
+    await waitFor(() => expect(realUrl()).toBe(g2));
+  });
 });

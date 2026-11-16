@@ -25,7 +25,8 @@ describe('saveLabel', () => {
   it('LoRa on 2.8.0 applies live → Save', () => {
     expect(saveLabel(['lora'], '2.8.0')).toBe('save');
   });
-  it('Channels (no queued section) → Save', () => {
+  // Channels has no queued section (its slots save from their own page), so it can never be in the queue: an empty queue reads Save.
+  it('nothing queued (Channels never queues) → Save', () => {
     expect(saveLabel([], '2.7.15')).toBe('save');
   });
   it('Identity → Save (may restart)', () => {
@@ -56,7 +57,9 @@ describe('queued values', () => {
     expect(fieldLabel(t, 'lora', 'hopLimit')).toBe('Hop Limit');
     expect(fieldLabel(t, 'lora', 'configOkToMqtt')).toBe('OK to MQTT');
     expect(fieldLabel(t, 'device', 'rebroadcastMode')).toBe('Rebroadcast Mode');
-    expect(fieldLabel(t, 'storeforward', 'storeForwardHistoryReturnMax')).toMatch(/^History return max$|History/);
+    expect(fieldLabel(t, 'storeforward', 'storeForwardHistoryReturnMax')).toBe('History Return Max');
+    // No en.json key for this one: its name in words.
+    expect(fieldLabel(t, 'power', 'deviceBatteryInaAddress')).toBe('Device battery ina address');
   });
 
   it('shows an option by its name and a switch as On / Off', () => {
@@ -73,7 +76,13 @@ describe('useRadioSaveQueueState', () => {
     const [loading, setLoading] = useState(true);
     const [hopLimit, setHopLimit] = useState(3);
     const [longName, setLongName] = useState('Station G2');
-    const state = { loading, setLoading, hopLimit, setHopLimit, longName, setLongName, configVersion: 0, localFirmwareVersion: '2.7.15' };
+    const [storeForwardRecords, setStoreForwardRecords] = useState(100);
+    const [fixedLatitude, setFixedLatitude] = useState(37.98);
+    const [configVersion, setConfigVersion] = useState(0);
+    const state = {
+      loading, setLoading, hopLimit, setHopLimit, longName, setLongName, storeForwardRecords, setStoreForwardRecords,
+      fixedLatitude, setFixedLatitude, configVersion, setConfigVersion, localFirmwareVersion: '2.7.15',
+    };
     const queue = useRadioSaveQueueState(
       { state: state as unknown as DeviceConfigState, saves: saves as unknown as DeviceConfigSaves },
       { numberScope: { invalid: false, reset: () => {}, context: { report: () => {}, resetSignal: 0 } }, runBatch: (fn) => fn() },
@@ -104,5 +113,43 @@ describe('useRadioSaveQueueState', () => {
     });
     expect(result.current.state.hopLimit).toBe(4);
     expect(result.current.queue.queue).toMatchObject([{ section: 'lora', changes: [{ field: 'hopLimit', from: 3, to: 4 }] }]);
+  });
+
+  it('Reload config re-baselines only what it re-reads: module and fixed-position edits stay queued', () => {
+    const { result } = renderHook(() => useFakeConfig({}));
+    act(() => result.current.state.setLoading(false));
+    act(() => {
+      result.current.state.setStoreForwardRecords(200);
+      result.current.state.setFixedLatitude(38.01);
+      result.current.state.setHopLimit(4);
+    });
+    expect(result.current.queue.queue.map((e) => e.section)).toEqual(['lora', 'position', 'storeforward']);
+    // reload(): LoRa is re-read (the node now holds 5) and configVersion bumps; Store & Forward and the fixed position are not re-read.
+    act(() => {
+      result.current.state.setHopLimit(5);
+      result.current.state.setConfigVersion(1);
+    });
+    expect(result.current.queue.queue).toMatchObject([
+      { section: 'position', changes: [{ field: 'fixedLatitude', from: 37.98, to: 38.01 }] },
+      { section: 'storeforward', changes: [{ field: 'storeForwardRecords', from: 100, to: 200 }] },
+    ]);
+  });
+
+  it('an edit typed while saving stays queued: the baseline is what was sent', async () => {
+    let finish: (ok: boolean) => void = () => {};
+    const saves = { lora: vi.fn(() => new Promise<boolean>((r) => { finish = r; })) };
+    const { result } = renderHook(() => useFakeConfig(saves));
+    act(() => result.current.state.setLoading(false));
+    act(() => result.current.state.setHopLimit(4));
+    let pending: Promise<SaveResult> = Promise.resolve({ ok: [], failed: [] });
+    act(() => {
+      pending = result.current.queue.saveAll();
+    });
+    act(() => result.current.state.setHopLimit(5));
+    await act(async () => {
+      finish(true);
+      await pending;
+    });
+    expect(result.current.queue.queue).toMatchObject([{ section: 'lora', changes: [{ field: 'hopLimit', from: 4, to: 5 }] }]);
   });
 });

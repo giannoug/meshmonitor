@@ -88,6 +88,20 @@ export const QUEUED_FIELDS: Readonly<Partial<Record<ConfigSaveSection, readonly 
   ambientlighting: prefixed('ambient', ['LedState', 'Current', 'Red', 'Green', 'Blue']),
 };
 
+/**
+ * The queued sections Reload config re-reads from the node (useDeviceConfigSaves
+ * `reload()`), whose baselines it moves, as their Classic sections re-baseline on
+ * `configVersion`. Modules are not re-read, so a reload keeps their edits queued.
+ */
+export const RELOADED_SECTIONS: readonly ConfigSaveSection[] = [
+  'owner', 'device', 'lora', 'position', 'power', 'display', 'network', 'telemetry', 'neighborinfo',
+];
+
+/** Values a reload does not re-read inside a re-read section (PositionConfigSection's keepOnReseed). */
+export const KEEP_ON_RELOAD: Readonly<Partial<Record<ConfigSaveSection, readonly Key[]>>> = {
+  position: ['fixedLatitude', 'fixedLongitude', 'fixedAltitude'],
+};
+
 export const isQueued = (section: ConfigSaveSection | undefined): section is ConfigSaveSection =>
   !!section && section in QUEUED_FIELDS;
 

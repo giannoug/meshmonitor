@@ -115,4 +115,17 @@ describe('b-set-d3-review', () => {
     fireEvent.click(within(await bar()).getByRole('button', { name: 'Save (may restart)' }));
     await waitFor(() => expect(writes).toEqual(['owner']));
   });
+
+  it('discarding the last category closes Review, and the next edit does not reopen it', async () => {
+    renderSettings(`${g2}/settings/lora`, { fixtures: fixtures() });
+    const hops = await screen.findByLabelText('Hop Limit', {}, { timeout: 5000 });
+    await waitFor(() => expect(hops).toHaveValue(3));
+    fireEvent.change(hops, { target: { value: '4' } });
+    const sheet = await openReview();
+    fireEvent.click(within(within(sheet).getByRole('region', { name: 'LoRa' })).getByRole('button', { name: 'Discard' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    fireEvent.change(screen.getByLabelText('Hop Limit'), { target: { value: '6' } });
+    await bar();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
 });

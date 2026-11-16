@@ -21,7 +21,7 @@ import type { ConfigSaveSection } from '../../hooks/deviceConfig/useDeviceConfig
 import type { NumberInputScopeHandle } from '../../components/common/numberInputScopeContext';
 import { rebootExpectation } from '../../utils/configRebootRules';
 import { CATEGORIES } from './categories';
-import { changedKeys, fieldLabel, isQueued, pickValues, setterOf, type Values } from './radioSections';
+import { KEEP_ON_RELOAD, RELOADED_SECTIONS, changedKeys, fieldLabel, isQueued, pickValues, setterOf, type Values } from './radioSections';
 import type { SharedDeviceConfig } from './sharedDeviceConfig';
 
 export type SaveLabel = 'save' | 'saveMayRestart' | 'saveAndRestart';
@@ -79,30 +79,40 @@ export function useRadioSaveQueueState({ state, saves }: SharedDeviceConfig, { n
   const { t } = useTranslation();
   const [baselines, setBaselines] = useState<Partial<Record<ConfigSaveSection, Values>>>({});
   const [seen, setSeen] = useState({ loading: true, version: -1 });
-  const [committed, setCommitted] = useState<ConfigSaveSection[]>([]);
+  // The values each saved section sent, which become its baseline.
+  const [committed, setCommitted] = useState<Partial<Record<ConfigSaveSection, Values>>>({});
   const [saving, setSaving] = useState(false);
   const busy = useRef(false);
   // A failed section's edits, put back after the reload that follows the restart of the sections that saved.
   const carry = useRef<QueueEntry[] | null>(null);
 
   // Moved during render, as useSectionBaseline does, so the render that shows
-  // freshly loaded or saved values never counts them as changes. A load that
-  // finishes, or a reload (configVersion), re-baselines every section.
+  // freshly loaded or saved values never counts them as changes.
+  // - A load that finishes re-baselines every section.
+  // - Reload config (configVersion alone) re-baselines only the values it re-reads, as today's page does.
+  // - A save moves its section to the values it sent, so an edit typed meanwhile stays queued.
   let current = baselines;
-  const reseed = !state.loading && (seen.loading || seen.version !== state.configVersion);
-  if (reseed) {
+  const loaded = !state.loading && seen.loading;
+  const reloaded = !state.loading && !seen.loading && seen.version !== state.configVersion;
+  if (loaded) {
     current = Object.fromEntries(SECTIONS.map((s) => [s, pickValues(state, s)]));
-    setBaselines(current);
     for (const entry of carry.current ?? []) {
       for (const c of entry.changes) setterOf(state, c.field as keyof typeof state)?.(c.to);
     }
     carry.current = null;
-  } else if (committed.length > 0) {
-    current = { ...current, ...Object.fromEntries(committed.map((s) => [s, pickValues(state, s)])) };
-    setBaselines(current);
-    setCommitted([]);
+  } else if (reloaded) {
+    current = { ...current };
+    for (const section of RELOADED_SECTIONS) {
+      const next = pickValues(state, section);
+      for (const k of KEEP_ON_RELOAD[section] ?? []) next[k] = baselines[section]?.[k];
+      current[section] = next;
+    }
   }
-  if (seen.loading !== state.loading || (reseed && seen.version !== state.configVersion)) {
+  const commits = Object.keys(committed).length > 0;
+  if (commits && !loaded) current = { ...current, ...committed };
+  if (commits) setCommitted({});
+  if (current !== baselines) setBaselines(current);
+  if (seen.loading !== state.loading || seen.version !== state.configVersion) {
     setSeen({ loading: state.loading, version: state.configVersion });
   }
 
@@ -143,7 +153,13 @@ export function useRadioSaveQueueState({ state, saves }: SharedDeviceConfig, { n
     } finally {
       busy.current = false;
       setSaving(false);
-      if (result.ok.length) setCommitted((prev) => [...prev, ...result.ok]);
+      if (result.ok.length) {
+        const sent = queue.filter((e) => result.ok.includes(e.section));
+        setCommitted((prev) => ({
+          ...prev,
+          ...Object.fromEntries(sent.map((e) => [e.section, { ...current[e.section], ...Object.fromEntries(e.changes.map((c) => [c.field, c.to])) }])),
+        }));
+      }
       // The reboot notice reloads the configuration when it closes, which would drop the failed edits.
       if (result.ok.some((s) => rebootExpectation(s, state.localFirmwareVersion) !== 'never')) {
         carry.current = queue.filter((e) => result.failed.includes(e.section));

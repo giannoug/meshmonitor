@@ -33,6 +33,8 @@ export default function RadioSaveBar({ deviceName, compact }: RadioSaveBarProps)
   const q = useRadioSaveQueue();
   const [review, setReview] = useState(false);
   const [failed, setFailed] = useState<ConfigSaveSection[]>([]);
+  // An empty queue closes Review (its last category discarded), so it never reopens by itself on the next edit.
+  if (review && (!q || q.queue.length === 0)) setReview(false);
   if (!q || q.queue.length === 0) return null;
 
   const names = (sections: Array<{ categoryId: string }>) => sections.map((e) => t(categoryById(e.categoryId)?.labelKey ?? e.categoryId));
