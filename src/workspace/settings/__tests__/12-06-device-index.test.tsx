@@ -7,7 +7,7 @@
  * summaries, Bluetooth and Pins in use are Task 5.6's; ⌘, is Task 5.4's.
  */
 import type { ReactNode } from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { g2, renderSettings } from './renderSettings';
@@ -18,13 +18,16 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
 }));
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
 
+afterEach(() => vi.restoreAllMocks());
+
 const index = () => screen.findByRole('list', { name: 'Categories' }, { timeout: 5000 });
 
 describe('12-06-device-index', () => {
   it('12-06-device-index shows the board', async () => {
+    vi.spyOn(navigator, 'platform', 'get').mockReturnValue('MacIntel');
     const { container } = renderSettings(`${g2}/settings/device`);
     await within(await index()).findByText('Network');
-    expectBoard('12-06-device-index', container, { staged: ['Bluetooth', 'CLIENT', 'Pins in use', 'GPIO', '⌘,'] });
+    expectBoard('12-06-device-index', container, { staged: ['Bluetooth', 'CLIENT', 'Pins in use', 'GPIO'] });
     expect(screen.queryByTestId('page-app')).toBeNull();
   });
 

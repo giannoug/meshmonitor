@@ -34,6 +34,28 @@
   border-top: 0;
 }
 
+/* Opened from settings search: one pulse, then the attribute stays inert (Task 5.4). */
+.row[data-pulse] {
+  animation: settingPulse 1.6s ease-out;
+}
+
+@keyframes settingPulse {
+  0%,
+  40% {
+    background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+/* No fade: hold the highlight, then drop it (animationend still fires). */
+@media (prefers-reduced-motion: reduce) {
+  .row[data-pulse] {
+    animation-timing-function: steps(1, end);
+  }
+}
+
 /* Phone: label above a full-width control, at least 52 px (D8). */
 .row[data-phone] {
   flex-direction: column;

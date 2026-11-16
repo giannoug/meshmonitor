@@ -7,6 +7,8 @@
  * phone it is the page's own bar with Back. A category's rows sit in its
  * SettingsCategoryContext, so the kit knows the category and readOnly.
  *
+ * The ☆ in the header (Task 5.4) pins a category to the list's Pinned group.
+ *
  * - Device: each hardware category with today's restart rule for the firmware
  *   (configRebootRules). Summaries and Pins in use are Task 5.6's.
  * - Modules: the modules this firmware has, A–Z, with On/Off; the others fold
@@ -24,6 +26,7 @@ import { useIsPhone } from '../shell/useIsPhone';
 import { SettingsCategoryContext } from './kit/useFieldRegistry';
 import { moduleAvailable, moduleOn, type CategoryDef, type CategoryGroup, type CategoryTarget } from './categories';
 import { useSharedDeviceConfig } from './sharedDeviceConfig';
+import { usePins } from './usePins';
 import styles from './CategoryPage.module.css';
 
 export interface CategoryPageProps {
@@ -75,17 +78,21 @@ export default function CategoryPage({ def, group, categories, sourceId, target,
             <span>{t('nav.settings')}</span>
           </Link>
           <h1 className={styles.barTitle}>{title}</h1>
+          {def && <PinButton id={def.id} name={title} />}
         </header>
       ) : (
         <header className={styles.header}>
-          <h1 className={styles.title}>{title}</h1>
-          {def && (
-            <p className={styles.scope}>
-              <span>{scope}</span>
-              {restart}
-              {viewOnly}
-            </p>
-          )}
+          <div className={styles.headText}>
+            <h1 className={styles.title}>{title}</h1>
+            {def && (
+              <p className={styles.scope}>
+                <span>{scope}</span>
+                {restart}
+                {viewOnly}
+              </p>
+            )}
+          </div>
+          {def && <PinButton id={def.id} name={title} />}
         </header>
       )}
       {isPhone && def && (
@@ -97,6 +104,18 @@ export default function CategoryPage({ def, group, categories, sourceId, target,
       )}
       <div className={styles.body}>{body}</div>
     </main>
+  );
+}
+
+function PinButton({ id, name }: { id: string; name: string }) {
+  const { t } = useTranslation();
+  const { pins, canPin, toggle } = usePins();
+  if (!canPin) return null;
+  const pinned = pins.includes(id);
+  return (
+    <button type="button" className={styles.pin} aria-pressed={pinned} aria-label={t('workspace.settings.pin', { name })} onClick={() => toggle(id)}>
+      <UiIcon name={pinned ? 'favorite' : 'favoriteOff'} size={20} />
+    </button>
   );
 }
 

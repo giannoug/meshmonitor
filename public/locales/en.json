@@ -8974,5 +8974,20 @@
   "workspace.settings.review.note_restart": "{{device}} restarts about 7 s after the last write and is offline for 30–60 s.",
   "workspace.settings.review.note_may_restart": "{{device}} may restart about 7 s after the last write and be offline for 30–60 s.",
   "workspace.settings.review.one_restart": "One restart, not two.",
-  "workspace.settings.review.not_saved": "{{fields}}, not saved"
+  "workspace.settings.review.not_saved": "{{fields}}, not saved",
+  "workspace.settings.pin": "Pin {{name}}",
+  "workspace.settings.search.device_placeholder": "Search {{device}} settings",
+  "workspace.settings.search.shortcut_mac": "⌘,",
+  "workspace.settings.search.shortcut_other": "Ctrl+,",
+  "workspace.settings.search.opens_with": "opens with",
+  "workspace.settings.search.esc": "esc",
+  "workspace.settings.search.arrow_keys": "Up and down arrow keys",
+  "workspace.settings.search.enter_key": "Enter",
+  "workspace.settings.search.move": "move",
+  "workspace.settings.search.open": "open and highlight",
+  "workspace.settings.search.scope": "Searches every device, Preferences and Server",
+  "workspace.settings.search.kind_setting": "Setting",
+  "workspace.settings.search.kind_section": "Section",
+  "workspace.settings.search.where": "{{scope}} › {{category}}",
+  "workspace.settings.search.everywhere": "Search everywhere"
 }

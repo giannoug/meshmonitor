@@ -4,7 +4,7 @@
  * Board b-set-p1-list (phone): a device's settings list is a page, with Back
  * to Home, PINNED, ON THE RADIO (Identity, LoRa, Channels, Security, Device ›,
  * Modules ›, Maintenance ›) and IN MESHMONITOR, and with a radio edit queued
- * the one-line save bar with Review (Task 5.3). The search field is Task 5.4's.
+ * the one-line save bar with Review (Task 5.3). The search field is Task 5.4's (pins.test.tsx).
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
@@ -31,7 +31,7 @@ describe('b-set-p1-list', () => {
     goTo(`${g2}/settings`);
     await within(await list()).findByText('Store & Forward');
     expect(screen.getByRole('region', { name: 'Unsaved radio changes' })).toHaveTextContent('1 unsaved change');
-    expectBoard('b-set-p1-list', container, { staged: ['Search settings'] });
+    expectBoard('b-set-p1-list', container);
     const pinned = within(await list()).getByRole('list', { name: 'Pinned' });
     expect(within(pinned).getByRole('link', { name: 'MQTT' })).toHaveAttribute('href', `${g2}/settings/modules/mqtt`);
     expect(screen.queryByTestId('page-app')).toBeNull();

@@ -16,6 +16,12 @@ export interface FieldEntry {
   categoryId: string;
 }
 
+/** The URL hash a settings search result opens a row with; the row scrolls into view and pulses. */
+export const settingAnchor = (id: string) => `setting-${id}`;
+
+/** Whether the ⌘, hint says ⌘ (else Ctrl). */
+export const isMac = () => /Mac|iP(hone|ad|od)/.test(navigator.platform);
+
 export const SettingsCategoryContext = createContext<{ categoryId: string; readOnly: boolean } | null>(null);
 
 export const useSettingsCategory = () => useContext(SettingsCategoryContext);

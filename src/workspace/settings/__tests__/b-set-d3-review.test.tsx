@@ -10,7 +10,7 @@
  * untouched by it and by the reload after the restart.
  */
 import type { ReactNode } from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { g2, goTo, renderSettings } from './renderSettings';
@@ -20,6 +20,8 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   WebSocketProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
+
+afterEach(() => vi.restoreAllMocks());
 
 // What each write sent, in order.
 const writes: string[] = [];
@@ -56,6 +58,7 @@ const openReview = async () => {
 
 describe('b-set-d3-review', () => {
   it('b-set-d3-review shows the board', async () => {
+    vi.spyOn(navigator, 'platform', 'get').mockReturnValue('MacIntel');
     await queueLoraAndDevice();
     const sheet = await openReview();
     expect(sheet).toHaveTextContent('3 changes in 2 categories, sent to Station G2 one category at a time.');
@@ -67,7 +70,7 @@ describe('b-set-d3-review', () => {
     expect(within(device).getByText('Rebroadcast Mode').closest('li')).toHaveTextContent('Rebroadcast ModeALLLOCAL_ONLY');
     expect(within(device).getByText('May restart')).toBeInTheDocument();
     expect(sheet).toHaveTextContent('Station G2 restarts about 7 s after the last write and is offline for 30–60 s. One restart, not two.');
-    expectBoard('b-set-d3-review', document.body, { staged: ['⌘,', 'Search settings'] });
+    expectBoard('b-set-d3-review', document.body);
   });
 
   it('a category\'s Discard drops only that category', async () => {

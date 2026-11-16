@@ -1080,6 +1080,22 @@ export const BOARDS: Board[] = [
       await page.getByRole('dialog', { name: 'Review changes' }).waitFor();
     },
   },
+  // Task 5.4: ⌘, settings search over Node display, with the user's pins in the list.
+  {
+    id: 'b-set-d4-search',
+    size: 'desktop',
+    path: '/source/src-g2/settings/node-display',
+    fixtures: PINS,
+    setup: async (page) => {
+      await page.getByRole('heading', { level: 1, name: 'Node Display' }).waitFor();
+      // The board draws the Mac hint, read when search opens.
+      await page.evaluate(() => Object.defineProperty(navigator, 'platform', { get: () => 'MacIntel' }));
+      await page.keyboard.press('Control+Comma');
+      const dialog = page.getByRole('dialog', { name: 'Search settings' });
+      await dialog.getByRole('combobox', { name: 'Search settings' }).fill('hop');
+      await dialog.getByRole('group', { name: 'Station G2' }).waitFor();
+    },
+  },
   {
     id: 'b-set-p2-lora',
     size: 'phone',

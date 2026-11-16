@@ -4,10 +4,10 @@
  * Board b-set-d1-lora (desktop): LoRa on the row kit, an edit showing what the
  * node holds ("was 3"), and the radio save bar with today's restart words for
  * Station G2's firmware 2.7.15. The edits queue across categories, whose pages
- * remount, and Discard puts them back. The search field is Task 5.4's.
+ * remount, and Discard puts them back. The search field and its ⌘, hint are Task 5.4's.
  */
 import type { ReactNode } from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { SOURCE_IDS } from '../../__fixtures__/athens';
@@ -19,6 +19,8 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
 }));
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
 
+afterEach(() => vi.restoreAllMocks());
+
 const pins = { 'GET /api/user/preferences': () => ({ success: true, data: { preferences: { 'settings.pins': ['modules/mqtt', 'modules/storeforward'] } } }) };
 const bar = () => screen.findByRole('region', { name: 'Unsaved radio changes' });
 const hops = async () => {
@@ -29,6 +31,7 @@ const hops = async () => {
 
 describe('b-set-d1-lora', () => {
   it('b-set-d1-lora shows the board', async () => {
+    vi.spyOn(navigator, 'platform', 'get').mockReturnValue('MacIntel');
     const { container } = renderSettings(`${g2}/settings/lora`, { fixtures: pins });
     fireEvent.change(await hops(), { target: { value: '4' } });
     goTo(`${g2}/settings/device/device`);
@@ -39,7 +42,7 @@ describe('b-set-d1-lora', () => {
     expect(screen.getByText('was 3')).toBeInTheDocument();
     expect(await bar()).toHaveTextContent('2 changes in LoRa and Device · Node restarts');
     expect(await bar()).toHaveTextContent('Station G2 restarts about 7 s after saving');
-    expectBoard('b-set-d1-lora', container, { staged: ['⌘,', 'Search settings'] });
+    expectBoard('b-set-d1-lora', container);
   });
 
   it('shows no save bar until something changes, and Discard puts every category back', async () => {

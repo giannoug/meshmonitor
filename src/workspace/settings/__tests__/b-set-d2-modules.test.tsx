@@ -6,7 +6,7 @@
  * "Supported" heading), so this test checks d2's remaining strings against it.
  */
 import type { ReactNode } from 'react';
-import { describe, it, vi } from 'vitest';
+import { afterEach, describe, it, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { g2, renderSettings } from './renderSettings';
@@ -17,10 +17,13 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
 }));
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
 
+afterEach(() => vi.restoreAllMocks());
+
 describe('b-set-d2-modules', () => {
   it('b-set-d2-modules shows the board', async () => {
+    vi.spyOn(navigator, 'platform', 'get').mockReturnValue('MacIntel');
     const { container } = renderSettings(`${g2}/settings/modules`);
     await within(await screen.findByRole('list', { name: 'Supported' }, { timeout: 5000 })).findByText('Traffic Management');
-    expectBoard('b-set-d2-modules', container, { staged: ['⌘,', 'Search settings'] });
+    expectBoard('b-set-d2-modules', container);
   });
 });

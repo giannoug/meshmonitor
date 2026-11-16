@@ -3,10 +3,10 @@
  *
  * Board 12-07-modules-index (desktop): Modules › lists the modules this
  * firmware has, A–Z, each with On/Off, and folds the rest into one
- * "N not on this firmware" row that still opens them. The ☆ and ⌘, are Task 5.4's.
+ * "N not on this firmware" row that still opens them. The ⌘, hint is Task 5.4's; pinning is per category (pins.test.tsx).
  */
 import type { ReactNode } from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { g2, renderSettings } from './renderSettings';
@@ -17,13 +17,16 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
 }));
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
 
+afterEach(() => vi.restoreAllMocks());
+
 const supported = () => screen.findByRole('list', { name: 'Supported' }, { timeout: 5000 });
 
 describe('12-07-modules-index', () => {
   it('12-07-modules-index shows the board', async () => {
+    vi.spyOn(navigator, 'platform', 'get').mockReturnValue('MacIntel');
     const { container } = renderSettings(`${g2}/settings/modules`);
     await within(await supported()).findByText('Traffic Management');
-    expectBoard('12-07-modules-index', container, { staged: ['⌘,'] });
+    expectBoard('12-07-modules-index', container);
   });
 
   it('lists the supported modules A–Z with On/Off, and opens each one', async () => {

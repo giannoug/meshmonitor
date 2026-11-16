@@ -5,18 +5,27 @@
  * Maintenance ›, with the open child listed under its parent) and IN
  * MESHMONITOR. A group the viewer may only look at says "View only".
  *
+ * Its search field (Task 5.4) filters this list to the device's categories
+ * that match (label and today's section keywords) and offers "Search
+ * everywhere", which opens ⌘, settings search with the same words.
+ *
  * - `sidebar`: the desktop sidebar in settings mode, headed "← <Device> / Settings".
  * - `page`: the phone list page, headed "‹ Home  <Device>".
  */
-import { useId } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon, type UiIconName } from '../../components/icons';
 import { useAuth } from '../../contexts/AuthContext';
-import { useUserPreference } from '../prefs/useUserPreferences';
+import { matchesQuery, tokenize } from '../../components/search/configSearchMatch';
+import { useShellDevices } from '../shell/shellDevices';
+import { useIsPhone } from '../shell/useIsPhone';
+import { isMac } from './kit/useFieldRegistry';
+import { usePins } from './usePins';
 import {
   GROUPS,
   categoryById,
+  categoryIndex,
   readOnlyFor,
   resolveSettingsPath,
   type CategoryDef,
@@ -70,7 +79,12 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
   const { pathname } = useLocation();
   const { hasPermission } = useAuth();
   const { categories } = useVisibleCategories(sourceId, sourceType);
-  const [pins] = useUserPreference<string[]>('settings.pins', []);
+  const { pins } = usePins();
+  const isPhone = useIsPhone();
+  const { openSettingsSearch } = useShellDevices();
+  const [query, setQuery] = useState('');
+  const fieldId = useId();
+  const keywords = useMemo(() => new Map(categoryIndex().map((c) => [c.id, c.keywords.join(' ')])), []);
   const device = `/source/${encodeURIComponent(sourceId)}`;
   const base = `${device}/settings`;
   const rest = pathname.startsWith(`${base}/`) ? pathname.slice(base.length + 1) : '';
@@ -90,7 +104,7 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
     readOnly: readOnlyFor(c, hasPermission, sourceId),
   });
 
-  const pinned: Row[] = (Array.isArray(pins) ? pins : [])
+  const pinned: Row[] = pins
     .filter((id) => visible.has(id))
     .map((id) => ({ ...row(categoryById(id)!, 'pin'), key: `pin:${id}`, icon: 'favorite', active: false }));
 
@@ -115,6 +129,14 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
   const meshmonitor = categories.filter((c) => c.scope === 'meshmonitor').map((c) => row(c, 'meshmonitor'));
 
   const sidebar = variant === 'sidebar';
+  const tokens = tokenize(query);
+  const found = categories
+    .filter((c) => matchesQuery(`${t(c.labelKey)} ${keywords.get(c.id) ?? ''}`, tokens))
+    .map((c) => row(c, c.scope === 'meshmonitor' ? 'meshmonitor' : c.group ? 'device' : 'radio'));
+  const followed = () => {
+    setQuery('');
+    onNavigate?.();
+  };
   return (
     <div className={styles.frame} data-variant={variant}>
       <div className={styles.head}>
@@ -136,20 +158,46 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
           </>
         )}
       </div>
+      <div className={styles.search}>
+        <UiIcon name="search" size={16} />
+        <label htmlFor={fieldId} className={styles.srOnly}>{t('config_search.title')}</label>
+        <input
+          id={fieldId}
+          type="search"
+          className={styles.searchInput}
+          value={query}
+          placeholder={isPhone ? t('config_search.title') : t('workspace.settings.search.device_placeholder', { device: sourceName })}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {!isPhone && (
+          <kbd className={styles.kbd}>
+            {t(isMac() ? 'workspace.settings.search.shortcut_mac' : 'workspace.settings.search.shortcut_other')}
+          </kbd>
+        )}
+      </div>
       <nav className={styles.body} aria-label={t('nav.settings')}>
-        <Section title={t('workspace.settings.pinned')} rows={pinned} sidebar={sidebar} onNavigate={onNavigate} />
-        <Section
-          title={t('workspace.settings.on_radio')}
-          rows={radio}
-          sidebar={sidebar}
-          onNavigate={onNavigate}
-        />
-        <Section
-          title={t('workspace.settings.in_meshmonitor')}
-          rows={meshmonitor}
-          sidebar={sidebar}
-          onNavigate={onNavigate}
-        />
+        {tokens.length > 0 ? (
+          <>
+            {found.length > 0 ? (
+              <Section title={t('workspace.settings.categories')} rows={found} sidebar={sidebar} onNavigate={followed} />
+            ) : (
+              <p className={styles.empty}>{t('config_search.no_sections')}</p>
+            )}
+            {openSettingsSearch && (
+              <button type="button" className={styles.everywhere} onClick={() => openSettingsSearch(query)}>
+                <UiIcon name="search" size={16} />
+                <span className={styles.label}>{t('workspace.settings.search.everywhere')}</span>
+                <UiIcon name="chevronRight" size={16} />
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <Section title={t('workspace.settings.pinned')} rows={pinned} sidebar={sidebar} onNavigate={onNavigate} />
+            <Section title={t('workspace.settings.on_radio')} rows={radio} sidebar={sidebar} onNavigate={onNavigate} />
+            <Section title={t('workspace.settings.in_meshmonitor')} rows={meshmonitor} sidebar={sidebar} onNavigate={onNavigate} />
+          </>
+        )}
       </nav>
     </div>
   );

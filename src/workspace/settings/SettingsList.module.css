@@ -91,6 +91,100 @@
   white-space: nowrap;
 }
 
+/* The list's own search (Task 5.4): this device only, ⌘, hint on desktop. */
+.search {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 8px 0;
+  padding: 0 10px;
+  min-height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-sunken);
+  color: var(--color-text-subtle);
+}
+
+.search:focus-within {
+  border-color: var(--color-accent);
+}
+
+.frame[data-variant='page'] .search {
+  min-height: 48px;
+  margin: 12px 12px 0;
+  border-radius: 12px;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.frame[data-variant='page'] .searchInput {
+  height: 46px;
+  font-size: 17px;
+}
+
+.kbd {
+  flex: none;
+  padding: 1px 5px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--color-text-subtle);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.empty {
+  margin: 12px 10px;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.everywhere {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.frame[data-variant='page'] .everywhere {
+  min-height: 52px;
+  font-size: 17px;
+}
+
+.everywhere:hover {
+  background: var(--color-surface);
+}
+
 .body {
   flex: 1;
   min-height: 0;

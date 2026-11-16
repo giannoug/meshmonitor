@@ -3,11 +3,14 @@
  * control on the right; stacked on phone, at least 52 px tall. The row names
  * its control (`useSettingRow`) and registers with the field registry so
  * settings search (Task 5.4) can find it and scroll to `data-setting-id`.
+ * Opened from a search result (`#setting-<id>`), the row scrolls into view and
+ * pulses once; each new visit to that URL pulses again.
  */
-import { useId, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useIsPhone } from '../../shell/useIsPhone';
-import { SettingRowContext, useRegisterField, useSettingsCategory } from './useFieldRegistry';
+import { SettingRowContext, settingAnchor, useRegisterField, useSettingsCategory } from './useFieldRegistry';
 import styles from './kit.module.css';
 
 export interface SettingRowProps {
@@ -29,9 +32,29 @@ export default function SettingRow({ id, label, help, children, keywords = NO_KE
   const inputId = useId();
   const helpId = help ? `${inputId}-help` : undefined;
   useRegisterField({ id, label, keywords, categoryId: category?.categoryId ?? '' });
+  const { hash, key } = useLocation();
+  const hit = hash === `#${settingAnchor(id)}`;
+  const ref = useRef<HTMLDivElement>(null);
+  // The visit whose pulse has run (the CSS animation ended), so a re-render does not replay it.
+  const [pulsed, setPulsed] = useState<string | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!hit || !el) return;
+    el.scrollIntoView?.({ block: 'center' });
+    // A native listener: React maps onAnimationEnd to a prefixed event where AnimationEvent is missing.
+    const done = (e: Event) => e.target === el && setPulsed(key);
+    el.addEventListener('animationend', done);
+    return () => el.removeEventListener('animationend', done);
+  }, [hit, key]);
   return (
     <SettingRowContext.Provider value={{ inputId, label, helpId }}>
-      <div className={styles.row} data-setting-id={id} data-phone={isPhone || undefined}>
+      <div
+        ref={ref}
+        className={styles.row}
+        data-setting-id={id}
+        data-phone={isPhone || undefined}
+        data-pulse={(hit && pulsed !== key) || undefined}
+      >
         <div className={styles.text}>
           <label className={styles.label} htmlFor={inputId}>{label}</label>
           {was !== undefined && isPhone && <p className={styles.wasLine}>{t('workspace.settings.was', { value: was })}</p>}

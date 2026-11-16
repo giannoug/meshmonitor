@@ -15,12 +15,16 @@
  * sidebar's field, the phone Home's pill and ⌘K / Ctrl+K open it for the open
  * Meshtastic-family device, as a dialog on desktop and a page on the phone.
  *
+ * Settings search (Task 5.4, board b-set-d4-search) is the shell's too:
+ * ⌘, / Ctrl+, anywhere, or "Search everywhere" from a settings list. One of
+ * the two searches shows at a time (D9c).
+ *
  * Also here: the open device going away (Review Focus 4), the hashchange
  * that Classic's SectionNav needs after a client-side move to a `#section`,
  * and the forced password change after a recovery-code sign-in (Classic shows
  * it from UserMenu, which the Workspace does not mount).
  */
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { matchPath, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -30,6 +34,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { UiIcon } from '../../components/icons';
 import { useDashboardSources } from '../../hooks/useDashboardData';
 import SearchMessages from '../chat/SearchMessages';
+import SettingsSearch from '../settings/SettingsSearch';
 import { canReadMessages, isMeshtasticFamily } from './deviceTabs';
 import DeviceRail from './DeviceRail';
 import DeviceSidebar, { type SidebarMode } from './DeviceSidebar';
@@ -109,8 +114,13 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   const searchable = !!source && isMeshtasticFamily(source.type);
   const canSearch = !!source && searchable && canReadMessages(hasPermission, source.id);
   const [searchOpen, setSearchOpen] = useState(false);
+  // Settings search: closed (null), or open with these first words.
+  const [settingsQuery, setSettingsQuery] = useState<string | null>(null);
   // Any navigation closes search: picking a result, switching device, or a tab (even the one under the phone page).
-  useEffect(() => setSearchOpen(false), [location.key]);
+  useEffect(() => {
+    setSearchOpen(false);
+    setSettingsQuery(null);
+  }, [location.key]);
   // App's ⌘K / Ctrl+K, with the same semantics (also from a text field). Caught on the window
   // before it reaches the document, so a re-hosted App does not open its own modal as well.
   useEffect(() => {
@@ -119,13 +129,45 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         e.stopPropagation();
-        if (canSearch) setSearchOpen((o) => !o);
+        if (canSearch) {
+          setSettingsQuery(null);
+          setSearchOpen((o) => !o);
+        }
       }
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
   }, [searchable, canSearch]);
-  const openSearch = canSearch ? () => setSearchOpen(true) : null;
+  const openSearch = canSearch
+    ? () => {
+        setSettingsQuery(null);
+        setSearchOpen(true);
+      }
+    : null;
+  // ⌘, / Ctrl+, toggles settings search everywhere in the Workspace (today's ConfigSearchHost chord), caught
+  // on the window like ⌘K so a re-hosted page's own palette does not open as well.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key === ',') {
+        e.preventDefault();
+        e.stopPropagation();
+        setSearchOpen(false);
+        setDrawerOpen(false);
+        setSettingsQuery((q) => (q === null ? '' : null));
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, []);
+  const openSettingsSearch = useCallback((query = '') => {
+    setSearchOpen(false);
+    setDrawerOpen(false);
+    setSettingsQuery(query);
+  }, []);
+  const closeSettingsSearch = useCallback(() => setSettingsQuery(null), []);
+  const settingsSearch = settingsQuery !== null && (
+    <SettingsSearch sources={sources} openId={openId} phone={isPhone} initialQuery={settingsQuery} onClose={closeSettingsSearch} />
+  );
   // Kept mounted per device, so the search survives close and reopen (today's SearchModal is always mounted).
   const search = canSearch && source && (
     <SearchMessages key={source.id} source={source} phone={isPhone} open={searchOpen} onClose={() => setSearchOpen(false)} />
@@ -149,7 +191,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
 
   if (isPhone) {
     return (
-      <ShellDevicesContext.Provider value={{ sources, home, openSearch }}>
+      <ShellDevicesContext.Provider value={{ sources, home, openSearch, openSettingsSearch }}>
         <div className={styles.shell} data-workspace-shell="">
           <div className={styles.main}>
             <PhoneShell sources={sources} openId={openId} home={home} mode={mode}>
@@ -158,6 +200,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
           </div>
         </div>
         {search}
+        {settingsSearch}
         {forcedPasswordChange}
       </ShellDevicesContext.Provider>
     );
@@ -167,7 +210,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   const frame = { '--ws-frame-width': `${narrow ? RAIL : RAIL + SIDEBAR}px` } as CSSProperties;
 
   return (
-    <ShellDevicesContext.Provider value={{ sources, home, openSearch }}>
+    <ShellDevicesContext.Provider value={{ sources, home, openSearch, openSettingsSearch }}>
       <div className={styles.shell} data-workspace-shell="" style={frame}>
         <DeviceRail
           sources={sources}
@@ -203,6 +246,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
         <div className={`${styles.main} ${styles.framed}`}>{children}</div>
       </div>
       {search}
+      {settingsSearch}
       {forcedPasswordChange}
     </ShellDevicesContext.Provider>
   );
