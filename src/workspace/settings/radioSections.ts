@@ -101,11 +101,6 @@ export const QUEUED_FIELDS: Readonly<Partial<Record<ConfigSaveSection, readonly 
 };
 
 /**
- * The queued sections Reload config re-reads from the node (useDeviceConfigSaves
- * `reload()`), whose baselines it moves, as their Classic sections re-baseline on
- * `configVersion`. Modules are not re-read, so a reload keeps their edits queued.
- */
-/**
  * Sections only a remote target queues (Task 5.9): this radio's MQTT keeps
  * today's own Save (Ruling 5.6), a remote node's MQTT goes out with Send to node.
  */
@@ -118,6 +113,11 @@ export const REMOTE_QUEUED_FIELDS: Readonly<Partial<Record<ConfigSaveSection, re
 
 const fieldsOf = (section: ConfigSaveSection) => QUEUED_FIELDS[section] ?? REMOTE_QUEUED_FIELDS[section] ?? [];
 
+/**
+ * The queued sections Reload config re-reads from the node (useDeviceConfigSaves
+ * `reload()`), whose baselines it moves, as their Classic sections re-baseline on
+ * `configVersion`. Modules are not re-read, so a reload keeps their edits queued.
+ */
 export const RELOADED_SECTIONS: readonly ConfigSaveSection[] = [
   'owner', 'device', 'lora', 'position', 'power', 'display', 'network', 'telemetry', 'neighborinfo',
 ];

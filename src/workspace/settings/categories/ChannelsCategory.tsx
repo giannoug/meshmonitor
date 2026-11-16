@@ -63,17 +63,9 @@ export default function ChannelsCategory({ sourceId, sub = '' }: CategoryProps) 
   const remoteSends = remote && remoteActions ? { actions: remoteActions, sends: t('workspace.settings.remote.sends_admin_packet', { name: remote.node.longName }) } : undefined;
   // AEAD on a remote node: known only when a read showed a channel using it (M10).
   const aeadSupported = remote ? (channels.some((c) => c.useAead) ? true : null) : config.state.supportedModules?.aeadChannels === true;
-  if (sub === 'share') {
-    return (
-      <ShareImportPage
-        base={base}
-        sourceId={sourceId}
-        channels={channels}
-        onImported={refresh}
-        remote={remote ? { nodeNum: remote.node.nodeNum, name: remote.node.longName } : undefined}
-      />
-    );
-  }
+  // Config-URL share and import are this radio's only (Rulings 5.9 GE, GH): the remote export asks the node
+  // per ticked slot on every tick, and the remote import cannot name this source, so it could send from another radio.
+  if (sub === 'share' && !remote) return <ShareImportPage base={base} sourceId={sourceId} channels={channels} onImported={refresh} />;
   if (/^[0-7]$/.test(sub)) {
     return (
       <ChannelEditPage
@@ -97,7 +89,7 @@ interface ListProps {
   sourceId: string;
   channels: Channel[];
   onChannelsUpdated(): void;
-  /** A remote node's slots and writes (Task 5.9): reordering is this radio's only. */
+  /** A remote node's slots and writes (Task 5.9): reordering and config-URL share/import are this radio's only. */
   remote?: { actions: NonNullable<ReturnType<typeof useRemoteChannelActions>>; sends: string };
 }
 
@@ -166,15 +158,17 @@ function ChannelList({ base, sourceId, channels, onChannelsUpdated, remote }: Li
             <UiIcon name="import" size={16} /> {t('channels_config.import_to_slot', { slot: next })}
           </button>
         )}
-        {/* Reordering rewrites every slot on this radio; Admin Commands has no remote reorder. */}
+        {/* Reordering rewrites every slot on this radio (Admin Commands has no remote reorder); config-URL share and import are this radio's only (GE, GH). */}
         {!remote && (
-          <button type="button" className={styles.button} aria-pressed={reordering} disabled={readOnly || visible.length < 2} onClick={() => setReordering(true)}>
-            <UiIcon name="sortAscending" size={16} /> {t('workspace.settings.channels.reorder')}
-          </button>
+          <>
+            <button type="button" className={styles.button} aria-pressed={reordering} disabled={readOnly || visible.length < 2} onClick={() => setReordering(true)}>
+              <UiIcon name="sortAscending" size={16} /> {t('workspace.settings.channels.reorder')}
+            </button>
+            <Link to={`${base}/share`} className={styles.button}>
+              <UiIcon name="link" size={16} /> {t('workspace.settings.channels.share_title')}
+            </Link>
+          </>
         )}
-        <Link to={`${base}/share`} className={styles.button}>
-          <UiIcon name="link" size={16} /> {t('workspace.settings.channels.share_title')}
-        </Link>
         <span className={styles.toolbarNote}>{t('workspace.settings.channels.slots_used', { count: ALL_SLOTS.length - free.length })}</span>
       </div>
       {next === null && <p className={styles.note}>{t('channels_config.add_channel_full')}</p>}

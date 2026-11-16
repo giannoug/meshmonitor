@@ -211,20 +211,16 @@ describe('M8, M10, M6: a remote node’s channels', () => {
     expect(screen.getByText(/Whether Hilltop Relay can use AEAD is not known/)).toBeInTheDocument();
   });
 
-  it('a config URL imports to the node through today’s remote import, saying what it sends', async () => {
-    renderSettings(page('channels/share'), {
-      fixtures: remoteFixtures({
-        'POST /api/channels/decode-url': () => ({ channels: [{ name: 'Ridge', psk: 'AQ==' }, { name: 'Coast', psk: 'AQ==' }] }),
-        'POST /api/admin/import-config': () => ({ success: true, imported: { channels: 2, channelDetails: [], loraConfig: false } }),
-      }),
-    });
+  it('config-URL share and import are this radio’s only: no URL control, no import or export request (GE, GH)', async () => {
+    renderSettings(page('channels'), { fixtures: remoteFixtures() });
     await readNow();
-    fireEvent.change(await screen.findByLabelText('Meshtastic Configuration URL', {}, T), { target: { value: 'https://meshtastic.org/e/#CgcSAQE' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Decode URL' }));
-    expect(await screen.findByText('Sends 1 admin packet per channel in the URL (2) to Hilltop Relay over the mesh', {}, T)).toBeInTheDocument();
-    // Export is this radio's only: nothing asks the node for its slots.
-    expect(requests().filter((r) => r.what === 'POST /api/admin/export-config')).toEqual([]);
-    fireEvent.click(screen.getByRole('button', { name: 'Import Selected' }));
-    await waitFor(() => expect(requests().find((r) => r.what === 'POST /api/admin/import-config')?.body).toMatchObject({ nodeNum: HILLTOP }), T);
+    await screen.findByRole('link', { name: /LongFast/ }, T);
+    expect(screen.queryByRole('link', { name: 'Share and import channels' })).toBeNull();
+    // The share page's URL itself is not served for a remote node: it goes back to the channel list.
+    goTo(page('channels/share'));
+    await waitFor(() => expect(screen.queryByLabelText('Meshtastic Configuration URL')).toBeNull(), T);
+    expect(screen.queryByRole('button', { name: 'Decode URL' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Import Selected' })).toBeNull();
+    expect(requests().filter((r) => /\/(import-config|export-config|encode-url|decode-url)$/.test(r.what))).toEqual([]);
   });
 });
