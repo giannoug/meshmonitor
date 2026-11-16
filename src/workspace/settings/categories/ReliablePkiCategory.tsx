@@ -44,6 +44,7 @@ function ReliablePkiRows() {
         label={t('settings.reliable_pki.source_label', 'Reliable PKI for this source')}
         help={t('settings.reliable_pki.description')}
         scoped
+        segmented
         parse={parseSource}
         options={[
           { value: 'inherit', label: t('settings.reliable_pki.mode_inherit', { mode: modeLabel(globalDefault), defaultValue: 'Use the global default ({{mode}})' }) },

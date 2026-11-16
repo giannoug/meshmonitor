@@ -6,7 +6,7 @@
  * this browser for that device (today's per-source rows) and names what it
  * pushes; what each device sends stays in its own settings.
  */
-import { describe, it, expect, vi, onTestFinished } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWorkspace, type RenderWorkspaceOptions } from '../../test/renderWorkspace';
 import { expectBoard } from '../../test/boardChecks';
@@ -15,22 +15,7 @@ import { ToastProvider } from '../../../components/ToastContainer';
 import { defaultNotificationPreferences } from '../../../utils/notificationDefaults';
 import WorkspaceShell from '../../shell/WorkspaceShell';
 import NotificationsPage from '../NotificationsPage';
-
-const ENDPOINT = 'https://push.example/abc';
-
-/** A browser with push, subscribed (endpoint held) and permission granted. */
-function stubPush() {
-  const subscription = { endpoint: ENDPOINT, getKey: () => new Uint8Array([1, 2, 3]).buffer, unsubscribe: vi.fn(async () => true) };
-  const pushManager = { getSubscription: vi.fn(async () => subscription), subscribe: vi.fn(async () => subscription) };
-  const prevNotification = (window as { Notification?: unknown }).Notification;
-  const prevPush = (window as { PushManager?: unknown }).PushManager;
-  Object.assign(window, { Notification: { permission: 'granted', requestPermission: vi.fn(async () => 'granted') }, PushManager: function PushManager() {} });
-  Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: { ready: Promise.resolve({ pushManager }) } });
-  onTestFinished(() => {
-    Object.assign(window, { Notification: prevNotification, PushManager: prevPush });
-    delete (navigator as { serviceWorker?: unknown }).serviceWorker;
-  });
-}
+import { ENDPOINT, stubPush } from '../../test/pushStub';
 
 function renderPage(opts: RenderWorkspaceOptions = {}) {
   return renderWorkspace(
@@ -93,6 +78,23 @@ describe('s2-notifications', () => {
     );
     fireEvent.click(screen.getByRole('switch', { name: 'Station G2' }));
     await waitFor(() => expect(writes()).toContain(`/api/push/unsubscribe {"endpoint":"${ENDPOINT}","sourceId":"${SOURCE_IDS.g2}"}`));
+  });
+
+  it('when the server cannot say, a device with this browser\'s endpoint reads subscribed (today\'s fallback)', async () => {
+    stubPush();
+    renderPage({ fixtures: { 'POST /api/push/subscription-status': () => new Response('{}', { status: 500 }) } });
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Rooftop RAK' })).toBeChecked());
+    expect(screen.getByRole('switch', { name: 'Station G2' })).toBeChecked();
+  });
+
+  it('a toggle reads back only its own device\'s status', async () => {
+    stubPush();
+    renderPage();
+    await screen.findByText('DMs, mentions, replies');
+    const statusPosts = () => vi.mocked(fetch).mock.calls.filter(([u]) => String(u).includes('subscription-status')).length;
+    const before = statusPosts();
+    fireEvent.click(screen.getByRole('switch', { name: 'Rooftop RAK' }));
+    await waitFor(() => expect(statusPosts()).toBe(before + 1));
   });
 
   it('links to the open device\'s own Notifications', async () => {

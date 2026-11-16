@@ -39,6 +39,7 @@ import SettingGroup from '../kit/SettingGroup';
 import { useReadOnly } from '../kit/useFieldRegistry';
 import { useSharedDeviceConfig } from '../sharedDeviceConfig';
 import type { CategoryProps } from '../categories';
+import SettingSegmented from '../kit/SettingSegmented';
 import { ActionRow, MaintenancePage } from './maintenanceShared';
 import pages from './SettingsPages.module.css';
 import styles from './Maintenance.module.css';
@@ -126,21 +127,13 @@ function FirmwarePage() {
               label={t('firmware.channel', 'Release Channel')}
               help={t('workspace.settings.maintenance.channel_help')}
             >
-              <span className={styles.segmented} role="radiogroup" aria-label={t('firmware.channel', 'Release Channel')}>
-                {CHANNELS.map(([id]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    role="radio"
-                    aria-checked={fw.channel === id}
-                    className={styles.segment}
-                    disabled={readOnly}
-                    onClick={() => fw.setChannel(id)}
-                  >
-                    {channelLabel(id)}
-                  </button>
-                ))}
-              </span>
+              <SettingSegmented
+                label={t('firmware.channel', 'Release Channel')}
+                value={fw.channel}
+                options={CHANNELS.map(([id]) => ({ value: id, label: channelLabel(id) }))}
+                readOnly={readOnly}
+                onChange={(id) => fw.setChannel(id as typeof fw.channel)}
+              />
               {channelDirty && (
                 <button type="button" className={`${pages.button} ${pages.primary}`} onClick={() => void fw.handleSaveChannel()} disabled={fw.isSavingChannel || readOnly}>
                   {fw.isSavingChannel ? '...' : t('firmware.save_channel', 'Save')}

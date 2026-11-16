@@ -121,7 +121,8 @@ describe('12-12-meshmonitor-data', () => {
     await screen.findByText('Saved', {}, T);
     expect(posted()).toEqual([{ path: '/api/settings', sourceId: SOURCE_IDS.g2, body: { aircraftAgeOutEnabled: 'true' } }]);
     expect(JSON.stringify(posted())).not.toContain('aircraftAgeOutLastRunAt');
-    // The server's row is as it was before the save.
+    // The server's row is as it was before the save. Tautological against this fixture, which writes only
+    // the keys a POST names: the body assertion above is the real check, as 5.3's lastAnnouncementTime test.
     expect(server.stored(SOURCE_IDS.g2).aircraftAgeOutLastRunAt).toBe('1700000000000');
   });
 
@@ -146,6 +147,17 @@ describe('12-12-meshmonitor-data', () => {
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/api/purge/nodes'), expect.objectContaining({ method: 'POST' })));
     const call = vi.mocked(fetch).mock.calls.find(([u]) => String(u).includes('/api/purge/nodes'))!;
     expect(JSON.parse(String(call[1]?.body))).toEqual({ olderThanHours: 0, sourceId: SOURCE_IDS.g2 });
+  });
+});
+
+describe('Reliable PKI', () => {
+  it('is a segmented choice saved on change to this source', async () => {
+    renderSettings(`${g2}/settings/reliable-pki`, { fixtures: meshmonitorFixtures() });
+    const group = await screen.findByRole('radiogroup', { name: 'Reliable PKI for this source' }, T);
+    expect(within(group).getByRole('radio', { name: 'As needed' })).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(within(group).getByRole('radio', { name: 'Avoid PKI' }));
+    await waitFor(() => expect(posted()).toEqual([{ path: '/api/settings', sourceId: SOURCE_IDS.g2, body: { reliablePkiSourceMode: 'avoid' } }]));
+    expect(await screen.findByText(/readable by anyone on that channel/, {}, T)).toBeInTheDocument();
   });
 });
 

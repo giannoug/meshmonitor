@@ -33,6 +33,7 @@ import { notificationCapabilities, loadNotificationChannels } from '../../../uti
 import type { NotificationPreferenceDefaults } from '../../../utils/notificationDefaults';
 import ConfirmSheet from '../../patterns/ConfirmSheet';
 import Sheet from '../../patterns/Sheet';
+import { useIsPhone } from '../../shell/useIsPhone';
 import StateView from '../../patterns/StateView';
 import AdvancedCard from '../kit/AdvancedCard';
 import SettingGroup from '../kit/SettingGroup';
@@ -107,7 +108,7 @@ function NotificationRows({ sourceId }: { sourceId: string }) {
         )}
         {caps.traceroute && toggle('notifyOnTraceroute', t('notifications.traceroutes'))}
         {caps.waypoint && toggle('notifyOnWaypoint', t('notifications.notify_on_waypoint', 'Waypoint arrivals'))}
-        {toggle('notifyOnInactiveNode', t('notifications.notify_on_inactive_node'), t('settings.inactive_node_threshold_description'))}
+        {toggle('notifyOnInactiveNode', t('notifications.notify_on_inactive_node'), t('workspace.settings.notifications.inactive_help'))}
       </SettingGroup>
 
       <AdvancedCard label={t('workspace.settings.notifications.advanced')}>
@@ -170,8 +171,8 @@ function PrefNumber({ sourceId, field, label, min, max }: { sourceId: string; fi
 /** Web Push on this browser: this source's subscription for this browser (and the Web Push service). */
 function WebPushRow({ sourceId, prefs }: { sourceId: string; prefs: NotificationPrefs }) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const push = usePushHere(sourceId);
-  const [service, setService] = usePrefField(sourceId, 'enableWebPush');
   const [busy, setBusy] = useState(false);
   const [state, setState] = useState<{ saved: boolean; error?: string }>({ saved: false });
   const supported = pushSupported();
@@ -191,7 +192,16 @@ function WebPushRow({ sourceId, prefs }: { sourceId: string; prefs: Notification
           return;
         }
         await subscribeHere(sourceId);
-        if (!service) setService(true);
+        // A subscription delivers only with the Web Push service on; a failed write shows on this row.
+        if (!prefs.enableWebPush) {
+          try {
+            await apiService.post('/api/push/preferences', { enableWebPush: true, sourceId });
+          } catch {
+            setState({ saved: false, error: t('notifications.alert_save_failed') });
+            return;
+          }
+          queryClient.setQueryData<NotificationPrefs>(notificationPrefsKey(sourceId), (prev) => prev && { ...prev, enableWebPush: true });
+        }
       } else {
         await unsubscribeHere(sourceId);
       }
@@ -230,6 +240,7 @@ function WebPushRow({ sourceId, prefs }: { sourceId: string; prefs: Notification
 /** Apprise: the service switch, and its URLs in a sheet with today's Save and Test. */
 function AppriseRow({ sourceId, prefs }: { sourceId: string; prefs: NotificationPrefs }) {
   const { t } = useTranslation();
+  const isPhone = useIsPhone();
   const queryClient = useQueryClient();
   const [service, setService, status] = usePrefField(sourceId, 'enableApprise');
   const [open, setOpen] = useState(false);
@@ -284,7 +295,7 @@ function AppriseRow({ sourceId, prefs }: { sourceId: string; prefs: Notification
         onClose={() => setOpen(false)}
         title={t('notifications.apprise_config_title')}
         footer={
-          <div className={pages.inline}>
+          <div className={pages.inline} data-phone={isPhone || undefined}>
             <button type="button" className={pages.button} onClick={() => void test()} disabled={saving}>
               {t('notifications.send_test')}
             </button>
@@ -294,7 +305,7 @@ function AppriseRow({ sourceId, prefs }: { sourceId: string; prefs: Notification
           </div>
         }
       >
-        <div className={pages.field}>
+        <div className={pages.field} data-phone={isPhone || undefined}>
           <label htmlFor="workspace-apprise-urls">{t('notifications.apprise_urls_label')}</label>
           <p className={pages.muted}>{t('notifications.apprise_about_text')}</p>
           <textarea id="workspace-apprise-urls" className={styles.textarea} rows={6} value={text} onChange={(e) => setText(e.target.value)} />
@@ -385,6 +396,7 @@ interface NodeRow {
 /** Monitored nodes for inactive-node and low-battery alerts: a searchable sheet, each tick saved at once. */
 function MonitoredNodesRow({ sourceId }: { sourceId: string }) {
   const { t } = useTranslation();
+  const isPhone = useIsPhone();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [selected, set, status] = usePrefField(sourceId, 'monitoredNodes');
@@ -413,14 +425,17 @@ function MonitoredNodesRow({ sourceId }: { sourceId: string }) {
       </SettingRow>
       {selected.length === 0 && <p className={pages.groupNote}><Warn>{t('notifications.no_nodes_selected_warning')}</Warn></p>}
       <Sheet open={open} onClose={() => setOpen(false)} title={t('workspace.settings.notifications.monitored_nodes')}>
-        <input
-          type="search"
-          className={pages.keyInput}
-          placeholder={t('notifications.search_nodes')}
-          aria-label={t('notifications.search_nodes')}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        {/* The sheet portals out of the page's <main data-phone>, so it says phone itself (D8). */}
+        <div className={pages.field} data-phone={isPhone || undefined}>
+          <input
+            type="search"
+            className={pages.keyInput}
+            placeholder={t('notifications.search_nodes')}
+            aria-label={t('notifications.search_nodes')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
         {shown.length === 0 ? (
           <p className={pages.muted}>{q ? t('notifications.no_nodes_match') : t('notifications.no_nodes_available')}</p>
         ) : (
@@ -654,7 +669,7 @@ function PushToolsRows({ sourceId, isAdmin }: { sourceId: string; isAdmin: boole
         onConfirm={async () => {
           await unsubscribeEverywhere();
           setAsking(false);
-          await push.reread();
+          await push.rereadAll();
         }}
         onCancel={() => setAsking(false)}
       />

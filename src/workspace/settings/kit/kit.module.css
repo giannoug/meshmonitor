@@ -64,6 +64,25 @@
   min-height: 52px;
 }
 
+/* A form field in a narrow card (`stacked`): label above, the control the card's width (12-13). */
+.row[data-stacked] {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.row[data-stacked] .control {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.row[data-stacked] .input,
+.row[data-stacked]:not([data-phone]) .select {
+  flex: 1;
+  width: 100%;
+  max-width: none;
+}
+
 .text {
   flex: 1;
   min-width: 0;
@@ -281,4 +300,53 @@
 .mono {
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 13px;
+}
+
+/* SettingSegmented: a short choice as one row of buttons (moved from Maintenance, Task 5.8). */
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.segment {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-left: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.segment:first-child {
+  border-left: 0;
+}
+
+.segment[aria-checked='true'] {
+  background: var(--color-accent);
+  color: var(--color-bg-sunken);
+}
+
+.segment:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.segment:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.segmented[data-phone] {
+  width: 100%;
+}
+
+.segmented[data-phone] .segment {
+  flex: 1 1 auto;
+  min-height: 44px;
 }

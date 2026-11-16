@@ -28,8 +28,9 @@ const query = (sourceId?: string) => (sourceId ? `?sourceId=${encodeURIComponent
 export const serverSettingsKey = (sourceId?: string) => ['settings', 'workspace', sourceId ?? ''] as const;
 
 /** The source's stored settings, as SettingsTab reads them (global keys merged in). */
-export function useServerSettings(sourceId?: string) {
+export function useServerSettings(sourceId?: string, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: serverSettingsKey(sourceId),
     queryFn: () => apiService.get<ServerSettings>(`/api/settings${query(sourceId)}`),
     staleTime: Infinity,

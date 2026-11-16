@@ -47,3 +47,34 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* "What each device sends › In its settings": the title wraps (s2). */
+.sendsRow {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 16px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.sendsRow:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.sendsTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: 17px;
+}
+
+.sendsWhere {
+  flex: none;
+  max-width: 40%;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+  text-align: right;
+}

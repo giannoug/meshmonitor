@@ -14,6 +14,8 @@ import { expectBoard } from '../../test/boardChecks';
 import { SOURCE_IDS } from '../../__fixtures__/athens';
 import { g2, mqtt, renderSettings } from './renderSettings';
 import { meshmonitorFixtures } from './meshmonitorFixtures';
+import { stubPush } from '../../test/pushStub';
+import { defaultNotificationPreferences } from '../../../utils/notificationDefaults';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
@@ -92,5 +94,31 @@ describe('b-set-d5-notifications', () => {
     expect(prefPosts()).toEqual([]);
     fireEvent.blur(box);
     await waitFor(() => expect(prefPosts()).toEqual([{ whitelist: ['storm', '&lt;b&gt;'], sourceId: SOURCE_IDS.g2 }]));
+  });
+
+  it('Web Push on this browser: a failed Web Push service write shows on the row, not Saved', async () => {
+    stubPush();
+    renderSettings(`${g2}/settings/notifications`, {
+      fixtures: meshmonitorFixtures({
+        'POST /api/push/subscription-status': () => ({ subscribed: false, otherSources: 0 }),
+        'GET /api/push/vapid-key': () => ({ publicKey: 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U' }),
+        'POST /api/push/subscribe': () => ({ success: true }),
+        'GET /api/push/preferences': () => ({ ...defaultNotificationPreferences(), enableWebPush: false }),
+        'POST /api/push/preferences': () => new Response(JSON.stringify({ error: 'no' }), { status: 500 }),
+      }),
+    });
+    const row = await screen.findByRole('switch', { name: 'Web Push on this browser' }, T);
+    await waitFor(() => expect(row).toBeEnabled());
+    fireEvent.click(row);
+    expect(await screen.findByText('Failed to save notification preferences', {}, T)).toBeInTheDocument();
+    expect(screen.queryByText('Saved')).toBeNull();
+  });
+
+  it('on phone, the Apprise sheet\'s buttons are 44 px targets (the sheet says phone itself)', async () => {
+    renderSettings(`${g2}/settings/notifications`, { phone: true, fixtures: meshmonitorFixtures() });
+    fireEvent.click(await screen.findByRole('button', { name: /2 URLs/ }, T));
+    const sheet = await screen.findByRole('dialog', { name: 'Apprise Configuration' });
+    expect(within(sheet).getByRole('button', { name: 'Save' }).closest('[data-phone]')).not.toBeNull();
+    expect(within(sheet).getByLabelText('Notification Service URLs').closest('[data-phone]')).not.toBeNull();
   });
 });

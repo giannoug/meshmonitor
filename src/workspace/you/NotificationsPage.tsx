@@ -69,21 +69,15 @@ export default function NotificationsPage() {
       {where && (
         <section className={styles.group}>
           <div className={styles.card}>
-            <TwoLineRow
-              to={notificationsPath(where)!}
-              leading={
-                <span className={styles.icon} data-tone="plain">
-                  <UiIcon name="notifications" size={20} />
-                </span>
-              }
-              title={t('workspace.you.notifications.what_each_sends')}
-              trailing={
-                <>
-                  {t('workspace.you.notifications.in_its_settings')}
-                  <UiIcon name="chevronRight" size={18} />
-                </>
-              }
-            />
+            {/* Its own row, not TwoLineRow: the title wraps rather than being cut at 390 px. */}
+            <Link to={notificationsPath(where)!} className={own.sendsRow}>
+              <span className={styles.icon} data-tone="plain">
+                <UiIcon name="notifications" size={20} />
+              </span>
+              <span className={own.sendsTitle}>{t('workspace.you.notifications.what_each_sends')}</span>
+              <span className={own.sendsWhere}>{t('workspace.you.notifications.in_its_settings')}</span>
+              <UiIcon name="chevronRight" size={18} />
+            </Link>
           </div>
         </section>
       )}

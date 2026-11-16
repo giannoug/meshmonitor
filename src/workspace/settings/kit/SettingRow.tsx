@@ -21,11 +21,13 @@ export interface SettingRowProps {
   keywords?: string[];
   /** The saved value while this one is an unsaved edit: "was Medium Fast" (b-set-d1). */
   was?: string;
+  /** Label above a full-width control on desktop too: a form field in a narrow card (12-13). */
+  stacked?: boolean;
 }
 
 const NO_KEYWORDS: string[] = [];
 
-export default function SettingRow({ id, label, help, children, keywords = NO_KEYWORDS, was }: SettingRowProps) {
+export default function SettingRow({ id, label, help, children, keywords = NO_KEYWORDS, was, stacked }: SettingRowProps) {
   const { t } = useTranslation();
   const category = useSettingsCategory();
   const isPhone = useIsPhone();
@@ -53,6 +55,7 @@ export default function SettingRow({ id, label, help, children, keywords = NO_KE
         className={styles.row}
         data-setting-id={id}
         data-phone={isPhone || undefined}
+        data-stacked={stacked || undefined}
         data-pulse={(hit && pulsed !== key) || undefined}
       >
         <div className={styles.text}>

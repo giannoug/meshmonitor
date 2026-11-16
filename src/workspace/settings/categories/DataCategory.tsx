@@ -165,7 +165,7 @@ function DataRows({ sourceId }: { sourceId: string }) {
             {t('settings.reset_ui_positions_button')}
           </button>
         </ActionRow>
-        <ActionRow id="data.reset_defaults" label={t('settings.settings_management')} help={t('settings.settings_management_description')}>
+        <ActionRow id="data.reset_defaults" label={t('settings.settings_management')} help={t('workspace.settings.data.reset_help')}>
           {ask('reset', t('settings.reset_defaults'), false)}
         </ActionRow>
       </SettingGroup>

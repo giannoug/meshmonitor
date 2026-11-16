@@ -17,6 +17,7 @@ import apiService from '../../../services/api';
 import StateView from '../../patterns/StateView';
 import SettingNumber, { type SettingNumberProps } from '../kit/SettingNumber';
 import SettingRow from '../kit/SettingRow';
+import SettingSegmented from '../kit/SettingSegmented';
 import SettingSelect, { type SettingSelectOption } from '../kit/SettingSelect';
 import SettingText from '../kit/SettingText';
 import SettingToggle from '../kit/SettingToggle';
@@ -35,7 +36,8 @@ import styles from './Autosave.module.css';
 export function AutosavePage({ children, scope, needsSettings = true }: { children: ReactNode; scope?: string | null; needsSettings?: boolean }) {
   const { t } = useTranslation();
   useSettingsHeader(scope === null ? null : { scope: scope ?? t('workspace.settings.saves_as_you_go') });
-  const { isLoading, isError, refetch } = useServerSettings(usePageSource());
+  // A page with no settings rows (Notifications, Data, PKI DMs) reads nothing here.
+  const { isLoading, isError, refetch } = useServerSettings(usePageSource(), needsSettings);
   let body = children;
   if (needsSettings && isLoading) body = <StateView kind="loading" />;
   else if (needsSettings && isError) body = <StateView kind="error" onRetry={() => void refetch()} />;
@@ -119,13 +121,18 @@ export function AutoToggle({ k, id, label, help, disabled, render, ...opts }: Ro
   );
 }
 
-export function AutoSelect({ k, id, label, help, disabled, options, render, ...opts }: RowBase<string> & { options: SettingSelectOption[] }) {
+/** A choice saved on change: a select, or with `segmented` one row of buttons (Reliable PKI, 12-12). */
+export function AutoSelect({ k, id, label, help, disabled, options, render, segmented, ...opts }: RowBase<string> & { options: SettingSelectOption[]; segmented?: boolean }) {
   const [value, set, status] = useAutosaveSetting<string>(k, { ...opts, sourceId: usePageSource(), commit: 'change' });
   return (
     <>
       <SettingRow id={id} label={label} help={help}>
         <SavedLine status={status} />
-        <SettingSelect value={value} options={options} onChange={set} readOnly={off(disabled)} />
+        {segmented ? (
+          <SettingSegmented value={value} options={options} onChange={set} readOnly={off(disabled)} />
+        ) : (
+          <SettingSelect value={value} options={options} onChange={set} readOnly={off(disabled)} />
+        )}
       </SettingRow>
       {render?.(value)}
     </>

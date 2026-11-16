@@ -59,7 +59,8 @@ const SECURITY: Board['fixtures'] = {
 const MAINTENANCE = (): Board['fixtures'] => ({ ...PINS, ...maintenanceFixtures, ...reloadFixtures() });
 
 /** Task 5.8: Station G2's MeshMonitor settings and notification preferences. */
-const MESHMONITOR: Board['fixtures'] = { ...PINS, ...meshmonitorFixtures() };
+/** A fresh server per board, as MAINTENANCE() is: one board's saves never reach another. */
+const MESHMONITOR = (): Board['fixtures'] => ({ ...PINS, ...meshmonitorFixtures() });
 
 /** This browser is subscribed for Station G2 and Heltec MeshCore (s2). */
 const PUSH_HERE: Board['fixtures'] = {
@@ -68,6 +69,13 @@ const PUSH_HERE: Board['fixtures'] = {
     otherSources: 1,
   }),
 };
+
+/** Two bridge edits, so the dock shows "2 changes · Save bridge settings" (12-13 / 12-24). */
+async function editBridge(page: Page) {
+  await page.getByLabel('Username').fill('athens-ops');
+  await page.getByLabel('Upstream URL').fill('mqtts://mqtt.athensmesh.gr:8884');
+  await page.getByRole('region', { name: 'Unsaved bridge settings' }).waitFor();
+}
 
 /** Push in this browser, granted and subscribed, before the page's scripts run (s2). */
 async function pushInThisBrowser(page: Page) {
@@ -1275,26 +1283,26 @@ export const BOARDS: Board[] = [
     id: 'b-set-d5-notifications',
     size: 'desktop',
     path: '/source/src-g2/settings/notifications',
-    fixtures: MESHMONITOR,
+    fixtures: MESHMONITOR(),
     setup: async (page) => {
       await page.getByRole('switch', { name: 'Emoji Reactions' }).click();
       await page.getByText('Saved').first().waitFor();
     },
   },
-  { id: 's2-notifications', size: 'phone', path: '/you/notifications', fixtures: { ...MESHMONITOR, ...PUSH_HERE }, setup: pushInThisBrowser },
+  { id: 's2-notifications', size: 'phone', path: '/you/notifications', fixtures: { ...MESHMONITOR(), ...PUSH_HERE }, setup: pushInThisBrowser },
   {
     id: '12-12-meshmonitor-data',
     size: 'desktop',
     path: '/source/src-g2/settings/node-display',
-    fixtures: MESHMONITOR,
+    fixtures: MESHMONITOR(),
     setup: async (page) => {
       await page.getByRole('switch', { name: 'Detect likely aircraft' }).click();
       await page.getByText('Saved').first().waitFor();
     },
   },
-  { id: '12-23-meshmonitor-data', size: 'phone', path: '/source/src-g2/settings/data', fixtures: MESHMONITOR },
-  { id: '12-13-mqtt-bridge', size: 'desktop', path: '/source/src-bridge/settings/mqtt-bridge', fixtures: { ...PINS, ...bridgeFixtures() } },
-  { id: '12-24-mqtt-bridge', size: 'phone', path: '/source/src-bridge/settings/mqtt-bridge', fixtures: { ...PINS, ...bridgeFixtures() } },
+  { id: '12-23-meshmonitor-data', size: 'phone', path: '/source/src-g2/settings/data', fixtures: MESHMONITOR() },
+  { id: '12-13-mqtt-bridge', size: 'desktop', path: '/source/src-bridge/settings/mqtt-bridge', fixtures: { ...PINS, ...bridgeFixtures() }, setup: editBridge },
+  { id: '12-24-mqtt-bridge', size: 'phone', path: '/source/src-bridge/settings/mqtt-bridge', fixtures: { ...PINS, ...bridgeFixtures() }, setup: editBridge },
 ];
 
 /** Identity: the short name G2 → SG2. */
