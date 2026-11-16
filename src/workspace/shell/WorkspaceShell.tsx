@@ -145,15 +145,23 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
       }
     : null;
   // ⌘, / Ctrl+, toggles settings search everywhere in the Workspace (today's ConfigSearchHost chord), caught
-  // on the window like ⌘K so a re-hosted page's own palette does not open as well.
+  // on the window like ⌘K so a re-hosted page's own palette does not open as well. It opens only when no
+  // other modal is up (a sheet, a confirm, message search): one layer at a time (D9c), so Escape closes one (CR).
+  const settingsOpen = useRef(false);
+  useEffect(() => {
+    settingsOpen.current = settingsQuery !== null;
+  }, [settingsQuery]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key === ',') {
         e.preventDefault();
         e.stopPropagation();
-        setSearchOpen(false);
-        setDrawerOpen(false);
-        setSettingsQuery((q) => (q === null ? '' : null));
+        if (settingsOpen.current) {
+          setSettingsQuery(null);
+        } else if (!document.querySelector('[role="dialog"][aria-modal="true"]')) {
+          setDrawerOpen(false);
+          setSettingsQuery('');
+        }
       }
     };
     window.addEventListener('keydown', onKey, true);

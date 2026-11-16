@@ -58,7 +58,13 @@ describe('b-set-d4-search', () => {
     renderSettings(`${g2}/settings/node-display`);
     await screen.findByRole('heading', { level: 1, name: 'Node Display' }, { timeout: 5000 });
     fireEvent.keyDown(document, { key: 'k', metaKey: true });
+    expect(await screen.findByRole('dialog', { name: 'Search Messages' })).toBeInTheDocument();
     expect(queryDialog()).toBeNull();
+    // One layer at a time: ⌘, does not open over message search.
+    fireEvent.keyDown(document, { key: ',', metaKey: true });
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    fireEvent.keyDown(document, { key: 'k', metaKey: true });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     fireEvent.keyDown(document, { key: ',', metaKey: true });
     expect(await dialog()).toBeInTheDocument();
     expect(screen.queryByRole('dialog', { name: 'Search Messages' })).toBeNull();
@@ -174,5 +180,40 @@ describe('b-set-d4-search', () => {
     await waitFor(() => expect(realUrl()).toBe(`${g2}/settings/device/position`));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(await screen.findByRole('region', { name: 'Unsaved radio changes' })).toHaveTextContent('1 change in LoRa');
+  });
+  it('ranks every result before the cap of 40, so a strong match in a later group survives', async () => {
+    renderSettings(`${g2}/settings/node-display`);
+    await screen.findByRole('heading', { level: 1, name: 'Node Display' }, { timeout: 5000 });
+    const d = await search('s');
+    expect(d.getAllByRole('option')).toHaveLength(40);
+    expect(within(d.getByRole('group', { name: 'Preferences' })).getByRole('option', { name: /^Sorting/ })).toBeInTheDocument();
+  });
+
+  it('⌘, does not open over the Review sheet; Escape then closes only the sheet and unlocks the page', async () => {
+    renderSettings(`${g2}/settings/lora`);
+    fireEvent.change(await loraLoaded(), { target: { value: '5' } });
+    const bar = await screen.findByRole('region', { name: 'Unsaved radio changes' });
+    fireEvent.click(within(bar).getByRole('button', { name: 'Review' }));
+    await screen.findByRole('dialog', { name: 'Review changes' });
+    expect(document.body.style.overflow).toBe('hidden');
+    fireEvent.keyDown(document, { key: ',', metaKey: true });
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(queryDialog()).toBeNull();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(document.body.style.overflow).toBe('');
+    // With nothing else open, ⌘, opens search again.
+    fireEvent.keyDown(document, { key: ',', metaKey: true });
+    expect(await dialog()).toBeInTheDocument();
+  });
+
+  it('⌘, does not open over the leave guard\'s confirm sheet', async () => {
+    renderSettings(`${g2}/settings/lora`);
+    fireEvent.change(await loraLoaded(), { target: { value: '5' } });
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Devices' })).getByRole('link', { name: /Athens MQTT/ }));
+    await screen.findByRole('dialog', { name: 'Discard unsaved changes?' });
+    fireEvent.keyDown(document, { key: ',', ctrlKey: true });
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(queryDialog()).toBeNull();
   });
 });

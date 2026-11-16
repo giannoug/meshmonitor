@@ -164,14 +164,14 @@ export default function SettingsSearch({ sources, openId, phone, initialQuery, o
       }
     }
 
-    let left = MAX_HITS;
-    return out
-      .map((g) => {
-        const hits = g.hits.slice(0, Math.max(left, 0));
-        left -= hits.length;
-        return { ...g, hits };
-      })
-      .filter((g) => g.hits.length > 0);
+    // As today's palette: rank every result, keep the best 40 (stable: group order breaks ties), then group them.
+    const kept = new Set(
+      out
+        .flatMap((g) => g.hits)
+        .sort(byRank)
+        .slice(0, MAX_HITS),
+    );
+    return out.map((g) => ({ ...g, hits: g.hits.filter((h) => kept.has(h)) })).filter((g) => g.hits.length > 0);
   }, [query, sources, openId, fields, isAdmin, isAuthenticated, hasPermission, health?.firmwareOtaEnabled, health?.databaseType, t]);
 
   const total = groups.reduce((n, g) => n + g.hits.length, 0);

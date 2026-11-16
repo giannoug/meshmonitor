@@ -1087,10 +1087,12 @@ export const BOARDS: Board[] = [
     path: '/source/src-g2/settings/node-display',
     fixtures: PINS,
     setup: async (page) => {
+      // The board draws the Mac hint in the sidebar and the dialog; the sidebar reads the platform as it
+      // renders, so set it before the page's scripts run and load the page again.
+      await page.addInitScript(() => Object.defineProperty(navigator, 'platform', { get: () => 'MacIntel' }));
+      await page.reload();
       await page.getByRole('heading', { level: 1, name: 'Node Display' }).waitFor();
-      // The board draws the Mac hint, read when search opens.
-      await page.evaluate(() => Object.defineProperty(navigator, 'platform', { get: () => 'MacIntel' }));
-      await page.keyboard.press('Control+Comma');
+      await page.keyboard.press('Meta+Comma');
       const dialog = page.getByRole('dialog', { name: 'Search settings' });
       await dialog.getByRole('combobox', { name: 'Search settings' }).fill('hop');
       await dialog.getByRole('group', { name: 'Station G2' }).waitFor();
