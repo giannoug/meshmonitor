@@ -8,12 +8,12 @@
  * Commands (admins only, as today's route); DFU and the resets are for the
  * local node only. Every confirm transmits, so Enter never confirms (BH).
  */
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { renderWorkspace } from '../../test/renderWorkspace';
-import { SOURCE_IDS } from '../../__fixtures__/athens';
+import { SOURCE_IDS, athensFixture } from '../../__fixtures__/athens';
 import { ToastProvider } from '../../../components/ToastContainer';
 import { DataProvider } from '../../../contexts/DataContext';
 import { DeviceConfigContext, type SharedDeviceConfig } from '../sharedDeviceConfig';
@@ -33,6 +33,35 @@ const sent = () =>
     what: `${(init?.method ?? 'GET').toUpperCase()} ${new URL(String(u), 'http://x').pathname}`,
     body: typeof init?.body === 'string' ? (JSON.parse(init.body) as Record<string, unknown>) : undefined,
   }));
+
+
+/** DangerCategory over a config whose short name a test can blank, with no node id in the poll. */
+const harness = { blank: () => {} };
+function Harness() {
+  const [shortName, setShortName] = useState('G2');
+  harness.blank = () => setShortName('');
+  const config = {
+    state: { loading: false, isSaving: false, shortName, longName: 'Station G2' },
+    saves: { reboot: vi.fn(), purgeNodeDb: vi.fn() },
+  } as unknown as SharedDeviceConfig;
+  return (
+    <DeviceConfigContext.Provider value={config}>
+      <DangerCategory sourceId={SOURCE_IDS.g2} target={{ kind: 'local' }} readOnly={false} />
+    </DeviceConfigContext.Provider>
+  );
+}
+const renderHarness = (fixtures = {}) =>
+  renderWorkspace(
+    <ToastProvider>
+      <DataProvider>
+        <Harness />
+      </DataProvider>
+    </ToastProvider>,
+    {
+      route: `${g2}/settings/maintenance/danger`,
+      fixtures: { 'GET /api/poll': () => ({ ...athensFixture.poll, config: { ...athensFixture.poll.config, localNodeInfo: undefined } }), ...fixtures },
+    },
+  );
 
 const adminCommand = () => sent().find((r) => r.what === 'POST /api/admin/commands')?.body;
 const commandFixtures = { 'POST /api/admin/commands': () => ({ success: true, message: 'Command sent' }) };
@@ -169,5 +198,58 @@ describe('the danger zone', () => {
       expect(await screen.findByRole('button', { name })).toBeDisabled();
     }
     expect(screen.getAllByText('Only for the node this source is connected to. Select the local node to use it.')).toHaveLength(2);
+  });
+
+  it('Shut down is off with today\'s note when the node says it cannot shut down (cached metadata, no packet)', async () => {
+    renderSettings(`${g2}/settings/maintenance/danger`, {
+      fixtures: { 'POST /api/admin/get-device-metadata': () => ({ deviceMetadata: { canShutdown: false } }) },
+    });
+    expect(await screen.findByText('This node\'s metadata says it cannot shut down.', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Shut down' })).toBeDisabled();
+    // The local node's cached answer: no nodeNum, so the route reads the manager's cache and sends nothing.
+    expect(sent().filter((r) => r.what === 'POST /api/admin/get-device-metadata').map((r) => r.body)).toEqual([{ sourceId: SOURCE_IDS.g2 }]);
+  });
+
+  it('Shut down stays on while the node has said nothing (canShutdown null), as Admin Commands', async () => {
+    renderSettings(`${g2}/settings/maintenance/danger`, {
+      fixtures: { 'POST /api/admin/get-device-metadata': () => ({ deviceMetadata: { canShutdown: null } }) },
+    });
+    await waitFor(() => expect(sent().some((r) => r.what === 'POST /api/admin/get-device-metadata')).toBe(true), { timeout: 10_000 });
+    expect(await screen.findByRole('button', { name: 'Shut down' })).toBeEnabled();
+    expect(screen.queryByText('This node\'s metadata says it cannot shut down.')).toBeNull();
+  });
+
+  it('a TX-disabled refusal toasts today\'s words (Admin Commands\' mapping)', async () => {
+    renderSettings(`${g2}/settings/maintenance/danger`, {
+      fixtures: {
+        'POST /api/admin/commands': () =>
+          new Response(JSON.stringify({ success: false, error: 'TX disabled', code: 'TX_DISABLED' }), { status: 409, headers: { 'content-type': 'application/json' } }),
+      },
+    });
+    const sheet = await open('Reboot into DFU mode');
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Reboot into DFU' }));
+    expect(await screen.findByText('Transmit is disabled on this source — nothing was sent.')).toBeInTheDocument();
+    expect(screen.queryByText(/DFU request sent/)).toBeNull();
+  });
+
+  it('a reset sheet keeps the word it opened with, so a blank name never turns it plain', async () => {
+    renderHarness();
+    const sheet = await open('Reset config (keeps identity key and BLE bonds)');
+    act(() => harness.blank());
+    expect(within(sheet).getByRole('textbox', { name: 'Type G2 to confirm' })).toBeInTheDocument();
+    expect(within(sheet).getByRole('button', { name: 'Reset config' })).toBeDisabled();
+    // The page's buttons are off now that there is no word to type.
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.getByRole('button', { name: 'Reset config (keeps identity key and BLE bonds)' })).toBeDisabled();
+  });
+
+  it('the sent notice names the node as it was when the command went out', async () => {
+    renderHarness(commandFixtures);
+    const sheet = await open('Shut down');
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Shut down' }));
+    expect(await screen.findByText('Shutdown sent to G2')).toBeInTheDocument();
+    act(() => harness.blank());
+    expect(screen.getByText('Shutdown sent to G2')).toBeInTheDocument();
   });
 });

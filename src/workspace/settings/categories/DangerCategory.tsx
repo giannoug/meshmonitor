@@ -10,8 +10,11 @@
  *   reset (type the short name): moved here from Admin Commands, admins only
  *   as its route, one admin command each, never retried. DFU and the resets are
  *   for the local node only; on a remote target they are off with today's reason.
+ *   Shut down is off when the node's metadata says it cannot shut down, read
+ *   once from the local node's cached metadata (no packet is sent).
  */
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../../components/icons';
 import { useToast } from '../../../components/ToastContainer';
@@ -19,6 +22,8 @@ import { FactoryResetWipeList } from '../../../components/shared/config/FactoryR
 import { useAuth } from '../../../contexts/AuthContext';
 import { usePoll } from '../../../hooks/usePoll';
 import apiService from '../../../services/api';
+import { isTxDisabledError } from '../../../utils/txDisabled';
+import { mqttRootErrorMessage } from '../../../components/MQTT/mqttRootApiError';
 import ConfirmSheet from '../../patterns/ConfirmSheet';
 import DangerZone from '../../patterns/DangerZone';
 import SendsLine from '../../patterns/SendsLine';
@@ -62,8 +67,20 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
   // Today's fallback word when the node has no short name: its node id.
   const { data: poll } = usePoll();
   const [pending, setPending] = useState<Action | null>(null);
+  // The typed word as the sheet opened, so a refetch that blanks the name can never make it plain.
+  const [word, setWord] = useState('');
   const [busy, setBusy] = useState(false);
-  const [sent, setSent] = useState<DeviceAction | null>(null);
+  const [sent, setSent] = useState<{ action: DeviceAction; name: string } | null>(null);
+  // Today's canShutdown (DeviceActionsSection): for the local node the route answers from the
+  // manager's cache and sends nothing (adminRoutes get-device-metadata). Admins only, as the route.
+  const { data: metadata } = useQuery({
+    queryKey: ['workspace', 'localDeviceMetadata', sourceId],
+    queryFn: () => apiService.post<{ deviceMetadata?: { canShutdown?: boolean | null } }>('/api/admin/get-device-metadata', { sourceId }),
+    enabled: isAdmin && target.kind === 'local',
+    staleTime: Infinity,
+    retry: false,
+  });
+  const canShutdown = metadata?.deviceMetadata?.canShutdown;
   if (!config || config.state.loading) return <StateView kind="loading" />;
   const { state, saves } = config;
 
@@ -76,7 +93,7 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
   const close = () => setPending(null);
 
   // shortcut: reboot, purge and shut down act on the local node; Task 5.9 routes them to a remote target.
-  const send = async (action: DeviceAction) => {
+  const send = async (action: DeviceAction, sentName: string) => {
     setBusy(true);
     try {
       const result = await apiService.sendAdminCommand<{ success: boolean; message?: string; data?: { message?: string } }>({
@@ -85,9 +102,11 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
         ...(action === 'shutdown' ? { seconds: SHUTDOWN_DELAY_SECONDS } : {}),
       });
       showToast(result.message || result.data?.message || t('admin_commands.command_executed', { command: action }), 'success');
-      setSent(action);
+      setSent({ action, name: sentName });
     } catch (error) {
-      showToast(error instanceof Error && error.message ? error.message : t('admin_commands.failed_execute_command'), 'error');
+      // Admin Commands' mapping: a TX-disabled race, a refused MQTT root, else the server's message.
+      if (isTxDisabledError(error)) showToast(t('tx_disabled.send_blocked_toast'), 'warning');
+      else showToast(mqttRootErrorMessage(error, t) || (error instanceof Error && error.message) || t('admin_commands.failed_execute_command'), 'error');
     } finally {
       setBusy(false);
       close();
@@ -98,7 +117,15 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
   const key = device ? KEY[device] : '';
 
   const danger = (action: Action, labelText: string, disabled: boolean) => (
-    <button type="button" className={`${pages.button} ${pages.dangerButton}`} disabled={disabled} onClick={() => setPending(action)}>
+    <button
+      type="button"
+      className={`${pages.button} ${pages.dangerButton}`}
+      disabled={disabled}
+      onClick={() => {
+        setWord(name);
+        setPending(action);
+      }}
+    >
       {labelText}
     </button>
   );
@@ -116,9 +143,15 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
           </span>
         }
       >
-        <ActionRow id="maintenance.danger.restart" label={t('workspace.settings.maintenance.restart_title')} help={t('workspace.settings.maintenance.restart_help')} sends={sends}>
+        <ActionRow
+          id="maintenance.danger.restart"
+          label={t('workspace.settings.maintenance.restart_title')}
+          help={t('workspace.settings.maintenance.restart_help')}
+          blocked={isAdmin && canShutdown === false ? t('device_actions.shutdown.cannot_note') : null}
+          sends={sends}
+        >
           {danger('reboot', t('config.reboot_device'), off)}
-          {isAdmin && danger('shutdown', t('device_actions.shutdown.button'), adminOff)}
+          {isAdmin && danger('shutdown', t('device_actions.shutdown.button'), adminOff || canShutdown === false)}
         </ActionRow>
         <ActionRow id="maintenance.danger.nodedb" label={t('workspace.settings.maintenance.nodedb_title')} help={t('workspace.settings.maintenance.nodedb_help')} sends={sends}>
           {danger('purge', t('config.purge_node_db'), off)}
@@ -145,8 +178,8 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
 
       {sent && (
         <div className={styles.sent} role="status">
-          <strong>{t(`device_actions.${KEY[sent]}.sent_title`, { name })}</strong>
-          <span>{t(`device_actions.${KEY[sent]}.sent_local`, { name, seconds: SHUTDOWN_DELAY_SECONDS })}</span>
+          <strong>{t(`device_actions.${KEY[sent.action]}.sent_title`, { name: sent.name })}</strong>
+          <span>{t(`device_actions.${KEY[sent.action]}.sent_local`, { name: sent.name, seconds: SHUTDOWN_DELAY_SECONDS })}</span>
         </div>
       )}
 
@@ -190,10 +223,10 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
       />
       <ConfirmSheet
         open={device !== null}
-        title={t(`device_actions.${key}.confirm_title`, { name })}
+        title={t(`device_actions.${key}.confirm_title`, { name: word })}
         body={
           <>
-            <p className={pages.para}>{t(`device_actions.${key}.confirm_body`, { name, seconds: SHUTDOWN_DELAY_SECONDS })}</p>
+            <p className={pages.para}>{t(`device_actions.${key}.confirm_body`, { name: word, seconds: SHUTDOWN_DELAY_SECONDS })}</p>
             {isReset(device) && (
               <>
                 <FactoryResetWipeList
@@ -206,12 +239,12 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
             {sends}
           </>
         }
-        confirmWord={isReset(device) ? name : undefined}
+        confirmWord={isReset(device) ? word : undefined}
         confirmLabel={t(`device_actions.${key}.confirm_label`)}
         danger
         busy={busy}
         submitOnEnter={false}
-        onConfirm={() => send(device!)}
+        onConfirm={() => send(device!, word)}
         onCancel={close}
       />
     </>

@@ -61,6 +61,19 @@ export const firmwareFixtures: Record<string, FixtureHandler> = {
   'GET /api/firmware/backups': () => ({ success: true, backups: [] }),
 };
 
+/** `/api/firmware/status` with `patch` over the idle stable answer. */
+export const firmwareStatus = (patch: Record<string, unknown>): Record<string, FixtureHandler> => ({
+  'GET /api/firmware/status': () => ({
+    success: true,
+    status: { state: 'idle', step: null, message: '', logs: [] },
+    channel: 'stable',
+    customUrl: null,
+    lastChecked: Date.parse('2026-11-16T08:00:00Z'),
+    stagedUpload: null,
+    ...patch,
+  }),
+});
+
 /** The OTA wizard stopped part-way through the flash (12-09's sheet). */
 export const flashFailed: Record<string, FixtureHandler> = {
   'GET /api/firmware/status': () => ({

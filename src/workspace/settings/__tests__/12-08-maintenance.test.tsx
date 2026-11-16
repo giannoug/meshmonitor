@@ -13,7 +13,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { SOURCE_IDS } from '../../__fixtures__/athens';
 import { g2, renderSettings } from './renderSettings';
-import { maintenanceFixtures, reloadFixtures } from './maintenanceFixtures';
+import { backupFixtures, maintenanceFixtures, reloadFixtures } from './maintenanceFixtures';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
@@ -153,4 +153,57 @@ describe('Maintenance › Backup', () => {
     await backupRow('g2-1112.yaml');
     expect(screen.queryByRole('link', { name: /Firmware/ })).toBeNull();
   });
+
+  it('Create Backup Now downloads today\'s saved backup, then reads the list again', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:backup');
+    URL.revokeObjectURL = vi.fn();
+    renderSettings(`${g2}/settings/maintenance/backup`, {
+      fixtures: { ...fixtures(), 'GET /api/device/backup': () => new Response('yaml', { status: 200, headers: { 'Content-Disposition': 'attachment; filename="g2-1116.yaml"' } }) },
+    });
+    await backupRow('g2-1112.yaml');
+    const lists = () => sent().filter((r) => r.what === 'GET /api/backup/list').length;
+    const before = lists();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Backup Now' }));
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([u]) => String(u).includes(`/api/device/backup?save=true&sourceId=${SOURCE_IDS.g2}`))).toBe(true));
+    await waitFor(() => expect(lists()).toBe(before + 1));
+  });
+
+  it('Download reads today\'s backup file for this source', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:backup');
+    URL.revokeObjectURL = vi.fn();
+    renderSettings(`${g2}/settings/maintenance/backup`, {
+      fixtures: { ...fixtures(), 'GET /api/backup/download/:file': () => new Response('yaml', { status: 200 }) },
+    });
+    fireEvent.click(within(await backupRow('g2-1111.yaml')).getByRole('button', { name: 'Download' }));
+    await waitFor(() =>
+      expect(vi.mocked(fetch).mock.calls.some(([u]) => String(u).includes(`/api/backup/download/g2-1111.yaml?sourceId=${SOURCE_IDS.g2}`))).toBe(true),
+    );
+  });
+
+  it('a legacy (unowned) backup restores only after today\'s second tick, and says so to the server', async () => {
+    const summary = backupFixtures['GET /api/backup/summary/:file'](new URL('http://x')) as { data: Record<string, unknown> };
+    renderSettings(`${g2}/settings/maintenance/backup`, {
+      fixtures: { ...fixtures(), 'GET /api/backup/summary/:file': () => ({ data: { ...summary.data, legacy: true } }) },
+    });
+    fireEvent.click(within(await backupRow('g2-1111.yaml')).getByRole('button', { name: 'Restore' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Restore this backup?' });
+    const confirm = within(sheet).getByRole('button', { name: 'Restore' });
+    expect(confirm).toBeDisabled();
+    fireEvent.click(within(sheet).getByRole('checkbox', { name: /no owning source/ }));
+    fireEvent.click(confirm);
+    await waitFor(() =>
+      expect(sent().find((r) => r.what === 'POST /api/backup/restore/g2-1111.yaml')?.body).toEqual({ sourceId: SOURCE_IDS.g2, confirmLegacy: true }),
+    );
+  });
+
+  it('on the Maintenance page without configuration:write, Reboot, Purge and Restore are off', async () => {
+    renderSettings(`${g2}/settings/maintenance`, {
+      fixtures: fixtures(),
+      permissions: { bySource: { [SOURCE_IDS.g2]: { configuration: { read: true, write: false } } } },
+    });
+    expect(within(await backupRow('g2-1112.yaml')).getByRole('button', { name: 'Restore' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Reboot Device' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Purge Node Database' })).toBeDisabled();
+  });
 });
+

@@ -1,7 +1,6 @@
 /** The parts Maintenance's pages share (Task 5.7): the page wrapper, its header and a row of buttons. */
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useIsPhone } from '../../shell/useIsPhone';
 import { useRegisterField, useSettingsCategory } from '../kit/useFieldRegistry';
 import { useSettingsHeader } from '../settingsDock';
 import pages from './SettingsPages.module.css';
@@ -15,11 +14,11 @@ const settingsBase = (sourceId: string) => `/source/${encodeURIComponent(sourceI
  */
 export function MaintenancePage({ child, children }: { child?: { sourceId: string; scope?: string; phoneTitle?: string }; children: ReactNode }) {
   const { t } = useTranslation();
-  const isPhone = useIsPhone();
   useSettingsHeader(
     child ? { back: { to: `${settingsBase(child.sourceId)}/maintenance`, label: t('workspace.settings.group.maintenance') }, scope: child.scope, phoneTitle: child.phoneTitle } : null,
   );
-  return <div className={styles.page} data-phone={isPhone || undefined}>{children}</div>;
+  // Phone styling keys off CategoryPage's <main data-phone>.
+  return <div className={styles.page}>{children}</div>;
 }
 
 const NO_KEYWORDS: string[] = [];

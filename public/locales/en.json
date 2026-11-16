@@ -9097,5 +9097,16 @@
   "workspace.settings.maintenance.nodedb_help": "Purge asks you to type PURGE",
   "workspace.settings.maintenance.dfu_title": "Firmware recovery",
   "workspace.settings.maintenance.reset_title": "Factory reset",
-  "workspace.settings.maintenance.reset_help": "Each asks you to type {{word}}"
+  "workspace.settings.maintenance.reset_help": "Each asks you to type {{word}}",
+  "workspace.settings.maintenance.this_radio": "This radio",
+  "workspace.settings.maintenance.channel_help": "Custom URL takes a firmware .bin link; Local File uploads a file from this computer",
+  "workspace.settings.maintenance.releases_heading": "Releases · {{channel}}",
+  "workspace.settings.maintenance.releases_list": "Releases",
+  "workspace.settings.maintenance.latest": "Latest",
+  "workspace.settings.maintenance.install_title": "Install {{version}}",
+  "workspace.settings.maintenance.wizard_sends": "Over Wi-Fi to {{device}} · Sends nothing on the mesh",
+  "workspace.settings.maintenance.update_hidden": "A firmware update is open for this radio.",
+  "workspace.settings.maintenance.show_update": "Show the update",
+  "workspace.settings.maintenance.firmware_restore_title": "Restore configuration from backup \"{{filename}}\"?",
+  "workspace.settings.maintenance.firmware_restore_body": "This will overwrite current device configuration."
 }
