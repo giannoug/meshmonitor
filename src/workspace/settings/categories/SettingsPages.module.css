@@ -591,3 +591,62 @@
 .table td {
   white-space: nowrap;
 }
+
+/* Device and module pages (Task 5.6). */
+.groupNote {
+  margin: 0;
+  padding: 10px 16px 0;
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}
+
+/* A heading inside a card, as today's sections head their groups. */
+.cardSub {
+  margin: 0;
+  padding: 14px 16px 4px;
+  border-top: 1px solid var(--color-border);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.mapPicker {
+  flex-basis: 100%;
+  min-width: 0;
+}
+
+.swatch {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+}
+
+.block[data-near] {
+  color: var(--color-warning);
+}
+
+/* Today's composite parts on a page (MeshBeacon's targets, Traffic Management's estimate): kit metrics for their own fields. */
+.embedded {
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.embedded :where(input:not([type='checkbox']), select) {
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+[data-phone] .embedded :where(input:not([type='checkbox']), select, button) {
+  min-height: 44px;
+}

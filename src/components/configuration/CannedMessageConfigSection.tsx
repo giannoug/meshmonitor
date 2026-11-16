@@ -8,18 +8,7 @@ import { NumberInputScope } from '../common/NumberInputScope';
 import { useNumberInputScope } from '../common/numberInputScopeContext';
 import ModuleAvailabilityNotice from './ModuleAvailabilityNotice';
 import { ConfigSection } from '../shared/config/ConfigSection';
-
-// Input event character options matching protobuf enum
-const INPUT_EVENT_OPTIONS = [
-  { value: 0, name: 'NONE' },
-  { value: 17, name: 'UP' },
-  { value: 18, name: 'DOWN' },
-  { value: 19, name: 'LEFT' },
-  { value: 20, name: 'RIGHT' },
-  { value: 10, name: 'SELECT' },
-  { value: 27, name: 'BACK' },
-  { value: 24, name: 'CANCEL' }
-];
+import { INPUT_EVENT_OPTIONS } from './constants';
 
 interface CannedMessageConfigSectionProps {
   /** False disables every control: no configuration:write on this source (#5830). */

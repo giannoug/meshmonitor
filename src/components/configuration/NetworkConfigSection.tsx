@@ -6,15 +6,7 @@ import { useSectionBaseline } from '../../hooks/useSectionBaseline';
 import ModuleAvailabilityNotice from './ModuleAvailabilityNotice';
 import { ConfigSection } from '../shared/config/ConfigSection';
 import { PasswordField } from '../shared/config/PasswordField';
-
-// Address mode options from protobufs
-const ADDRESS_MODE_OPTIONS = [
-  { value: 0, label: 'DHCP' },
-  { value: 1, label: 'STATIC' },
-];
-
-// Config.NetworkConfig.ProtocolFlags — currently defines only the UDP_BROADCAST bit
-const UDP_BROADCAST_FLAG = 0x0001;
+import { ADDRESS_MODE_OPTIONS, UDP_BROADCAST_FLAG } from './constants';
 
 interface NetworkConfigSectionProps {
   /** False disables every control: no configuration:write on this source (#5830). */

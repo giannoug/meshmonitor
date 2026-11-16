@@ -2,7 +2,8 @@
  * @vitest-environment jsdom
  *
  * Board 12-22-device-index (phone): Device's index is a page with Back to
- * Settings. Summaries, Bluetooth and Pins in use are Task 5.6's.
+ * Settings, the categories with their summaries, then the pins in use (Task
+ * 5.6). Bluetooth is left out (Ruling 5.6 EA: today has no Bluetooth settings).
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
@@ -20,7 +21,8 @@ describe('12-22-device-index', () => {
   it('12-22-device-index shows the board', async () => {
     const { container } = renderSettings(`${g2}/settings/device`, { phone: true });
     await within(await screen.findByRole('list', { name: 'Categories' }, { timeout: 5000 })).findByText('Network');
-    expectBoard('12-22-device-index', container, { staged: ['Bluetooth', 'Role CLIENT', 'Pins in use', 'GPIO 4'] });
+    await screen.findByRole('region', { name: 'Pins in use' }, { timeout: 5000 });
+    expectBoard('12-22-device-index', container, { staged: ['Bluetooth'] });
     expect(screen.getByRole('heading', { level: 1, name: 'Device' })).toBeInTheDocument();
     expect(screen.getByTestId('settings-back')).toHaveAttribute('href', `${g2}/settings`);
     // The page draws its own header: no device switcher.

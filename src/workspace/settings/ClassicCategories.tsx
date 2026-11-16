@@ -3,9 +3,10 @@
  * section for it, rendered with the props it takes today (Task 5.2, decision
  * 1), so every control a power user uses is still there (spec §2).
  *
- * - On the radio: today's Device Configuration section, fed from the frame's
- *   one device-config instance (Ruling DG) and saving through today's
- *   handlers and SaveBar. Import/Export and the danger zone keep today's JSX.
+ * - On the radio: MQTT's section (Ruling 5.6: its save also writes the broker
+ *   preset and the MQTT link), fed from the frame's one device-config instance
+ *   (Ruling DG) and saving through today's handler and SaveBar. Import/Export
+ *   and the danger zone keep today's JSX.
  * - In MeshMonitor: today's source Settings page (SettingsTab, as App mounts
  *   it), scrolled to the category's section; Notifications adds today's tab
  *   above it; the self-contained sections (bridge setup, PKI DMs, Reliable
@@ -24,29 +25,7 @@ import { usePoll } from '../../hooks/usePoll';
 import { appBasename } from '../../init';
 import { buildAdminCommandsPath } from '../../utils/adminDeepLink';
 import ModuleAvailabilityGate from '../../components/configuration/ModuleAvailabilityGate';
-import DeviceConfigSection from '../../components/configuration/DeviceConfigSection';
-import PositionConfigSection from '../../components/configuration/PositionConfigSection';
 import MQTTConfigSection from '../../components/configuration/MQTTConfigSection';
-import NeighborInfoSection from '../../components/configuration/NeighborInfoSection';
-import NetworkConfigSection from '../../components/configuration/NetworkConfigSection';
-import PowerConfigSection from '../../components/configuration/PowerConfigSection';
-import DisplayConfigSection from '../../components/configuration/DisplayConfigSection';
-import TelemetryConfigSection from '../../components/configuration/TelemetryConfigSection';
-import ExternalNotificationConfigSection from '../../components/configuration/ExternalNotificationConfigSection';
-import StoreForwardConfigSection from '../../components/configuration/StoreForwardConfigSection';
-import RangeTestConfigSection from '../../components/configuration/RangeTestConfigSection';
-import CannedMessageConfigSection from '../../components/configuration/CannedMessageConfigSection';
-import AudioConfigSection from '../../components/configuration/AudioConfigSection';
-import RemoteHardwareConfigSection from '../../components/configuration/RemoteHardwareConfigSection';
-import DetectionSensorConfigSection from '../../components/configuration/DetectionSensorConfigSection';
-import PaxcounterConfigSection from '../../components/configuration/PaxcounterConfigSection';
-import StatusMessageConfigSection from '../../components/configuration/StatusMessageConfigSection';
-import StatusMessageReapplyOption from '../../components/configuration/StatusMessageReapplyOption';
-import TAKConfigSection from '../../components/configuration/TAKConfigSection';
-import TrafficManagementConfigSection from '../../components/configuration/TrafficManagementConfigSection';
-import MeshBeaconConfigSection from '../../components/configuration/MeshBeaconConfigSection';
-import SerialConfigSection from '../../components/configuration/SerialConfigSection';
-import AmbientLightingConfigSection from '../../components/configuration/AmbientLightingConfigSection';
 import PkiDmDecryptionSection from '../../components/configuration/PkiDmDecryptionSection';
 import FirmwareUpdateSection from '../../components/configuration/FirmwareUpdateSection';
 import BackupManagementSection from '../../components/configuration/BackupManagementSection';
@@ -105,199 +84,17 @@ function Radio({ render }: { render: (c: SharedDeviceConfig) => ReactNode }) {
   return <div className={styles.sections}>{render(config)}</div>;
 }
 
-const radio = ({ readOnly }: CategoryProps, render: (c: SharedDeviceConfig, canWrite: boolean) => ReactNode) => (
-  <Radio render={(c) => render(c, !readOnly)} />
-);
-
-export function DeviceCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <DeviceConfigSection {...state} canWrite={canWrite} onSave={saves.device} />
-  ));
-}
-
-export function PositionCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <PositionConfigSection {...state} canWrite={canWrite} onSave={saves.position} />
-  ));
-}
-
-export function PowerCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <PowerConfigSection {...state} canWrite={canWrite} onSave={saves.power} />
-  ));
-}
-
-export function DisplayCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <DisplayConfigSection {...state} canWrite={canWrite} units={state.displayUnits} setUnits={state.setDisplayUnits} onSave={saves.display} />
-  ));
-}
-
-export function NetworkCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <ModuleAvailabilityGate available={state.supportedModules?.network} moduleName="Network">
-      <NetworkConfigSection {...state} canWrite={canWrite} onSave={saves.network} />
-    </ModuleAvailabilityGate>
-  ));
-}
-
-export function TelemetryModuleCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <ModuleAvailabilityGate available={state.supportedModules?.telemetry} moduleName="Telemetry">
-      <TelemetryConfigSection {...state} canWrite={canWrite} onSave={saves.telemetry} />
-    </ModuleAvailabilityGate>
-  ));
-}
-
 // MQTT reads configuration:write for this source itself, as today.
-export function MqttCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }) => (
-    <ModuleAvailabilityGate available={state.supportedModules?.mqtt} moduleName="MQTT">
-      <MQTTConfigSection {...state} {...strip(state, 'mqtt')} loraRegion={state.region} onSave={saves.mqtt} />
-    </ModuleAvailabilityGate>
-  ));
-}
-
-export function NeighborInfoCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <ModuleAvailabilityGate available={state.supportedModules?.neighborinfo} moduleName="Neighbor Info">
-      <NeighborInfoSection {...state} canWrite={canWrite} onSave={saves.neighborinfo} />
-    </ModuleAvailabilityGate>
-  ));
-}
-
-export function ExternalNotificationCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <ModuleAvailabilityGate available={state.supportedModules?.extnotif} moduleName="External Notification">
-      <ExternalNotificationConfigSection {...state} {...strip(state, 'extNotif')} canWrite={canWrite} onSave={saves.extnotif} />
-    </ModuleAvailabilityGate>
-  ));
-}
-
-export function StoreForwardCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <ModuleAvailabilityGate available={state.supportedModules?.storeforward} moduleName="Store & Forward">
-      <StoreForwardConfigSection {...state} {...strip(state, 'storeForward')} canWrite={canWrite} onSave={saves.storeforward} />
-    </ModuleAvailabilityGate>
-  ));
-}
-
-export function RangeTestCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <ModuleAvailabilityGate available={state.supportedModules?.rangetest} moduleName="Range Test">
-      <RangeTestConfigSection
-        {...state}
-        {...strip(state, 'rangeTest')}
-        canWrite={canWrite}
-        isDisabled={state.supportedModules?.rangeTest === false}
-        onSave={saves.rangetest}
-      />
-    </ModuleAvailabilityGate>
-  ));
-}
-
-export function CannedMessageCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <ModuleAvailabilityGate available={state.supportedModules?.cannedmsg} moduleName="Canned Messages">
-      <CannedMessageConfigSection {...state} {...strip(state, 'cannedMsg')} canWrite={canWrite} onSave={saves.cannedmsg} />
-    </ModuleAvailabilityGate>
-  ));
-}
-
-export function AudioCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <ModuleAvailabilityGate available={state.supportedModules?.audio} moduleName="Audio">
-      <AudioConfigSection {...state} {...strip(state, 'audio')} canWrite={canWrite} onSave={saves.audio} />
-    </ModuleAvailabilityGate>
-  ));
-}
-
-export function RemoteHardwareCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <ModuleAvailabilityGate available={state.supportedModules?.remotehardware} moduleName="Remote Hardware">
-      <RemoteHardwareConfigSection {...state} {...strip(state, 'remoteHardware')} canWrite={canWrite} onSave={saves.remotehardware} />
-    </ModuleAvailabilityGate>
-  ));
-}
-
-export function DetectionSensorCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <ModuleAvailabilityGate available={state.supportedModules?.detectionsensor} moduleName="Detection Sensor">
-      <DetectionSensorConfigSection {...state} {...strip(state, 'detectionSensor')} canWrite={canWrite} onSave={saves.detectionsensor} />
-    </ModuleAvailabilityGate>
-  ));
-}
-
-export function PaxcounterCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <ModuleAvailabilityGate available={state.supportedModules?.paxcounter} moduleName="Paxcounter">
-      <PaxcounterConfigSection {...state} {...strip(state, 'paxcounter')} canWrite={canWrite} onSave={saves.paxcounter} />
-    </ModuleAvailabilityGate>
-  ));
-}
-
-export function StatusMessageCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <>
-      <StatusMessageConfigSection
-        {...state}
-        {...strip(state, 'statusMessage')}
-        canWrite={canWrite}
-        isDisabled={!state.supportedModules?.statusmessage}
-        onSave={saves.statusmessage}
-      />
-      <StatusMessageReapplyOption isDisabled={!state.supportedModules?.statusmessage} />
-    </>
-  ));
-}
-
-export function TrafficManagementCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <TrafficManagementConfigSection
-      {...state}
-      {...strip(state, 'trafficManagement')}
-      canWrite={canWrite}
-      isDisabled={!state.supportedModules?.trafficManagement}
-      onSave={saves.trafficmanagement}
+export function MqttCategory() {
+  return (
+    <Radio
+      render={({ state, saves }) => (
+        <ModuleAvailabilityGate available={state.supportedModules?.mqtt} moduleName="MQTT">
+          <MQTTConfigSection {...state} {...strip(state, 'mqtt')} loraRegion={state.region} onSave={saves.mqtt} />
+        </ModuleAvailabilityGate>
+      )}
     />
-  ));
-}
-
-export function MeshBeaconCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <MeshBeaconConfigSection
-      {...state}
-      {...strip(state, 'meshBeacon')}
-      canWrite={canWrite}
-      isDisabled={!state.supportedModules?.meshBeacon}
-      onSave={saves.meshbeacon}
-    />
-  ));
-}
-
-// Two gates, two flags: `tak` is false when the build left the module out; `takConfig` when the firmware predates 2.8.0.
-export function TakCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <ModuleAvailabilityGate available={state.supportedModules?.tak} moduleName="TAK">
-      <TAKConfigSection {...state} {...strip(state, 'tak')} canWrite={canWrite} isDisabled={!state.supportedModules?.takConfig} onSave={saves.tak} />
-    </ModuleAvailabilityGate>
-  ));
-}
-
-export function SerialCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <ModuleAvailabilityGate available={state.supportedModules?.serial} moduleName="Serial">
-      <SerialConfigSection {...state} {...strip(state, 'serial')} canWrite={canWrite} onSave={saves.serial} />
-    </ModuleAvailabilityGate>
-  ));
-}
-
-export function AmbientLightingCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <ModuleAvailabilityGate available={state.supportedModules?.ambientlighting} moduleName="Ambient Lighting">
-      <AmbientLightingConfigSection {...state} {...strip(state, 'ambient')} canWrite={canWrite} onSave={saves.ambientlighting} />
-    </ModuleAvailabilityGate>
-  ));
+  );
 }
 
 /** Today's Import/Export section (reload, import, export, what changed) and the device backups. */

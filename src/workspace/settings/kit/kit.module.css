@@ -102,6 +102,11 @@
   font: inherit;
 }
 
+/* Desktop: a long option ("NAME - description") must not push the label off the row. */
+.row:not([data-phone]) .select {
+  max-width: 360px;
+}
+
 .row[data-phone] .input,
 .row[data-phone] .select {
   width: 100%;

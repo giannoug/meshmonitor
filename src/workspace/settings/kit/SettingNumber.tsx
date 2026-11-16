@@ -44,7 +44,10 @@ export default function SettingNumber({ value, onChange, min, max, step = 1, rea
     />
   );
   if (!isPhone) return field;
-  const clamp = (n: number) => Math.min(max ?? Infinity, Math.max(min ?? -Infinity, n));
+  // Rounded to the step's places, so 0.1 + 0.2 steps to 0.3, not 0.30000000000000004.
+  const [mantissa, exponent] = step.toExponential().split('e');
+  const places = Math.max(0, (mantissa.split('.')[1]?.length ?? 0) - Number(exponent));
+  const clamp = (n: number) => Math.min(max ?? Infinity, Math.max(min ?? -Infinity, Number(n.toFixed(places))));
   return (
     <span className={styles.stepper}>
       <button

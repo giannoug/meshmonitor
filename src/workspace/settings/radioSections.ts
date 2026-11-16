@@ -4,9 +4,9 @@
  * sends. Each list is the `values` its Classic section compares against its
  * SaveBar baseline (`useSectionBaseline`), under the state's own names.
  *
- * MQTT is not queued (Ruling 5.3): its Classic section runs writes of its own
- * around the save (the broker preset and the MQTT link), so it keeps today's
- * in-page save until its page is rebuilt. Security is queued since Task 5.5;
+ * MQTT is not queued (Rulings 5.3, 5.6): its Classic section runs writes of its
+ * own around the save (the broker preset and the MQTT link, staged in the
+ * section), so it keeps today's in-page save. Security is queued since Task 5.5;
  * its confirms run before its write (securitySaveGuard.tsx).
  */
 import type { TFunction } from 'i18next';
@@ -191,8 +191,8 @@ const OPTION_NAMES: Partial<Record<Key, ReadonlyArray<{ value: number; name?: st
 
 /** A value as Review shows it: an option's name, On / Off, or the value. */
 export function formatValue(t: TFunction, key: Key, value: unknown): string {
-  // Never put the private key on screen in Review or "was …".
-  if (key === 'securityPrivateKey') return value ? '••••••••' : '—';
+  // Never put the private key or the Wi-Fi password on screen in Review or "was …".
+  if (key === 'securityPrivateKey' || key === 'wifiPsk') return value ? '••••••••' : '—';
   if (key === 'securitySignaturePolicy') return isPacketSignaturePolicy(value) ? t(POLICY_OPTION_KEYS[value]) : t('signature_policy.option_unknown');
   const option = OPTION_NAMES[key]?.find((o) => o.value === value);
   if (option) return option.name ?? option.label ?? String(value);

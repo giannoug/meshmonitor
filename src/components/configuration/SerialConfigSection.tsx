@@ -8,39 +8,7 @@ import { NumberInputScope } from '../common/NumberInputScope';
 import { useNumberInputScope } from '../common/numberInputScopeContext';
 import ModuleAvailabilityNotice from './ModuleAvailabilityNotice';
 import { ConfigSection } from '../shared/config/ConfigSection';
-
-// Serial baud rate options matching protobuf enum
-const SERIAL_BAUD_OPTIONS = [
-  { value: 0, name: 'BAUD_DEFAULT', description: 'Default baud rate' },
-  { value: 1, name: 'BAUD_110', description: '110 bps' },
-  { value: 2, name: 'BAUD_300', description: '300 bps' },
-  { value: 3, name: 'BAUD_600', description: '600 bps' },
-  { value: 4, name: 'BAUD_1200', description: '1200 bps' },
-  { value: 5, name: 'BAUD_2400', description: '2400 bps' },
-  { value: 6, name: 'BAUD_4800', description: '4800 bps' },
-  { value: 7, name: 'BAUD_9600', description: '9600 bps' },
-  { value: 8, name: 'BAUD_19200', description: '19200 bps' },
-  { value: 9, name: 'BAUD_38400', description: '38400 bps' },
-  { value: 10, name: 'BAUD_57600', description: '57600 bps' },
-  { value: 11, name: 'BAUD_115200', description: '115200 bps' },
-  { value: 12, name: 'BAUD_230400', description: '230400 bps' },
-  { value: 13, name: 'BAUD_460800', description: '460800 bps' },
-  { value: 14, name: 'BAUD_576000', description: '576000 bps' },
-  { value: 15, name: 'BAUD_921600', description: '921600 bps' }
-];
-
-// Serial mode options matching protobuf enum
-const SERIAL_MODE_OPTIONS = [
-  { value: 0, name: 'DEFAULT', description: 'Default mode' },
-  { value: 1, name: 'SIMPLE', description: 'Simple ASCII mode' },
-  { value: 2, name: 'PROTO', description: 'Protobuf API mode' },
-  { value: 3, name: 'TEXTMSG', description: 'Text message mode' },
-  { value: 4, name: 'NMEA', description: 'NMEA GPS mode' },
-  { value: 5, name: 'CALTOPO', description: 'CalTopo mode' },
-  { value: 6, name: 'WS85', description: 'WS85 weather station' },
-  { value: 7, name: 'VE_DIRECT', description: 'VE.Direct (Victron)' },
-  { value: 8, name: 'MS_CONFIG', description: 'Config mode' }
-];
+import { SERIAL_BAUD_OPTIONS, SERIAL_MODE_OPTIONS } from './constants';
 
 interface SerialConfigSectionProps {
   /** False disables every control: no configuration:write on this source (#5830). */

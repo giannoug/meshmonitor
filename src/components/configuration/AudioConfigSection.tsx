@@ -8,19 +8,7 @@ import { NumberInputScope } from '../common/NumberInputScope';
 import { useNumberInputScope } from '../common/numberInputScopeContext';
 import ModuleAvailabilityNotice from './ModuleAvailabilityNotice';
 import { ConfigSection } from '../shared/config/ConfigSection';
-
-// Audio bitrate options matching protobuf enum
-const AUDIO_BAUD_OPTIONS = [
-  { value: 0, name: 'CODEC2_DEFAULT', description: 'Default codec setting' },
-  { value: 1, name: 'CODEC2_3200', description: '3200 bps' },
-  { value: 2, name: 'CODEC2_2400', description: '2400 bps' },
-  { value: 3, name: 'CODEC2_1600', description: '1600 bps' },
-  { value: 4, name: 'CODEC2_1400', description: '1400 bps' },
-  { value: 5, name: 'CODEC2_1300', description: '1300 bps' },
-  { value: 6, name: 'CODEC2_1200', description: '1200 bps' },
-  { value: 7, name: 'CODEC2_700', description: '700 bps' },
-  { value: 8, name: 'CODEC2_700B', description: '700B bps' }
-];
+import { AUDIO_BAUD_OPTIONS } from './constants';
 
 interface AudioConfigSectionProps {
   /** False disables every control: no configuration:write on this source (#5830). */

@@ -8,16 +8,7 @@ import { NumberInputScope } from '../common/NumberInputScope';
 import { useNumberInputScope } from '../common/numberInputScopeContext';
 import ModuleAvailabilityNotice from './ModuleAvailabilityNotice';
 import { ConfigSection } from '../shared/config/ConfigSection';
-
-// Trigger type options matching protobuf enum
-const TRIGGER_TYPE_OPTIONS = [
-  { value: 0, name: 'LOGIC_LOW', description: 'Trigger when pin goes low' },
-  { value: 1, name: 'LOGIC_HIGH', description: 'Trigger when pin goes high' },
-  { value: 2, name: 'FALLING_EDGE', description: 'Trigger on falling edge' },
-  { value: 3, name: 'RISING_EDGE', description: 'Trigger on rising edge' },
-  { value: 4, name: 'EITHER_EDGE_ACTIVE_LOW', description: 'Either edge, active low' },
-  { value: 5, name: 'EITHER_EDGE_ACTIVE_HIGH', description: 'Either edge, active high' }
-];
+import { TRIGGER_TYPE_OPTIONS } from './constants';
 
 interface DetectionSensorConfigSectionProps {
   /** False disables every control: no configuration:write on this source (#5830). */

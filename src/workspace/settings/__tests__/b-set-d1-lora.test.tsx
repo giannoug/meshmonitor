@@ -66,7 +66,7 @@ describe('b-set-d1-lora', () => {
     expect(screen.getByText('was 3')).toBeInTheDocument();
   });
 
-  it('a Classic section of a queued category shows no save bar of its own', async () => {
+  it('Device queues in the radio bar and draws no save bar of its own', async () => {
     renderSettings(`${g2}/settings/device/device`);
     fireEvent.change(await screen.findByLabelText(/Rebroadcast Mode/, {}, { timeout: 5000 }), { target: { value: '2' } });
     await within(await bar()).findByText('Save (may restart)');

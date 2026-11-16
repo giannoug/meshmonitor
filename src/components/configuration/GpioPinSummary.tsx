@@ -1,105 +1,17 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../icons';
+import { gpioPinUsages, groupPinUsages, type GpioPinValues } from './gpioPins';
 
-interface PinUsage {
-  pin: number;
-  section: string;
-  field: string;
-  fieldKey: string;
-}
-
-interface GpioPinSummaryProps {
-  // Device Config
-  buttonGpio: number;
-  buzzerGpio: number;
-  // Position Config
-  rxGpio: number;
-  txGpio: number;
-  gpsEnGpio: number;
-  // External Notification Config
-  extNotifOutput: number;
-  extNotifOutputVibra: number;
-  extNotifOutputBuzzer: number;
-  // Canned Message Config
-  cannedMsgInputbrokerPinA: number;
-  cannedMsgInputbrokerPinB: number;
-  cannedMsgInputbrokerPinPress: number;
-  // Audio Config
-  audioPttPin: number;
-  audioI2sWs: number;
-  audioI2sSd: number;
-  audioI2sDin: number;
-  audioI2sSck: number;
-  // Detection Sensor Config
-  detectionSensorMonitorPin: number;
-  // Serial Config
-  serialRxd: number;
-  serialTxd: number;
-}
+type GpioPinSummaryProps = GpioPinValues;
 
 const GpioPinSummary: React.FC<GpioPinSummaryProps> = (props) => {
   const { t } = useTranslation();
 
-  const pinUsages = useMemo(() => {
-    const usages: PinUsage[] = [];
-
-    // Helper to add pin usage if pin is not 0 (0 often means disabled/default)
-    const addPin = (pin: number, section: string, field: string, fieldKey: string) => {
-      if (pin !== 0) {
-        usages.push({ pin, section, field, fieldKey });
-      }
-    };
-
-    // Device Config
-    addPin(props.buttonGpio, t('config.device_config'), t('gpio_summary.button_gpio'), 'buttonGpio');
-    addPin(props.buzzerGpio, t('config.device_config'), t('gpio_summary.buzzer_gpio'), 'buzzerGpio');
-
-    // Position Config
-    addPin(props.rxGpio, t('config.position_config'), t('gpio_summary.gps_rx'), 'rxGpio');
-    addPin(props.txGpio, t('config.position_config'), t('gpio_summary.gps_tx'), 'txGpio');
-    addPin(props.gpsEnGpio, t('config.position_config'), t('gpio_summary.gps_enable'), 'gpsEnGpio');
-
-    // External Notification Config
-    addPin(props.extNotifOutput, t('extnotif_config.title'), t('gpio_summary.led_output'), 'extNotifOutput');
-    addPin(props.extNotifOutputVibra, t('extnotif_config.title'), t('gpio_summary.vibra_output'), 'extNotifOutputVibra');
-    addPin(props.extNotifOutputBuzzer, t('extnotif_config.title'), t('gpio_summary.buzzer_output'), 'extNotifOutputBuzzer');
-
-    // Canned Message Config
-    addPin(props.cannedMsgInputbrokerPinA, t('cannedmsg_config.title'), t('gpio_summary.encoder_pin_a'), 'cannedMsgInputbrokerPinA');
-    addPin(props.cannedMsgInputbrokerPinB, t('cannedmsg_config.title'), t('gpio_summary.encoder_pin_b'), 'cannedMsgInputbrokerPinB');
-    addPin(props.cannedMsgInputbrokerPinPress, t('cannedmsg_config.title'), t('gpio_summary.encoder_press'), 'cannedMsgInputbrokerPinPress');
-
-    // Audio Config
-    addPin(props.audioPttPin, t('audio_config.title'), t('gpio_summary.ptt_pin'), 'audioPttPin');
-    addPin(props.audioI2sWs, t('audio_config.title'), t('gpio_summary.i2s_ws'), 'audioI2sWs');
-    addPin(props.audioI2sSd, t('audio_config.title'), t('gpio_summary.i2s_sd'), 'audioI2sSd');
-    addPin(props.audioI2sDin, t('audio_config.title'), t('gpio_summary.i2s_din'), 'audioI2sDin');
-    addPin(props.audioI2sSck, t('audio_config.title'), t('gpio_summary.i2s_sck'), 'audioI2sSck');
-
-    // Detection Sensor Config
-    addPin(props.detectionSensorMonitorPin, t('detectionsensor_config.title'), t('gpio_summary.monitor_pin'), 'detectionSensorMonitorPin');
-
-    // Serial Config
-    addPin(props.serialRxd, t('serial_config.title'), t('gpio_summary.serial_rx'), 'serialRxd');
-    addPin(props.serialTxd, t('serial_config.title'), t('gpio_summary.serial_tx'), 'serialTxd');
-
-    return usages;
-  }, [props, t]);
+  const pinUsages = useMemo(() => gpioPinUsages(props, t), [props, t]);
 
   // Group by pin number to find conflicts
-  const pinGroups = useMemo(() => {
-    const groups = new Map<number, PinUsage[]>();
-
-    for (const usage of pinUsages) {
-      const existing = groups.get(usage.pin) || [];
-      existing.push(usage);
-      groups.set(usage.pin, existing);
-    }
-
-    // Sort by pin number
-    return Array.from(groups.entries()).sort((a, b) => a[0] - b[0]);
-  }, [pinUsages]);
+  const pinGroups = useMemo(() => groupPinUsages(pinUsages), [pinUsages]);
 
   // Find pins with conflicts (used by more than one field)
   const conflictPins = useMemo(() => {

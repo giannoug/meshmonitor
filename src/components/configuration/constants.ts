@@ -808,3 +808,117 @@ export const POSITION_FLAGS: PositionFlag[] = [
   { value: 256, name: 'HEADING', description: 'Include heading.' },
   { value: 512, name: 'SPEED', description: 'Include speed.' }
 ];
+
+// Module and device option lists, shared by the Configuration sections and the Workspace category pages.
+
+// OLED type options from protobufs
+export const OLED_TYPES = [
+  { value: 0, label: 'AUTO' },
+  { value: 1, label: 'SSD1306' },
+  { value: 2, label: 'SH1106' },
+  { value: 3, label: 'SH1107' },
+  { value: 4, label: 'SH1107_128_128' },
+];
+
+// Display mode options from protobufs
+export const DISPLAY_MODES = [
+  { value: 0, label: 'DEFAULT' },
+  { value: 1, label: 'TWOCOLOR' },
+  { value: 2, label: 'INVERTED' },
+  { value: 3, label: 'COLOR' },
+];
+
+// Units options from protobufs
+export const UNITS_OPTIONS = [
+  { value: 0, label: 'METRIC' },
+  { value: 1, label: 'IMPERIAL' },
+];
+
+// Compass orientation options (0-7)
+export const COMPASS_ORIENTATION_OPTIONS = [
+  { value: 0, label: '0 degrees' },
+  { value: 1, label: '90 degrees CW' },
+  { value: 2, label: '180 degrees' },
+  { value: 3, label: '270 degrees CW' },
+  { value: 4, label: '0 degrees (inverted)' },
+  { value: 5, label: '90 degrees CW (inverted)' },
+  { value: 6, label: '180 degrees (inverted)' },
+  { value: 7, label: '270 degrees CW (inverted)' },
+];
+
+// Address mode options from protobufs
+export const ADDRESS_MODE_OPTIONS = [
+  { value: 0, label: 'DHCP' },
+  { value: 1, label: 'STATIC' },
+];
+
+// Config.NetworkConfig.ProtocolFlags — currently defines only the UDP_BROADCAST bit
+export const UDP_BROADCAST_FLAG = 0x0001;
+
+// Input event character options matching protobuf enum
+export const INPUT_EVENT_OPTIONS = [
+  { value: 0, name: 'NONE' },
+  { value: 17, name: 'UP' },
+  { value: 18, name: 'DOWN' },
+  { value: 19, name: 'LEFT' },
+  { value: 20, name: 'RIGHT' },
+  { value: 10, name: 'SELECT' },
+  { value: 27, name: 'BACK' },
+  { value: 24, name: 'CANCEL' }
+];
+
+// Audio bitrate options matching protobuf enum
+export const AUDIO_BAUD_OPTIONS = [
+  { value: 0, name: 'CODEC2_DEFAULT', description: 'Default codec setting' },
+  { value: 1, name: 'CODEC2_3200', description: '3200 bps' },
+  { value: 2, name: 'CODEC2_2400', description: '2400 bps' },
+  { value: 3, name: 'CODEC2_1600', description: '1600 bps' },
+  { value: 4, name: 'CODEC2_1400', description: '1400 bps' },
+  { value: 5, name: 'CODEC2_1300', description: '1300 bps' },
+  { value: 6, name: 'CODEC2_1200', description: '1200 bps' },
+  { value: 7, name: 'CODEC2_700', description: '700 bps' },
+  { value: 8, name: 'CODEC2_700B', description: '700B bps' }
+];
+
+// Trigger type options matching protobuf enum
+export const TRIGGER_TYPE_OPTIONS = [
+  { value: 0, name: 'LOGIC_LOW', description: 'Trigger when pin goes low' },
+  { value: 1, name: 'LOGIC_HIGH', description: 'Trigger when pin goes high' },
+  { value: 2, name: 'FALLING_EDGE', description: 'Trigger on falling edge' },
+  { value: 3, name: 'RISING_EDGE', description: 'Trigger on rising edge' },
+  { value: 4, name: 'EITHER_EDGE_ACTIVE_LOW', description: 'Either edge, active low' },
+  { value: 5, name: 'EITHER_EDGE_ACTIVE_HIGH', description: 'Either edge, active high' }
+];
+
+// Serial baud rate options matching protobuf enum
+export const SERIAL_BAUD_OPTIONS = [
+  { value: 0, name: 'BAUD_DEFAULT', description: 'Default baud rate' },
+  { value: 1, name: 'BAUD_110', description: '110 bps' },
+  { value: 2, name: 'BAUD_300', description: '300 bps' },
+  { value: 3, name: 'BAUD_600', description: '600 bps' },
+  { value: 4, name: 'BAUD_1200', description: '1200 bps' },
+  { value: 5, name: 'BAUD_2400', description: '2400 bps' },
+  { value: 6, name: 'BAUD_4800', description: '4800 bps' },
+  { value: 7, name: 'BAUD_9600', description: '9600 bps' },
+  { value: 8, name: 'BAUD_19200', description: '19200 bps' },
+  { value: 9, name: 'BAUD_38400', description: '38400 bps' },
+  { value: 10, name: 'BAUD_57600', description: '57600 bps' },
+  { value: 11, name: 'BAUD_115200', description: '115200 bps' },
+  { value: 12, name: 'BAUD_230400', description: '230400 bps' },
+  { value: 13, name: 'BAUD_460800', description: '460800 bps' },
+  { value: 14, name: 'BAUD_576000', description: '576000 bps' },
+  { value: 15, name: 'BAUD_921600', description: '921600 bps' }
+];
+
+// Serial mode options matching protobuf enum
+export const SERIAL_MODE_OPTIONS = [
+  { value: 0, name: 'DEFAULT', description: 'Default mode' },
+  { value: 1, name: 'SIMPLE', description: 'Simple ASCII mode' },
+  { value: 2, name: 'PROTO', description: 'Protobuf API mode' },
+  { value: 3, name: 'TEXTMSG', description: 'Text message mode' },
+  { value: 4, name: 'NMEA', description: 'NMEA GPS mode' },
+  { value: 5, name: 'CALTOPO', description: 'CalTopo mode' },
+  { value: 6, name: 'WS85', description: 'WS85 weather station' },
+  { value: 7, name: 'VE_DIRECT', description: 'VE.Direct (Victron)' },
+  { value: 8, name: 'MS_CONFIG', description: 'Config mode' }
+];

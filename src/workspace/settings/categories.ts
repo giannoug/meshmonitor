@@ -12,7 +12,8 @@
  *
  * Until Tasks 5.3–5.8 build each page, a category's `component` renders
  * today's section for it (`ClassicCategories`); LoRa is built (Task 5.3),
- * Identity, Channels and Security (Task 5.5, `categories/`).
+ * Identity, Channels and Security (Task 5.5, `categories/`), Device's
+ * categories and the modules but MQTT (Task 5.6).
  */
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import type { TFunction } from 'i18next';
@@ -80,7 +81,9 @@ const radio = (
   gate: (c) => canReadConfig(c) && (extra.gate?.(c) ?? true),
 });
 
-const mod = (name: string, labelKey: string, component: ClassicName, saveSection: ConfigSaveSection) =>
+// One chunk for every module page; each reads its module from the category id.
+const moduleCategory = lazy(() => import('./categories/ModuleCategory.tsx'));
+const mod = (name: string, labelKey: string, saveSection: ConfigSaveSection, component: ClassicName | CategoryDef['component'] = moduleCategory) =>
   radio(`modules/${name}`, labelKey, component, { group: 'modules', saveSection });
 
 const meshmonitor = (
@@ -103,29 +106,29 @@ export const CATEGORIES: CategoryDef[] = [
   radio('lora', 'workspace.settings.label.lora', lazy(() => import('./LoraCategory.tsx')), { saveSection: 'lora' }),
   radio('channels', 'channels.title', lazy(() => import('./categories/ChannelsCategory.tsx'))),
   radio('security', 'security_config.title', lazy(() => import('./categories/SecurityCategory.tsx')), { saveSection: 'security' }),
-  radio('device/device', 'workspace.settings.label.device', 'DeviceCategory', { group: 'device', saveSection: 'device' }),
-  radio('device/position', 'workspace.settings.label.position', 'PositionCategory', { group: 'device', saveSection: 'position' }),
-  radio('device/power', 'workspace.settings.label.power', 'PowerCategory', { group: 'device', saveSection: 'power' }),
-  radio('device/display', 'workspace.settings.label.display', 'DisplayCategory', { group: 'device', saveSection: 'display' }),
-  radio('device/network', 'workspace.settings.label.network', 'NetworkCategory', { group: 'device', saveSection: 'network' }),
+  radio('device/device', 'workspace.settings.label.device', lazy(() => import('./categories/DeviceCategory.tsx')), { group: 'device', saveSection: 'device' }),
+  radio('device/position', 'workspace.settings.label.position', lazy(() => import('./categories/PositionCategory.tsx')), { group: 'device', saveSection: 'position' }),
+  radio('device/power', 'workspace.settings.label.power', lazy(() => import('./categories/PowerCategory.tsx')), { group: 'device', saveSection: 'power' }),
+  radio('device/display', 'workspace.settings.label.display', lazy(() => import('./categories/DisplayCategory.tsx')), { group: 'device', saveSection: 'display' }),
+  radio('device/network', 'workspace.settings.label.network', lazy(() => import('./categories/NetworkCategory.tsx')), { group: 'device', saveSection: 'network' }),
   // Modules, A–Z by their English label (the index sorts by the shown label).
-  mod('ambientlighting', 'ambientlighting_config.title', 'AmbientLightingCategory', 'ambientlighting'),
-  mod('audio', 'audio_config.title', 'AudioCategory', 'audio'),
-  mod('cannedmsg', 'cannedmsg_config.title', 'CannedMessageCategory', 'cannedmsg'),
-  mod('detectionsensor', 'detectionsensor_config.title', 'DetectionSensorCategory', 'detectionsensor'),
-  mod('extnotif', 'extnotif_config.title', 'ExternalNotificationCategory', 'extnotif'),
-  mod('meshbeacon', 'workspace.settings.label.meshbeacon', 'MeshBeaconCategory', 'meshbeacon'),
-  mod('mqtt', 'workspace.settings.label.mqtt', 'MqttCategory', 'mqtt'),
-  mod('neighbor', 'workspace.settings.label.neighbor', 'NeighborInfoCategory', 'neighborinfo'),
-  mod('paxcounter', 'paxcounter_config.title', 'PaxcounterCategory', 'paxcounter'),
-  mod('rangetest', 'rangetest_config.title', 'RangeTestCategory', 'rangetest'),
-  mod('remotehardware', 'workspace.settings.label.remotehardware', 'RemoteHardwareCategory', 'remotehardware'),
-  mod('serial', 'serial_config.title', 'SerialCategory', 'serial'),
-  mod('statusmessage', 'workspace.settings.label.statusmessage', 'StatusMessageCategory', 'statusmessage'),
-  mod('storeforward', 'storeforward_config.title', 'StoreForwardCategory', 'storeforward'),
-  mod('tak', 'tak_config.title', 'TakCategory', 'tak'),
-  mod('telemetry', 'workspace.settings.label.module_telemetry', 'TelemetryModuleCategory', 'telemetry'),
-  mod('trafficmanagement', 'trafficmanagement_config.title', 'TrafficManagementCategory', 'trafficmanagement'),
+  mod('ambientlighting', 'ambientlighting_config.title', 'ambientlighting'),
+  mod('audio', 'audio_config.title', 'audio'),
+  mod('cannedmsg', 'cannedmsg_config.title', 'cannedmsg'),
+  mod('detectionsensor', 'detectionsensor_config.title', 'detectionsensor'),
+  mod('extnotif', 'extnotif_config.title', 'extnotif'),
+  mod('meshbeacon', 'workspace.settings.label.meshbeacon', 'meshbeacon'),
+  mod('mqtt', 'workspace.settings.label.mqtt', 'mqtt', 'MqttCategory'),
+  mod('neighbor', 'workspace.settings.label.neighbor', 'neighborinfo'),
+  mod('paxcounter', 'paxcounter_config.title', 'paxcounter'),
+  mod('rangetest', 'rangetest_config.title', 'rangetest'),
+  mod('remotehardware', 'workspace.settings.label.remotehardware', 'remotehardware'),
+  mod('serial', 'serial_config.title', 'serial'),
+  mod('statusmessage', 'workspace.settings.label.statusmessage', 'statusmessage'),
+  mod('storeforward', 'storeforward_config.title', 'storeforward'),
+  mod('tak', 'tak_config.title', 'tak'),
+  mod('telemetry', 'workspace.settings.label.module_telemetry', 'telemetry'),
+  mod('trafficmanagement', 'trafficmanagement_config.title', 'trafficmanagement'),
   radio('maintenance/backup', 'config.backup_management', 'BackupCategory', { group: 'maintenance' }),
   // Today's gate: an admin, on an install with OTA updates on (ConfigurationTab showFirmware).
   radio('maintenance/firmware', 'firmware.title', 'FirmwareCategory', {
@@ -292,8 +295,9 @@ export function moduleAvailable(id: string, supported: DeviceConfigState['suppor
       return supported.trafficManagement;
     case 'meshbeacon':
       return supported.meshBeacon;
+    // Firmware before 2.8.0 (takConfig) shows TAK view only, as today, rather than folding it.
     case 'tak':
-      return supported.tak !== false && supported.takConfig !== false;
+      return supported.tak !== false;
     case 'rangetest':
       return supported.rangetest !== false && supported.rangeTest !== false;
     case 'neighbor':

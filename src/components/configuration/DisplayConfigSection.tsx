@@ -7,41 +7,7 @@ import { NumberInput } from '../common/NumberInput';
 import { NumberInputScope } from '../common/NumberInputScope';
 import { useNumberInputScope } from '../common/numberInputScopeContext';
 import { ConfigSection } from '../shared/config/ConfigSection';
-
-// OLED type options from protobufs
-const OLED_TYPES = [
-  { value: 0, label: 'AUTO' },
-  { value: 1, label: 'SSD1306' },
-  { value: 2, label: 'SH1106' },
-  { value: 3, label: 'SH1107' },
-  { value: 4, label: 'SH1107_128_128' },
-];
-
-// Display mode options from protobufs
-const DISPLAY_MODES = [
-  { value: 0, label: 'DEFAULT' },
-  { value: 1, label: 'TWOCOLOR' },
-  { value: 2, label: 'INVERTED' },
-  { value: 3, label: 'COLOR' },
-];
-
-// Units options from protobufs
-const UNITS_OPTIONS = [
-  { value: 0, label: 'METRIC' },
-  { value: 1, label: 'IMPERIAL' },
-];
-
-// Compass orientation options (0-7)
-const COMPASS_ORIENTATION_OPTIONS = [
-  { value: 0, label: '0 degrees' },
-  { value: 1, label: '90 degrees CW' },
-  { value: 2, label: '180 degrees' },
-  { value: 3, label: '270 degrees CW' },
-  { value: 4, label: '0 degrees (inverted)' },
-  { value: 5, label: '90 degrees CW (inverted)' },
-  { value: 6, label: '180 degrees (inverted)' },
-  { value: 7, label: '270 degrees CW (inverted)' },
-];
+import { OLED_TYPES, DISPLAY_MODES, UNITS_OPTIONS, COMPASS_ORIENTATION_OPTIONS } from './constants';
 
 interface DisplayConfigSectionProps {
   /** False disables every control: no configuration:write on this source (#5830). */

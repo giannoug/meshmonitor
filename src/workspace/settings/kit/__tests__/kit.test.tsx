@@ -149,6 +149,21 @@ describe('controls', () => {
     expect(field).toHaveValue(6);
   });
 
+  it('phone: a fractional step lands on the step, not on a float error', () => {
+    function Fraction() {
+      const [v, setV] = useState(0.1);
+      return (
+        <SettingRow id="t.adc" label="ADC multiplier">
+          <SettingNumber value={v} min={0} max={10} step={0.1} onChange={setV} />
+        </SettingRow>
+      );
+    }
+    render(inCategory(<Fraction />), { phone: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Increase' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Increase' }));
+    expect(screen.getByRole('spinbutton', { name: 'ADC multiplier' })).toHaveValue(0.3);
+  });
+
   it('an out-of-range number marks the enclosing NumberInputScope invalid', () => {
     function Scoped() {
       const scope = useNumberInputScope();

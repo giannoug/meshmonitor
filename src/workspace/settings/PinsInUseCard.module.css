@@ -1,0 +1,124 @@
+/* "Pins in use" beside Device's categories (12-06), below them on phone (12-22). */
+.card {
+  min-width: 0;
+}
+
+.heading {
+  margin: 20px 0 8px 4px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.box {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+.table thead th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.table tbody th,
+.table td {
+  padding: 14px 16px;
+  border-top: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.card[data-phone] .table tbody th,
+.card[data-phone] .table td {
+  min-height: 52px;
+  vertical-align: middle;
+}
+
+.card[data-phone] .table tbody tr:first-child th,
+.card[data-phone] .table tbody tr:first-child td {
+  border-top: 0;
+}
+
+.pin {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-weight: 400;
+  white-space: nowrap;
+  color: var(--color-text-subtle);
+}
+
+.use {
+  display: flex;
+  flex-direction: column;
+}
+
+.where {
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+tr[data-conflict] .pin,
+tr[data-conflict] td {
+  color: var(--color-error);
+}
+
+.note,
+.warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.box > .note:first-child {
+  border-top: 0;
+}
+
+.warning {
+  color: var(--color-error);
+}
+
+.link {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+/* Phone: a 44 px target (D8). */
+.card[data-phone] .link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.link:hover,
+.link:focus-visible {
+  text-decoration: underline;
+}
+
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

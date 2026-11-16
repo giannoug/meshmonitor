@@ -15,9 +15,8 @@
  * through `useSharedDeviceConfig()` (sharedDeviceConfig.ts); no category page loads its own.
  *
  * Task 5.3: radio edits queue in the frame's one save queue (useRadioSaveQueue)
- * and save from RadioSaveBar, with one reboot notice; the Classic sections a
- * queued category still shows register with a SaveBar nobody draws, so the
- * user sees one save bar. MQTT keeps today's own save (radioSections.ts),
+ * and save from RadioSaveBar, with one reboot notice. Since Task 5.6 every
+ * queued category is built on the row kit. MQTT keeps today's own save (radioSections.ts),
  * as do the In MeshMonitor categories. With edits queued, a link out of the
  * device's settings asks first (LeaveGuard).
  *
@@ -49,11 +48,11 @@ import CategoryPage from './CategoryPage';
 import SettingsList from './SettingsList';
 import { DeviceConfigContext } from './sharedDeviceConfig';
 import { useVisibleCategories } from './useVisibleCategories';
-import { isQueued } from './radioSections';
 import { RadioSaveQueueContext, useRadioSaveQueueState } from './useRadioSaveQueue';
 import RadioSaveBar from './RadioSaveBar';
 import LeaveGuard from './LeaveGuard';
 import { useSecuritySaveGuard } from './securitySaveGuard';
+import { meshBeaconTooLong } from './moduleChecks';
 import { SettingsDockContext, type PendingEdit } from './settingsDock';
 
 /** Settings always configure the device this source is connected to, until Task 5.9 adds the remote target. */
@@ -117,7 +116,7 @@ function Frame({ sourceId, source, path: rest }: SettingsFrameProps) {
 
   if (!radio) return page;
   return (
-    <RadioConfig sourceId={sourceId} deviceName={source.name} base={base} queued={isQueued(def?.saveSection)} compact={!rest && isPhone}>
+    <RadioConfig sourceId={sourceId} deviceName={source.name} base={base} compact={!rest && isPhone}>
       {page}
     </RadioConfig>
   );
@@ -130,14 +129,12 @@ interface RadioConfigProps {
   sourceId: string;
   deviceName: string;
   base: string;
-  /** The open category saves through the queue: its Classic section's own SaveBar entry is not drawn. */
-  queued: boolean;
   compact: boolean;
   children: ReactNode;
 }
 
 /** The one useDeviceConfigState of this device (Ruling DG), its save queue and one reboot notice. */
-function RadioConfig({ sourceId, deviceName, base, queued, compact, children }: RadioConfigProps) {
+function RadioConfig({ sourceId, deviceName, base, compact, children }: RadioConfigProps) {
   const [refresh, setRefresh] = useState(0);
   const [reboot, setReboot] = useState<Reboot | null>(null);
   // While the queue saves, reboot signals collect here and open one modal at the end.
@@ -164,7 +161,12 @@ function RadioConfig({ sourceId, deviceName, base, queued, compact, children }: 
   const numbers = useNumberInputScope();
   const config = { state, saves };
   const security = useSecuritySaveGuard(state);
-  const queue = useRadioSaveQueueState(config, { numberScope: numbers, runBatch, guards: { security: security.guard } });
+  const queue = useRadioSaveQueueState(config, {
+    numberScope: numbers,
+    runBatch,
+    // MeshBeacon: today's section never saves an over-long message (the device drops the whole config silently).
+    guards: { security: security.guard, meshbeacon: async () => !meshBeaconTooLong(state) },
+  });
   // Today's SaveBar, drawn for MQTT and the rest: one bar at a time.
   const classicDirty = [...useSaveBarContext().sections.values()].some((s) => s.hasChanges);
   // A page's own dock (reorder mode, a channel's edits) holds a claim; the radio bar yields to it.
@@ -185,7 +187,7 @@ function RadioConfig({ sourceId, deviceName, base, queued, compact, children }: 
       <RadioSaveQueueContext.Provider value={queue}>
         <SettingsDockContext.Provider value={dock}>
           <NumberInputScope scope={numbers}>
-            {queued ? <SaveBarProvider>{children}</SaveBarProvider> : children}
+            {children}
           </NumberInputScope>
         </SettingsDockContext.Provider>
         {!classicDirty && claims === 0 && <RadioSaveBar deviceName={deviceName} compact={compact} />}

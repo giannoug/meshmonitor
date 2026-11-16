@@ -9,8 +9,8 @@
  *
  * The ☆ in the header (Task 5.4) pins a category to the list's Pinned group.
  *
- * - Device: each hardware category with today's restart rule for the firmware
- *   (configRebootRules). Summaries and Pins in use are Task 5.6's.
+ * - Device: each hardware category with what it holds now and today's restart
+ *   rule for the firmware (configRebootRules), beside the pins in use (Task 5.6).
  * - Modules: the modules this firmware has, A–Z, with On/Off; the others fold
  *   into one row ("N not on this firmware" on desktop, "Hidden: … Why?" on
  *   phone) that still opens them.
@@ -27,6 +27,8 @@ import { SettingsCategoryContext } from './kit/useFieldRegistry';
 import { moduleAvailable, moduleOn, type CategoryDef, type CategoryGroup, type CategoryTarget } from './categories';
 import { useSharedDeviceConfig } from './sharedDeviceConfig';
 import { usePins } from './usePins';
+import { deviceSummary } from './deviceSummaries';
+import PinsInUseCard from './PinsInUseCard';
 import { SettingsHeaderContext, type SubHeader } from './settingsDock';
 import styles from './CategoryPage.module.css';
 
@@ -143,32 +145,57 @@ function Tag({ children, tone }: { children: string; tone?: 'on' }) {
 
 function GroupIndex({ base, group, items }: { base: string; group: CategoryGroup; items: CategoryDef[] }) {
   const { t } = useTranslation();
+  const isPhone = useIsPhone();
   const config = useSharedDeviceConfig();
-  const firmware = config?.state.loading ? undefined : config?.state.localFirmwareVersion;
+  const state = config && !config.state.loading ? config.state : undefined;
+  const firmware = state?.localFirmwareVersion;
   const tagFor = (c: CategoryDef) => {
     if (!c.saveSection || firmware === undefined) return null;
     const e = rebootExpectation(c.saveSection, firmware);
     if (e === 'never') return null;
     return <Tag>{t(e === 'always' ? 'workspace.settings.tag_restarts' : 'workspace.settings.tag_may_restart')}</Tag>;
   };
+  const device = group === 'device';
+  const categories = (
+    <div className={styles.column}>
+      <h2 className={styles.heading} id="settings-index-heading">{t('workspace.settings.categories')}</h2>
+      <ul className={styles.list} aria-labelledby="settings-index-heading">
+        {items.map((c) => {
+          const summary = state && deviceSummary(t, c.id, state);
+          return (
+            <li key={c.id}>
+              <Link to={`${base}/${c.id}`} className={styles.row}>
+                <span className={styles.rowText}>
+                  <span className={styles.rowLabel}>{t(c.labelKey)}</span>
+                  {summary && <span className={styles.summary}>{summary}</span>}
+                </span>
+                {tagFor(c)}
+                <UiIcon name="chevronRight" size={18} />
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      {device && firmware && <p className={styles.note}>{t('workspace.settings.restart_note', { version: firmware })}</p>}
+    </div>
+  );
   return (
     <>
       <p className={styles.scope}>
-        {group === 'device' ? t('workspace.settings.device_scope', { count: items.length }) : t('workspace.settings.on_radio')}
+        {device ? t('workspace.settings.device_scope', { count: items.length }) : t('workspace.settings.on_radio')}
       </p>
-      <h2 className={styles.heading} id="settings-index-heading">{t('workspace.settings.categories')}</h2>
-      <ul className={styles.list} aria-labelledby="settings-index-heading">
-        {items.map((c) => (
-          <li key={c.id}>
-            <Link to={`${base}/${c.id}`} className={styles.row}>
-              <span className={styles.rowLabel}>{t(c.labelKey)}</span>
-              {tagFor(c)}
-              <UiIcon name="chevronRight" size={18} />
-            </Link>
-          </li>
-        ))}
-      </ul>
-      {group === 'device' && firmware && <p className={styles.note}>{t('workspace.settings.restart_note', { version: firmware })}</p>}
+      {device ? (
+        <div className={styles.split} data-phone={isPhone || undefined}>
+          {categories}
+          {state && (
+            <div className={styles.side}>
+              <PinsInUseCard state={state} base={base} />
+            </div>
+          )}
+        </div>
+      ) : (
+        categories
+      )}
     </>
   );
 }
