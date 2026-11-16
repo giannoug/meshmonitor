@@ -2,7 +2,8 @@
  * ConfirmSheet (spec §5.7): the one destructive-action confirm. A `Sheet`
  * (right-docked on desktop, bottom on phone). With `confirmWord` the confirm
  * stays disabled until it is typed, case-sensitive and trimmed, as
- * `TypedConfirmDialog` (`typed_confirm.prompt` is its label).
+ * `TypedConfirmDialog` (`typed_confirm.prompt` is its label). While `busy`
+ * nothing dismisses it: Cancel, Esc, the backdrop and the close button wait.
  */
 import { useId, useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -65,6 +66,8 @@ function OpenConfirm({ title, body, consequences, confirmLabel, cancelLabel, con
     <Sheet
       open
       onClose={onCancel}
+      // While the request runs, Esc, the backdrop and the close button wait, as Cancel does.
+      dismissible={!busy}
       title={title}
       footer={
         <div className={styles.actions}>

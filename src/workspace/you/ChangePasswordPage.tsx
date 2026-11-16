@@ -9,10 +9,14 @@
  * by refreshing the session, as today. Away from `/you/password` the shell
  * shows the same form in a sheet that cannot be dismissed, over any page, as
  * Classic's forced modal does (WorkspaceShell).
+ *
+ * Not forced, an account that cannot change its password (OIDC,
+ * password-locked, passkey-only: the user menu's and Security page's gate)
+ * goes to Sign-in & security instead of a form the server would refuse.
  */
 import { useEffect, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChangePassword } from '../../components/account/useChangePassword';
 import { PasswordField } from '../../components/shared/config/PasswordField';
@@ -21,9 +25,11 @@ import styles from './YouAccount.module.css';
 
 export default function ChangePasswordPage() {
   const { t } = useTranslation();
-  const { authStatus, refreshAuth } = useAuth();
+  const { authStatus, loading, refreshAuth } = useAuth();
   const navigate = useNavigate();
   const forced = authStatus?.passwordChangeRequired === true;
+  const user = authStatus?.authenticated ? authStatus.user : null;
+  const canChange = user?.authProvider === 'local' && !user.passwordLocked && !user.passwordLoginDisabled;
   // The 2 s close can land after the user has left; then it must not pull them back.
   const mounted = useRef(true);
   useEffect(() => () => void (mounted.current = false), []);
@@ -31,6 +37,9 @@ export default function ChangePasswordPage() {
     if (forced) void refreshAuth();
     else if (mounted.current) void navigate('/you/security');
   };
+
+  if (loading && !authStatus) return null;
+  if (!forced && !canChange) return <Navigate replace to="/you/security" />;
 
   return (
     <YouPageFrame

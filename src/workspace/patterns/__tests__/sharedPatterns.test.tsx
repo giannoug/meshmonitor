@@ -38,6 +38,13 @@ describe('ConfirmSheet', () => {
     expect(screen.getByRole('button', { name: 'Purge now' })).toBeDisabled();
     expect(screen.getByTestId('confirm-spinner')).toBeInTheDocument();
   });
+  it('while busy, Esc, the backdrop and the close button do not cancel either (6.1 M5)', () => {
+    const { onCancel } = confirm({ busy: true });
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    fireEvent.click(screen.getByTestId('sheet-backdrop'));
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+    expect(onCancel).not.toHaveBeenCalled();
+  });
   it('Esc cancels', () => {
     const { onCancel } = confirm();
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });

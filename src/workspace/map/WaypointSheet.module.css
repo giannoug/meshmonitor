@@ -3,7 +3,6 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 0 20px 8px;
 }
 
 /* The delete confirm's body: today's words, what happens, the Sends line. */

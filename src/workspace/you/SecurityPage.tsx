@@ -29,7 +29,8 @@ import YouPageFrame, { Section } from './YouPageFrame';
 import TwoFactorSetup from './TwoFactorSetup';
 import PasskeysPage from './PasskeysPage';
 import PasskeyOnlyFlow from './PasskeyOnlyFlow';
-import { ApiTokenSection } from './ApiTokenPage';
+import { ApiTokenSection, ApiTokenView } from './ApiTokenPage';
+import { useApiToken } from '../../components/account/useApiToken';
 import styles from './YouAccount.module.css';
 
 export default function SecurityPage() {
@@ -58,6 +59,8 @@ function LocalSecurity({ canChangePassword }: { canChangePassword: boolean }) {
   const isPhone = useIsPhone();
   const mfa = useMfa();
   const passkeys = usePasskeys();
+  // Here, not in the section: two-factor setup replaces the page, and a token not yet copied must survive it.
+  const apiToken = useApiToken();
   const supported = passkeysSupported();
   const title = t('workspace.you.sign_in_security');
 
@@ -129,7 +132,7 @@ function LocalSecurity({ canChangePassword }: { canChangePassword: boolean }) {
       </Section>
 
       <Section title={t('api_token.title')}>
-        <ApiTokenSection compact />
+        <ApiTokenView api={apiToken} compact />
       </Section>
 
       <ConfirmSheet

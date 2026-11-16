@@ -10,7 +10,8 @@
  * - Using it: today's Authorization header line and the API docs link.
  *
  * `ApiTokenSection` is the reveal and the token card; Sign-in & security
- * draws it `compact` (no detail rows).
+ * draws it `compact` (no detail rows) as `ApiTokenView` over a `useApiToken`
+ * it owns, so an open reveal outlives the page's switch to two-factor setup.
  */
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -55,9 +56,13 @@ export default function ApiTokenPage() {
   );
 }
 
-export function ApiTokenSection({ compact = false, children }: { compact?: boolean; children?: ReactNode }) {
+export function ApiTokenSection(props: { compact?: boolean; children?: ReactNode }) {
+  return <ApiTokenView api={useApiToken()} {...props} />;
+}
+
+export function ApiTokenView({ api, compact = false, children }: { api: ReturnType<typeof useApiToken>; compact?: boolean; children?: ReactNode }) {
   const { t } = useTranslation();
-  const { tokenState, generatedToken, loading, isGenerating, isRevoking, generate, revoke, copy, dismiss } = useApiToken();
+  const { tokenState, generatedToken, loading, isGenerating, isRevoking, generate, revoke, copy, dismiss } = api;
   const [confirm, setConfirm] = useState(false);
   const token = tokenState.hasToken ? tokenState.token : null;
   const formatDate = (ms: number) => new Date(ms).toLocaleString();

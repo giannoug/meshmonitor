@@ -193,6 +193,15 @@ describe('DeviceSidebar', () => {
   });
 });
 
+it('a guest on /preferences still gets the preference categories (6.1 M2)', async () => {
+  renderShell('/preferences/units', { anonymous: true });
+  const side = await screen.findByRole('complementary', { name: 'You' });
+  expect(await within(side).findByRole('link', { name: 'Units & Formats' })).toHaveAttribute('href', '/preferences/units');
+  expect(within(side).getByRole('link', { name: 'Appearance' })).toHaveAttribute('href', '/preferences/appearance');
+  expect(within(side).queryByRole('link', { name: 'Layout' })).toBeNull();
+  expect(within(side).queryByRole('button', { name: 'Logout' })).toBeNull();
+});
+
 describe('WorkspaceShell layout', () => {
   it('phone: no rail or sidebar (the phone shell is Task 1.7)', async () => {
     renderShell('/source/src-g2/nodes', { phone: true });

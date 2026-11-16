@@ -5,9 +5,10 @@
  * the You sidebar. Password, Two-Factor Authentication, Passkeys and API Token
  * over today's endpoints; OIDC accounts see only the API Token.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
+import { NEW_TOKEN_VALUE, TOTP_KEY } from '../../__fixtures__/account';
 import SecurityPage from '../SecurityPage';
 import { renderAccount } from './accountHarness';
 
@@ -92,5 +93,36 @@ describe('r1-you-security', () => {
     await waitFor(() => expect(revoked).toBe(true));
     expect(await screen.findByRole('button', { name: /Generate API Token/ })).toBeInTheDocument();
     expect(screen.queryByText('Regenerate')).toBeNull();
+  });
+});
+
+describe('reveal safety (6.1 M4, M5)', () => {
+  it('a token not yet copied survives two-factor setup and its cancel', async () => {
+    renderAccount(<SecurityPage />, '/you/security', { account: { token: false, mfa: false } });
+    fireEvent.click(await screen.findByRole('button', { name: /Generate API Token/ }));
+    await screen.findByText(NEW_TOKEN_VALUE);
+    fireEvent.click(screen.getByRole('button', { name: 'Enable Two-Factor Authentication' }));
+    await screen.findByText(TOTP_KEY);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(await screen.findByText(NEW_TOKEN_VALUE)).toBeInTheDocument();
+  });
+
+  it('Revoke\'s sheet stays while the request runs: Esc and the backdrop wait', async () => {
+    renderAccount(<SecurityPage />, '/you/security');
+    // Hold the DELETE in flight until released (the fixture API answers at once).
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => { release = r; });
+    const inner = globalThis.fetch;
+    globalThis.fetch = vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+      init?.method === 'DELETE' ? gate.then(() => inner(input, init)) : inner(input, init)) as typeof fetch;
+    fireEvent.click(await screen.findByRole('button', { name: 'Revoke Token' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Revoke Token' });
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Yes, Revoke' }));
+    await within(sheet).findByRole('button', { name: 'Revoking...' });
+    fireEvent.keyDown(sheet, { key: 'Escape' });
+    fireEvent.click(screen.getByTestId('sheet-backdrop'));
+    expect(screen.getByRole('dialog', { name: 'Revoke Token' })).toBeInTheDocument();
+    release();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 });

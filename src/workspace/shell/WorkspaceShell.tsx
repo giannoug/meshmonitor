@@ -198,7 +198,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   // UserMenu's forced change, redrawn: no close, Esc or backdrop (Sheet portals to <body>).
   const forcedPasswordChange = authStatus?.passwordChangeRequired === true && location.pathname !== '/you/password' && (
     <Sheet open dismissible={false} onClose={() => {}} title={t('change_password.forced_title')}>
-      <div className={accountStyles.sheetPad}>
+      <div className={accountStyles.sheetPad} data-phone={isPhone || undefined}>
         <ChangePasswordForm forced onClose={() => void refreshAuth()} />
       </div>
     </Sheet>

@@ -4,8 +4,9 @@
  *
  * - Account: Sign-in & security (local accounts, as the user menu's Two-Factor
  *   and Passkeys) and API Token.
- * - Preferences: Layout, then today's preference categories of global
- *   Settings with today's labels and gates (`settingsNavItems`).
+ * - Preferences: Layout (signed in), then today's preference categories of
+ *   global Settings with today's labels and gates (`settingsNavItems`), for
+ *   guests too.
  * - Notifications (while some device has a Notifications page), Global
  *   Settings (admins), Help & about.
  */
@@ -65,15 +66,14 @@ export function useYouRows() {
       ]
     : [];
 
-  const prefs: YouRow[] = user
-    ? [
-        { key: 'layout', icon: 'monitor', tone: 'prefs', label: t('workspace.you.layout'), to: '/you/layout' },
-        ...settingsNavItems(t, { mode: 'global', isAdmin, canWriteSettings: hasPermission('settings', 'write', { anySource: true }) })
-          .map((item) => ({ cat: item.id.slice('settings-'.length), label: item.label }))
-          .filter(({ cat }) => PREFERENCE_CATEGORIES.includes(cat))
-          .map(({ cat, label }) => ({ key: cat, icon: PREF_ICONS[cat] ?? 'settings', tone: 'prefs' as const, label, to: `/preferences/${cat}` })),
-      ]
-    : [];
+  // The categories show to guests too, as DeviceSidebar's list did; Layout is per user.
+  const prefs: YouRow[] = [
+    ...(user ? [{ key: 'layout', icon: 'monitor' as const, tone: 'prefs' as const, label: t('workspace.you.layout'), to: '/you/layout' }] : []),
+    ...settingsNavItems(t, { mode: 'global', isAdmin, canWriteSettings: hasPermission('settings', 'write', { anySource: true }) })
+      .map((item) => ({ cat: item.id.slice('settings-'.length), label: item.label }))
+      .filter(({ cat }) => PREFERENCE_CATEGORIES.includes(cat))
+      .map(({ cat, label }) => ({ key: cat, icon: PREF_ICONS[cat] ?? 'settings', tone: 'prefs' as const, label, to: `/preferences/${cat}` })),
+  ];
 
   const more: YouRow[] = [
     ...(user && notifications ? [{ key: 'notifications', icon: 'notifications' as const, tone: 'notify' as const, label: t('nav.notifications'), to: '/you/notifications' }] : []),

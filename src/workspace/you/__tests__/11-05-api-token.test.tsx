@@ -51,9 +51,12 @@ describe('11-05-api-token', () => {
     expect(screen.getByText('mm_v1_3f9a...')).toBeInTheDocument();
   });
 
-  it('the token is gone when the page unmounts', async () => {
+  it('leaving the page drops the token: coming back shows only the prefix', async () => {
     const { unmount } = await generate(false);
     unmount();
+    // A fresh visit, now that the token exists: nothing kept the secret for it.
+    renderAccount(<ApiTokenPage />, '/you/token');
+    expect(await screen.findByText('mm_v1_3f9a...')).toBeInTheDocument();
     expect(document.body.textContent).not.toContain(NEW_TOKEN_VALUE);
   });
 

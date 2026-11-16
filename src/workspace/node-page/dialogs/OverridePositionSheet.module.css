@@ -1,4 +1,4 @@
-.form { padding: 0 20px 8px; display: flex; flex-direction: column; gap: 12px; }
+.form { display: flex; flex-direction: column; gap: 12px; }
 .muted { margin: 0; font-size: 13px; color: var(--color-text-subtle); }
 .check { min-height: 44px; display: flex; align-items: center; gap: 10px; color: var(--color-text); font-weight: 600; cursor: pointer; }
 .text { display: flex; flex-direction: column; gap: 2px; }

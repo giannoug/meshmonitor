@@ -60,8 +60,7 @@ export default function PasskeyOnlyFlow({ passkeyCount, supported }: { passkeyCo
         busy={busy}
         submitOnEnter={false}
         onConfirm={continueOff}
-        // While the browser prompt is open, Cancel waits for it, as today.
-        onCancel={() => !busy && reset()}
+        onCancel={reset}
       />
       <ConfirmSheet
         open={step === 'confirm'}
@@ -73,7 +72,7 @@ export default function PasskeyOnlyFlow({ passkeyCount, supported }: { passkeyCo
         busy={busy}
         submitOnEnter={false}
         onConfirm={() => confirmOff(LAST_ADMIN_CONFIRM)}
-        onCancel={() => !busy && reset()}
+        onCancel={reset}
       />
       <Sheet open={codes !== null} dismissible={false} onClose={noop} title={t('passkey_only.codes_title')}>
         {codes && (

@@ -324,6 +324,11 @@
   padding: 4px 20px 12px;
 }
 
+/* A Sheet portals to <body>, outside .page: its phone targets come from here. */
+.sheetPad[data-phone] .btn {
+  min-height: 44px;
+}
+
 /* Two-factor setup: three steps side by side on desktop, stacked on phone. */
 .steps {
   display: grid;

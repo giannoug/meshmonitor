@@ -1,6 +1,6 @@
 .title { display: inline-flex; align-items: center; gap: 10px; }
 .titleIcon { color: var(--color-danger); flex-shrink: 0; }
-.purge { padding: 0 20px 8px; display: flex; flex-direction: column; gap: 12px; }
+.purge { display: flex; flex-direction: column; gap: 12px; }
 .purge p { margin: 0; }
 .fieldset { margin: 0; padding: 0; border: 0; }
 .legend { margin-bottom: 4px; font-size: 13px; font-weight: 700; color: var(--color-text-subtle); }
