@@ -915,3 +915,40 @@ Ruling: 5.9 I3 — the leave guard on remote lists both queues in one sheet ("Po
 Ruling: 5.9 GH — remote config-URL import is withheld like export (GE). The Share link is hidden, and `channels/share` on a remote target falls back to the channel list, with no reason copy (GE showed none). FINAL REPORT ITEM: remote URL share/import is Classic-only, and today's Classic remote import also drops sourceId — why: the import API cannot name this source, so it could transmit through another radio — cost if wrong: one more remote capability stays in Classic.
 
 Note: some implementer lines above are superseded by later rulings. GA supersedes "Send to node reports 'acknowledged'". GE and GH supersede the remote config-URL share and import in the Channels line. The remote JSON export/import and channel Delete stand.
+
+## Phase 5 summary (gate)
+- Commits 83f3e3a..8bcb1a2 (tasks 5.1–5.9, 28 commits). Each task was reviewed. Task 5.1 needed no fix round, 5.9 took two, and every other task took one. One commit is test-only: it fixes the 12-03 share-import e2e flake (67936ce), which then passed 10 of 10 with `--repeat-each=10`.
+- Boards accepted (42): b-set-d1 through d6, b-set-p1 through p4, s2-notifications, 12-01 through 12-29, 18-07, 18-08. No `staged` board strings remain anywhere (`expectBoard` callers carry none).
+- Contact sheet (private artifact): https://claude.ai/artifact/LdMQ1DSu6eGx83WMphnZxK. Screenshots were re-encoded as JPEG to fit the 16 MB artifact limit; the canonical PNGs come from `npm run test:workspace-e2e`.
+- CI has not run on this fork (Actions off). The gate was verified locally at 897d3df:
+  - lint:ci filter: 0 FAIL lines
+  - tsc: client and server both clean
+  - full Vitest (--maxWorkers=4): 40,513 total, 40,383 passed, 0 failed, 109 pending
+  - build and bundle check: pass
+  - Playwright: 189 passed
+- Backend changes this phase: none (no `src/server` files touched).
+- Classic: extractions only, under Rule X, with Classic DOM and tests unchanged and AdminCommandsTab never edited (D15). The extracted pieces:
+  - Hooks: useDeviceConfigState / useDeviceConfigSaves, useFirmwareUpdate, useBackupManagement, the MQTT bridge hook, useAutoFavoriteTarget.
+  - Shared helpers: firmwareReleasesQuery, BackupRestoreSummary, Web Push helpers.
+- Mesh impact this phase:
+  - No new automatic sends, retries or request timers. Settings read /api/poll on open and after their own writes (DM), where Classic polled every 30 s.
+  - On a remote target:
+    - Opening a category sends nothing.
+    - Read from node sends 1 request per press (N for Channels, and the Sends line says N).
+    - Send to node sends 1 admin packet per changed category, one at a time, with no retries.
+    - Results read "Sent" or "No reply", never claiming an ACK (GA).
+    - The only timer is the local 1 s passkey countdown, which makes no requests.
+  - Reboot, DFU, purge and the resets go one at a time through today's handlers, each behind a confirm with `submitOnEnter={false}` (BH).
+- FINAL REPORT ITEMs raised this phase:
+  - DM: no live /api/poll refresh in settings.
+  - DP/ED: the leave guard misses browser Back. This now also covers remote edits (GI-a).
+  - DR: no change dots in the sidebar.
+  - EL: MQTT keeps its own bar locally.
+  - The 5.3 write order.
+  - GE/GH: remote config-URL share and import are Classic-only.
+  - GC: remote Bluetooth is Classic-only.
+  - GF: remote module locks are seeded as supported, as today.
+  - GG-a: remote JSON export may be stale.
+  - GI-b: Classic's remote URL import drops sourceId and transmits through the primary source.
+  - GI-c (PRIVACY, pre-existing): a remote channel read maps an elided positionPrecision 0 to 32 (channelLoadingUtils.ts:64), so a later remote channel save can switch on full-precision location. Filing it as a follow-up task failed: the tool timed out twice.
+- No PR created (requester's instruction).
