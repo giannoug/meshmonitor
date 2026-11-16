@@ -149,15 +149,4 @@ describe('today\'s gates inside the placeholders', () => {
     await screen.findByRole('heading', { level: 1, name: 'PKI Direct Message Decryption' }, { timeout: 5000 });
     expect(within(screen.getByRole('main')).getByText('View only')).toBeInTheDocument();
   });
-
-  it('the danger zone is today\'s: off for a read-only viewer (DangerZone canWrite, buttons)', async () => {
-    const { container } = renderSettings(`${g2}/settings/maintenance/danger`, {
-      permissions: { bySource: { [SOURCE_IDS.g2]: { configuration: { read: true, write: false } } } },
-    });
-    const reboot = await screen.findByTestId('config-reboot-button', {}, { timeout: 10_000 });
-    expect(reboot).toBeDisabled();
-    expect(screen.getByTestId('config-purge-button')).toBeDisabled();
-    // DangerZone's canWrite={false} wraps its body in a disabled fieldset, as on Device Configuration.
-    expect(container.querySelector('[data-testid="danger-zone"]')!.closest('fieldset')).toBeDisabled();
-  });
 });

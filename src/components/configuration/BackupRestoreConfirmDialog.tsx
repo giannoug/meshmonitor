@@ -36,11 +36,18 @@ interface Props {
 const fmtRadio = (r: Record<string, string | number>): string =>
   Object.entries(r).map(([k, v]) => `${k} ${v}`).join(', ');
 
-const BackupRestoreConfirmDialog: React.FC<Props> = ({ filename, protocol, summary, onConfirm, onCancel }) => {
-  const { t } = useTranslation();
-  const [legacyAck, setLegacyAck] = useState(false);
+interface SummaryProps {
+  protocol: BackupProtocol;
+  summary: BackupSummaryData;
+  /** The legacy file's second tick, held by the caller (it gates the confirm). */
+  legacyAck: boolean;
+  onLegacyAck(ack: boolean): void;
+}
 
-  const preview = (
+/** What the restore changes, from the server's no-secret summary (shared with the Workspace restore sheet). */
+export const BackupRestoreSummary: React.FC<SummaryProps> = ({ protocol, summary, legacyAck, onLegacyAck }) => {
+  const { t } = useTranslation();
+  return (
     <>
       {summary.name && (
         <p className={styles.note}>
@@ -93,13 +100,20 @@ const BackupRestoreConfirmDialog: React.FC<Props> = ({ filename, protocol, summa
           <input
             type="checkbox"
             checked={legacyAck}
-            onChange={(e) => setLegacyAck(e.target.checked)}
+            onChange={(e) => onLegacyAck(e.target.checked)}
           />
           <span>{t('backup_management.restore_legacy_confirm')}</span>
         </label>
       )}
     </>
   );
+};
+
+const BackupRestoreConfirmDialog: React.FC<Props> = ({ filename, protocol, summary, onConfirm, onCancel }) => {
+  const { t } = useTranslation();
+  const [legacyAck, setLegacyAck] = useState(false);
+
+  const preview = <BackupRestoreSummary protocol={protocol} summary={summary} legacyAck={legacyAck} onLegacyAck={setLegacyAck} />;
 
   return (
     <ConfirmDialog

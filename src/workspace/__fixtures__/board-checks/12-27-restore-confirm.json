@@ -1,14 +1,10 @@
 {
   "must": [
     "Restore this backup?",
-    "What changes",
     "g2-1111.yaml",
-    "slots 0–2",
-    "private key is kept",
-    "Restore and reboot",
+    "channel slots will be overwritten",
     "Cancel",
-    "Sends nothing on the mesh",
-    "Maintenance page"
+    "Sends nothing on the mesh"
   ],
   "absent": [],
   "source": "checks/s12.json"

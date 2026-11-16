@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  *
  * Mesh checklist / Ruling N for the settings categories that read the device
- * poll (Channels, Backup, Firmware): opening one reads `/api/poll` once and
+ * poll (Channels, Danger zone, Firmware): opening one reads `/api/poll` once and
  * starts no interval. App, which polled every 30 s here, is not mounted.
  */
 import type { ReactNode } from 'react';
@@ -23,7 +23,7 @@ afterEach(() => vi.useRealTimers());
 describe('the poll on settings categories', () => {
   it.each([
     ['channels', 'Channels'],
-    ['maintenance/backup', 'Backup'],
+    ['maintenance/danger', 'Danger zone'],
   ])('%s reads /api/poll once and keeps no timer', async (path, title) => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     renderSettings(`${g2}/settings/${path}`);

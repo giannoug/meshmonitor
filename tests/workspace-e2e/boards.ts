@@ -11,6 +11,7 @@ import type { FixtureHandler } from '../../src/workspace/__fixtures__/fixtureApi
 import { deviceConfigFixtures } from '../../src/workspace/__fixtures__/deviceConfig';
 import { g2deviceConfigWith } from '../../src/workspace/settings/__tests__/radioFixtures';
 import { boardChannels, g2On282, pollWith } from '../../src/workspace/settings/__tests__/categoryFixtures';
+import { flashFailed, maintenanceFixtures, reloadFixtures } from '../../src/workspace/settings/__tests__/maintenanceFixtures';
 
 export interface Board {
   id: string;
@@ -52,6 +53,24 @@ const SECURITY: Board['fixtures'] = {
   ...g2On282,
   'GET /api/device/security-keys': () => ({ publicKey: 'Kq7xF2bW9mQpublicpublicpublicpublicpublic0=', privateKey: 'cHJpdmF0ZXByaXZhdGVwcml2YXRlcHJpdmF0ZTAxMjM=' }),
 };
+
+/** Task 5.7: Station G2's backups, releases (OTA on) and a reload that finds three changes. */
+const MAINTENANCE = (): Board['fixtures'] => ({ ...PINS, ...maintenanceFixtures, ...reloadFixtures() });
+
+async function reloadFromRadio(page: Page) {
+  await page.getByRole('button', { name: 'Reload Config' }).click();
+  await page.getByText('3 change(s) detected', { exact: true }).waitFor();
+}
+
+async function openRestore(page: Page) {
+  await page.getByRole('listitem').filter({ hasText: 'g2-1111.yaml' }).getByRole('button', { name: 'Restore' }).click();
+  await page.getByRole('dialog', { name: 'Restore this backup?' }).waitFor();
+}
+
+async function openPurge(page: Page) {
+  await page.getByRole('button', { name: 'Purge Node Database' }).click();
+  await page.getByRole('dialog', { name: 'Purge the node database?' }).waitFor();
+}
 
 /** Station G2 holding Medium Fast, so a Long Fast edit reads as on b-set-d1 / d3 / p2. */
 const MEDIUM_FAST: Board['fixtures'] = { ...PINS, ...g2deviceConfigWith({ modemPreset: 4 }) };
@@ -1197,6 +1216,35 @@ export const BOARDS: Board[] = [
   { id: '12-26-security-strict', size: 'phone', path: '/source/src-g2/settings/security', fixtures: SECURITY, setup: (page) => confirmPolicy(page, 'phone', 'Strict') },
   { id: '18-07-security-balanced', size: 'desktop', path: '/source/src-g2/settings/security', fixtures: SECURITY, setup: (page) => confirmPolicy(page, 'desktop', 'Balanced') },
   { id: '18-08-security-balanced', size: 'phone', path: '/source/src-g2/settings/security', fixtures: SECURITY, setup: (page) => confirmPolicy(page, 'phone', 'Balanced') },
+  // Task 5.7: Maintenance (the page, its Backup and Danger zone sheets) and Firmware (today's OTA wizard, stopped mid-flash).
+  {
+    id: '12-08-maintenance',
+    size: 'desktop',
+    path: '/source/src-g2/settings/maintenance',
+    fixtures: MAINTENANCE(),
+    setup: async (page) => {
+      await reloadFromRadio(page);
+      await openRestore(page);
+    },
+  },
+  { id: '12-18-maintenance', size: 'phone', path: '/source/src-g2/settings/maintenance', fixtures: MAINTENANCE(), setup: reloadFromRadio },
+  { id: '12-27-restore-confirm', size: 'phone', path: '/source/src-g2/settings/maintenance', fixtures: MAINTENANCE(), setup: openRestore },
+  { id: '12-28-purge-confirm', size: 'phone', path: '/source/src-g2/settings/maintenance', fixtures: MAINTENANCE(), setup: openPurge },
+  { id: '12-10-danger-confirm', size: 'desktop', path: '/source/src-g2/settings/maintenance/danger', fixtures: MAINTENANCE(), setup: openPurge },
+  {
+    id: '12-09-firmware-update',
+    size: 'desktop',
+    path: '/source/src-g2/settings/maintenance/firmware',
+    fixtures: { ...MAINTENANCE(), ...flashFailed },
+    setup: (page) => page.getByRole('button', { name: /Retry Flash/ }).waitFor(),
+  },
+  {
+    id: '12-19-firmware',
+    size: 'phone',
+    path: '/source/src-g2/settings/maintenance/firmware',
+    fixtures: { ...MAINTENANCE(), ...flashFailed },
+    setup: (page) => page.getByRole('button', { name: /Retry Flash/ }).waitFor(),
+  },
 ];
 
 /** Identity: the short name G2 → SG2. */

@@ -5,8 +5,7 @@
  *
  * - On the radio: MQTT's section (Ruling 5.6: its save also writes the broker
  *   preset and the MQTT link), fed from the frame's one device-config instance
- *   (Ruling DG) and saving through today's handler and SaveBar. Import/Export
- *   and the danger zone keep today's JSX.
+ *   (Ruling DG) and saving through today's handler and SaveBar.
  * - In MeshMonitor: today's source Settings page (SettingsTab, as App mounts
  *   it), scrolled to the category's section; Notifications adds today's tab
  *   above it; the self-contained sections (bridge setup, PKI DMs, Reliable
@@ -14,28 +13,15 @@
  *
  * Each export is lazily loaded by `categories.ts`.
  */
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { UiIcon } from '../../components/icons';
-import { useToast } from '../../components/ToastContainer';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { SaveBarGroup } from '../../contexts/SaveBarContext';
-import { usePoll } from '../../hooks/usePoll';
 import { appBasename } from '../../init';
-import { buildAdminCommandsPath } from '../../utils/adminDeepLink';
 import ModuleAvailabilityGate from '../../components/configuration/ModuleAvailabilityGate';
 import MQTTConfigSection from '../../components/configuration/MQTTConfigSection';
 import PkiDmDecryptionSection from '../../components/configuration/PkiDmDecryptionSection';
-import FirmwareUpdateSection from '../../components/configuration/FirmwareUpdateSection';
-import BackupManagementSection from '../../components/configuration/BackupManagementSection';
-import { ImportConfigModal } from '../../components/configuration/ImportConfigModal';
-import { ExportConfigModal } from '../../components/configuration/ExportConfigModal';
-import { ConfirmDialog } from '../../components/shared/automation/ConfirmDialog';
-import { ConfigSection } from '../../components/shared/config/ConfigSection';
-import { TypedConfirmDialog } from '../../components/common/TypedConfirmDialog';
-import { MovedSettingNote } from '../../components/common/MovedSettingNote';
-import { DangerZone, DangerZoneActions, DangerZoneButton } from '../../components/shared/config/DangerZone';
 import SettingsTab from '../../components/SettingsTab';
 import NotificationsTab from '../../components/NotificationsTab';
 import ReliablePkiSection from '../../components/settings/ReliablePkiSection';
@@ -51,8 +37,6 @@ import { useSettingsCategory } from './kit/useFieldRegistry';
 import { useSharedDeviceConfig, type SharedDeviceConfig } from './sharedDeviceConfig';
 import '../../styles/settings.css';
 import styles from './ClassicCategories.module.css';
-// Today's Import/Export classes, so the reload button and warning look as on Device Configuration.
-import classic from '../../components/ConfigurationTab.module.css';
 
 type Stripped<T, P extends string> = {
   [K in keyof T as K extends `${P}${infer R}`
@@ -92,173 +76,6 @@ export function MqttCategory() {
         <ModuleAvailabilityGate available={state.supportedModules?.mqtt} moduleName="MQTT">
           <MQTTConfigSection {...state} {...strip(state, 'mqtt')} loraRegion={state.region} onSave={saves.mqtt} />
         </ModuleAvailabilityGate>
-      )}
-    />
-  );
-}
-
-/** Today's Import/Export section (reload, import, export, what changed) and the device backups. */
-export function BackupCategory({ readOnly }: CategoryProps) {
-  const { t } = useTranslation();
-  const { showToast } = useToast();
-  const [modal, setModal] = useState<'import' | 'export' | null>(null);
-  // Export shares the device's channels, which today's page had from App's poll.
-  const { data, refetch } = usePoll();
-  return (
-    <Radio
-      render={({ state, saves }) => (
-        <>
-          <ConfigSection
-            id="config-import-export"
-            title={t('config.import_export_title')}
-            description={t('config.import_export_description')}
-            headerActions={
-              <button type="button" className={classic.reloadButton} onClick={() => void saves.reload()} disabled={state.isReloading}>
-                {state.isReloading ? (
-                  <>
-                    <span className={classic.spin}><UiIcon name="refresh" /></span>
-                    {' '}{t('config.reloading')}
-                  </>
-                ) : (
-                  <><UiIcon name="refresh" /> {t('config.reload_config')}</>
-                )}
-              </button>
-            }
-            notice={
-              <p className={classic.pageWarning} role="note">
-                <UiIcon name="alert" /> <span>{t('config.warning_text')}</span>
-              </p>
-            }
-          >
-            <div className={styles.actions}>
-              <button type="button" className={styles.button} onClick={() => setModal('import')} disabled={readOnly}>
-                <UiIcon name="import" /> {t('config.import_config')}
-              </button>
-              <button type="button" className={styles.button} onClick={() => setModal('export')}>
-                <UiIcon name="upload" /> {t('config.export_config')}
-              </button>
-            </div>
-            {state.configChanges.length > 0 && (
-              <div className={styles.changes}>
-                <button type="button" className={styles.button} onClick={() => state.setShowChanges(!state.showChanges)}>
-                  <span><UiIcon name={state.showChanges ? 'chevronDown' : 'forward'} /></span>
-                  {t('config.changes_detected', { count: state.configChanges.length })}
-                </button>
-                {state.showChanges && (
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>{t('config.field')}</th>
-                        <th>{t('config.old_value')}</th>
-                        <th>{t('config.new_value')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {state.configChanges.map((change, idx) => (
-                        <tr key={idx}>
-                          <td>{change.field}</td>
-                          <td className={styles.old}>{change.oldValue}</td>
-                          <td className={styles.new}>{change.newValue}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            )}
-          </ConfigSection>
-          <BackupManagementSection protocol="meshtastic" canWrite={!readOnly} />
-          <ImportConfigModal
-            isOpen={modal === 'import'}
-            onClose={() => setModal(null)}
-            onImportSuccess={() => {
-              showToast(t('config.import_success'), 'success');
-              void refetch();
-            }}
-          />
-          <ExportConfigModal
-            isOpen={modal === 'export'}
-            onClose={() => setModal(null)}
-            channels={data?.channels ?? []}
-            deviceConfig={{ lora: { usePreset: state.usePreset, modemPreset: state.modemPreset, region: state.region, hopLimit: state.hopLimit } }}
-          />
-        </>
-      )}
-    />
-  );
-}
-
-export function FirmwareCategory() {
-  return <FirmwareUpdateSection baseUrl={appBasename} />;
-}
-
-/** Today's danger zone: reboot (asks plainly) and purge (types PURGE). */
-export function DangerCategory({ readOnly, sourceId }: CategoryProps) {
-  const { t } = useTranslation();
-  const { authStatus } = useAuth();
-  const [confirm, setConfirm] = useState<'reboot' | 'purge' | null>(null);
-  return (
-    <Radio
-      render={({ state, saves }) => (
-        <>
-          <DangerZone
-            id="config-danger"
-            canWrite={!readOnly}
-            description={t('config.danger_zone_description', 'These actions restart the node or erase data. They cannot be undone.')}
-            footer={
-              authStatus?.user?.isAdmin ? (
-                <MovedSettingNote
-                  testId="danger-admin-commands-link"
-                  text={t('config.danger_zone_admin_note', 'Shutdown, DFU mode and factory reset are on Admin Commands.')}
-                  linkLabel={t('config.danger_zone_admin_link', 'Open Admin Commands')}
-                  to={buildAdminCommandsPath(sourceId)}
-                />
-              ) : undefined
-            }
-          >
-            <DangerZoneActions>
-              <DangerZoneButton onClick={() => setConfirm('reboot')} disabled={state.isSaving || readOnly} data-testid="config-reboot-button">
-                <UiIcon name="refresh" /> {t('config.reboot_device')}
-              </DangerZoneButton>
-              <DangerZoneButton onClick={() => setConfirm('purge')} disabled={state.isSaving || readOnly} data-testid="config-purge-button">
-                <UiIcon name="delete" /> {t('config.purge_node_db')}
-              </DangerZoneButton>
-            </DangerZoneActions>
-          </DangerZone>
-          {confirm === 'reboot' && (
-            <ConfirmDialog
-              title={t('config.reboot_dialog_title', 'Reboot the device?')}
-              message={t('config.reboot_dialog_message', 'The device restarts and is offline for about 30 to 60 seconds.')}
-              confirmLabel={t('config.reboot_device')}
-              cancelLabel={t('common.cancel')}
-              onConfirm={() => {
-                setConfirm(null);
-                void saves.reboot();
-              }}
-              onCancel={() => setConfirm(null)}
-            />
-          )}
-          <TypedConfirmDialog
-            isOpen={confirm === 'purge'}
-            title={t('config.purge_dialog_title', 'Purge the node database?')}
-            confirmWord="PURGE"
-            confirmLabel={t('config.purge_node_db')}
-            danger
-            busy={state.isSaving}
-            onConfirm={() => {
-              setConfirm(null);
-              void saves.purgeNodeDb();
-            }}
-            onCancel={() => setConfirm(null)}
-          >
-            <p>
-              {t(
-                'config.purge_dialog_body',
-                "This deletes every stored node from the device and from MeshMonitor's database for this source. It cannot be undone. The device rebuilds its list as it hears nodes on the mesh.",
-              )}
-            </p>
-          </TypedConfirmDialog>
-        </>
       )}
     />
   );

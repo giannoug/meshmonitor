@@ -3,15 +3,14 @@
     "Danger zone",
     "Reboot",
     "Shut down",
-    "Purge node database",
+    "Purge Node Database",
     "Reboot into DFU mode",
     "Reset config",
     "Full device reset",
     "Purge the node database?",
     "Type",
     "PURGE",
-    "cannot be undone",
-    "Maintenance page"
+    "cannot be undone"
   ],
   "absent": [],
   "source": "checks/s12.json"

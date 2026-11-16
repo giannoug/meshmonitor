@@ -13,7 +13,7 @@
  * Until Tasks 5.3–5.8 build each page, a category's `component` renders
  * today's section for it (`ClassicCategories`); LoRa is built (Task 5.3),
  * Identity, Channels and Security (Task 5.5, `categories/`), Device's
- * categories and the modules but MQTT (Task 5.6).
+ * categories and the modules but MQTT (Task 5.6), Maintenance's (Task 5.7).
  */
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import type { TFunction } from 'i18next';
@@ -129,13 +129,13 @@ export const CATEGORIES: CategoryDef[] = [
   mod('tak', 'tak_config.title', 'tak'),
   mod('telemetry', 'workspace.settings.label.module_telemetry', 'telemetry'),
   mod('trafficmanagement', 'trafficmanagement_config.title', 'trafficmanagement'),
-  radio('maintenance/backup', 'config.backup_management', 'BackupCategory', { group: 'maintenance' }),
+  radio('maintenance/backup', 'config.backup_management', lazy(() => import('./categories/BackupCategory.tsx')), { group: 'maintenance' }),
   // Today's gate: an admin, on an install with OTA updates on (ConfigurationTab showFirmware).
-  radio('maintenance/firmware', 'firmware.title', 'FirmwareCategory', {
+  radio('maintenance/firmware', 'firmware.title', lazy(() => import('./categories/FirmwareCategory.tsx')), {
     group: 'maintenance',
     gate: (c) => c.isAdmin && c.firmwareOtaEnabled,
   }),
-  radio('maintenance/danger', 'config.danger_zone', 'DangerCategory', { group: 'maintenance' }),
+  radio('maintenance/danger', 'config.danger_zone', lazy(() => import('./categories/DangerCategory.tsx')), { group: 'maintenance' }),
 
   // The bridge setup reads `sources` (#5683 follow-up): its own grant, not the Settings tab's.
   meshmonitor('mqtt-bridge', 'mqtt_bridge_config.title', 'MqttBridgeCategory', {

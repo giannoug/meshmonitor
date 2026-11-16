@@ -1,6 +1,6 @@
 /**
  * One settings page: a category, or a group's index (boards 12-06 / 12-22
- * Device, 12-07 / b-set-d2 / b-set-p4 Modules; Maintenance's is Task 5.7's).
+ * Device, 12-07 / b-set-d2 / b-set-p4 Modules, 12-08 / 12-18 Maintenance).
  *
  * The header names the page with its scope ("On the radio" / "In
  * MeshMonitor") and "View only" for a viewer without today's write grant; on
@@ -14,8 +14,9 @@
  * - Modules: the modules this firmware has, A–Z, with On/Off; the others fold
  *   into one row ("N not on this firmware" on desktop, "Hidden: … Why?" on
  *   phone) that still opens them.
+ * - Maintenance: one page with the firmware card, Backup and the Danger zone (Task 5.7).
  */
-import { Suspense, useState, type CSSProperties } from 'react';
+import { Suspense, lazy, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
@@ -31,6 +32,8 @@ import { deviceSummary } from './deviceSummaries';
 import PinsInUseCard from './PinsInUseCard';
 import { SettingsHeaderContext, type SubHeader } from './settingsDock';
 import styles from './CategoryPage.module.css';
+
+const MaintenanceIndex = lazy(() => import('./categories/MaintenanceIndex.tsx'));
 
 export interface CategoryPageProps {
   def?: CategoryDef;
@@ -75,6 +78,10 @@ export default function CategoryPage({ def, group, sub = '', categories, sourceI
         </SettingsHeaderContext.Provider>
       </Suspense>
     </SettingsCategoryContext.Provider>
+  ) : group === 'maintenance' ? (
+    <Suspense fallback={<RouteLoading />}>
+      <MaintenanceIndex base={base} sourceId={sourceId} items={categories.filter((c) => c.group === 'maintenance')} target={target} readOnly={readOnly} />
+    </Suspense>
   ) : group === 'modules' ? (
     <ModulesIndex base={base} modules={categories.filter((c) => c.group === 'modules')} />
   ) : (
