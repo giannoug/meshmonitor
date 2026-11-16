@@ -14,7 +14,7 @@ import AdvancedCard from '../kit/AdvancedCard';
 import SettingGroup from '../kit/SettingGroup';
 import SettingRow from '../kit/SettingRow';
 import SettingToggle from '../kit/SettingToggle';
-import { useReadOnly } from '../kit/useFieldRegistry';
+import { useReadOnly, useRegisterField, useSettingsCategory } from '../kit/useFieldRegistry';
 import { useRadioSaveQueue } from '../useRadioSaveQueue';
 import { named, useRows } from './rows';
 import styles from './SettingsPages.module.css';
@@ -22,11 +22,11 @@ import styles from './SettingsPages.module.css';
 const FIXED_COORD_DECIMALS = 7;
 const FIXED_COORD_STEP = 1e-7;
 const MAX = 4294967295;
+const NO_KEYWORDS: string[] = [];
 
 export default function PositionCategory() {
   const r = useRows('position', 'position');
   const base = useRadioSaveQueue()?.baseline('position');
-  const readOnly = useReadOnly();
   const { t } = useTranslation();
   if (!r) return <StateView kind="loading" />;
   const { s } = r;
@@ -66,27 +66,14 @@ export default function PositionCategory() {
             })}
             {r.number('fixedLongitude', 'position_config.longitude', { step: FIXED_COORD_STEP, min: -180, max: 180 })}
             {r.number('fixedAltitude', 'position_config.altitude', { step: 1 })}
-            <div className={styles.infoRow} data-setting-id="position.pickOnMap">
-              <span className={styles.infoText}>
-                <span className={styles.infoLabel}>{t('position_config.pick_on_map', 'Pick on map')}</span>
-                <span className={styles.infoHelp}>
-                  {t('position_config.pick_on_map_description', 'Click the map or drag the pin to set the fixed position, then save.')}
-                </span>
-              </span>
-              <div className={styles.mapPicker}>
-                <LocationPinPicker
-                  lat={s.fixedLatitude}
-                  lon={s.fixedLongitude}
-                  onChange={(la, lo) => {
-                    s.setFixedLatitude(la);
-                    s.setFixedLongitude(lo);
-                  }}
-                  disabled={readOnly}
-                  decimals={FIXED_COORD_DECIMALS}
-                  testId="fixed-position-map"
-                />
-              </div>
-            </div>
+            <PickOnMap
+              lat={s.fixedLatitude}
+              lon={s.fixedLongitude}
+              onChange={(la, lo) => {
+                s.setFixedLatitude(la);
+                s.setFixedLongitude(lo);
+              }}
+            />
           </>
         )}
         {r.select('gpsMode', 'position_config.gps_mode', named(GPS_MODE_OPTIONS))}
@@ -116,5 +103,26 @@ export default function PositionCategory() {
 
       <AdvancedCard count={advanced.length}>{advanced}</AdvancedCard>
     </>
+  );
+}
+
+/** Today's map picker for the fixed position, registered for settings search like a row. */
+function PickOnMap({ lat, lon, onChange }: { lat: number; lon: number; onChange(lat: number, lon: number): void }) {
+  const { t } = useTranslation();
+  const label = t('position_config.pick_on_map', 'Pick on map');
+  const readOnly = useReadOnly();
+  useRegisterField({ id: 'position.pickOnMap', label, keywords: NO_KEYWORDS, categoryId: useSettingsCategory()?.categoryId ?? '' });
+  return (
+    <div className={styles.infoRow} data-setting-id="position.pickOnMap">
+      <span className={styles.infoText}>
+        <span className={styles.infoLabel}>{label}</span>
+        <span className={styles.infoHelp}>
+          {t('position_config.pick_on_map_description', 'Click the map or drag the pin to set the fixed position, then save.')}
+        </span>
+      </span>
+      <div className={styles.mapPicker}>
+        <LocationPinPicker lat={lat} lon={lon} onChange={onChange} disabled={readOnly} decimals={FIXED_COORD_DECIMALS} testId="fixed-position-map" />
+      </div>
+    </div>
   );
 }

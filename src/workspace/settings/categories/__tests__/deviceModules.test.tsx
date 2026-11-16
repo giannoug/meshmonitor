@@ -12,12 +12,13 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ReactNode } from 'react';
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { SOURCE_IDS } from '../../../__fixtures__/athens';
 import { g2DeviceConfig } from '../../../__fixtures__/deviceConfig';
 import type { ConfigSaveSection } from '../../../../hooks/deviceConfig/useDeviceConfigSaves';
 import { CATEGORIES, categoryById } from '../../categories';
-import { g2, renderSettings } from '../../__tests__/renderSettings';
+import { g2, goTo, renderSettings } from '../../__tests__/renderSettings';
+import { useFieldRegistry } from '../../kit/useFieldRegistry';
 
 vi.mock('../../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
@@ -208,6 +209,7 @@ describe('Device and module categories on the row kit (Task 5.6)', () => {
 
   it.each(CASES)('$path: every field of today\'s section is a row, and a change queues $section', async ({ path, section, labels, change }) => {
     expect(categoryById(path)?.saveSection).toBe(section);
+    const registry = renderHook(() => useFieldRegistry());
     renderSettings(`${g2}/settings/${path}`, { fixtures: all() });
     const title = english(categoryById(path)!.labelKey);
     await screen.findByRole('heading', { level: 1, name: title }, { timeout: 5000 });
@@ -218,6 +220,11 @@ describe('Device and module categories on the row kit (Task 5.6)', () => {
     for (const l of labels) expect(screen.getAllByText(english(l), { selector: 'label' }).length, english(l)).toBeGreaterThan(0);
     // Not queued while nothing changed.
     expect(screen.queryByRole('region', { name: 'Unsaved radio changes' })).toBeNull();
+    // Search ids: one prefix per page, `modules.<name>.` or `<device category>.`.
+    const ids = registry.result.current.filter((f) => f.categoryId === path).map((f) => f.id);
+    const prefix = path.startsWith('modules/') ? `modules.${path.slice('modules/'.length)}.` : `${path.slice('device/'.length)}.`;
+    expect(ids.filter((id) => !id.startsWith(prefix))).toEqual([]);
+    if (path === 'device/position') expect(ids).toContain('position.pickOnMap');
 
     const control = screen.getByLabelText(english(change.label));
     if (change.value === undefined) fireEvent.click(control);
@@ -249,6 +256,65 @@ describe('module gates and checks', () => {
     fireEvent.click(screen.getByLabelText(en['neighbor_info.transmit_over_lora']));
     const save = within(await bar()).getByRole('button', { name: /Save/ });
     expect(save).toBeDisabled();
+  });
+
+  it('MeshBeacon: an over-long message holds Save on every page with the invalid-fields words, and nothing is written; fixed, it saves', async () => {
+    const writes: string[] = [];
+    const saved = (name: string) => () => {
+      writes.push(name);
+      return { success: true };
+    };
+    renderSettings(`${g2}/settings/modules/meshbeacon`, {
+      fixtures: { ...all(), 'POST /api/config/module/meshbeacon': saved('meshbeacon'), 'POST /api/config/lora': saved('lora') },
+    });
+    const message = await screen.findByLabelText('Beacon Message', {}, { timeout: 5000 });
+    fireEvent.change(message, { target: { value: 'x'.repeat(101) } });
+    goTo(`${g2}/settings/lora`);
+    const hops = await screen.findByLabelText('Hop Limit', {}, { timeout: 5000 });
+    fireEvent.change(hops, { target: { value: '4' } });
+    const region = await bar();
+    expect(region).toHaveTextContent(en['savebar.fix_invalid_fields']);
+    const save = within(region).getByRole('button', { name: /Save/ });
+    expect(save).toBeDisabled();
+    fireEvent.click(save);
+    expect(writes).toEqual([]);
+
+    goTo(`${g2}/settings/modules/meshbeacon`);
+    fireEvent.change(await screen.findByLabelText('Beacon Message', {}, { timeout: 5000 }), { target: { value: 'Welcome' } });
+    goTo(`${g2}/settings/lora`);
+    await screen.findByLabelText('Hop Limit');
+    await waitFor(async () => expect(within(await bar()).getByRole('button', { name: /Save/ })).toBeEnabled());
+    expect(await bar()).not.toHaveTextContent(en['savebar.fix_invalid_fields']);
+    fireEvent.click(within(await bar()).getByRole('button', { name: /Save/ }));
+    await waitFor(() => expect(writes).toEqual(['lora', 'meshbeacon']));
+  });
+
+  it('MeshBeacon: the offer PSK row shows once a channel is named, and today\'s targets editor is on the page', async () => {
+    renderSettings(`${g2}/settings/modules/meshbeacon`, { fixtures: all() });
+    const name = await screen.findByLabelText('Offer Channel Name', {}, { timeout: 5000 });
+    expect(screen.queryByLabelText('Offer Channel PSK')).toBeNull();
+    fireEvent.change(name, { target: { value: 'Athens' } });
+    expect(screen.getByLabelText('Offer Channel PSK')).toBeInTheDocument();
+    expect(screen.getByText('Broadcast Targets')).toBeInTheDocument();
+  });
+
+  it('Status Message: the reapply switch saves this source\'s setting on change, as today', async () => {
+    const posts: unknown[] = [];
+    renderSettings(`${g2}/settings/modules/statusmessage`, {
+      fixtures: {
+        ...all(),
+        'GET /api/settings': () => ({ statusMessageReapplyAfterReboot: 'false' }),
+        'POST /api/settings': (url: URL, init?: RequestInit) => {
+          posts.push([url.searchParams.get('sourceId'), JSON.parse(String(init?.body))]);
+          return { success: true };
+        },
+      },
+    });
+    const toggle = await screen.findByRole('switch', { name: 'Re-apply after a reboot' }, { timeout: 5000 });
+    await waitFor(() => expect(toggle).toBeEnabled());
+    fireEvent.click(toggle);
+    await waitFor(() => expect(posts).toEqual([[SOURCE_IDS.g2, { statusMessageReapplyAfterReboot: 'true' }]]));
+    await waitFor(() => expect(toggle).toBeChecked());
   });
 
   it('a MeshBeacon message over 100 bytes says so and holds the save, as today', async () => {

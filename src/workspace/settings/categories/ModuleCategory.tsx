@@ -8,8 +8,7 @@
  * (Range Test on 2.8, Status Message, Traffic Management, MeshBeacon, TAK)
  * does the same with today's words. MQTT keeps today's section (Ruling 5.6).
  */
-import { useEffect, type ReactNode } from 'react';
-import { useEnclosingNumberInputScope } from '../../../components/common/numberInputScopeContext';
+import type { ReactNode } from 'react';
 import {
   AUDIO_BAUD_OPTIONS,
   INPUT_EVENT_OPTIONS,
@@ -334,7 +333,7 @@ function StatusMessage({ r, sourceId }: { r: Rows; sourceId: string }) {
       {/* A MeshMonitor setting for this source, saved on change (#5745), not queued. */}
       <SettingGroup title={t('workspace.settings.in_meshmonitor')}>
         <SettingRow
-          id="statusmessage.reapply"
+          id="modules.statusmessage.reapply"
           label={t('statusmessage_config.reapply_label', 'Re-apply after a reboot')}
           help={
             <>
@@ -409,12 +408,6 @@ function MeshBeacon({ r }: { r: Rows }) {
   const mb = (key: string, fallback: string) => [`meshbeacon_config.${key}`, fallback] as const;
   const bytes = new TextEncoder().encode(s.meshBeaconBroadcastMessage).length;
   const tooLong = meshBeaconTooLong(s);
-  // Today's save bar held the save on an over-long message; the queue's Save holds the same way (#5649 scope).
-  const scope = useEnclosingNumberInputScope();
-  useEffect(() => {
-    scope?.report('meshbeacon.message', tooLong);
-    return () => scope?.report('meshbeacon.message', false);
-  }, [scope, tooLong]);
   return (
     <Locked
       locked={disabled}
@@ -466,7 +459,7 @@ function MeshBeacon({ r }: { r: Rows }) {
               help: t('meshbeacon_config.offer_region_desc', 'Region advertised alongside the preset.'),
             })}
             <SettingRow
-              id="meshbeacon.meshBeaconBroadcastOfferPreset"
+              id="modules.meshbeacon.meshBeaconBroadcastOfferPreset"
               label={t('meshbeacon_config.offer_preset', 'Offer Modem Preset')}
               help={t('meshbeacon_config.offer_preset_desc', 'Modem preset advertised with the region — tells listeners "there is a mesh on this preset".')}
               was={was('meshBeaconBroadcastOfferPreset')}
@@ -589,7 +582,13 @@ const MODULES: Record<string, ConfigSaveSection> = {
 /** The open module's page: `modules/<name>` names it. */
 export default function ModuleCategory({ sourceId }: CategoryProps) {
   const name = (useSettingsCategory()?.categoryId ?? '').replace(/^modules\//, '');
-  const r = useRows(MODULES[name] ?? 'telemetry', `modules.${name}`);
+  const section = MODULES[name];
+  // An unknown module binds to no save section.
+  return section ? <ModulePage name={name} section={section} sourceId={sourceId} /> : null;
+}
+
+function ModulePage({ name, section, sourceId }: { name: string; section: ConfigSaveSection; sourceId: string }) {
+  const r = useRows(section, `modules.${name}`);
   if (!r) return <StateView kind="loading" />;
   switch (name) {
     case 'telemetry': return <Telemetry r={r} />;

@@ -22,7 +22,8 @@ describe('12-22-device-index', () => {
     const { container } = renderSettings(`${g2}/settings/device`, { phone: true });
     await within(await screen.findByRole('list', { name: 'Categories' }, { timeout: 5000 })).findByText('Network');
     await screen.findByRole('region', { name: 'Pins in use' }, { timeout: 5000 });
-    expectBoard('12-22-device-index', container, { staged: ['Bluetooth'] });
+    // Ruling EA: no Bluetooth row (today has no Bluetooth settings), so it is not in the board check.
+    expectBoard('12-22-device-index', container);
     expect(screen.getByRole('heading', { level: 1, name: 'Device' })).toBeInTheDocument();
     expect(screen.getByTestId('settings-back')).toHaveAttribute('href', `${g2}/settings`);
     // The page draws its own header: no device switcher.

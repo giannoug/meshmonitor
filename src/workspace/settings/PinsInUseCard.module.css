@@ -44,9 +44,11 @@
   vertical-align: top;
 }
 
+/* Table cells ignore min-height; their height is a minimum (D8: phone rows ≥ 52 px). */
 .card[data-phone] .table tbody th,
 .card[data-phone] .table td {
-  min-height: 52px;
+  box-sizing: border-box;
+  height: 52px;
   vertical-align: middle;
 }
 
@@ -72,8 +74,8 @@
   color: var(--color-text-subtle);
 }
 
-tr[data-conflict] .pin,
-tr[data-conflict] td {
+.table tr[data-conflict] .pin,
+.table tr[data-conflict] td {
   color: var(--color-error);
 }
 

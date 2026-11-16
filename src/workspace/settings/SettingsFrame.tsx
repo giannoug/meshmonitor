@@ -21,11 +21,12 @@
  * device's settings asks first (LeaveGuard).
  *
  * Task 5.5: Security saves through the queue, its confirms run by the frame
- * (securitySaveGuard.tsx) before the write. A page with a dock of its own
+ * (securitySaveGuard.tsx) before the write. An over-long MeshBeacon message
+ * holds Save as an invalid field does (Task 5.6). A page with a dock of its own
  * (Channels' reorder mode, a channel's edit page) claims the dock and the
  * radio bar yields; a channel's draft is listed by the leave guard (settingsDock.ts).
  */
-import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import RouteLoading from '../../components/RouteLoading/RouteLoading';
 import { RebootModal } from '../../components/RebootModal';
@@ -164,9 +165,15 @@ function RadioConfig({ sourceId, deviceName, base, compact, children }: RadioCon
   const queue = useRadioSaveQueueState(config, {
     numberScope: numbers,
     runBatch,
-    // MeshBeacon: today's section never saves an over-long message (the device drops the whole config silently).
-    guards: { security: security.guard, meshbeacon: async () => !meshBeaconTooLong(state) },
+    guards: { security: security.guard },
   });
+  // Today's MeshBeacon section never saved an over-long message (the device drops the whole config
+  // silently): while MeshBeacon is queued on firmware that has it, that holds Save on every page as
+  // an invalid field does, with the same words, so nothing is skipped without a reason on screen.
+  const beaconTooLong =
+    !!state.supportedModules?.meshBeacon && queue.queue.some((e) => e.section === 'meshbeacon') && meshBeaconTooLong(state);
+  const { report } = numbers.context;
+  useEffect(() => report('meshbeacon.message', beaconTooLong), [report, beaconTooLong]);
   // Today's SaveBar, drawn for MQTT and the rest: one bar at a time.
   const classicDirty = [...useSaveBarContext().sections.values()].some((s) => s.hasChanges);
   // A page's own dock (reorder mode, a channel's edits) holds a claim; the radio bar yields to it.

@@ -29,7 +29,8 @@ describe('12-06-device-index', () => {
     const { container } = renderSettings(`${g2}/settings/device`);
     await within(await index()).findByText('Network');
     await screen.findByRole('region', { name: 'Pins in use' }, { timeout: 5000 });
-    expectBoard('12-06-device-index', container, { staged: ['Bluetooth'] });
+    // Ruling EA: no Bluetooth row (today has no Bluetooth settings), so it is not in the board check.
+    expectBoard('12-06-device-index', container);
     expect(screen.queryByTestId('page-app')).toBeNull();
   });
 

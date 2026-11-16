@@ -83,14 +83,15 @@ export function useRows(section: ConfigSaveSection, prefix: string) {
         <SettingText value={String(s[key] ?? '')} onChange={o.onChange ?? set(key)} maxLength={o.maxLength} placeholder={o.placeholder} mono={o.mono} />,
         o,
       ),
-    select: (key: Key, label: Label, options: readonly Option[], o: RowOpts & { onChange?(v: number): void } = {}) =>
+    /** The picked value keeps the state value's type: text stays text, a number is parsed. */
+    select: <K extends Key>(key: K, label: Label, options: readonly Option[], o: RowOpts & { onChange?(v: DeviceConfigState[K]): void } = {}) =>
       row(
         key,
         label,
         <SettingSelect
           value={String(s[key])}
           options={options.map((x) => ({ value: String(x.value), label: x.label }))}
-          onChange={(v) => (typeof s[key] === 'string' ? set(key)(v) : (o.onChange ?? set(key))(Number(v)))}
+          onChange={(v) => (o.onChange ?? set(key))((typeof s[key] === 'string' ? v : Number(v)) as DeviceConfigState[K])}
         />,
         o,
       ),
