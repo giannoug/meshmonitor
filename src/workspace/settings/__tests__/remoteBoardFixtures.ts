@@ -12,7 +12,8 @@ export const NODE = '!7c3e10a2';
 
 const node = (num: number, longName: string, shortName: string, hopsAway: number, hasRemoteAdmin = false) => ({
   nodeNum: num,
-  user: { id: `!${num.toString(16).padStart(8, '0')}`, longName, shortName, hwModel: 9, role: '2' },
+  // What MeshMonitor holds for the node from its NodeInfo: Hilltop Relay is a ROUTER on 2.8.1.
+  user: { id: `!${num.toString(16).padStart(8, '0')}`, longName, shortName, hwModel: 9, role: '2', firmwareVersion: hasRemoteAdmin ? '2.8.1' : null },
   lastHeard: Math.floor(Date.now() / 1000) - 300,
   hopsAway,
   hasRemoteAdmin,
@@ -44,7 +45,9 @@ export const remoteFixtures = (extra: Record<string, FixtureHandler> = {}): Reco
       channel:
         channelIndex === 0
           ? { name: 'LongFast', psk: 'AQ==', role: 1, uplinkEnabled: true, downlinkEnabled: false, positionPrecision: 13 }
-          : { name: '', psk: '', role: 0 },
+          : channelIndex === 1
+            ? { name: 'Ridge', psk: 'cmlkZ2VyaWRnZXJpZGdlcg==', role: 2, uplinkEnabled: false, downlinkEnabled: false, positionPrecision: 0 }
+            : { name: '', psk: '', role: 0 },
     };
   },
   'POST /api/admin/commands': () => ({ success: true, message: 'Command sent' }),

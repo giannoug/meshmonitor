@@ -17,11 +17,14 @@ export interface ImportJsonSheetProps {
   sourceId: string;
   onClose(): void;
   onImported(): void;
+  /** A remote node's import (Task 5.9): its setChannel, and what that sends. */
+  remote?: { actions: ReturnType<typeof useChannelActions>; sends: string };
 }
 
-export default function ImportJsonSheet({ slot, sourceId, onClose, onImported }: ImportJsonSheetProps) {
+export default function ImportJsonSheet({ slot, sourceId, onClose, onImported, remote }: ImportJsonSheetProps) {
   const { t } = useTranslation();
-  const actions = useChannelActions(sourceId);
+  const local = useChannelActions(sourceId);
+  const actions = remote?.actions ?? local;
   const [content, setContent] = useState('');
   const [importing, setImporting] = useState(false);
 
@@ -76,7 +79,7 @@ export default function ImportJsonSheet({ slot, sourceId, onClose, onImported }:
           <pre className={styles.preview}>{content}</pre>
         </div>
       )}
-      <SendsLine>{t('workspace.settings.savebar.sends_nothing')}</SendsLine>
+      <SendsLine>{remote?.sends ?? t('workspace.settings.savebar.sends_nothing')}</SendsLine>
     </Sheet>
   );
 }

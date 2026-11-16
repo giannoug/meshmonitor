@@ -15,7 +15,7 @@
  * An admin on a Meshtastic radio picks what the settings configure under the
  * head ("Configuring This radio ▾", Task 5.9). On a remote node the list is
  * that node's (b-set-d6): ON <NODE> with what today's Admin Commands offers
- * there, each category's last Send to node (Sent · waiting, Acknowledged,
+ * there, each category's last Send to node (Sending…, Sent,
  * No reply), and REMOTE ONLY (Node management, Remote console); In
  * MeshMonitor is about this server, so it is not listed.
  */
@@ -94,7 +94,7 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
   const canPick = authStatus?.user?.isAdmin === true && sourceType === 'meshtastic_tcp';
   const SENT: Record<string, string> = {
     sending: 'workspace.settings.remote.sent_waiting',
-    acknowledged: 'workspace.settings.remote.acknowledged',
+    sent: 'workspace.settings.remote.sent',
     noReply: 'workspace.settings.remote.no_reply',
   };
   const { pins } = usePins();

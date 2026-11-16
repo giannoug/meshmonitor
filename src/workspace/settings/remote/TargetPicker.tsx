@@ -17,6 +17,7 @@ import Sheet from '../../patterns/Sheet';
 import { useIsPhone } from '../../shell/useIsPhone';
 import { updateRemote, useRemoteEntry, type RemoteNode } from './remoteTargetStore';
 import { passkeyLine, useSetRemoteTarget } from './useRemoteTarget';
+import { DiscardChangesSheet } from '../LeaveGuard';
 import styles from './Remote.module.css';
 
 export interface TargetPickerSheetProps {
@@ -38,14 +39,33 @@ export default function TargetPickerSheet({ sourceId, nodes, local, deviceName }
     setQuery('');
     updateRemote(sourceId, { pickerOpen: false });
   };
+  // A switch drops the node's unsent edits: ask first, with the leave guard's words (I3); one sheet at a time (D9c).
+  const [asking, setAsking] = useState<number | 'local' | null>(null);
   const pick = (next: number | 'local') => {
     setQuery('');
+    const same = next === 'local' ? !entry.node : entry.node?.nodeNum === next;
+    if (entry.node && !same && entry.unsent.length > 0) {
+      updateRemote(sourceId, { pickerOpen: false });
+      setAsking(next);
+      return;
+    }
     setTarget(next);
   };
   const shown = filterNodes(nodes, query);
   const sub = (n: RemoteNode) => `${n.shortName} • ${n.nodeId}`;
 
   return (
+    <>
+    <DiscardChangesSheet
+      open={asking !== null}
+      cards={entry.unsent}
+      onDiscard={() => {
+        const next = asking;
+        setAsking(null);
+        if (next !== null) setTarget(next);
+      }}
+      onCancel={() => setAsking(null)}
+    />
     <Sheet open={entry.pickerOpen} onClose={close} title={t('workspace.settings.remote.configuring')} side={isPhone ? 'bottom' : 'auto'}>
       <div className={styles.picker} data-phone={isPhone || undefined}>
         <p className={styles.help}>{t('admin_commands.select_node_help')}</p>
@@ -94,5 +114,6 @@ export default function TargetPickerSheet({ sourceId, nodes, local, deviceName }
         <SendsLine>{t('workspace.settings.remote.picker_sends')}</SendsLine>
       </div>
     </Sheet>
+    </>
   );
 }

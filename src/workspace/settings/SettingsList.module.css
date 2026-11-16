@@ -337,7 +337,7 @@
   color: var(--color-warning);
 }
 
-.status[data-tone='acknowledged'] {
+.status[data-tone='sent'] {
   color: var(--color-success);
 }
 

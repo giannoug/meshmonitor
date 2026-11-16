@@ -1363,13 +1363,13 @@ export const BOARDS: Board[] = [
     fixtures: REMOTE({
       'POST /api/sources/:id/meshtastic/admin/cli': () => ({
         success: true,
-        data: { output: 'Set device.role to ROUTER\nAcknowledged · node restarts to apply', stdout: '', stderr: '', exitCode: 0, elapsedMs: 900 },
+        data: { output: 'Set device.role to ROUTER', stdout: '', stderr: '', exitCode: 0, elapsedMs: 900 },
       }),
     }),
     setup: async (page) => {
       await page.getByPlaceholder('CLI arguments (e.g. --set device.role CLIENT)').fill('--set device.role ROUTER');
       await page.getByRole('button', { name: /^Send$/ }).click();
-      await page.getByText(/node restarts to apply/).waitFor();
+      await page.getByText(/Set device.role to ROUTER/).last().waitFor();
     },
   },
   {

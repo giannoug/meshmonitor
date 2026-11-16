@@ -7,7 +7,7 @@
     "Send",
     "command sends its admin packets",
     "--set device.role ROUTER",
-    "Acknowledged"
+    "Set device.role to ROUTER"
   ],
   "absent": [
     "admin key"

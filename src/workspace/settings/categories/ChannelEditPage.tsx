@@ -56,8 +56,8 @@ export interface ChannelEditPageProps {
   sourceId: string;
   slot: number;
   channels: Channel[];
-  /** The node's firmware supports AEAD channels (2.8.1+, #5248): today's gate. */
-  aeadSupported: boolean;
+  /** The node's firmware supports AEAD channels (2.8.1+, #5248): today's gate; null: not known (a remote node). */
+  aeadSupported: boolean | null;
   onChannelsUpdated(): void;
   /** A remote node's writes (Task 5.9) in place of this radio's. */
   remote?: { actions: ReturnType<typeof useChannelActions>; sends: string };
@@ -123,8 +123,12 @@ export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSu
 
   const keyValid = isValidChannelKey(draft.psk, 'base64', PSK_ALLOWED_BYTES);
   const hasKey = draft.psk !== '';
-  const aeadOff = !draft.useAead && !(aeadSupported && hasKey);
-  const aeadReason = !aeadSupported ? t('channels_config.aead_needs_firmware') : !hasKey ? t('channels_config.aead_needs_key') : null;
+  // A remote node's AEAD goes back as it reported it (today's read-only Phase 1, #5248); whether it can
+  // use AEAD is known only when a read showed it on (M10), else it says so rather than "off".
+  const aeadOff = remote ? true : !draft.useAead && !(aeadSupported && hasKey);
+  const aeadReason = remote
+    ? t(aeadSupported === null ? 'workspace.settings.remote.aead_unknown' : 'workspace.settings.remote.aead_read_only', { name: remoteNode?.longName })
+    : !aeadSupported ? t('channels_config.aead_needs_firmware') : !hasKey ? t('channels_config.aead_needs_key') : null;
   const allowed = roleOptions(channels, edit);
   const was = (key: keyof ChannelDraft) => (!isNew && draft[key] !== original[key] ? format(key, original[key]) : undefined);
   function format(key: keyof ChannelDraft, value: unknown): string {
@@ -169,8 +173,7 @@ export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSu
     </SettingRow>
   );
 
-  // A remote slot's JSON and delete are this radio's only (Admin Commands disables a remote slot through its role).
-  const json = !isNew && !remote && (
+  const json = !isNew && (
     <div className={styles.infoRow}>
       <span className={styles.infoLabel}>{t('workspace.settings.channels.json')}</span>
       <span className={styles.inline}>
@@ -244,13 +247,15 @@ export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSu
         {json}
       </SettingGroup>
 
-      {!isNew && !remote && slot > 0 && (
+      {!isNew && slot > 0 && (
         <DangerZone title={t('config.danger_zone')}>
           <div className={styles.infoRow}>
             <span className={styles.infoText}>
               <span className={styles.infoLabel}>{t('channels_config.delete_confirm')}</span>
-              <span className={styles.infoHelp}>{t('workspace.settings.channels.delete_help', { slot })}</span>
-              <SendsLine>{t('workspace.settings.savebar.sends_nothing')}</SendsLine>
+              <span className={styles.infoHelp}>
+                {remote ? t('workspace.settings.remote.disable_help', { slot, name: remoteNode?.longName }) : t('workspace.settings.channels.delete_help', { slot })}
+              </span>
+              <SendsLine>{sends}</SendsLine>
             </span>
             <button type="button" className={`${styles.button} ${styles.dangerButton}`} disabled={readOnly} onClick={() => setSheet('delete')}>
               {t('channels_config.delete_confirm')}
@@ -330,6 +335,7 @@ export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSu
       <ImportJsonSheet
         slot={importing ? slot : null}
         sourceId={sourceId}
+        remote={remote}
         onClose={() => setImporting(false)}
         onImported={() => {
           onChannelsUpdated();
@@ -352,9 +358,9 @@ export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSu
         title={t('channels_config.delete_title', { slot })}
         body={
           <>
-            <p className={styles.para}>{t('channels_config.delete_message')}</p>
+            <p className={styles.para}>{remote ? t('workspace.settings.remote.disable_help', { slot, name: remoteNode?.longName }) : t('channels_config.delete_message')}</p>
             <p className={styles.para}><strong>{name}</strong></p>
-            <SendsLine>{t('workspace.settings.savebar.sends_nothing')}</SendsLine>
+            <SendsLine>{sends}</SendsLine>
           </>
         }
         confirmLabel={t('channels_config.delete_confirm')}

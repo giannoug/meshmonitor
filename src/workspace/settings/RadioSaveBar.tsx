@@ -150,7 +150,7 @@ export default function RadioSaveBar({ deviceName, compact }: RadioSaveBarProps)
         {body}
         {notes}
       </section>
-      <ReviewSheet open={review} deviceName={deviceName} saveLabel={remote ? saveText : undefined} onClose={() => setReview(false)} onSave={() => void save()} />
+      <ReviewSheet open={review} deviceName={deviceName} saveLabel={remote ? saveText : undefined} sends={remote ? sends : undefined} onClose={() => setReview(false)} onSave={() => void save()} />
     </>
   );
 }

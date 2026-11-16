@@ -42,6 +42,8 @@ export interface QueueEntry {
   categoryId: string;
   /** `field` is the state value's name; `label` today's label for it. */
   changes: Array<{ field: string; label: string; from: unknown; to: unknown }>;
+  /** Names the entry where two queues are listed together ("LoRa · Hilltop Relay", Task 5.9). */
+  where?: string;
 }
 
 export interface SaveResult {
@@ -82,10 +84,13 @@ export interface QueueOptions {
   runBatch<T>(fn: () => Promise<T>): Promise<T>;
   /** Asked before the save; false keeps the section queued and unsent. */
   guards?: Partial<Record<ConfigSaveSection, () => Promise<boolean>>>;
+  /** Sections queued beyond this radio's (a remote node's MQTT, Task 5.9). */
+  extraSections?: readonly ConfigSaveSection[];
 }
 
 /** The frame's one queue; categories read it with `useRadioSaveQueue()`. */
-export function useRadioSaveQueueState({ state, saves }: SharedDeviceConfig, { numberScope, runBatch, guards = {} }: QueueOptions): RadioSaveQueue {
+export function useRadioSaveQueueState({ state, saves }: SharedDeviceConfig, { numberScope, runBatch, guards = {}, extraSections }: QueueOptions): RadioSaveQueue {
+  const sections = extraSections ? [...SECTIONS, ...extraSections] : SECTIONS;
   const { t } = useTranslation();
   const [baselines, setBaselines] = useState<Partial<Record<ConfigSaveSection, Values>>>({});
   const [seen, setSeen] = useState({ loading: true, version: -1 });
@@ -107,7 +112,7 @@ export function useRadioSaveQueueState({ state, saves }: SharedDeviceConfig, { n
   const loaded = !state.loading && seen.loading;
   const reloaded = !state.loading && !seen.loading && seen.version !== state.configVersion;
   if (loaded) {
-    current = Object.fromEntries(SECTIONS.map((s) => [s, pickValues(state, s)]));
+    current = Object.fromEntries(sections.map((s) => [s, pickValues(state, s)]));
     for (const entry of carry.current ?? []) {
       for (const c of entry.changes) setterOf(state, c.field as keyof typeof state)?.(c.to);
     }
@@ -121,7 +126,7 @@ export function useRadioSaveQueueState({ state, saves }: SharedDeviceConfig, { n
     }
   }
   if (rebased.length > 0) {
-    current = { ...current, ...Object.fromEntries(rebased.filter(isQueued).map((s) => [s, pickValues(state, s)])) };
+    current = { ...current, ...Object.fromEntries(rebased.filter((s) => sections.includes(s)).map((s) => [s, pickValues(state, s)])) };
     setRebased([]);
   }
   const commits = Object.keys(committed).length > 0;
@@ -133,7 +138,7 @@ export function useRadioSaveQueueState({ state, saves }: SharedDeviceConfig, { n
   }
 
   const queue: QueueEntry[] = [];
-  for (const section of SECTIONS) {
+  for (const section of sections) {
     const base = current[section];
     if (!base) continue;
     const keys = changedKeys(state, section, base);

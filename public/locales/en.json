@@ -9213,7 +9213,13 @@
   "workspace.settings.remote.console_sends": "Each command sends its admin packets to {{name}} over the mesh; destructive flags ask first",
   "workspace.settings.remote.on_node": "On {{name}}",
   "workspace.settings.remote.remote_only": "Remote only",
-  "workspace.settings.remote.sent_waiting": "Sent · waiting",
-  "workspace.settings.remote.acknowledged": "Acknowledged",
+  "workspace.settings.remote.sent_waiting": "Sending…",
+  "workspace.settings.remote.sent": "Sent",
+  "workspace.settings.remote.passkey_sends": ", plus 1 for a session passkey",
+  "workspace.settings.remote.import_sends": "Sends 1 admin packet per channel in the URL ({{count}}) to {{name}} over the mesh",
+  "workspace.settings.remote.import_lora_sends": ", and 1 for its LoRa settings",
+  "workspace.settings.remote.disable_help": "Disables slot {{slot}} on {{name}}: its name is cleared and its role set to Disabled.",
+  "workspace.settings.remote.aead_unknown": "Whether {{name}} can use AEAD is not known: it goes back as the node reported it.",
+  "workspace.settings.remote.aead_read_only": "On a remote node AEAD goes back as the node reported it.",
   "workspace.settings.remote.no_reply": "No reply"
 }

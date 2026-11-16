@@ -135,7 +135,7 @@ function Frame({ sourceId, source, path: rest }: SettingsFrameProps) {
       remote={pick.node}
       nodes={pick.nodes}
       // The remote bar stays ("No changes yet") on a page that sends through it.
-      remoteBar={isQueued(def?.saveSection)}
+      remoteBar={isQueued(def?.saveSection) || def?.saveSection === 'mqtt'}
     >
       <Redirect to={pick.fix}>{page}</Redirect>
       {remoteAllowed && <TargetPickerSheet sourceId={sourceId} nodes={pick.nodes} local={pick.local} deviceName={source.name} />}
@@ -226,7 +226,7 @@ function RadioConfig({ sourceId, deviceName, base, compact, remote, nodes, remot
                 node={remote}
                 nodes={nodes}
                 showBar={remoteBar && !classicDirty && claims === 0}
-                // Asks before a link leaves with the node's edits queued (the queue it reads is the node's).
+                // Asks before a link leaves with the node's or this radio's edits queued (it reads both queues).
                 guard={<LeaveGuard base={base} pending={pending} />}
               >
                 {children}

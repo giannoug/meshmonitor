@@ -34,6 +34,7 @@ import SettingSelect from '../kit/SettingSelect';
 import SettingToggle from '../kit/SettingToggle';
 import { useReadOnly, useSettingsCategory } from '../kit/useFieldRegistry';
 import type { CategoryProps } from '../categories';
+import { useRemoteTarget } from '../remote/useRemoteTarget';
 import { meshBeaconTooLong } from '../moduleChecks';
 import { labelled, named, useDuration, useRows, type Rows } from './rows';
 import { Locked, Warn } from './RowParts';
@@ -95,13 +96,15 @@ function Telemetry({ r }: { r: Rows }) {
 }
 
 function NeighborInfo({ r }: { r: Rows }) {
+  const remote = useRemoteTarget();
   return (
     <Gate r={r} flag="neighborinfo" name="Neighbor Info">
       <SettingGroup>
         {r.toggle('neighborInfoEnabled', 'neighbor_info.enable')}
         {r.s.neighborInfoEnabled && (
           <>
-            {r.number('neighborInfoInterval', 'neighbor_info.interval', { min: 14400, max: 86400 })}
+            {/* A remote node may hold 0, its firmware default (proto3 zero), which goes back unchanged (I5). */}
+            {r.number('neighborInfoInterval', 'neighbor_info.interval', { min: 14400, max: 86400, alsoValid: remote ? [0] : undefined })}
             {r.toggle('neighborInfoTransmitOverLora', 'neighbor_info.transmit_over_lora')}
           </>
         )}
@@ -310,6 +313,7 @@ function StatusMessage({ r, sourceId }: { r: Rows; sourceId: string }) {
   const { s, t } = r;
   const disabled = !s.supportedModules?.statusmessage;
   const reapply = useStatusMessageReapply(sourceId);
+  const remote = useRemoteTarget();
   const bytes = utf8ByteLength(s.statusMessageNodeStatus);
   return (
     <>
@@ -330,16 +334,17 @@ function StatusMessage({ r, sourceId }: { r: Rows; sourceId: string }) {
           })}
         </SettingGroup>
       </Locked>
-      {/* A MeshMonitor setting for this source, saved on change (#5745), not queued. */}
-      <SettingGroup title={t('workspace.settings.in_meshmonitor')}>
-        <SettingRow
-          id="modules.statusmessage.reapply"
-          label={t('statusmessage_config.reapply_label', 'Re-apply after a reboot')}
-          help={
-            <>
-              {t(
-                'statusmessage_config.reapply_help',
-                'Some firmware loses the Status Message when the node reboots. With this on, MeshMonitor writes the last status it saved once more when the node reconnects with an empty status. A status cleared from another app would be restored too.',
+      {/* A MeshMonitor setting for this source, saved on change (#5745), not queued; not a remote node's (Task 5.9). */}
+      {!remote && (
+        <SettingGroup title={t('workspace.settings.in_meshmonitor')}>
+          <SettingRow
+            id="modules.statusmessage.reapply"
+            label={t('statusmessage_config.reapply_label', 'Re-apply after a reboot')}
+            help={
+              <>
+                {t(
+                  'statusmessage_config.reapply_help',
+                  'Some firmware loses the Status Message when the node reboots. With this on, MeshMonitor writes the last status it saved once more when the node reconnects with an empty status. A status cleared from another app would be restored too.',
               )}
               {reapply.error && <Warn tone="danger">{t('statusmessage_config.reapply_save_failed', 'Could not save this setting.')}</Warn>}
             </>
@@ -353,6 +358,7 @@ function StatusMessage({ r, sourceId }: { r: Rows; sourceId: string }) {
           />
         </SettingRow>
       </SettingGroup>
+      )}
     </>
   );
 }

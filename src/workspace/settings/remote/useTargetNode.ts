@@ -36,19 +36,23 @@ export function useTargetNode(sourceId: string, allowed: boolean): TargetNode {
   const asked = params.has('node');
   const wanted = asked ? parseAdminDeepLink(params)?.node ?? null : entry.node?.nodeId ?? null;
   // Today's node list, read only while a node is wanted or the picker is open: this radio's pages poll as before.
-  const { data } = usePoll({ enabled: allowed && (!!wanted || entry.pickerOpen) });
+  // Read once (Ruling DM): no interval of its own, so picking a node starts no background poll (M4).
+  const { data } = usePoll({ enabled: allowed && (!!wanted || entry.pickerOpen), pollInterval: 0 });
 
   const { nodes, local } = useMemo(() => {
-    const raw = (data?.nodes ?? []) as Array<{ nodeNum?: number; hopsAway?: number | null }>;
+    const raw = (data?.nodes ?? []) as Array<{ nodeNum?: number; hopsAway?: number | null; user?: { role?: string | number; firmwareVersion?: string | null } }>;
     const localId = (data?.config?.localNodeInfo as { nodeId?: string } | undefined)?.nodeId ?? '';
-    const hops = new Map(raw.map((n) => [n.nodeNum, n.hopsAway ?? null]));
+    const byNum = new Map(raw.map((n) => [n.nodeNum, n]));
+    const roleOf = (r: string | number | undefined) => (r === undefined || r === '' || Number.isNaN(Number(r)) ? null : Number(r));
     const options = sortNodeOptionsForRemoteAdmin(buildNodeOptions(raw, localId, t)).map((o) => ({
       nodeNum: o.nodeNum,
       nodeId: o.nodeId.toLowerCase(),
       longName: o.longName,
       shortName: o.shortName,
-      hopsAway: hops.get(o.nodeNum) ?? null,
+      hopsAway: byNum.get(o.nodeNum)?.hopsAway ?? null,
       isLocal: o.isLocal,
+      firmwareVersion: byNum.get(o.nodeNum)?.user?.firmwareVersion ?? null,
+      role: roleOf(byNum.get(o.nodeNum)?.user?.role),
     }));
     return { nodes: options.filter((o) => !o.isLocal), local: options.find((o) => o.isLocal) ?? null };
   }, [data, t]);

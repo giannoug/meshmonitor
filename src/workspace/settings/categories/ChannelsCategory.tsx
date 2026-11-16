@@ -60,8 +60,20 @@ export default function ChannelsCategory({ sourceId, sub = '' }: CategoryProps) 
   if (!config || config.state.loading || (!remote && !data)) return <StateView kind="loading" />;
   const channels = (remote ? remote.channels : data?.channels) ?? [];
   const refresh = () => void (remote ? undefined : refetch());
-  // Share and import stays this radio's (Ruling 5.9 Channels).
-  if (sub === 'share' && !remote) return <ShareImportPage base={base} sourceId={sourceId} channels={channels} onImported={refresh} />;
+  const remoteSends = remote && remoteActions ? { actions: remoteActions, sends: t('workspace.settings.remote.sends_admin_packet', { name: remote.node.longName }) } : undefined;
+  // AEAD on a remote node: known only when a read showed a channel using it (M10).
+  const aeadSupported = remote ? (channels.some((c) => c.useAead) ? true : null) : config.state.supportedModules?.aeadChannels === true;
+  if (sub === 'share') {
+    return (
+      <ShareImportPage
+        base={base}
+        sourceId={sourceId}
+        channels={channels}
+        onImported={refresh}
+        remote={remote ? { nodeNum: remote.node.nodeNum, name: remote.node.longName } : undefined}
+      />
+    );
+  }
   if (/^[0-7]$/.test(sub)) {
     return (
       <ChannelEditPage
@@ -70,14 +82,14 @@ export default function ChannelsCategory({ sourceId, sub = '' }: CategoryProps) 
         sourceId={sourceId}
         slot={Number(sub)}
         channels={channels}
-        aeadSupported={config.state.supportedModules?.aeadChannels === true}
+        aeadSupported={aeadSupported}
         onChannelsUpdated={refresh}
-        remote={remote && remoteActions ? { actions: remoteActions, sends: t('workspace.settings.remote.sends_admin_packet', { name: remote.node.longName }) } : undefined}
+        remote={remoteSends}
       />
     );
   }
   if (sub) return <Navigate replace to={base} />;
-  return <ChannelList base={base} sourceId={sourceId} channels={channels} onChannelsUpdated={refresh} remote={!!remote} />;
+  return <ChannelList base={base} sourceId={sourceId} channels={channels} onChannelsUpdated={refresh} remote={remoteSends} />;
 }
 
 interface ListProps {
@@ -85,8 +97,8 @@ interface ListProps {
   sourceId: string;
   channels: Channel[];
   onChannelsUpdated(): void;
-  /** A remote node's slots: each opens for editing; importing, reordering and sharing are this radio's. */
-  remote?: boolean;
+  /** A remote node's slots and writes (Task 5.9): reordering is this radio's only. */
+  remote?: { actions: NonNullable<ReturnType<typeof useRemoteChannelActions>>; sends: string };
 }
 
 function ChannelList({ base, sourceId, channels, onChannelsUpdated, remote }: ListProps) {
@@ -149,21 +161,20 @@ function ChannelList({ base, sourceId, channels, onChannelsUpdated, remote }: Li
             <UiIcon name="plus" size={16} /> {t('channels_config.add_channel')}
           </button>
         )}
-        {next !== null && !remote && (
+        {next !== null && (
           <button type="button" className={styles.button} disabled={readOnly || reordering} onClick={() => setImportSlot(next)}>
             <UiIcon name="import" size={16} /> {t('channels_config.import_to_slot', { slot: next })}
           </button>
         )}
+        {/* Reordering rewrites every slot on this radio; Admin Commands has no remote reorder. */}
         {!remote && (
-          <>
-            <button type="button" className={styles.button} aria-pressed={reordering} disabled={readOnly || visible.length < 2} onClick={() => setReordering(true)}>
-              <UiIcon name="sortAscending" size={16} /> {t('workspace.settings.channels.reorder')}
-            </button>
-            <Link to={`${base}/share`} className={styles.button}>
-              <UiIcon name="link" size={16} /> {t('workspace.settings.channels.share_title')}
-            </Link>
-          </>
+          <button type="button" className={styles.button} aria-pressed={reordering} disabled={readOnly || visible.length < 2} onClick={() => setReordering(true)}>
+            <UiIcon name="sortAscending" size={16} /> {t('workspace.settings.channels.reorder')}
+          </button>
         )}
+        <Link to={`${base}/share`} className={styles.button}>
+          <UiIcon name="link" size={16} /> {t('workspace.settings.channels.share_title')}
+        </Link>
         <span className={styles.toolbarNote}>{t('workspace.settings.channels.slots_used', { count: ALL_SLOTS.length - free.length })}</span>
       </div>
       {next === null && <p className={styles.note}>{t('channels_config.add_channel_full')}</p>}
@@ -258,7 +269,7 @@ function ChannelList({ base, sourceId, channels, onChannelsUpdated, remote }: Li
         </>
       )}
 
-      <ImportJsonSheet slot={importSlot} sourceId={sourceId} onClose={() => setImportSlot(null)} onImported={onChannelsUpdated} />
+      <ImportJsonSheet slot={importSlot} sourceId={sourceId} remote={remote} onClose={() => setImportSlot(null)} onImported={onChannelsUpdated} />
     </>
   );
 }

@@ -30,6 +30,7 @@ export default function RemoteConsoleCategory({ sourceId, readOnly }: CategoryPr
     <>
       <TargetActions />
       <section className={styles.console} data-phone={isPhone || undefined} aria-label={t('admin_commands.cli_console.title')}>
+        <p className={styles.help}>{t('admin_commands.cli_console.help')}</p>
         <div className={styles.prefixRow}>
           <span className={styles.prefixLabel}>{t('admin_commands.cli_console.prefix_label')}</span>
           <code className={styles.prefix}>{`meshtastic --dest ${node.nodeId}`}</code>

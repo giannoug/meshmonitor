@@ -16,6 +16,7 @@ import SettingRow from '../kit/SettingRow';
 import SettingText from '../kit/SettingText';
 import SettingToggle from '../kit/SettingToggle';
 import { useWas } from './useWas';
+import { useRemoteTarget } from '../remote/useRemoteTarget';
 import { useSharedDeviceConfig } from '../sharedDeviceConfig';
 import type { CategoryProps } from '../categories';
 import styles from './SettingsPages.module.css';
@@ -25,10 +26,14 @@ export default function IdentityCategory({ sourceId }: CategoryProps) {
   const config = useSharedDeviceConfig();
   const was = useWas('owner');
   // The node's ID, as the device page and today's header read it.
-  const nodeId = usePoll().data?.deviceConfig?.basic?.nodeId;
+  const localId = usePoll().data?.deviceConfig?.basic?.nodeId;
+  // On a remote target, the node's own id, and its role as read (Device) or as its node row holds it.
+  const remote = useRemoteTarget();
   if (!config || config.state.loading) return <StateView kind="loading" />;
   const s = config.state;
-  const role = ROLE_OPTIONS.find((o) => o.value === s.role)?.name ?? String(s.role);
+  const nodeId = remote ? remote.node.nodeId : localId;
+  const roleValue = remote && !remote.lastRead['device/device'] ? remote.node.role : s.role;
+  const role = roleValue == null ? '—' : ROLE_OPTIONS.find((o) => o.value === roleValue)?.name ?? String(roleValue);
 
   return (
     <>

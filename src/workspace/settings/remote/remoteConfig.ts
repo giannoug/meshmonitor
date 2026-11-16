@@ -1,6 +1,7 @@
 /**
  * What a remote target reads and sends per category (Task 5.9), as today's
- * Admin Commands does for the selected node. Pure, so it is tested on its own.
+ * Admin Commands does for the selected node. Pure; remoteConfig.test.ts pins
+ * every command's payload to today's.
  *
  * - A read writes the node's reply into the frame's remote values through
  *   today's appliers (applyLoadedConfig, the same proto3 handling), mapped
@@ -50,6 +51,14 @@ export const LOAD_ALL_ORDER: readonly string[] = [
 const set = (s: DeviceConfigState, key: Key, value: unknown) => {
   if (value !== undefined) setterOf(s, key)?.(value);
 };
+
+/**
+ * A field the reply carries as undefined is the proto3 zero on the node (the wire elides 0, false and '').
+ * Today's form takes the undefined and its save leaves the field out, which the firmware reads as that
+ * zero; the Workspace shows and sends the zero itself, never an earlier read or a default (I5).
+ */
+const zero = (current: unknown): unknown =>
+  typeof current === 'number' ? 0 : typeof current === 'boolean' ? false : typeof current === 'string' ? '' : Array.isArray(current) ? [] : null;
 
 /** Each admin field a reply carries, and the Workspace field it fills. */
 const FIELDS: Partial<Record<LoadConfigType, Record<string, Key>>> = {
@@ -106,19 +115,24 @@ const FIELDS: Partial<Record<LoadConfigType, Record<string, Key>>> = {
 /** Today's appliers' setters, writing into the remote values. */
 function settersFor(s: DeviceConfigState): LoadedConfigSetters {
   const into = (type: LoadConfigType) => (patch: Record<string, unknown>) => {
-    for (const [from, to] of Object.entries(FIELDS[type] ?? {})) set(s, to, patch[from]);
+    for (const [from, to] of Object.entries(FIELDS[type] ?? {})) {
+      if (!(from in patch)) continue;
+      setterOf(s, to)?.(patch[from] === undefined ? zero(s[to]) : patch[from]);
+    }
   };
   return {
     setDeviceConfig: into('device'),
     setLoRaConfig: into('lora'),
     setPositionConfig: (patch) => {
       into('position')(patch as Record<string, unknown>);
-      // The applier decodes the mask into checkboxes; the Workspace holds the mask.
-      if (patch.positionFlags) set(s, 'positionFlags', encodePositionFlags(patch.positionFlags as PositionFlagsState));
+      // The applier decodes the mask into checkboxes; the Workspace holds the mask. An elided mask is 0.
+      set(s, 'positionFlags', patch.positionFlags ? encodePositionFlags(patch.positionFlags as PositionFlagsState) : 0);
     },
     setMQTTConfig: into('mqtt'),
     setSecurityConfig: (patch) => {
       into('security')(patch as Record<string, unknown>);
+      // The node's firmware as the reply names it: Protection Level and the restart rules follow it (#5612).
+      if (typeof patch.firmwareVersion === 'string') set(s, 'localFirmwareVersion', patch.firmwareVersion);
       if (patch.adminKeys) {
         const keys = patch.adminKeys.filter((k) => k.trim());
         set(s, 'securityAdminKeys', keys.length > 0 ? keys : ['']);

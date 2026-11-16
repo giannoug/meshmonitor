@@ -26,7 +26,7 @@ import type { PendingEdit } from './settingsDock';
 import styles from './RadioSaveBar.module.css';
 
 export default function LeaveGuard({ base, pending }: { base: string; pending?: PendingEdit | null }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const q = useRadioSaveQueue();
   const navigate = useNavigate();
   const baseHref = useHref(base);
@@ -60,7 +60,6 @@ export default function LeaveGuard({ base, pending }: { base: string; pending?: 
   }, [active, queued, pendingHref, baseHref, basename]);
 
   if (!q) return null;
-  const list = (labels: string[]) => new Intl.ListFormat(i18n.language, { type: 'conjunction' }).format(labels);
   const discard = () => {
     setTarget(null);
     if (target?.out) q.discard();
@@ -68,13 +67,29 @@ export default function LeaveGuard({ base, pending }: { base: string; pending?: 
     if (target) void navigate(target.path);
   };
   const cards = [
-    ...(target?.out ? q.queue.map((e) => ({ key: e.section, title: t(categoryById(e.categoryId)?.labelKey ?? e.categoryId), changes: e.changes.map((c) => c.label), note: undefined })) : []),
+    ...(target?.out
+      ? q.queue.map((e, i) => ({ key: `${i}:${e.section}`, title: e.where ?? t(categoryById(e.categoryId)?.labelKey ?? e.categoryId), changes: e.changes.map((c) => c.label), note: undefined }))
+      : []),
     ...(pending ? [{ key: 'pending', title: pending.title, changes: pending.changes, note: pending.note }] : []),
   ];
 
+  return <DiscardChangesSheet open={target !== null && active} cards={cards} onDiscard={discard} onCancel={() => setTarget(null)} />;
+}
+
+export interface DiscardCard {
+  key: string;
+  title: string;
+  changes: string[];
+  note?: string;
+}
+
+/** The guard's sheet, with today's words; also asked before a settings target switch drops a remote node's edits (Task 5.9). */
+export function DiscardChangesSheet({ open, cards, onDiscard, onCancel }: { open: boolean; cards: DiscardCard[]; onDiscard(): void; onCancel(): void }) {
+  const { t, i18n } = useTranslation();
+  const list = (labels: string[]) => new Intl.ListFormat(i18n.language, { type: 'conjunction' }).format(labels);
   return (
     <ConfirmSheet
-      open={target !== null && active}
+      open={open}
       title={
         <span className={styles.guardTitle}>
           <UiIcon name="alert" size={22} className={styles.guardIcon} />
@@ -98,8 +113,8 @@ export default function LeaveGuard({ base, pending }: { base: string; pending?: 
       confirmLabel={t('config_item_card.discard_confirm')}
       cancelLabel={t('config_item_card.keep_editing')}
       danger
-      onConfirm={discard}
-      onCancel={() => setTarget(null)}
+      onConfirm={onDiscard}
+      onCancel={onCancel}
     />
   );
 }

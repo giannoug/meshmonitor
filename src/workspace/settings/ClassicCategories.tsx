@@ -13,6 +13,8 @@ import type { DeviceConfigState } from '../../hooks/deviceConfig/useDeviceConfig
 import { useSharedDeviceConfig, type SharedDeviceConfig } from './sharedDeviceConfig';
 import '../../styles/settings.css';
 import styles from './ClassicCategories.module.css';
+import { useRemoteTarget } from './remote/useRemoteTarget';
+import RemoteMqttCategory from './remote/RemoteMqttCategory';
 
 type Stripped<T, P extends string> = {
   [K in keyof T as K extends `${P}${infer R}`
@@ -44,8 +46,10 @@ function Radio({ render }: { render: (c: SharedDeviceConfig) => ReactNode }) {
   return <div className={styles.sections}>{render(config)}</div>;
 }
 
-// MQTT reads configuration:write for this source itself, as today.
+// MQTT reads configuration:write for this source itself, as today. A remote node's MQTT is drawn on the kit (Task 5.9).
 export function MqttCategory() {
+  const remote = useRemoteTarget();
+  if (remote) return <RemoteMqttCategory />;
   return (
     <Radio
       render={({ state, saves }) => (

@@ -71,8 +71,8 @@ describe('remote sends', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Read from node' }));
     fireEvent.click(await screen.findByRole('link', { name: /Slot 0 LongFast|LongFast/ }, T));
     expect(meshRequests().filter((r) => r.what === 'POST /api/admin/get-channel')).toHaveLength(8);
-    // Reorder, sharing and JSON are this radio's.
-    expect(screen.queryByRole('button', { name: /Export/ })).toBeNull();
+    // A remote slot offers today's JSON export and import (Ruling GC).
+    expect(screen.getByRole('button', { name: /Export/ })).toBeInTheDocument();
     const name = await screen.findByLabelText('Channel Name', {}, T);
     fireEvent.change(name, { target: { value: 'Hilltop' } });
     const dock = await screen.findByRole('region', { name: 'Unsaved channel changes' }, T);

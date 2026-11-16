@@ -48,12 +48,17 @@ export interface ShareImportPageProps {
   channels: Channel[];
   /** Refreshes the channel list after an import, as ConfigurationTab does. */
   onImported(): void;
+  /**
+   * A remote node (Task 5.9, Ruling GC): the URL imports to it as today's Admin Commands import does.
+   * Export is this radio's only: building a remote URL asks the node for each ticked slot on every tick.
+   */
+  remote?: { nodeNum: number; name: string };
 }
 
 /** A key in a table cell: its ends only. */
 const shortKey = (psk: string) => (psk.length > 10 ? `${psk.slice(0, 4)}…${psk.slice(-3)}` : psk);
 
-export default function ShareImportPage({ base, sourceId, channels, onImported }: ShareImportPageProps) {
+export default function ShareImportPage({ base, sourceId, channels, onImported, remote }: ShareImportPageProps) {
   const { t } = useTranslation();
   const { sourceName } = useSource();
   const { showToast } = useToast();
@@ -70,7 +75,7 @@ export default function ShareImportPage({ base, sourceId, channels, onImported }
   const ids = [...selected].sort((a, b) => a - b).join(',');
   useEffect(() => {
     let cancelled = false;
-    if (!ids) {
+    if (!ids || remote) {
       setUrl('');
       return;
     }
@@ -86,7 +91,7 @@ export default function ShareImportPage({ base, sourceId, channels, onImported }
     return () => {
       cancelled = true;
     };
-  }, [ids, includeLora, sourceId]);
+  }, [ids, includeLora, sourceId, remote]);
   const toggle = (id: number) =>
     setSelected((prev) => {
       const next = new Set(prev);
@@ -139,6 +144,7 @@ export default function ShareImportPage({ base, sourceId, channels, onImported }
     try {
       await runMeshtasticImport({
         url: input,
+        nodeNum: remote?.nodeNum,
         sourceId,
         includeLoraConfig: importLora,
         t,
@@ -176,6 +182,7 @@ export default function ShareImportPage({ base, sourceId, channels, onImported }
 
   return (
     <div className={styles.twoUp}>
+      {!remote && (
       <section className={styles.card} aria-labelledby="share-export">
         <h2 className={styles.cardTitle} id="share-export">{t('common.export')}</h2>
         <p className={styles.infoHelp}>{t('export_config.description')}</p>
@@ -219,6 +226,7 @@ export default function ShareImportPage({ base, sourceId, channels, onImported }
         )}
         <SendsLine>{t('workspace.settings.savebar.sends_nothing')}</SendsLine>
       </section>
+      )}
 
       <section className={styles.card} aria-labelledby="share-import">
         <h2 className={styles.cardTitle} id="share-import">{t('common.import')}</h2>
@@ -310,8 +318,12 @@ export default function ShareImportPage({ base, sourceId, channels, onImported }
                 {importing ? t('import_config.importing') : t('import_config.import_selected')}
               </button>
             </div>
-            <p className={styles.infoHelp}>{t('workspace.settings.channels.import_note', { device: sourceName })}</p>
-            <SendsLine>{t('workspace.settings.savebar.sends_nothing')}</SendsLine>
+            <p className={styles.infoHelp}>{t('workspace.settings.channels.import_note', { device: remote?.name ?? sourceName })}</p>
+            <SendsLine>
+              {remote
+                ? t('workspace.settings.remote.import_sends', { count: decoded?.channels.length ?? 0, name: remote.name }) + (importLora ? t('workspace.settings.remote.import_lora_sends') : '')
+                : t('workspace.settings.savebar.sends_nothing')}
+            </SendsLine>
           </>
         )}
         {meshcore && (

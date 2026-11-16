@@ -29,9 +29,9 @@ import type { Channel } from '../../../types/device';
 import { isTxDisabledError } from '../../../utils/txDisabled';
 import { CATEGORIES, type CategoryTarget } from '../categories';
 import { applyRemoteConfig, applyRemoteOwner, LOAD_ALL_ORDER, REMOTE_READS, remoteCommand } from './remoteConfig';
-import { updateRemote, useRemoteEntry, type PasskeyState, type RemoteNode } from './remoteTargetStore';
+import { remoteEntry, updateRemote, useRemoteEntry, type PasskeyState, type RemoteNode, type SendStatus } from './remoteTargetStore';
 
-export type SendOutcome = 'acknowledged' | 'noReply';
+export type SendOutcome = 'sent' | 'noReply';
 
 export interface DeviceMetadata {
   firmwareVersion: string;
@@ -86,6 +86,8 @@ export interface RemoteTargetApi {
    */
   nodeStatus: Record<number, { isFavorite?: boolean; isIgnored?: boolean }>;
   setNodeStatus(nodeNum: number, patch: { isFavorite?: boolean; isIgnored?: boolean }): void;
+  /** A category's status in the settings list, for sends outside the queue (a channel's own Save). */
+  markSent(id: string, status: SendStatus | undefined): void;
 }
 
 export const RemoteTargetContext = createContext<RemoteTargetApi | null>(null);
@@ -100,7 +102,10 @@ export function useReadSends(id: string): string {
   if (!remote) return '';
   const { node } = remote;
   const hops = node.hopsAway != null ? t('workspace.settings.remote.hops_suffix', { count: node.hopsAway }) : '';
-  return t('workspace.settings.remote.read_sends', { count: REMOTE_READS[id] === 'channels' ? 8 : 1, name: node.longName }) + hops;
+  // With no live session passkey the server asks the node for one first: one request more (M3).
+  const p = remote.passkeyState;
+  const passkey = p?.hasPasskey && p.remainingSeconds !== null ? '' : t('workspace.settings.remote.passkey_sends');
+  return t('workspace.settings.remote.read_sends', { count: REMOTE_READS[id] === 'channels' ? 8 : 1, name: node.longName }) + passkey + hops;
 }
 
 /** Today's `/api/admin/session-passkey-status` reply. */
@@ -178,10 +183,11 @@ export function useRemoteTargetState({
         // Informational, as today.
       });
     const tick = setInterval(() => {
-      updateRemote(sourceId, (e) => {
-        const p = e.passkey;
-        if (!p || p.remainingSeconds === null) return {};
-        return { passkey: p.remainingSeconds - 1 <= 0 ? { hasPasskey: false, remainingSeconds: null } : { ...p, remainingSeconds: p.remainingSeconds - 1 } };
+      // Nothing to count: no store write, so nothing re-renders (M1).
+      const p = remoteEntry(sourceId).passkey;
+      if (!p || p.remainingSeconds === null) return;
+      updateRemote(sourceId, {
+        passkey: p.remainingSeconds - 1 <= 0 ? { hasPasskey: false, remainingSeconds: null } : { ...p, remainingSeconds: p.remainingSeconds - 1 },
       });
     }, 1000);
     return () => {
@@ -321,6 +327,17 @@ export function useRemoteTargetState({
     [blocked, nodeNum, sourceId, attempts, showToast, t],
   );
 
+  const markSent = useCallback(
+    (id: string, s: SendStatus | undefined) =>
+      updateRemote(sourceId, (e) => {
+        const sent = { ...e.sent };
+        if (s) sent[id] = s;
+        else delete sent[id];
+        return { sent };
+      }),
+    [sourceId],
+  );
+
   const sendCategory = useCallback(
     async (id: string): Promise<SendOutcome> => {
       const section = sectionOf(id);
@@ -329,17 +346,12 @@ export function useRemoteTargetState({
         showToast(cmd.error, 'error');
         throw new Error(cmd.error);
       }
-      const mark = (s: 'sending' | SendOutcome | undefined) =>
-        updateRemote(sourceId, (e) => {
-          const sent = { ...e.sent };
-          if (s) sent[id] = s;
-          else delete sent[id];
-          return { sent };
-        });
+      const mark = (s: SendStatus | undefined) => markSent(id, s);
       mark('sending');
       try {
         const result = await execute(cmd.command, cmd.params);
-        const outcome: SendOutcome = result.ack?.timedOut ? 'noReply' : 'acknowledged';
+        // Only favorite / ignore wait for a routing ACK today; a timed-out one is No reply, anything else is Sent.
+        const outcome: SendOutcome = result.ack?.timedOut ? 'noReply' : 'sent';
         mark(outcome);
         return outcome;
       } catch (error) {
@@ -348,7 +360,7 @@ export function useRemoteTargetState({
         throw error;
       }
     },
-    [execute, sourceId, showToast, t],
+    [execute, markSent, showToast, t],
   );
 
   const retrieveMetadata = useCallback(async () => {
@@ -414,7 +426,8 @@ export function useRemoteTargetState({
       blocked,
       nodeStatus,
       setNodeStatus,
+      markSent,
     }),
-    [nodeNum, node, nodes, setTarget, entry.passkey, state, readCategory, reading, loadAll, progress, entry.lastRead, sendCategory, channels, setChannel, attempts, metadata, retrieveMetadata, setTime, busy, execute, blocked, nodeStatus, setNodeStatus],
+    [nodeNum, node, nodes, setTarget, entry.passkey, state, readCategory, reading, loadAll, progress, entry.lastRead, sendCategory, channels, setChannel, attempts, metadata, retrieveMetadata, setTime, busy, execute, blocked, nodeStatus, setNodeStatus, markSent],
   );
 }

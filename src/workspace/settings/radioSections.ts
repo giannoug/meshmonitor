@@ -105,6 +105,19 @@ export const QUEUED_FIELDS: Readonly<Partial<Record<ConfigSaveSection, readonly 
  * `reload()`), whose baselines it moves, as their Classic sections re-baseline on
  * `configVersion`. Modules are not re-read, so a reload keeps their edits queued.
  */
+/**
+ * Sections only a remote target queues (Task 5.9): this radio's MQTT keeps
+ * today's own Save (Ruling 5.6), a remote node's MQTT goes out with Send to node.
+ */
+export const REMOTE_QUEUED_FIELDS: Readonly<Partial<Record<ConfigSaveSection, readonly Key[]>>> = {
+  mqtt: prefixed('mqtt', [
+    'Enabled', 'Address', 'Username', 'Password', 'EncryptionEnabled', 'JsonEnabled', 'Root', 'TlsEnabled', 'ProxyToClientEnabled',
+    'MapReportingEnabled', 'MapPublishIntervalSecs', 'MapPositionPrecision', 'MapShouldReportLocation',
+  ]),
+};
+
+const fieldsOf = (section: ConfigSaveSection) => QUEUED_FIELDS[section] ?? REMOTE_QUEUED_FIELDS[section] ?? [];
+
 export const RELOADED_SECTIONS: readonly ConfigSaveSection[] = [
   'owner', 'device', 'lora', 'position', 'power', 'display', 'network', 'telemetry', 'neighborinfo',
 ];
@@ -120,7 +133,7 @@ export const isQueued = (section: ConfigSaveSection | undefined): section is Con
 export type Values = Record<string, unknown>;
 
 export const pickValues = (state: DeviceConfigState, section: ConfigSaveSection): Values =>
-  Object.fromEntries((QUEUED_FIELDS[section] ?? []).map((k) => [k, state[k]]));
+  Object.fromEntries(fieldsOf(section).map((k) => [k, state[k]]));
 
 // As useSectionBaseline compares: scalars by value, arrays and objects by content.
 export const sameValue = (a: unknown, b: unknown): boolean =>
@@ -138,7 +151,7 @@ const sameField = (key: Key, value: unknown, base: unknown): boolean => {
 
 /** The values of `section` that differ from `baseline`. */
 export const changedKeys = (state: DeviceConfigState, section: ConfigSaveSection, baseline: Values): Key[] =>
-  (QUEUED_FIELDS[section] ?? []).filter((k) => !sameField(k, state[k], baseline[k]));
+  fieldsOf(section).filter((k) => !sameField(k, state[k], baseline[k]));
 
 /** The state setter for a value: `hopLimit` → `setHopLimit`. */
 export const setterOf = (state: DeviceConfigState, key: Key) =>
@@ -163,6 +176,19 @@ const LABEL_KEYS: Partial<Record<Key, string>> = {
   configOkToMqtt: 'lora_config.ok_to_mqtt',
   displayUnits: 'display_config.units',
   securitySignaturePolicy: 'signature_policy.label',
+  mqttEnabled: 'mqtt_config.enable',
+  mqttAddress: 'mqtt_config.server_address',
+  mqttUsername: 'mqtt_config.username',
+  mqttPassword: 'mqtt_config.password',
+  mqttEncryptionEnabled: 'mqtt_config.encryption_enabled',
+  mqttJsonEnabled: 'mqtt_config.json_enabled',
+  mqttRoot: 'mqtt_config.root_topic',
+  mqttTlsEnabled: 'mqtt_config.tls_enabled',
+  mqttProxyToClientEnabled: 'mqtt_config.proxy_to_client',
+  mqttMapReportingEnabled: 'mqtt_config.map_reporting',
+  mqttMapPublishIntervalSecs: 'mqtt_config.map_publish_interval',
+  mqttMapPositionPrecision: 'mqtt_config.map_position_precision',
+  mqttMapShouldReportLocation: 'mqtt_config.map_report_location',
 };
 
 const snake = (s: string) => s.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
@@ -192,7 +218,7 @@ const OPTION_NAMES: Partial<Record<Key, ReadonlyArray<{ value: number; name?: st
 /** A value as Review shows it: an option's name, On / Off, or the value. */
 export function formatValue(t: TFunction, key: Key, value: unknown): string {
   // Never put the private key or the Wi-Fi password on screen in Review or "was …".
-  if (key === 'securityPrivateKey' || key === 'wifiPsk') return value ? '••••••••' : '—';
+  if (key === 'securityPrivateKey' || key === 'wifiPsk' || key === 'mqttPassword') return value ? '••••••••' : '—';
   if (key === 'securitySignaturePolicy') return isPacketSignaturePolicy(value) ? t(POLICY_OPTION_KEYS[value]) : t('signature_policy.option_unknown');
   const option = OPTION_NAMES[key]?.find((o) => o.value === value);
   if (option) return option.name ?? option.label ?? String(value);

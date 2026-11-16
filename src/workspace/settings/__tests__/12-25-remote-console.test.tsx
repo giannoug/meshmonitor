@@ -37,9 +37,9 @@ const send = async (text: string) => {
 
 describe('12-25-remote-console', () => {
   it('12-25-remote-console shows the board', async () => {
-    renderSettings(CONSOLE, { phone: true, fixtures: remoteFixtures(cli('Set device.role to ROUTER\nAcknowledged · node restarts to apply')) });
+    renderSettings(CONSOLE, { phone: true, fixtures: remoteFixtures(cli('Set device.role to ROUTER')) });
     await send('--set device.role ROUTER');
-    await screen.findByText(/Acknowledged · node restarts to apply/, {}, T);
+    await screen.findByText(/Set device.role to ROUTER/, {}, T);
     expect(screen.getByText('Each command sends its admin packets to Hilltop Relay over the mesh; destructive flags ask first')).toBeInTheDocument();
     expectBoard('12-25-remote-console', document.body);
   });

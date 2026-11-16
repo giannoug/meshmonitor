@@ -12,6 +12,7 @@ import { formatValue } from './radioSections';
 import { useSharedDeviceConfig } from './sharedDeviceConfig';
 import { SAVE_LABEL_KEY, useRadioSaveQueue } from './useRadioSaveQueue';
 import type { DeviceConfigState } from '../../hooks/deviceConfig/useDeviceConfigState';
+import SendsLine from '../patterns/SendsLine';
 import styles from './RadioSaveBar.module.css';
 
 export interface ReviewSheetProps {
@@ -19,11 +20,13 @@ export interface ReviewSheetProps {
   deviceName: string;
   /** Save's words when not the queue's ("Send to node" on a remote target). */
   saveLabel?: string;
+  /** What Save sends, said in the sheet (a remote target: one admin packet per category). */
+  sends?: string;
   onClose(): void;
   onSave(): void;
 }
 
-export default function ReviewSheet({ open, deviceName, saveLabel, onClose, onSave }: ReviewSheetProps) {
+export default function ReviewSheet({ open, deviceName, saveLabel, sends, onClose, onSave }: ReviewSheetProps) {
   const { t } = useTranslation();
   const q = useRadioSaveQueue();
   const firmware = useSharedDeviceConfig()?.state.localFirmwareVersion;
@@ -62,7 +65,8 @@ export default function ReviewSheet({ open, deviceName, saveLabel, onClose, onSa
           <section key={entry.section} className={styles.card} aria-labelledby={`review-${entry.section}`}>
             <header className={styles.cardHead}>
               <h3 className={styles.cardTitle} id={`review-${entry.section}`}>{t(categoryById(entry.categoryId)?.labelKey ?? entry.categoryId)}</h3>
-              {rule !== 'never' && (
+              {/* A remote node's restart timing is not known here, as the bar says (M2). */}
+              {rule !== 'never' && !saveLabel && (
                 <span className={styles.tag}>{t(rule === 'always' ? 'workspace.settings.tag_restarts' : 'workspace.settings.tag_may_restart')}</span>
               )}
               <button type="button" className={styles.plain} onClick={() => q.discard(entry.section)}>
@@ -91,6 +95,7 @@ export default function ReviewSheet({ open, deviceName, saveLabel, onClose, onSa
           </span>
         </p>
       )}
+      {sends && <SendsLine>{sends}</SendsLine>}
     </Sheet>
   );
 }

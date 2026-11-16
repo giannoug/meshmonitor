@@ -85,7 +85,9 @@ describe('b-set-d6-remote', () => {
     expect(within(bar).getByText(/1 change in Position/)).toBeInTheDocument();
     expect(within(bar).getByText('Sends 1 admin packet per changed category')).toBeInTheDocument();
     fireEvent.click(within(bar).getByRole('button', { name: 'Send to node' }));
-    await within(sidebar()).findByText('Acknowledged', {}, T);
+    // Today's server awaits no routing ACK for a config write: Sent, never Acknowledged (Ruling GA).
+    await within(sidebar()).findByText('Sent', {}, T);
+    expect(within(sidebar()).queryByText('Acknowledged')).toBeNull();
     const sends = meshRequests().filter((r) => r.what === 'POST /api/admin/commands');
     expect(sends).toHaveLength(1);
     expect(sends[0].body).toMatchObject({ command: 'setPositionConfig', nodeNum: HILLTOP, config: { positionBroadcastSecs: 3600, gpsMode: 2 } });
@@ -99,11 +101,40 @@ describe('b-set-d6-remote', () => {
     fireEvent.click(screen.getByRole('button', { name: /Configuring/ }));
     const sheet = await screen.findByRole('dialog', { name: 'Configuring' }, T);
     fireEvent.click(within(sheet).getByRole('button', { name: /This radio/ }));
+    // The switch would drop the node's unsent edit: today's discard question first (I3).
+    const ask = await screen.findByRole('dialog', { name: 'Discard unsaved changes?' }, T);
+    expect(ask).toHaveTextContent('Position · Hilltop Relay');
+    fireEvent.click(within(ask).getByRole('button', { name: 'Discard changes' }));
     // An empty `?node=` is this radio, over the node picked before.
     await waitFor(() => expect(realUrl()).toBe(`${g2}/settings/device/position?node=`), T);
     expect(await screen.findByLabelText('Position Broadcast Interval (seconds)', {}, T)).toHaveValue(900);
     expect(screen.queryByRole('region', { name: 'Unsaved radio changes' })).toBeNull();
     expect(within(sidebar()).getByText('In MeshMonitor')).toBeInTheDocument();
+  });
+
+  it('Keep editing keeps the node and its unsent edit', async () => {
+    renderSettings(POSITION, { fixtures: remoteFixtures() });
+    fireEvent.change(await read(), { target: { value: '3600' } });
+    fireEvent.click(screen.getByRole('button', { name: /Configuring/ }));
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Configuring' }, T)).getByRole('button', { name: /Psychiko Base/ }));
+    const ask = await screen.findByRole('dialog', { name: 'Discard unsaved changes?' }, T);
+    fireEvent.click(within(ask).getByRole('button', { name: 'Keep editing' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(realUrl()).toBe(POSITION);
+    expect(screen.getByLabelText('Position Broadcast Interval (seconds)')).toHaveValue(3600);
+  });
+
+  it('leaving the settings asks for this radio’s queued edits while a node is the target', async () => {
+    renderSettings(`${g2}/settings/device/position`, { fixtures: remoteFixtures() });
+    fireEvent.change(await screen.findByLabelText('Position Broadcast Interval (seconds)', {}, T), { target: { value: '1200' } });
+    fireEvent.click(screen.getByRole('button', { name: /Configuring/ }));
+    // The picker reads the node list when it opens.
+    fireEvent.click(await within(await screen.findByRole('dialog', { name: 'Configuring' }, T)).findByRole('button', { name: /Hilltop Relay/ }, T));
+    await screen.findByRole('button', { name: 'Read from node' }, T);
+    fireEvent.click(screen.getByTestId('settings-back'));
+    const ask = await screen.findByRole('dialog', { name: 'Discard unsaved changes?' }, T);
+    expect(ask).toHaveTextContent('Position');
+    expect(realUrl()).toMatch(/\/settings\/device\/position/);
   });
 
   it('keeps the node across the settings list links', async () => {
@@ -133,6 +164,9 @@ describe('b-set-d6-remote', () => {
     fireEvent.change(within(dialog).getByRole('combobox', { name: 'Search settings' }), { target: { value: 'telemetry' } });
     const g2Group = await within(dialog).findByRole('group', { name: 'Station G2' }, T);
     // Modules › Telemetry is offered on a remote node; In MeshMonitor › Telemetry is not.
+    const hrefs = within(g2Group).getAllByRole('option').map((l) => l.getAttribute('href') ?? '');
+    expect(hrefs.some((h) => h.includes('/settings/modules/telemetry'))).toBe(true);
+    expect(hrefs.some((h) => /\/settings\/telemetry(#|$)/.test(h))).toBe(false);
     expect(within(g2Group).queryByText(/In MeshMonitor/)).toBeNull();
   });
 });
