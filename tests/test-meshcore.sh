@@ -473,8 +473,8 @@ echo "Test 8: Acquire API token for Socket.IO helper"
 TOKEN_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/api/token/generate" \
     -b "$COOKIE_FILE" -H "x-csrf-token: $CSRF_TOKEN")
 TOKEN_CODE=$(echo "$TOKEN_RESP" | tail -n1)
-NEW_TOKEN_VALUE=$(echo "$TOKEN_RESP" | head -n-1 | jq -r '.token // empty')
-if [ "$TOKEN_CODE" != "200" ] || [ -z "$NEW_TOKEN_VALUE" ]; then
+API_TOKEN=$(echo "$TOKEN_RESP" | head -n-1 | jq -r '.token // empty')
+if [ "$TOKEN_CODE" != "200" ] || [ -z "$API_TOKEN" ]; then
   echo -e "${RED}✗ FAIL${NC}: no API token (HTTP $TOKEN_CODE)"; exit 1
 fi
 echo -e "${GREEN}✓${NC} API token acquired"
@@ -522,7 +522,7 @@ else
     # receiver's inbox poll misses the delivery but a firmware ack lands.
     ACK_OUT=$(mktemp); ACK_ERR=$(mktemp)
     TIMEOUT_MS=$(( DM_ATTEMPTS * DM_POLL_SECONDS * 1000 + 10000 ))
-    BASE_URL="$BASE_URL" TOKEN="$NEW_TOKEN_VALUE" SOURCE_ID="$SENDER" TIMEOUT_MS="$TIMEOUT_MS" \
+    BASE_URL="$BASE_URL" TOKEN="$API_TOKEN" SOURCE_ID="$SENDER" TIMEOUT_MS="$TIMEOUT_MS" \
       node "$(dirname "$0")/helpers/meshcore-await-ack.mjs" >"$ACK_OUT" 2>"$ACK_ERR" &
     HELPER_PID=$!
     for _ in $(seq 1 15); do grep -q READY "$ACK_OUT" && break; sleep 1; done
@@ -700,7 +700,7 @@ fi
 
 ACK_OUT=$(mktemp); ACK_ERR=$(mktemp)   # registered in cleanup()
 TIMEOUT_MS=$(( ${MESHCORE_REPEATER_ATTEMPTS:-4} * ${MESHCORE_REPEATER_INTERVAL:-20} * 1000 + 10000 ))
-BASE_URL="$BASE_URL" TOKEN="$NEW_TOKEN_VALUE" SOURCE_ID="$SRC_A_ID" TIMEOUT_MS="$TIMEOUT_MS" \
+BASE_URL="$BASE_URL" TOKEN="$API_TOKEN" SOURCE_ID="$SRC_A_ID" TIMEOUT_MS="$TIMEOUT_MS" \
   node "$(dirname "$0")/helpers/meshcore-await-ack.mjs" >"$ACK_OUT" 2>"$ACK_ERR" &
 HELPER_PID=$!
 

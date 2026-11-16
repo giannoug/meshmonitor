@@ -2,20 +2,20 @@
  * Test: GET /api/v1/sources/default/status + WebSocket Bearer token auth
  *
  * Usage:
- *   node tests/api-status-ws-token-test.mjs [BASE_URL] [NEW_TOKEN_VALUE]
+ *   node tests/api-status-ws-token-test.mjs [BASE_URL] [API_TOKEN]
  *
  * Defaults:
  *   BASE_URL  = http://localhost:8081/meshmonitor
- *   NEW_TOKEN_VALUE = (required, or set MM_API_TOKEN env var)
+ *   API_TOKEN = (required, or set MM_API_TOKEN env var)
  */
 
 import { io } from 'socket.io-client';
 
 const BASE_URL = process.argv[2] || process.env.MM_BASE_URL || 'http://localhost:8081/meshmonitor';
-const NEW_TOKEN_VALUE = process.argv[3] || process.env.MM_API_TOKEN;
+const API_TOKEN = process.argv[3] || process.env.MM_API_TOKEN;
 
-if (!NEW_TOKEN_VALUE) {
-  console.error('Error: NEW_TOKEN_VALUE required. Pass as 2nd arg or set MM_API_TOKEN env var.');
+if (!API_TOKEN) {
+  console.error('Error: API_TOKEN required. Pass as 2nd arg or set MM_API_TOKEN env var.');
   process.exit(1);
 }
 
@@ -34,7 +34,7 @@ function assert(condition, name) {
 
 async function fetchJSON(path) {
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Authorization': `Bearer ${NEW_TOKEN_VALUE}` },
+    headers: { 'Authorization': `Bearer ${API_TOKEN}` },
   });
   return { status: res.status, data: await res.json() };
 }
@@ -69,7 +69,7 @@ async function testWsTokenAuth() {
   console.log('\n--- WebSocket: Bearer token auth ---');
   return new Promise((resolve) => {
     const socket = io(ORIGIN, {
-      auth: { token: NEW_TOKEN_VALUE },
+      auth: { token: API_TOKEN },
       path: SOCKET_PATH,
       transports: ['websocket', 'polling'],
       reconnection: false,
@@ -165,7 +165,7 @@ async function testWsReceivesEvents() {
   console.log('\n--- WebSocket: Token client receives events ---');
   return new Promise((resolve) => {
     const socket = io(ORIGIN, {
-      auth: { token: NEW_TOKEN_VALUE },
+      auth: { token: API_TOKEN },
       path: SOCKET_PATH,
       transports: ['websocket', 'polling'],
       reconnection: false,
@@ -200,7 +200,7 @@ async function testWsReceivesEvents() {
 async function main() {
   console.log('=== API Status + WebSocket Token Auth Tests ===');
   console.log(`  Server: ${BASE_URL}`);
-  console.log(`  Token:  ${NEW_TOKEN_VALUE.slice(0, 12)}...`);
+  console.log(`  Token:  ${API_TOKEN.slice(0, 12)}...`);
 
   await testStatus();
   await testStatusNoAuth();
