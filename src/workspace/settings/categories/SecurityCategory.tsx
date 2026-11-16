@@ -47,7 +47,7 @@ const DESCRIPTION_KEYS: Record<number, string> = {
   [PacketSignaturePolicy.STRICT]: 'signature_policy.description_strict',
 };
 
-export default function SecurityCategory({ sourceId }: CategoryProps) {
+export default function SecurityCategory({ sourceId, target }: CategoryProps) {
   const { t } = useTranslation();
   const config = useSharedDeviceConfig();
   const base = useRadioSaveQueue()?.baseline('security');
@@ -96,14 +96,16 @@ export default function SecurityCategory({ sourceId }: CategoryProps) {
 
   return (
     <>
-      <SettingGroup title={t('workspace.settings.security.keys')}>
-        <SettingRow id="security.publicKey" label={t('security_config.public_key')} help={t('security_config.public_key_description')}>
-          <span className={styles.inline}>
-            <code className={styles.keyBox}>{s.securityPublicKey || t('common.na')}</code>
-            {s.securityPublicKey && (
-              <button type="button" className={styles.button} onClick={() => copy(s.securityPublicKey)}>
-                <UiIcon name="copy" size={16} /> {t('common.copy')}
-              </button>
+      {/* A remote node's keypair never crosses the mesh: the server keeps the node's own (#4736), as Admin Commands. */}
+      {target.kind === 'local' && (
+        <SettingGroup title={t('workspace.settings.security.keys')}>
+          <SettingRow id="security.publicKey" label={t('security_config.public_key')} help={t('security_config.public_key_description')}>
+            <span className={styles.inline}>
+              <code className={styles.keyBox}>{s.securityPublicKey || t('common.na')}</code>
+              {s.securityPublicKey && (
+                <button type="button" className={styles.button} onClick={() => copy(s.securityPublicKey)}>
+                  <UiIcon name="copy" size={16} /> {t('common.copy')}
+                </button>
             )}
           </span>
         </SettingRow>
@@ -156,6 +158,7 @@ export default function SecurityCategory({ sourceId }: CategoryProps) {
           </div>
         )}
       </SettingGroup>
+      )}
 
       <SettingGroup title={t('workspace.settings.security.admin')}>
         <div className={styles.infoRow}>

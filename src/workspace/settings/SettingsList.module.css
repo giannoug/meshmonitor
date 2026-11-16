@@ -323,3 +323,24 @@
   background: var(--color-surface);
   color: var(--color-text);
 }
+
+/* Task 5.9: the remote target picker under the head, and a remote category's last Send to node. */
+.picker {
+  flex: none;
+  margin: 10px 8px 0;
+}
+
+.status {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-warning);
+}
+
+.status[data-tone='acknowledged'] {
+  color: var(--color-success);
+}
+
+.status[data-tone='noReply'] {
+  color: var(--color-error);
+}

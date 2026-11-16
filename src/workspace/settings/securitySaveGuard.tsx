@@ -23,7 +23,11 @@ import { PacketSignaturePolicy, policyToSend } from '../../utils/packetSignature
 import ConfirmSheet from '../patterns/ConfirmSheet';
 import styles from './categories/SettingsPages.module.css';
 
-export function useSecuritySaveGuard(state: DeviceConfigState): { guard: () => Promise<boolean>; sheets: ReactNode } {
+/** `remoteNode`: a remote target names itself as today's Admin Commands does (its picker label, short name, node id). */
+export function useSecuritySaveGuard(
+  state: DeviceConfigState,
+  remoteNode?: { label: string; shortName: string; fallbackWord: string },
+): { guard: () => Promise<boolean>; sheets: ReactNode } {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { confirmPolicyChange, dialogProps } = usePolicyChangeConfirm();
@@ -59,7 +63,7 @@ export function useSecuritySaveGuard(state: DeviceConfigState): { guard: () => P
     }
     if (policyToSend(state.securityLoadedSignaturePolicy, state.securitySignaturePolicy) !== undefined) {
       const label = state.longName || state.shortName;
-      return confirmPolicyChange(state.securityLoadedSignaturePolicy, state.securitySignaturePolicy, {
+      return confirmPolicyChange(state.securityLoadedSignaturePolicy, state.securitySignaturePolicy, remoteNode ?? {
         label,
         shortName: state.shortName,
         fallbackWord: label,

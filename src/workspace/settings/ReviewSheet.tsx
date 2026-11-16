@@ -17,18 +17,20 @@ import styles from './RadioSaveBar.module.css';
 export interface ReviewSheetProps {
   open: boolean;
   deviceName: string;
+  /** Save's words when not the queue's ("Send to node" on a remote target). */
+  saveLabel?: string;
   onClose(): void;
   onSave(): void;
 }
 
-export default function ReviewSheet({ open, deviceName, onClose, onSave }: ReviewSheetProps) {
+export default function ReviewSheet({ open, deviceName, saveLabel, onClose, onSave }: ReviewSheetProps) {
   const { t } = useTranslation();
   const q = useRadioSaveQueue();
   const firmware = useSharedDeviceConfig()?.state.localFirmwareVersion;
   // Discarding the last category leaves nothing to review.
   if (!q || q.queue.length === 0) return null;
   const count = q.queue.reduce((n, e) => n + e.changes.length, 0);
-  const restart = q.label === 'saveAndRestart' ? 'restart' : q.label === 'saveMayRestart' ? 'may_restart' : null;
+  const restart = saveLabel ? null : q.label === 'saveAndRestart' ? 'restart' : q.label === 'saveMayRestart' ? 'may_restart' : null;
   const fmt = (field: string, v: unknown) => formatValue(t, field as keyof DeviceConfigState, v);
 
   return (
@@ -42,7 +44,7 @@ export default function ReviewSheet({ open, deviceName, onClose, onSave }: Revie
             {t('config_item_card.keep_editing')}
           </button>
           <button type="button" className={styles.save} data-restart={restart ? '' : undefined} onClick={onSave} disabled={q.saving || q.invalid}>
-            {t(SAVE_LABEL_KEY[q.label])}
+            {saveLabel ?? t(SAVE_LABEL_KEY[q.label])}
           </button>
         </div>
       }

@@ -13,8 +13,7 @@
  *   source URL on a phone its PhoneHome (Task 2.6), and device settings
  *   (`settings[/…]`, and the Classic URLs that redirect there) its
  *   SettingsFrame (Task 5.2), with App not mounted (Ruling AD: one owner of
- *   the message state per screen). The remote target (`settings?node=`) keeps
- *   today's Admin Commands until Task 5.9.
+ *   the message state per screen), the remote target (`settings?node=`) too (Task 5.9).
  *   A desktop bare source URL keeps the re-hosted App.
  * - MeshCore / Reticulum: the view comes from the URL and view changes
  *   navigate. A MeshCore view the viewer may not open is replaced in the URL
@@ -148,12 +147,12 @@ export default function WorkspaceSource() {
 
   if (source?.type === 'meshcore_mqtt') return <Rehost>{renderSourceApp(PAGES, sourceId, source, splat)}</Rehost>;
 
-  // Device settings. A Classic settings URL is fixed up beside the frame, which already shows its category.
-  if (source && !new URLSearchParams(location.search).has('node')) {
-    const redirect = workspaceRedirect(location);
-    const to = redirect && !redirect.includes('?node=') ? redirect : null;
+  // Device settings, with the remote target (`?node=`, Task 5.9). A Classic settings URL is fixed up
+  // beside the frame, which already shows its category.
+  if (source) {
+    const to = workspaceRedirect(location);
     if (to || SETTINGS_PATH.test(splat)) {
-      const path = (to ?? location.pathname).replace(/^\/source\/[^/]+\/settings\/?/, '');
+      const path = (to ?? location.pathname).split('?')[0].replace(/^\/source\/[^/]+\/settings\/?/, '');
       return (
         <Redirect to={to}>
           <Rehost>

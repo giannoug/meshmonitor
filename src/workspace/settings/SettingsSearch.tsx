@@ -20,6 +20,8 @@
  * search first, so one sheet shows at a time (D9c). Enter clicks the chosen
  * link for the same reason. Searching sends nothing and asks the server
  * nothing: the firmware OTA flag is read from the health cache only.
+ * While the open device configures a remote node (Task 5.9), its results are
+ * that node's categories, as its settings list shows them.
  */
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
@@ -37,6 +39,7 @@ import { PREFERENCE_CATEGORIES } from '../routes';
 import type { WorkspaceSource } from '../shell/useWorkspaceSources';
 import { SECTION_TO_CATEGORY, visibleCategories, type CategoryDef } from './categories';
 import { isMac, settingAnchor, useFieldRegistry } from './kit/useFieldRegistry';
+import { remoteEntry } from './remote/remoteTargetStore';
 import styles from './SettingsSearch.module.css';
 
 /** The device types the settings frame serves. */
@@ -98,6 +101,8 @@ export default function SettingsSearch({ sources, openId, phone, initialQuery, o
           isAuthenticated,
           firmwareOtaEnabled: health?.firmwareOtaEnabled === true,
           hasPermission,
+          // The open device's remote target lists what its settings list does (Task 5.9).
+          remote: d.id === openId && remoteEntry(d.id).node !== null,
         }).map((c) => [c.id, c]),
       );
       const base = `/source/${encodeURIComponent(d.id)}/settings`;

@@ -12,8 +12,9 @@ import SettingRow from '../kit/SettingRow';
 import { useWas } from './useWas';
 import { labelled, useRows } from './rows';
 import { Locked, SettingPassword, Warn } from './RowParts';
+import type { CategoryProps } from '../categories';
 
-export default function NetworkCategory() {
+export default function NetworkCategory({ target }: CategoryProps) {
   const r = useRows('network', 'network');
   const was = useWas('network');
   if (!r) return <StateView kind="loading" />;
@@ -47,11 +48,13 @@ export default function NetworkCategory() {
           </>
         )}
         {r.text('ntpServer', 'network_config.ntp_server', { maxLength: 32, placeholder: 'meshtastic.pool.ntp.org' })}
-        {r.text('rsyslogServer', 'network_config.rsyslog_server', { maxLength: 32, placeholder: '192.168.1.100:514' })}
-        {r.toggle('enabledProtocols', 'network_config.udp_broadcast', {
-          checked: (s.enabledProtocols & UDP_BROADCAST_FLAG) !== 0,
-          onChange: (on) => s.setEnabledProtocols(on ? s.enabledProtocols | UDP_BROADCAST_FLAG : s.enabledProtocols & ~UDP_BROADCAST_FLAG),
-        })}
+        {/* Admin Commands neither reads nor sends these for a remote node. */}
+        {target.kind === 'local' && r.text('rsyslogServer', 'network_config.rsyslog_server', { maxLength: 32, placeholder: '192.168.1.100:514' })}
+        {target.kind === 'local' &&
+          r.toggle('enabledProtocols', 'network_config.udp_broadcast', {
+            checked: (s.enabledProtocols & UDP_BROADCAST_FLAG) !== 0,
+            onChange: (on) => s.setEnabledProtocols(on ? s.enabledProtocols | UDP_BROADCAST_FLAG : s.enabledProtocols & ~UDP_BROADCAST_FLAG),
+          })}
       </SettingGroup>
       {s.wifiEnabled && s.addressMode === 1 && (
         <SettingGroup title={t('network_config.static_ip_settings')}>

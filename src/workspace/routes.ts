@@ -63,13 +63,10 @@ export function globalSettingsHash(category: string): string {
 /**
  * The location the re-hosted Meshtastic `App` sees for a Workspace source URL
  * (App picks its tab from the last path segment): Workspace-only paths go
- * where `classicFallback` sends Classic users. Device settings are the
- * Workspace's own (Task 5.2); only the remote target (`?node=`) still opens
- * today's Admin Commands, until Task 5.9.
+ * where `classicFallback` sends Classic users. Device settings, the remote
+ * target (`?node=`) included, are the Workspace's own (Tasks 5.2, 5.9).
  */
 export function classicSourceLocation(loc: Loc): { pathname: string; hash: string } {
-  const m = loc.pathname.match(/^\/source\/([^/]+)\/settings(?:\/|$)/);
-  if (m && new URLSearchParams(loc.search).has('node')) return { pathname: `/source/${m[1]}/admin`, hash: '' };
   return { pathname: classicFallback(loc.pathname) ?? loc.pathname, hash: loc.hash };
 }
 

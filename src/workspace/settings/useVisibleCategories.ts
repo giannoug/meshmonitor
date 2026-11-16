@@ -8,7 +8,7 @@ import { RADIO, visibleCategories, type CategoryDef } from './categories';
  * an admin on a radio, the OTA flag) are known: deciding on an empty grant set
  * would send a deep link to the first category.
  */
-export function useVisibleCategories(sourceId: string, sourceType: string): { ready: boolean; categories: CategoryDef[] } {
+export function useVisibleCategories(sourceId: string, sourceType: string, remote = false): { ready: boolean; categories: CategoryDef[] } {
   const { authStatus, loading, hasPermission } = useAuth();
   const isAdmin = authStatus?.user?.isAdmin === true;
   const askHealth = isAdmin && (RADIO as string[]).includes(sourceType);
@@ -22,6 +22,7 @@ export function useVisibleCategories(sourceId: string, sourceType: string): { re
     isAuthenticated: authStatus?.authenticated === true,
     firmwareOtaEnabled: health.data?.firmwareOtaEnabled === true,
     hasPermission,
+    remote,
   });
   return { ready, categories };
 }

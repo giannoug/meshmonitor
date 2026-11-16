@@ -13,6 +13,7 @@ import { g2deviceConfigWith } from '../../src/workspace/settings/__tests__/radio
 import { boardChannels, g2On282, pollWith } from '../../src/workspace/settings/__tests__/categoryFixtures';
 import { flashFailed, maintenanceFixtures, reloadFixtures } from '../../src/workspace/settings/__tests__/maintenanceFixtures';
 import { bridgeFixtures, meshmonitorFixtures } from '../../src/workspace/settings/__tests__/meshmonitorFixtures';
+import { NODE, remoteFixtures } from '../../src/workspace/settings/__tests__/remoteBoardFixtures';
 
 export interface Board {
   id: string;
@@ -52,6 +53,17 @@ const SECURITY: Board['fixtures'] = {
   ...g2On282,
   'GET /api/device/security-keys': () => ({ publicKey: 'Kq7xF2bW9mQpublicpublicpublicpublicpublic0=', privateKey: 'cHJpdmF0ZXByaXZhdGVwcml2YXRlcHJpdmF0ZTAxMjM=' }),
 };
+
+/** Task 5.9: Station G2's mesh with Hilltop Relay, a fresh server per board. */
+const REMOTE = (extra: Board['fixtures'] = {}): Board['fixtures'] => ({ ...PINS, ...remoteFixtures(), ...extra });
+
+/** Load All Config held on LoRa, as 12-11 / 12-29 draw it: the route never answers that one read. */
+async function holdLoRa(page: Page) {
+  await page.route('**/api/admin/load-config', async (route) => {
+    if ((route.request().postData() ?? '').includes('"lora"')) return;
+    await route.fallback();
+  });
+}
 
 /** Task 5.7: Station G2's backups, releases (OTA on) and a reload that finds three changes. */
 const MAINTENANCE = (): Board['fixtures'] => ({ ...PINS, ...maintenanceFixtures, ...reloadFixtures() });
@@ -1305,6 +1317,76 @@ export const BOARDS: Board[] = [
   { id: '12-23-meshmonitor-data', size: 'phone', path: '/source/src-g2/settings/data', fixtures: MESHMONITOR() },
   { id: '12-13-mqtt-bridge', size: 'desktop', path: '/source/src-bridge/settings/mqtt-bridge', fixtures: { ...PINS, ...bridgeFixtures() }, setup: editBridge },
   { id: '12-24-mqtt-bridge', size: 'phone', path: '/source/src-bridge/settings/mqtt-bridge', fixtures: { ...PINS, ...bridgeFixtures() }, setup: editBridge },
+  // Task 5.9: the remote target (Hilltop Relay, three hops out).
+  {
+    id: 'b-set-d6-remote',
+    size: 'desktop',
+    path: `/source/src-g2/settings/device/position?node=${NODE}`,
+    fixtures: REMOTE(),
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Read from node' }).click();
+      await page.getByText(/Showing values read/).waitFor();
+      await page.getByLabel('Position Broadcast Interval (seconds)').waitFor();
+    },
+  },
+  {
+    id: '12-11-remote-node-cli',
+    size: 'desktop',
+    path: `/source/src-g2/settings/node-management?node=${NODE}`,
+    fixtures: REMOTE(),
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Set as Favorite: Kifisia Rooftop' }).click();
+      await page.getByText('Favorite, from this session').waitFor();
+      await page.getByRole('button', { name: 'Retrieve Device Metadata' }).click();
+      await page.getByText('Device Metadata', { exact: true }).waitFor();
+      await holdLoRa(page);
+      await page.getByRole('button', { name: /Load All Config/ }).click();
+      await page.getByText(/Loading LoRa/).waitFor();
+    },
+  },
+  {
+    id: '12-20-remote-picker',
+    size: 'phone',
+    path: `/source/src-g2/settings/device/position?node=${NODE}`,
+    fixtures: REMOTE({
+      'POST /api/admin/session-passkey-status': () => ({ success: true, isLocalNode: false, hasPasskey: false, remainingSeconds: null }),
+    }),
+    setup: async (page) => {
+      await page.getByRole('button', { name: /Remote node/ }).click();
+      await page.getByRole('dialog', { name: 'Configuring' }).waitFor();
+    },
+  },
+  {
+    id: '12-25-remote-console',
+    size: 'phone',
+    path: `/source/src-g2/settings/remote-console?node=${NODE}`,
+    fixtures: REMOTE({
+      'POST /api/sources/:id/meshtastic/admin/cli': () => ({
+        success: true,
+        data: { output: 'Set device.role to ROUTER\nAcknowledged · node restarts to apply', stdout: '', stderr: '', exitCode: 0, elapsedMs: 900 },
+      }),
+    }),
+    setup: async (page) => {
+      await page.getByPlaceholder('CLI arguments (e.g. --set device.role CLIENT)').fill('--set device.role ROUTER');
+      await page.getByRole('button', { name: /^Send$/ }).click();
+      await page.getByText(/node restarts to apply/).waitFor();
+    },
+  },
+  {
+    id: '12-29-target-actions',
+    size: 'phone',
+    path: `/source/src-g2/settings/remote-console?node=${NODE}`,
+    fixtures: REMOTE(),
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Node actions' }).click();
+      const sheet = page.getByRole('dialog', { name: 'Hilltop Relay' });
+      await sheet.getByRole('button', { name: /Retrieve Device Metadata/ }).click();
+      await sheet.getByText(/2\.7\.15/).waitFor();
+      await holdLoRa(page);
+      await sheet.getByRole('button', { name: /Load All Config/ }).click();
+      await sheet.getByText(/Loading LoRa/).waitFor();
+    },
+  },
 ];
 
 /** Identity: the short name G2 → SG2. */

@@ -42,19 +42,26 @@ import { useSharedDeviceConfig } from '../sharedDeviceConfig';
 import { useClaimDock, useSettingsHeader } from '../settingsDock';
 import type { CategoryProps } from '../categories';
 import ChannelEditPage from './ChannelEditPage';
+import { useRemoteTarget } from '../remote/useRemoteTarget';
+import { useRemoteChannelActions } from '../remote/useRemoteChannelActions';
 import ImportJsonSheet from './ImportJsonSheet';
 import ShareImportPage from './ShareImportPage';
 import styles from './SettingsPages.module.css';
 import bar from '../RadioSaveBar.module.css';
 
 export default function ChannelsCategory({ sourceId, sub = '' }: CategoryProps) {
+  const { t } = useTranslation();
   const config = useSharedDeviceConfig();
-  const { data, refetch } = usePoll();
+  // A remote node's channels are the slots read from it (Task 5.9), not this radio's.
+  const remote = useRemoteTarget();
+  const remoteActions = useRemoteChannelActions();
+  const { data, refetch } = usePoll({ enabled: !remote });
   const base = `/source/${encodeURIComponent(sourceId)}/settings/channels`;
-  if (!config || config.state.loading || !data) return <StateView kind="loading" />;
-  const channels = data.channels ?? [];
-  const refresh = () => void refetch();
-  if (sub === 'share') return <ShareImportPage base={base} sourceId={sourceId} channels={channels} onImported={refresh} />;
+  if (!config || config.state.loading || (!remote && !data)) return <StateView kind="loading" />;
+  const channels = (remote ? remote.channels : data?.channels) ?? [];
+  const refresh = () => void (remote ? undefined : refetch());
+  // Share and import stays this radio's (Ruling 5.9 Channels).
+  if (sub === 'share' && !remote) return <ShareImportPage base={base} sourceId={sourceId} channels={channels} onImported={refresh} />;
   if (/^[0-7]$/.test(sub)) {
     return (
       <ChannelEditPage
@@ -65,11 +72,12 @@ export default function ChannelsCategory({ sourceId, sub = '' }: CategoryProps) 
         channels={channels}
         aeadSupported={config.state.supportedModules?.aeadChannels === true}
         onChannelsUpdated={refresh}
+        remote={remote && remoteActions ? { actions: remoteActions, sends: t('workspace.settings.remote.sends_admin_packet', { name: remote.node.longName }) } : undefined}
       />
     );
   }
   if (sub) return <Navigate replace to={base} />;
-  return <ChannelList base={base} sourceId={sourceId} channels={channels} onChannelsUpdated={refresh} />;
+  return <ChannelList base={base} sourceId={sourceId} channels={channels} onChannelsUpdated={refresh} remote={!!remote} />;
 }
 
 interface ListProps {
@@ -77,9 +85,11 @@ interface ListProps {
   sourceId: string;
   channels: Channel[];
   onChannelsUpdated(): void;
+  /** A remote node's slots: each opens for editing; importing, reordering and sharing are this radio's. */
+  remote?: boolean;
 }
 
-function ChannelList({ base, sourceId, channels, onChannelsUpdated }: ListProps) {
+function ChannelList({ base, sourceId, channels, onChannelsUpdated, remote }: ListProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const readOnly = useReadOnly();
@@ -91,7 +101,8 @@ function ChannelList({ base, sourceId, channels, onChannelsUpdated }: ListProps)
   const [reordering, setReordering] = useState(false);
   const [importSlot, setImportSlot] = useState<number | null>(null);
   useClaimDock(reordering);
-  useSettingsHeader({ scope: t('workspace.settings.channels.scope', { device: sourceName }) });
+  const remoteNode = useRemoteTarget()?.node;
+  useSettingsHeader({ scope: t('workspace.settings.channels.scope', { device: remoteNode?.longName ?? sourceName }) });
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -138,17 +149,21 @@ function ChannelList({ base, sourceId, channels, onChannelsUpdated }: ListProps)
             <UiIcon name="plus" size={16} /> {t('channels_config.add_channel')}
           </button>
         )}
-        {next !== null && (
+        {next !== null && !remote && (
           <button type="button" className={styles.button} disabled={readOnly || reordering} onClick={() => setImportSlot(next)}>
             <UiIcon name="import" size={16} /> {t('channels_config.import_to_slot', { slot: next })}
           </button>
         )}
-        <button type="button" className={styles.button} aria-pressed={reordering} disabled={readOnly || visible.length < 2} onClick={() => setReordering(true)}>
-          <UiIcon name="sortAscending" size={16} /> {t('workspace.settings.channels.reorder')}
-        </button>
-        <Link to={`${base}/share`} className={styles.button}>
-          <UiIcon name="link" size={16} /> {t('workspace.settings.channels.share_title')}
-        </Link>
+        {!remote && (
+          <>
+            <button type="button" className={styles.button} aria-pressed={reordering} disabled={readOnly || visible.length < 2} onClick={() => setReordering(true)}>
+              <UiIcon name="sortAscending" size={16} /> {t('workspace.settings.channels.reorder')}
+            </button>
+            <Link to={`${base}/share`} className={styles.button}>
+              <UiIcon name="link" size={16} /> {t('workspace.settings.channels.share_title')}
+            </Link>
+          </>
+        )}
         <span className={styles.toolbarNote}>{t('workspace.settings.channels.slots_used', { count: ALL_SLOTS.length - free.length })}</span>
       </div>
       {next === null && <p className={styles.note}>{t('channels_config.add_channel_full')}</p>}

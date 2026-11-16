@@ -11,6 +11,13 @@
  *
  * - `sidebar`: the desktop sidebar in settings mode, headed "← <Device> / Settings".
  * - `page`: the phone list page, headed "‹ Home  <Device>".
+ *
+ * An admin on a Meshtastic radio picks what the settings configure under the
+ * head ("Configuring This radio ▾", Task 5.9). On a remote node the list is
+ * that node's (b-set-d6): ON <NODE> with what today's Admin Commands offers
+ * there, each category's last Send to node (Sent · waiting, Acknowledged,
+ * No reply), and REMOTE ONLY (Node management, Remote console); In
+ * MeshMonitor is about this server, so it is not listed.
  */
 import { useId, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -31,6 +38,8 @@ import {
   type CategoryDef,
 } from './categories';
 import { useVisibleCategories } from './useVisibleCategories';
+import TargetPickerTrigger from './remote/TargetPickerTrigger';
+import { useRemoteEntry } from './remote/remoteTargetStore';
 import styles from './SettingsList.module.css';
 
 const ICONS: Record<string, UiIconName> = {
@@ -63,6 +72,8 @@ interface Row {
   child?: boolean;
   /** The viewer may only look (shown per row when its group is mixed). */
   readOnly: boolean;
+  /** A remote category's last Send to node. */
+  status?: { text: string; tone: string };
 }
 
 export interface SettingsListProps {
@@ -77,8 +88,15 @@ export interface SettingsListProps {
 export default function SettingsList({ sourceId, sourceName, sourceType, variant, onNavigate }: SettingsListProps) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
-  const { hasPermission } = useAuth();
-  const { categories } = useVisibleCategories(sourceId, sourceType);
+  const { hasPermission, authStatus } = useAuth();
+  const remote = useRemoteEntry(sourceId);
+  const { categories } = useVisibleCategories(sourceId, sourceType, !!remote.node);
+  const canPick = authStatus?.user?.isAdmin === true && sourceType === 'meshtastic_tcp';
+  const SENT: Record<string, string> = {
+    sending: 'workspace.settings.remote.sent_waiting',
+    acknowledged: 'workspace.settings.remote.acknowledged',
+    noReply: 'workspace.settings.remote.no_reply',
+  };
   const { pins } = usePins();
   const isPhone = useIsPhone();
   const { openSettingsSearch } = useShellDevices();
@@ -102,6 +120,7 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
     chevron: false,
     child,
     readOnly: readOnlyFor(c, hasPermission, sourceId),
+    status: remote.sent[c.id] ? { text: t(SENT[remote.sent[c.id]]), tone: remote.sent[c.id] } : undefined,
   });
 
   const pinned: Row[] = pins
@@ -109,7 +128,7 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
     .map((id) => ({ ...row(categoryById(id)!, 'pin'), key: `pin:${id}`, icon: 'favorite', active: false }));
 
   const radio: Row[] = [];
-  for (const c of categories.filter((c) => c.scope === 'radio' && !c.group)) radio.push(row(c, 'radio'));
+  for (const c of categories.filter((c) => c.scope === 'radio' && !c.group && c.remote !== 'only')) radio.push(row(c, 'radio'));
   for (const g of GROUPS) {
     const children = categories.filter((c) => c.group === g);
     if (children.length === 0) continue;
@@ -127,6 +146,10 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
     if (variant === 'sidebar' && openGroup === g && openChild) radio.push(row(openChild, 'device', true));
   }
   const meshmonitor = categories.filter((c) => c.scope === 'meshmonitor').map((c) => row(c, 'meshmonitor'));
+  const remoteOnly = categories.filter((c) => c.remote === 'only').map((c) => row(c, 'radio'));
+  // Maintenance › closes the list on a remote node, as b-set-d6 draws it.
+  const maintenance = remote.node ? radio.findIndex((r) => r.key === 'maintenance') : -1;
+  const radioTail = maintenance >= 0 ? radio.splice(maintenance) : [];
 
   const sidebar = variant === 'sidebar';
   const tokens = tokenize(query);
@@ -158,6 +181,11 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
           </>
         )}
       </div>
+      {canPick && (
+        <div className={styles.picker}>
+          <TargetPickerTrigger sourceId={sourceId} />
+        </div>
+      )}
       <div className={styles.search}>
         <UiIcon name="search" size={16} />
         <label htmlFor={fieldId} className={styles.srOnly}>{t('config_search.title')}</label>
@@ -194,7 +222,13 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
         ) : (
           <>
             <Section title={t('workspace.settings.pinned')} rows={pinned} sidebar={sidebar} onNavigate={onNavigate} />
-            <Section title={t('workspace.settings.on_radio')} rows={radio} sidebar={sidebar} onNavigate={onNavigate} />
+            <Section
+              title={remote.node ? t('workspace.settings.remote.on_node', { name: remote.node.longName }) : t('workspace.settings.on_radio')}
+              rows={radio}
+              sidebar={sidebar}
+              onNavigate={onNavigate}
+            />
+            <Section title={t('workspace.settings.remote.remote_only')} rows={[...remoteOnly, ...radioTail]} sidebar={sidebar} onNavigate={onNavigate} />
             <Section title={t('workspace.settings.in_meshmonitor')} rows={meshmonitor} sidebar={sidebar} onNavigate={onNavigate} />
           </>
         )}
@@ -232,6 +266,7 @@ function Section({ title, rows, sidebar, onNavigate }: { title: string; rows: Ro
               )}
               {sidebar && r.tone === 'pin' && <UiIcon name="favorite" size={14} />}
               <span className={styles.label}>{r.label}</span>
+              {r.status && <span className={styles.status} data-tone={r.status.tone}>{r.status.text}</span>}
               {!viewOnly && r.readOnly && <span className={styles.viewOnly}>{t('workspace.settings.view_only')}</span>}
               {(r.chevron || !sidebar) && <UiIcon name="chevronRight" size={sidebar ? 16 : 20} />}
             </Link>

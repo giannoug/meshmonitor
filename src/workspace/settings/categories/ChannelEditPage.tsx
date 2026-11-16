@@ -45,6 +45,7 @@ import SettingText from '../kit/SettingText';
 import SettingToggle from '../kit/SettingToggle';
 import { useReadOnly, useSettingRow } from '../kit/useFieldRegistry';
 import ImportJsonSheet from './ImportJsonSheet';
+import { useRemoteTarget } from '../remote/useRemoteTarget';
 import { useClaimDock, usePendingEdit, useSettingsHeader } from '../settingsDock';
 import { useRadioSaveQueue } from '../useRadioSaveQueue';
 import styles from './SettingsPages.module.css';
@@ -58,6 +59,8 @@ export interface ChannelEditPageProps {
   /** The node's firmware supports AEAD channels (2.8.1+, #5248): today's gate. */
   aeadSupported: boolean;
   onChannelsUpdated(): void;
+  /** A remote node's writes (Task 5.9) in place of this radio's. */
+  remote?: { actions: ReturnType<typeof useChannelActions>; sends: string };
 }
 
 /** Each draft value and today's label for it, in the editor's order. */
@@ -73,7 +76,7 @@ const FIELDS: Array<[keyof ChannelDraft, string]> = [
 // Today's editor generates 32 bytes; a 1-byte key is an index into the public default key, never a secret (Ruling 5.5 I1).
 const KEY_SIZES = [16, 32];
 
-export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSupported, onChannelsUpdated }: ChannelEditPageProps) {
+export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSupported, onChannelsUpdated, remote }: ChannelEditPageProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const navigate = useNavigate();
@@ -81,7 +84,10 @@ export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSu
   const { sourceName } = useSource();
   const { distanceUnit } = useSettings();
   const numbersInvalid = useRadioSaveQueue()?.invalid ?? false;
-  const actions = useChannelActions(sourceId);
+  const remoteNode = useRemoteTarget()?.node;
+  const local = useChannelActions(sourceId);
+  const actions = remote?.actions ?? local;
+  const sends = remote?.sends ?? t('workspace.settings.savebar.sends_nothing');
   const bySlot = useChannelBySlot(channels);
   const channel = bySlot.get(slot);
   const [edit, setEdit] = useState(() => openDraft(slot, !isConfigured(channel), channel));
@@ -106,7 +112,7 @@ export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSu
     title,
     phoneTitle: isNew ? title : name,
     back: { to: base, label: t('channels.title') },
-    scope: t('workspace.settings.channels.edit_scope', { slot, device: sourceName }),
+    scope: t('workspace.settings.channels.edit_scope', { slot, device: remoteNode?.longName ?? sourceName }),
   });
   useClaimDock(dirty && !readOnly);
   usePendingEdit(
@@ -163,7 +169,8 @@ export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSu
     </SettingRow>
   );
 
-  const json = !isNew && (
+  // A remote slot's JSON and delete are this radio's only (Admin Commands disables a remote slot through its role).
+  const json = !isNew && !remote && (
     <div className={styles.infoRow}>
       <span className={styles.infoLabel}>{t('workspace.settings.channels.json')}</span>
       <span className={styles.inline}>
@@ -237,7 +244,7 @@ export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSu
         {json}
       </SettingGroup>
 
-      {!isNew && slot > 0 && (
+      {!isNew && !remote && slot > 0 && (
         <DangerZone title={t('config.danger_zone')}>
           <div className={styles.infoRow}>
             <span className={styles.infoText}>
@@ -264,7 +271,7 @@ export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSu
                     ? t('channels_config.new_channel')
                     : t(isPhone ? 'workspace.settings.savebar.changes_short' : 'workspace.settings.savebar.changes_in', { count: changed.length, names: t('channels.title') })}
                 </span>
-                <span className={bar.sub}>{t('workspace.settings.channels.dock_sub')}</span>
+                <span className={bar.sub}>{remote ? remote.sends : t('workspace.settings.channels.dock_sub')}</span>
               </div>
               {!isPhone && (
                 <>
@@ -286,7 +293,7 @@ export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSu
                 <SaveButton saving={saving} disabled={!keyValid || numbersInvalid} onSave={save} />
               </div>
             )}
-            <SendsLine>{t('workspace.settings.savebar.sends_nothing')}</SendsLine>
+            <SendsLine>{sends}</SendsLine>
             {numbersInvalid && <p className={bar.error}>{t('savebar.fix_invalid_fields')}</p>}
           </section>
         </>

@@ -44,9 +44,10 @@ describe('settings routes', () => {
     expect(screen.queryByTestId('page-app')).toBeNull();
   });
 
-  it('?node= (the remote target) keeps today\'s Admin Commands until Task 5.9', async () => {
+  it('?node= (the remote target) is the frame\'s own, with App never mounted (Task 5.9)', async () => {
     renderSettings(`${g2}/settings?node=`);
-    expect(await screen.findByTestId('page-app', {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Configuring This radio/ }, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('page-app')).toBeNull();
   });
 });
 

@@ -1,0 +1,548 @@
+/* The remote target (Task 5.9): picker, read bar, target actions, Node management and the console. */
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* "Configuring This radio ▾" under the settings list's head. */
+.trigger {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.triggerLabel {
+  color: var(--color-text-muted);
+}
+
+.triggerValue {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trigger[data-remote] .triggerValue {
+  color: var(--color-warning);
+}
+
+/* The picker sheet (12-20). */
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 20px 20px;
+}
+
+.help {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  color: var(--color-warning);
+  font-size: 14px;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.option {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--color-accent);
+}
+
+.option[aria-pressed='true'] {
+  color: var(--color-accent);
+}
+
+.optionText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.optionName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.optionSub {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.chip {
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg-sunken);
+  color: var(--color-text-subtle);
+}
+
+.search:focus-within {
+  border-color: var(--color-accent);
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+}
+
+.searchInput:focus {
+  outline: none;
+}
+
+/* The page header's scope line on a remote target: it opens the picker. */
+.scope {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.scope[data-phone] {
+  min-height: 44px;
+}
+
+.scope:focus-visible {
+  outline: 2px solid var(--color-accent);
+}
+
+.scopeRemote {
+  margin-left: 6px;
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+/* Read from node (b-set-d6, 12-20). */
+.readBar {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin: 0 0 20px;
+  padding: 16px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.readIcon {
+  flex: none;
+  color: var(--color-accent);
+}
+
+.readText {
+  display: flex;
+  flex: 1 1 280px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.readTitle {
+  color: var(--color-text);
+  font-size: 16px;
+}
+
+.readHelp {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.readAction {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.readBar[data-phone] .readAction {
+  flex-basis: 100%;
+}
+
+.primary,
+.button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.primary {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-bg-sunken);
+}
+
+.primary:disabled,
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.primary:focus-visible,
+.button:focus-visible,
+.more:focus-visible,
+.actionRow:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.readBar[data-phone] .primary {
+  min-height: 44px;
+}
+
+/* Target actions: the desktop card (12-11) and the phone ⋯ sheet (12-29). */
+.actionsCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 20px;
+  padding: 16px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.actionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.actionButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.attempts {
+  display: grid;
+  grid-template-columns: auto 120px;
+  align-items: center;
+  gap: 6px 12px;
+  max-width: 520px;
+}
+
+.attempts .actionHelp {
+  grid-column: 1 / -1;
+}
+
+.actionLabel {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.attemptsInput {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: var(--color-bg-sunken);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.attemptsInput[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.actionHelp {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.metadata {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.metadata strong,
+.metaKey {
+  color: var(--color-text);
+}
+
+.more {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  margin-left: auto;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.actionSheet {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 20px 20px;
+}
+
+.actionSheet[data-phone] .attempts {
+  grid-template-columns: 1fr 140px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.actionSheet[data-phone] .attemptsInput {
+  min-height: 44px;
+}
+
+.actionRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-height: 52px;
+  padding: 16px 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-text-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.actionRow:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.actionText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.actionName {
+  color: var(--color-text);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Node management (12-11). */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 24px;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 20px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 10px 14px;
+  border-top: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table thead th {
+  border-top: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cell {
+  white-space: nowrap;
+}
+
+.cell > * + * {
+  margin-left: 6px;
+}
+
+.nodeCell {
+  display: flex;
+  flex-direction: column;
+  font-weight: 400;
+}
+
+.nodeName {
+  color: var(--color-text);
+}
+
+.nodeSub {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.role {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.role[data-phone] {
+  min-height: 44px;
+}
+
+.footerButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* The remote console (12-25). */
+.console {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.prefixRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.prefixLabel {
+  color: var(--color-text-muted);
+}
+
+.prefix {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-mono, monospace);
+}
+
+/* The shared console body's own input and Send reach phone size here. */
+.console[data-phone] :where(input, button) {
+  min-height: 44px;
+}

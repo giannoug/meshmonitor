@@ -12,6 +12,11 @@
  *   for the local node only; on a remote target they are off with today's reason.
  *   Shut down is off when the node's metadata says it cannot shut down, read
  *   once from the local node's cached metadata (no packet is sent).
+ * - On a remote target (Task 5.9) Reboot, Purge and Shut down go to that node
+ *   as Admin Commands sends them: Reboot after a delay of 0–60 s (default 5),
+ *   Purge typing PURGE, Shut down typing the node's short name with today's
+ *   remote warning, off when the node's metadata (Retrieve Device Metadata, on
+ *   today's button only) says it cannot shut down. Each is one admin packet.
  */
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -29,6 +34,9 @@ import DangerZone from '../../patterns/DangerZone';
 import SendsLine from '../../patterns/SendsLine';
 import StateView from '../../patterns/StateView';
 import { useSharedDeviceConfig } from '../sharedDeviceConfig';
+import { useRemoteTarget } from '../remote/useRemoteTarget';
+import { useIsPhone } from '../../shell/useIsPhone';
+import { NumberInput } from '../../../components/common/NumberInput';
 import type { CategoryProps } from '../categories';
 import { ActionRow, MaintenancePage } from './maintenanceShared';
 import pages from './SettingsPages.module.css';
@@ -80,20 +88,52 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
     staleTime: Infinity,
     retry: false,
   });
-  const canShutdown = metadata?.deviceMetadata?.canShutdown;
+  const remote = useRemoteTarget();
+  const isPhone = useIsPhone();
+  // Admin Commands' reboot delay for a remote node: 0–60 s, 5 by default.
+  const [delay, setDelay] = useState<number | null>(5);
+  const canShutdown = remote ? remote.metadata?.canShutdown : metadata?.deviceMetadata?.canShutdown;
   if (!config || config.state.loading) return <StateView kind="loading" />;
   const { state, saves } = config;
 
   const nodeId = (poll?.config?.localNodeInfo as { nodeId?: string } | undefined)?.nodeId ?? '';
-  const name = state.shortName.trim() || nodeId;
+  // Today's typed word: the node's short name, or its node id when it has none.
+  const name = remote ? remote.node.shortName.trim() || remote.node.nodeId : state.shortName.trim() || nodeId;
   const localOnly = target.kind === 'remote' ? t('device_actions.local_only_note') : null;
-  const off = state.isSaving || readOnly;
-  const adminOff = busy || readOnly;
-  const sends = <SendsLine>{t('workspace.settings.savebar.sends_nothing')}</SendsLine>;
+  const off = (remote ? busy || remote.blocked : state.isSaving) || readOnly;
+  const adminOff = busy || readOnly || !!remote?.blocked;
+  const sendsText = remote
+    ? t('workspace.settings.remote.sends_admin_packet', { name: remote.node.longName })
+    : t('workspace.settings.savebar.sends_nothing');
+  const sends = <SendsLine>{sendsText}</SendsLine>;
   const close = () => setPending(null);
+  // A remote node's command: today's executeCommand, which shows its own result.
+  const sendRemote = async (command: string, params: Record<string, unknown>) => {
+    setBusy(true);
+    try {
+      await remote!.execute(command, params);
+    } catch {
+      // Shown by execute.
+    } finally {
+      setBusy(false);
+      close();
+    }
+  };
 
-  // shortcut: reboot, purge and shut down act on the local node; Task 5.9 routes them to a remote target.
   const send = async (action: DeviceAction, sentName: string) => {
+    if (remote) {
+      setBusy(true);
+      try {
+        await remote.execute(action, action === 'shutdown' ? { seconds: SHUTDOWN_DELAY_SECONDS } : {});
+        setSent({ action, name: sentName });
+      } catch {
+        // Shown by execute.
+      } finally {
+        setBusy(false);
+        close();
+      }
+      return;
+    }
     setBusy(true);
     try {
       const result = await apiService.sendAdminCommand<{ success: boolean; message?: string; data?: { message?: string } }>({
@@ -146,7 +186,7 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
         <ActionRow
           id="maintenance.danger.restart"
           label={t('workspace.settings.maintenance.restart_title')}
-          help={t('workspace.settings.maintenance.restart_help')}
+          help={remote ? t('workspace.settings.remote.restart_help', { word: name }) : t('workspace.settings.maintenance.restart_help')}
           blocked={isAdmin && canShutdown === false ? t('device_actions.shutdown.cannot_note') : null}
           sends={sends}
         >
@@ -179,7 +219,12 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
       {sent && (
         <div className={styles.sent} role="status">
           <strong>{t(`device_actions.${KEY[sent.action]}.sent_title`, { name: sent.name })}</strong>
-          <span>{t(`device_actions.${KEY[sent.action]}.sent_local`, { name: sent.name, seconds: SHUTDOWN_DELAY_SECONDS })}</span>
+          <span>
+            {t(remote && sent.action === 'shutdown' ? 'device_actions.shutdown.sent_remote' : `device_actions.${KEY[sent.action]}.sent_local`, {
+              name: sent.name,
+              seconds: SHUTDOWN_DELAY_SECONDS,
+            })}
+          </span>
         </div>
       )}
 
@@ -187,15 +232,28 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
         open={pending === 'reboot'}
         title={t('config.reboot_dialog_title')}
         body={
-          <>
-            <p className={pages.para}>{t('config.reboot_dialog_message')}</p>
-            {sends}
-          </>
+          remote ? (
+            <>
+              <label className={pages.field} data-phone={isPhone || undefined}>
+                <span className={pages.infoLabel}>{t('admin_commands.reboot_delay_label')}</span>
+                <NumberInput integer min={0} max={60} className={pages.keyInput} value={delay} onChange={setDelay} onValidityChange={(ok) => !ok && setDelay(null)} />
+              </label>
+              <p className={pages.para}>{t('admin_commands.reboot_confirmation', { seconds: delay ?? 5 })}</p>
+              {sends}
+            </>
+          ) : (
+            <>
+              <p className={pages.para}>{t('config.reboot_dialog_message')}</p>
+              {sends}
+            </>
+          )
         }
         confirmLabel={t('config.reboot_device')}
-        busy={state.isSaving}
+        busy={remote ? busy : state.isSaving}
+        confirmDisabled={!!remote && delay === null}
         submitOnEnter={false}
         onConfirm={async () => {
+          if (remote) return sendRemote('reboot', { seconds: delay ?? 5 });
           await saves.reboot();
           close();
         }}
@@ -206,16 +264,17 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
         title={t('config.purge_dialog_title')}
         body={
           <>
-            <p className={pages.para}>{t('config.purge_dialog_body')}</p>
+            <p className={pages.para}>{t(remote ? 'admin_commands.purge_confirmation' : 'config.purge_dialog_body')}</p>
             {sends}
           </>
         }
         confirmWord="PURGE"
         confirmLabel={t('config.purge_node_db')}
         danger
-        busy={state.isSaving}
+        busy={remote ? busy : state.isSaving}
         submitOnEnter={false}
         onConfirm={async () => {
+          if (remote) return sendRemote('purgeNodeDb', { seconds: 0 });
           await saves.purgeNodeDb();
           close();
         }}
@@ -227,6 +286,7 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
         body={
           <>
             <p className={pages.para}>{t(`device_actions.${key}.confirm_body`, { name: word, seconds: SHUTDOWN_DELAY_SECONDS })}</p>
+            {remote && device === 'shutdown' && <p className={pages.warn}>{t('device_actions.shutdown.remote_warning')}</p>}
             {isReset(device) && (
               <>
                 <FactoryResetWipeList
@@ -239,7 +299,8 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
             {sends}
           </>
         }
-        confirmWord={isReset(device) ? word : undefined}
+        // Today's: the resets type the name; so does Shut down for a remote node, which stays off until someone walks to it.
+        confirmWord={isReset(device) || (remote && device === 'shutdown') ? word : undefined}
         confirmLabel={t(`device_actions.${key}.confirm_label`)}
         danger
         busy={busy}

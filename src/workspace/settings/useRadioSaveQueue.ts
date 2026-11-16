@@ -62,6 +62,8 @@ export interface RadioSaveQueue {
   invalid: boolean;
   /** What the node holds for `section`, for a row's "was …". */
   baseline(section: ConfigSaveSection): Values | undefined;
+  /** The values just read into `section` (a remote target's Read from node, Task 5.9) are now what the node holds. */
+  rebase(section: ConfigSaveSection): void;
 }
 
 const SECTIONS = CATEGORIES.map((c) => c.saveSection).filter(isQueued);
@@ -90,6 +92,8 @@ export function useRadioSaveQueueState({ state, saves }: SharedDeviceConfig, { n
   // The values each saved section sent, which become its baseline.
   const [committed, setCommitted] = useState<Partial<Record<ConfigSaveSection, Values>>>({});
   const [saving, setSaving] = useState(false);
+  // Sections whose freshly read values become their baseline on the render that shows them.
+  const [rebased, setRebased] = useState<ConfigSaveSection[]>([]);
   const busy = useRef(false);
   // A failed section's edits, put back after the reload that follows the restart of the sections that saved.
   const carry = useRef<QueueEntry[] | null>(null);
@@ -115,6 +119,10 @@ export function useRadioSaveQueueState({ state, saves }: SharedDeviceConfig, { n
       for (const k of KEEP_ON_RELOAD[section] ?? []) next[k] = baselines[section]?.[k];
       current[section] = next;
     }
+  }
+  if (rebased.length > 0) {
+    current = { ...current, ...Object.fromEntries(rebased.filter(isQueued).map((s) => [s, pickValues(state, s)])) };
+    setRebased([]);
   }
   const commits = Object.keys(committed).length > 0;
   if (commits && !loaded) current = { ...current, ...committed };
@@ -190,6 +198,7 @@ export function useRadioSaveQueueState({ state, saves }: SharedDeviceConfig, { n
     saving,
     invalid: numberScope.invalid,
     baseline: (section) => current[section],
+    rebase: (section) => setRebased((prev) => [...prev, section]),
   };
 }
 

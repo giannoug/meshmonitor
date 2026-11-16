@@ -35,8 +35,12 @@ export type SupportedModules = Partial<Record<ExcludedModuleKey, boolean>> & {
 /**
  * `sourceId` may be null outside a SourceProvider (Classic's legacy view);
  * the api then targets the primary source, as it always has.
+ *
+ * `load: false` (Workspace's remote target, Task 5.9) holds a second set of
+ * values that never loads from this source's radio: it starts not loading and
+ * sends nothing; its owner fills it from what a remote node answers.
  */
-export function useDeviceConfigState(sourceId: string | null, refreshTrigger?: number) {
+export function useDeviceConfigState(sourceId: string | null, refreshTrigger?: number, { load = true }: { load?: boolean } = {}) {
   const { t } = useTranslation();
 
   // Device Config State
@@ -336,13 +340,14 @@ export function useDeviceConfigState(sourceId: string | null, refreshTrigger?: n
   // UI State
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(load);
   const [isReloading, setIsReloading] = useState(false);
   const [configChanges, setConfigChanges] = useState<{ field: string; oldValue: string; newValue: string }[]>([]);
   const [showChanges, setShowChanges] = useState(false);
 
   // Fetch current configuration on mount (run once only)
   useEffect(() => {
+    if (!load) return;
     const fetchConfig = async () => {
       console.log(`[ConfigurationTab] useEffect triggered - refreshTrigger=${refreshTrigger}`);
       try {

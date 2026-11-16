@@ -47,7 +47,7 @@ function activeTab(pathname: string, mode: SidebarMode): PhoneTab {
 
 export default function PhoneShell({ sources, openId, home, mode, children }: PhoneShellProps) {
   const { t } = useTranslation();
-  const { pathname, search } = useLocation();
+  const { pathname } = useLocation();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const shell = useShellDevices();
   // Following a row (or any link) closes the switcher.
@@ -66,8 +66,8 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
       !!matchPath('/source/:id/nodes', pathname) ||
       !!matchPath('/source/:id/node/*', pathname) ||
       (isMqttOnlySourceType(source.type) && !!matchPath('/source/:id/packetmonitor', pathname)) ||
-      // Device settings (b-set-p1-list, 12-22): the list and each page have Back; the remote target keeps today's page.
-      (!!matchPath('/source/:id/settings/*', pathname) && !new URLSearchParams(search).has('node')));
+      // Device settings (b-set-p1-list, 12-22): the list and each page have Back, on a remote target too (Task 5.9).
+      !!matchPath('/source/:id/settings/*', pathname));
   // The all-devices map is full screen with its own Back, as the device map (5-08); Reports (6-08 … 6-10), Messages (7-06, 7-09), Users (13-18, q4) and the Audit log (16-03) draw their own header.
   const overviewMap = mode === 'overview' && (pathname === '/' || !!matchPath('/overview/map', pathname));
   const ownPageHeader = /^\/((overview\/)?(reports|users)|overview\/audit|(overview|unified)\/(messages|telemetry|packets))(\/|$)/.test(pathname);

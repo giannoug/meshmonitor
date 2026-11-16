@@ -1,8 +1,9 @@
 /**
  * A device's settings, `/source/:id/settings[/<category>[/<sub>]]` (Task 5.2,
  * spec §6 P5), for the device types Classic serves with App. App is not
- * mounted here (Ruling AD); the remote target (`?node=`) stays with today's
- * Admin Commands until Task 5.9.
+ * mounted here (Ruling AD), the remote target (`?node=`, Task 5.9) included:
+ * an admin picks a node (TargetPicker) and the categories read and send that
+ * node's values (RemoteTarget), each category's `target` set here.
  *
  * - Desktop: the shell's sidebar is SettingsList; this draws the open
  *   category, and `/settings` opens the first one.
@@ -43,6 +44,7 @@ import { useDeviceConfigState } from '../../hooks/deviceConfig/useDeviceConfigSt
 import { useDeviceConfigSaves } from '../../hooks/deviceConfig/useDeviceConfigSaves';
 import { appBasename } from '../../init';
 import StateView from '../patterns/StateView';
+import { Redirect } from '../rehost/pages';
 import { useIsPhone } from '../shell/useIsPhone';
 import { readOnlyFor, resolveSettingsPath, type CategoryTarget } from './categories';
 import CategoryPage from './CategoryPage';
@@ -55,8 +57,12 @@ import LeaveGuard from './LeaveGuard';
 import { useSecuritySaveGuard } from './securitySaveGuard';
 import { meshBeaconTooLong } from './moduleChecks';
 import { SettingsDockContext, type PendingEdit } from './settingsDock';
+import { isQueued } from './radioSections';
+import { useTargetNode } from './remote/useTargetNode';
+import type { RemoteNode } from './remote/remoteTargetStore';
+import RemoteTarget from './remote/RemoteTarget';
+import TargetPickerSheet from './remote/TargetPicker';
 
-/** Settings always configure the device this source is connected to, until Task 5.9 adds the remote target. */
 const LOCAL: CategoryTarget = { kind: 'local' };
 
 export interface SettingsFrameProps {
@@ -83,9 +89,13 @@ export default function SettingsFrame({ sourceId, source, path }: SettingsFrameP
 
 function Frame({ sourceId, source, path: rest }: SettingsFrameProps) {
   const isPhone = useIsPhone();
-  const { hasPermission } = useAuth();
-  const { ready, categories } = useVisibleCategories(sourceId, source.type);
-  if (!ready) return <RouteLoading />;
+  const { hasPermission, authStatus } = useAuth();
+  // Today's admin routes: an admin, on a Meshtastic radio.
+  const remoteAllowed = authStatus?.user?.isAdmin === true && source.type === 'meshtastic_tcp';
+  const pick = useTargetNode(sourceId, remoteAllowed);
+  const { ready, categories } = useVisibleCategories(sourceId, source.type, !!pick.node);
+  if (!ready || pick.pending) return <RouteLoading />;
+  const target: CategoryTarget = pick.node ? { kind: 'remote', nodeNum: pick.node.nodeNum } : LOCAL;
 
   const base = `/source/${encodeURIComponent(sourceId)}/settings`;
   const { categoryId, group, sub } = resolveSettingsPath(rest);
@@ -105,7 +115,7 @@ function Frame({ sourceId, source, path: rest }: SettingsFrameProps) {
         sub={sub}
         categories={categories}
         sourceId={sourceId}
-        target={LOCAL}
+        target={target}
         readOnly={readOnlyFor(def, hasPermission, sourceId)}
       />
     );
@@ -117,8 +127,18 @@ function Frame({ sourceId, source, path: rest }: SettingsFrameProps) {
 
   if (!radio) return page;
   return (
-    <RadioConfig sourceId={sourceId} deviceName={source.name} base={base} compact={!rest && isPhone}>
-      {page}
+    <RadioConfig
+      sourceId={sourceId}
+      deviceName={source.name}
+      base={base}
+      compact={!rest && isPhone}
+      remote={pick.node}
+      nodes={pick.nodes}
+      // The remote bar stays ("No changes yet") on a page that sends through it.
+      remoteBar={isQueued(def?.saveSection)}
+    >
+      <Redirect to={pick.fix}>{page}</Redirect>
+      {remoteAllowed && <TargetPickerSheet sourceId={sourceId} nodes={pick.nodes} local={pick.local} deviceName={source.name} />}
     </RadioConfig>
   );
 }
@@ -131,11 +151,15 @@ interface RadioConfigProps {
   deviceName: string;
   base: string;
   compact: boolean;
+  /** The remote node settings configure (Task 5.9), or null for this radio. */
+  remote: RemoteNode | null;
+  nodes: RemoteNode[];
+  remoteBar: boolean;
   children: ReactNode;
 }
 
 /** The one useDeviceConfigState of this device (Ruling DG), its save queue and one reboot notice. */
-function RadioConfig({ sourceId, deviceName, base, compact, children }: RadioConfigProps) {
+function RadioConfig({ sourceId, deviceName, base, compact, remote, nodes, remoteBar, children }: RadioConfigProps) {
   const [refresh, setRefresh] = useState(0);
   const [reboot, setReboot] = useState<Reboot | null>(null);
   // While the queue saves, reboot signals collect here and open one modal at the end.
@@ -194,11 +218,26 @@ function RadioConfig({ sourceId, deviceName, base, compact, children }: RadioCon
       <RadioSaveQueueContext.Provider value={queue}>
         <SettingsDockContext.Provider value={dock}>
           <NumberInputScope scope={numbers}>
-            {children}
+            {remote ? (
+              // This radio's values and queue stay as they are underneath (Ruling DG).
+              <RemoteTarget
+                key={remote.nodeNum}
+                sourceId={sourceId}
+                node={remote}
+                nodes={nodes}
+                showBar={remoteBar && !classicDirty && claims === 0}
+                // Asks before a link leaves with the node's edits queued (the queue it reads is the node's).
+                guard={<LeaveGuard base={base} pending={pending} />}
+              >
+                {children}
+              </RemoteTarget>
+            ) : (
+              children
+            )}
           </NumberInputScope>
         </SettingsDockContext.Provider>
-        {!classicDirty && claims === 0 && <RadioSaveBar deviceName={deviceName} compact={compact} />}
-        <LeaveGuard base={base} pending={pending} />
+        {!remote && !classicDirty && claims === 0 && <RadioSaveBar deviceName={deviceName} compact={compact} />}
+        {!remote && <LeaveGuard base={base} pending={pending} />}
         {security.sheets}
       </RadioSaveQueueContext.Provider>
       <RebootModal

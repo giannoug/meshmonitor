@@ -13,10 +13,10 @@
  * that source's Virtual Node.
  */
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CliConsoleBody, type CliRunResult } from '../MeshCore/CliConsoleBody';
-import apiService, { ApiError } from '../../services/api';
+import { CliConsoleBody } from '../MeshCore/CliConsoleBody';
+import { useMeshtasticCliRunner } from './useMeshtasticCliRunner';
 import { MESHTASTIC_DANGER_COMMAND_PATTERN } from '../../utils/meshtasticCliDanger';
 import styles from './MeshtasticRemoteCliConsole.module.css';
 
@@ -45,25 +45,7 @@ export const MeshtasticRemoteCliConsole: React.FC<MeshtasticRemoteCliConsoleProp
   const consoleDisabled = disabled || isLocalNode || !destNodeId || !sourceId;
   const prefix = destNodeId ? `meshtastic --dest ${destNodeId}` : 'meshtastic --dest !xxxxxxxx';
 
-  const runCommand = useCallback(
-    async (text: string, opts?: { confirm?: boolean }): Promise<CliRunResult> => {
-      if (!sourceId || !destNodeId) {
-        return { ok: false, error: t('admin_commands.cli_console.no_node', 'Select a remote node first.') };
-      }
-      try {
-        const data = await apiService.sendMeshtasticCli(sourceId, destNodeId, text, opts);
-        return { ok: true, reply: data.output, elapsedMs: data.elapsedMs };
-      } catch (err) {
-        if (err instanceof ApiError) {
-          const body = err.body as { output?: string } | undefined;
-          const reply = body?.output && body.output.length > 0 ? body.output : err.message;
-          return { ok: false, error: reply, code: err.code };
-        }
-        return { ok: false, error: err instanceof Error ? err.message : String(err) };
-      }
-    },
-    [sourceId, destNodeId, t],
-  );
+  const runCommand = useMeshtasticCliRunner(sourceId, destNodeId);
 
   const disabledPlaceholder = useMemo(() => {
     if (isLocalNode) return t('admin_commands.cli_console.local_disabled', 'The CLI console is remote-only — select a remote node.');

@@ -9,6 +9,9 @@
  *   settings list it is one line, "3 unsaved changes", and Review.
  *
  * Saving writes admin packets to this device only, over its connection.
+ * On a remote target (Task 5.9) Save is "Send to node": one admin packet per
+ * changed category over the mesh, and the bar stays with "No changes yet" on
+ * the page that saves through it.
  */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +21,7 @@ import { useIsPhone } from '../shell/useIsPhone';
 import { categoryById } from './categories';
 import ReviewSheet from './ReviewSheet';
 import { SAVE_LABEL_KEY, useRadioSaveQueue } from './useRadioSaveQueue';
+import { useRemoteTarget } from './remote/useRemoteTarget';
 import type { ConfigSaveSection } from '../../hooks/deviceConfig/useDeviceConfigSaves';
 import styles from './RadioSaveBar.module.css';
 
@@ -31,22 +35,26 @@ export default function RadioSaveBar({ deviceName, compact }: RadioSaveBarProps)
   const { t, i18n } = useTranslation();
   const isPhone = useIsPhone();
   const q = useRadioSaveQueue();
+  const remote = useRemoteTarget();
   const [review, setReview] = useState(false);
   const [failed, setFailed] = useState<ConfigSaveSection[]>([]);
   // An empty queue closes Review (its last category discarded), so it never reopens by itself on the next edit.
   if (review && (!q || q.queue.length === 0)) setReview(false);
-  if (!q || q.queue.length === 0) return null;
+  if (!q || (q.queue.length === 0 && (!remote || compact))) return null;
+  const saveText = remote ? t('workspace.settings.remote.send') : t(SAVE_LABEL_KEY[q.label]);
+  const sends = t(remote ? 'workspace.settings.remote.sends_per_category' : 'workspace.settings.savebar.sends_nothing');
 
   const names = (sections: Array<{ categoryId: string }>) => sections.map((e) => t(categoryById(e.categoryId)?.labelKey ?? e.categoryId));
   const count = q.queue.reduce((n, e) => n + e.changes.length, 0);
-  const restart = q.label === 'saveAndRestart' ? 'restarts' : q.label === 'saveMayRestart' ? 'may_restart' : null;
+  // A remote node's restart timing is not known here; its bar says what it sends instead.
+  const restart = remote ? null : q.label === 'saveAndRestart' ? 'restarts' : q.label === 'saveMayRestart' ? 'may_restart' : null;
   const save = async () => {
     setReview(false);
     setFailed((await q.saveAll()).failed);
   };
   // A failed section stays queued; once it is saved or discarded its notice goes.
   const failedNames = names(q.queue.filter((e) => failed.includes(e.section)));
-  const saveDisabled = q.saving || q.invalid;
+  const saveDisabled = q.saving || q.invalid || q.queue.length === 0;
 
   const saveButton = (
     <button
@@ -57,7 +65,7 @@ export default function RadioSaveBar({ deviceName, compact }: RadioSaveBarProps)
       disabled={saveDisabled}
       aria-busy={q.saving || undefined}
     >
-      {t(SAVE_LABEL_KEY[q.label])}
+      {saveText}
     </button>
   );
   const reviewButton = (
@@ -75,7 +83,18 @@ export default function RadioSaveBar({ deviceName, compact }: RadioSaveBarProps)
   );
 
   let body;
-  if (compact) {
+  if (q.queue.length === 0) {
+    // Only on a remote target's page (b-set-d6).
+    body = (
+      <>
+        <div className={styles.row}>
+          <span className={styles.title}>{t('workspace.settings.remote.no_changes')}</span>
+          {saveButton}
+        </div>
+        {isPhone && <SendsLine>{sends}</SendsLine>}
+      </>
+    );
+  } else if (compact) {
     body = (
       <div className={styles.row}>
         <UiIcon name="refresh" size={22} className={styles.icon} />
@@ -97,7 +116,7 @@ export default function RadioSaveBar({ deviceName, compact }: RadioSaveBarProps)
           {reviewButton}
           {saveButton}
         </div>
-        <SendsLine>{t('workspace.settings.savebar.sends_nothing')}</SendsLine>
+        <SendsLine>{sends}</SendsLine>
       </>
     );
   } else {
@@ -112,7 +131,7 @@ export default function RadioSaveBar({ deviceName, compact }: RadioSaveBarProps)
           </span>
           <span className={styles.sub}>
             {restart && `${t(`workspace.settings.savebar.${restart}_after`, { device: deviceName })} · `}
-            {t('workspace.settings.savebar.sends_nothing')}
+            {sends}
           </span>
         </div>
         <button type="button" className={styles.plain} onClick={() => q.discard()} disabled={q.saving}>
@@ -131,7 +150,7 @@ export default function RadioSaveBar({ deviceName, compact }: RadioSaveBarProps)
         {body}
         {notes}
       </section>
-      <ReviewSheet open={review} deviceName={deviceName} onClose={() => setReview(false)} onSave={() => void save()} />
+      <ReviewSheet open={review} deviceName={deviceName} saveLabel={remote ? saveText : undefined} onClose={() => setReview(false)} onSave={() => void save()} />
     </>
   );
 }

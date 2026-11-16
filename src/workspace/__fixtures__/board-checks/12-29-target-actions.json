@@ -4,9 +4,9 @@
     "Attempts for this command",
     "1–10",
     "Load All Config",
-    "Loading LoRa (7/12)",
+    "Loading LoRa (2/14)",
     "Retrieve Device Metadata",
-    "Set time",
+    "Set Time",
     "Sends 1 request per section (12)",
     "Sends 1 request over the mesh",
     "Sends 1 admin packet over the mesh"

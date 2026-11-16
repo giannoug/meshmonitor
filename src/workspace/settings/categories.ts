@@ -13,6 +13,10 @@
  * Every page is built on the row kit (Tasks 5.3–5.8, `categories/`) but
  * Modules › MQTT, which keeps today's section (`ClassicCategories`, Ruling 5.6).
  * The In MeshMonitor pages save as you go (Task 5.8, useAutosaveSetting).
+ *
+ * A remote target (Task 5.9, `?node=`) shows only `remote` categories: those
+ * today's Admin Commands reads and sends for a remote node, the Danger zone,
+ * and the two remote-only pages (Node management, Remote console).
  */
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import type { TFunction } from 'i18next';
@@ -32,6 +36,8 @@ export interface GateCtx {
   isAuthenticated: boolean;
   /** `/api/health` says OTA firmware updates are on. */
   firmwareOtaEnabled: boolean;
+  /** Settings configure a remote node (Task 5.9). */
+  remote?: boolean;
   hasPermission: ReturnType<typeof useAuth>['hasPermission'];
 }
 
@@ -47,6 +53,8 @@ export type CategoryDef = {
   sourceTypes: SourceType[];
   gate?: (ctx: GateCtx) => boolean;
   saveSection?: ConfigSaveSection;
+  /** Offered on a remote target ('yes'), or only there ('only'). */
+  remote?: 'yes' | 'only';
   component: LazyExoticComponent<ComponentType<CategoryProps>>;
 };
 
@@ -67,7 +75,7 @@ const radio = (
   id: string,
   labelKey: string,
   component: CategoryDef['component'],
-  extra: Partial<Pick<CategoryDef, 'group' | 'saveSection' | 'gate'>> = {},
+  extra: Partial<Pick<CategoryDef, 'group' | 'saveSection' | 'gate' | 'remote'>> = {},
 ): CategoryDef => ({
   id,
   scope: 'radio',
@@ -80,8 +88,10 @@ const radio = (
 
 // One chunk for every module page; each reads its module from the category id.
 const moduleCategory = lazy(() => import('./categories/ModuleCategory.tsx'));
+// Today's Admin Commands reads and sends these modules on a remote node.
+const REMOTE_MODULES = new Set(['mqtt', 'neighbor', 'telemetry', 'statusmessage', 'trafficmanagement', 'meshbeacon', 'tak']);
 const mod = (name: string, labelKey: string, saveSection: ConfigSaveSection, component: CategoryDef['component'] = moduleCategory) =>
-  radio(`modules/${name}`, labelKey, component, { group: 'modules', saveSection });
+  radio(`modules/${name}`, labelKey, component, { group: 'modules', saveSection, remote: REMOTE_MODULES.has(name) ? 'yes' : undefined });
 
 const meshmonitor = (
   id: string,
@@ -99,15 +109,15 @@ const meshmonitor = (
 });
 
 export const CATEGORIES: CategoryDef[] = [
-  radio('identity', 'configuration.node_identity', lazy(() => import('./categories/IdentityCategory.tsx')), { saveSection: 'owner' }),
-  radio('lora', 'workspace.settings.label.lora', lazy(() => import('./LoraCategory.tsx')), { saveSection: 'lora' }),
-  radio('channels', 'channels.title', lazy(() => import('./categories/ChannelsCategory.tsx'))),
-  radio('security', 'security_config.title', lazy(() => import('./categories/SecurityCategory.tsx')), { saveSection: 'security' }),
-  radio('device/device', 'workspace.settings.label.device', lazy(() => import('./categories/DeviceCategory.tsx')), { group: 'device', saveSection: 'device' }),
-  radio('device/position', 'workspace.settings.label.position', lazy(() => import('./categories/PositionCategory.tsx')), { group: 'device', saveSection: 'position' }),
+  radio('identity', 'configuration.node_identity', lazy(() => import('./categories/IdentityCategory.tsx')), { saveSection: 'owner', remote: 'yes' }),
+  radio('lora', 'workspace.settings.label.lora', lazy(() => import('./LoraCategory.tsx')), { saveSection: 'lora', remote: 'yes' }),
+  radio('channels', 'channels.title', lazy(() => import('./categories/ChannelsCategory.tsx')), { remote: 'yes' }),
+  radio('security', 'security_config.title', lazy(() => import('./categories/SecurityCategory.tsx')), { saveSection: 'security', remote: 'yes' }),
+  radio('device/device', 'workspace.settings.label.device', lazy(() => import('./categories/DeviceCategory.tsx')), { group: 'device', saveSection: 'device', remote: 'yes' }),
+  radio('device/position', 'workspace.settings.label.position', lazy(() => import('./categories/PositionCategory.tsx')), { group: 'device', saveSection: 'position', remote: 'yes' }),
   radio('device/power', 'workspace.settings.label.power', lazy(() => import('./categories/PowerCategory.tsx')), { group: 'device', saveSection: 'power' }),
   radio('device/display', 'workspace.settings.label.display', lazy(() => import('./categories/DisplayCategory.tsx')), { group: 'device', saveSection: 'display' }),
-  radio('device/network', 'workspace.settings.label.network', lazy(() => import('./categories/NetworkCategory.tsx')), { group: 'device', saveSection: 'network' }),
+  radio('device/network', 'workspace.settings.label.network', lazy(() => import('./categories/NetworkCategory.tsx')), { group: 'device', saveSection: 'network', remote: 'yes' }),
   // Modules, A–Z by their English label (the index sorts by the shown label).
   mod('ambientlighting', 'ambientlighting_config.title', 'ambientlighting'),
   mod('audio', 'audio_config.title', 'audio'),
@@ -132,7 +142,16 @@ export const CATEGORIES: CategoryDef[] = [
     group: 'maintenance',
     gate: (c) => c.isAdmin && c.firmwareOtaEnabled,
   }),
-  radio('maintenance/danger', 'config.danger_zone', lazy(() => import('./categories/DangerCategory.tsx')), { group: 'maintenance' }),
+  // Remote only (Task 5.9): admins, as today's admin routes.
+  radio('node-management', 'workspace.settings.remote.node_management', lazy(() => import('./remote/NodeManagementCategory.tsx')), {
+    remote: 'only',
+    gate: (c) => c.isAdmin,
+  }),
+  radio('remote-console', 'workspace.settings.remote.console', lazy(() => import('./remote/RemoteConsoleCategory.tsx')), {
+    remote: 'only',
+    gate: (c) => c.isAdmin,
+  }),
+  radio('maintenance/danger', 'config.danger_zone', lazy(() => import('./categories/DangerCategory.tsx')), { group: 'maintenance', remote: 'yes' }),
 
   // The bridge setup reads `sources` (#5683 follow-up): its own grant, not the Settings tab's.
   meshmonitor('mqtt-bridge', 'mqtt_bridge_config.title', lazy(() => import('./categories/MqttBridgeCategory.tsx')), {
@@ -226,7 +245,9 @@ export function readOnlyFor(def: CategoryDef | undefined, hasPermission: GateCtx
 
 /** Categories this viewer may open on this device, in list order. */
 export function visibleCategories(ctx: GateCtx): CategoryDef[] {
-  return CATEGORIES.filter((c) => (c.sourceTypes as string[]).includes(ctx.sourceType) && (c.gate?.(ctx) ?? true));
+  return CATEGORIES.filter(
+    (c) => (c.sourceTypes as string[]).includes(ctx.sourceType) && (ctx.remote ? !!c.remote : c.remote !== 'only') && (c.gate?.(ctx) ?? true),
+  );
 }
 
 /**

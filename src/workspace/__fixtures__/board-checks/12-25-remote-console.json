@@ -5,7 +5,7 @@
     "Command prefix",
     "meshtastic --dest !7c3e10a2",
     "Send",
-    "Sends",
+    "command sends its admin packets",
     "--set device.role ROUTER",
     "Acknowledged"
   ],

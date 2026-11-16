@@ -104,11 +104,12 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     ['/server/general', 'global-settings'],
     // Nodes is the Workspace's own table and list, with App not mounted (Task 3.3, Ruling AD).
     [`${g2}/nodes`, 'nodes'],
-    // Device settings are the Workspace's own frame, with App not mounted (Task 5.2, Ruling AD); the remote target keeps App.
+    // Device settings are the Workspace's own frame, with App not mounted (Task 5.2, Ruling AD), the remote target too (Task 5.9).
     [`${g2}/settings`, 'settings-frame'],
     [`${g2}/settings/lora`, 'settings-frame'],
     [`/source/${SOURCE_IDS.mqtt}/settings/node-display`, 'settings-frame'],
-    [`${g2}/settings?node=`, 'app'],
+    [`${g2}/settings?node=`, 'settings-frame'],
+    [`${g2}/settings/lora?node=!a1b2c3d4`, 'settings-frame'],
     // A node is the Workspace's own node page, with App not mounted (Task 3.4, Ruling AD).
     [`${g2}/node/!a1b2c301`, 'node-page'],
     [`${g2}/node/!a1b2c301/telemetry`, 'node-page'],
@@ -301,14 +302,6 @@ describe('redirects', () => {
     await waitFor(() => expect(realUrl()).toBe(to));
   });
 
-  it.each([
-    [`${g2}/settings?node=`, `${g2}/admin`],
-    [`${g2}/settings/lora?node=!a1b2c3d4`, `${g2}/admin`],
-  ])('the re-hosted App at %s sees %s', async (route, seen) => {
-    renderAt(route);
-    await expectPage('app');
-    await waitFor(() => expect(screen.getByTestId('seen-location')).toHaveTextContent(seen));
-  });
 });
 
 describe('MeshCore and Reticulum views come from the URL', () => {

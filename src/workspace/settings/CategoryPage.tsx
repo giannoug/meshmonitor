@@ -15,6 +15,10 @@
  *   into one row ("N not on this firmware" on desktop, "Hidden: … Why?" on
  *   phone) that still opens them.
  * - Maintenance: one page with the firmware card, Backup and the Danger zone (Task 5.7).
+ *
+ * On a remote target (Task 5.9) the scope line names the node, and a category
+ * that reads from it opens with Read from node; its rows show once it was read.
+ * Summaries and On/Off tags show only for what was read.
  */
 import { Suspense, lazy, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
@@ -31,6 +35,10 @@ import { usePins } from './usePins';
 import { deviceSummary } from './deviceSummaries';
 import PinsInUseCard from './PinsInUseCard';
 import { SettingsHeaderContext, type SubHeader } from './settingsDock';
+import { useRemoteTarget } from './remote/useRemoteTarget';
+import { REMOTE_READS } from './remote/remoteConfig';
+import RemoteReadBar, { RemoteScope } from './remote/RemoteReadBar';
+import { TargetActionsButton } from './remote/TargetActions';
 import styles from './CategoryPage.module.css';
 
 const MaintenanceIndex = lazy(() => import('./categories/MaintenanceIndex.tsx'));
@@ -69,14 +77,20 @@ export default function CategoryPage({ def, group, sub = '', categories, sourceI
   );
 
   const extra = header?.scope && <span>{`· ${header.scope}`}</span>;
+  const remote = useRemoteTarget();
+  const reads = !!remote && !!def && !!REMOTE_READS[def.id];
 
   const body = def ? (
     <SettingsCategoryContext.Provider value={{ categoryId: def.id, readOnly }}>
-      <Suspense fallback={<RouteLoading />}>
-        <SettingsHeaderContext.Provider value={setHeader}>
-          <def.component sourceId={sourceId} target={target} readOnly={readOnly} sub={sub} />
-        </SettingsHeaderContext.Provider>
-      </Suspense>
+      {reads && <RemoteReadBar id={def.id} />}
+      {/* A remote category's rows wait for its first read: until then they hold nothing the node said. */}
+      {(!reads || remote.lastRead[def.id]) && (
+        <Suspense fallback={<RouteLoading />}>
+          <SettingsHeaderContext.Provider value={setHeader}>
+            <def.component sourceId={sourceId} target={target} readOnly={readOnly} sub={sub} />
+          </SettingsHeaderContext.Provider>
+        </Suspense>
+      )}
     </SettingsCategoryContext.Provider>
   ) : group === 'maintenance' ? (
     <Suspense fallback={<RouteLoading />}>
@@ -97,7 +111,8 @@ export default function CategoryPage({ def, group, sub = '', categories, sourceI
             <span>{header?.back?.label ?? t('nav.settings')}</span>
           </Link>
           <h1 className={styles.barTitle}>{header?.phoneTitle ?? title}</h1>
-          {def && <PinButton id={def.id} name={label} />}
+          {remote && def?.remote === 'only' && <TargetActionsButton />}
+          {def && def.remote !== 'only' && <PinButton id={def.id} name={label} />}
         </header>
       ) : (
         <header className={styles.header}>
@@ -111,20 +126,20 @@ export default function CategoryPage({ def, group, sub = '', categories, sourceI
             <h1 className={styles.title}>{title}</h1>
             {def && (
               <p className={styles.scope}>
-                <span>{scope}</span>
-                {restart}
+                {remote ? <RemoteScope sourceId={sourceId} /> : <span>{scope}</span>}
+                {!remote && restart}
                 {extra}
                 {viewOnly}
               </p>
             )}
           </div>
-          {def && <PinButton id={def.id} name={label} />}
+          {def && def.remote !== 'only' && <PinButton id={def.id} name={label} />}
         </header>
       )}
       {isPhone && def && (
         <p className={styles.scope}>
-          <span>{scope}</span>
-          {restart}
+          {remote ? <RemoteScope sourceId={sourceId} /> : <span>{scope}</span>}
+          {!remote && restart}
           {extra}
           {viewOnly}
         </p>
@@ -156,6 +171,7 @@ function GroupIndex({ base, group, items }: { base: string; group: CategoryGroup
   const config = useSharedDeviceConfig();
   const state = config && !config.state.loading ? config.state : undefined;
   const firmware = state?.localFirmwareVersion;
+  const remote = useRemoteTarget();
   const tagFor = (c: CategoryDef) => {
     if (!c.saveSection || firmware === undefined) return null;
     const e = rebootExpectation(c.saveSection, firmware);
@@ -168,7 +184,7 @@ function GroupIndex({ base, group, items }: { base: string; group: CategoryGroup
       <h2 className={styles.heading} id="settings-index-heading">{t('workspace.settings.categories')}</h2>
       <ul className={styles.list} aria-labelledby="settings-index-heading">
         {items.map((c) => {
-          const summary = state && deviceSummary(t, c.id, state);
+          const summary = state && (!remote || remote.lastRead[c.id]) && deviceSummary(t, c.id, state);
           return (
             <li key={c.id}>
               <Link to={`${base}/${c.id}`} className={styles.row}>
@@ -194,7 +210,7 @@ function GroupIndex({ base, group, items }: { base: string; group: CategoryGroup
       {device ? (
         <div className={styles.split} data-phone={isPhone || undefined}>
           {categories}
-          {state && (
+          {state && !remote && (
             <div className={styles.side}>
               <PinsInUseCard state={state} base={base} />
             </div>
@@ -214,6 +230,7 @@ function ModulesIndex({ base, modules }: { base: string; modules: CategoryDef[] 
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const config = useSharedDeviceConfig();
+  const remote = useRemoteTarget();
   const [showHidden, setShowHidden] = useState(false);
   if (!config || config.state.loading) return <StateView kind="loading" />;
   const { state } = config;
@@ -225,7 +242,7 @@ function ModulesIndex({ base, modules }: { base: string; modules: CategoryDef[] 
 
   const rows = (items: typeof sorted) =>
     items.map(({ c, label }) => {
-      const on = moduleOn(c.id, state);
+      const on = !remote || remote.lastRead[c.id] ? moduleOn(c.id, state) : null;
       return (
         <li key={c.id}>
           <Link to={`${base}/${c.id}`} className={styles.row}>
