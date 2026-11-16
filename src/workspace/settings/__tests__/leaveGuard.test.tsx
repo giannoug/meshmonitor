@@ -4,13 +4,12 @@
  * The leave guard (Task 5.3, 17-02's discard sheet): with radio edits queued,
  * a link out of the device's settings opens "Discard unsaved changes?" with
  * today's words. Keep editing stays with the edits; Discard changes puts them
- * back and follows the link. Links inside the settings never ask. The full
- * 17-02 board (a channel's edits) is Task 9.1's.
+ * back and follows the link. Links inside the settings never ask. The 17-02
+ * board itself (a channel's edits) is checked in 12-02-channel-edit.test.tsx (Task 5.5).
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { expectBoard } from '../../test/boardChecks';
 import { g2, mqtt, realUrl, renderSettings } from './renderSettings';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
@@ -36,7 +35,6 @@ describe('leave guard', () => {
     expect(sheet).toHaveTextContent('You have changes that are not saved to the device. Opening another item drops them.');
     expect(sheet).toHaveTextContent('LoRa2 changes');
     expect(sheet).toHaveTextContent('Hop Limit and Transmit Power (dBm), not saved');
-    expectBoard('17-02-confirm-sheets', document.body, { staged: ['Athens'] });
     fireEvent.click(within(sheet).getByRole('button', { name: 'Keep editing' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(realUrl()).toBe(`${g2}/settings/lora`);

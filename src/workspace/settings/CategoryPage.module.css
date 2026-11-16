@@ -267,3 +267,18 @@
 .foldAction {
   color: var(--color-text-muted);
 }
+
+/* A deeper page's way back to its category (12-02, 12-03). */
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-muted);
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.crumb:hover,
+.crumb:focus-visible {
+  color: var(--color-text);
+}

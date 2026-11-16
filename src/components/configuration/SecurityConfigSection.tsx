@@ -5,33 +5,12 @@ import { useSaveBar } from '../../hooks/useSaveBar';
 import { useSectionBaseline } from '../../hooks/useSectionBaseline';
 // Shared with the server so the client's save gate can't drift from what the
 // backend accepts (#4632).
-import { isValidMeshtasticKey } from '../../utils/meshtasticKeyFormat';
+import { isValidBase64, isValidMeshtasticKey } from '../../utils/meshtasticKeyFormat';
 import { policyToSend } from '../../utils/packetSignaturePolicy';
 import { usePolicyChangeConfirm } from '../../hooks/usePolicyChangeConfirm';
 import { PacketSignaturePolicyPicker } from './PacketSignaturePolicyPicker';
 import { PacketSignaturePolicyConfirmDialog } from './PacketSignaturePolicyConfirmDialog';
 import { ConfigSection } from '../shared/config/ConfigSection';
-
-/**
- * Validates if a string is valid base64 format
- * Returns true for empty strings (optional keys)
- */
-const isValidBase64 = (str: string): boolean => {
-  if (!str || !str.trim()) return true; // Empty is valid (optional)
-  const trimmed = str.trim();
-  // Check for valid base64 characters and proper padding
-  const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
-  if (!base64Regex.test(trimmed)) return false;
-  // Check length is multiple of 4 (valid base64)
-  if (trimmed.length % 4 !== 0) return false;
-  // Try to decode to verify
-  try {
-    atob(trimmed);
-    return true;
-  } catch {
-    return false;
-  }
-};
 
 interface SecurityConfigSectionProps {
   /** False disables every control: no configuration:write on this source (#5830). */

@@ -10,6 +10,7 @@ import { usersFixtures } from '../../src/workspace/__fixtures__/users';
 import type { FixtureHandler } from '../../src/workspace/__fixtures__/fixtureApi';
 import { deviceConfigFixtures } from '../../src/workspace/__fixtures__/deviceConfig';
 import { g2deviceConfigWith } from '../../src/workspace/settings/__tests__/radioFixtures';
+import { boardChannels, g2On282, pollWith } from '../../src/workspace/settings/__tests__/categoryFixtures';
 
 export interface Board {
   id: string;
@@ -27,6 +28,29 @@ const PINS: Board['fixtures'] = {
     success: true,
     data: { preferences: { ...athensFixture.userPreferences, 'settings.pins': ['modules/mqtt', 'modules/storeforward'] } },
   }),
+};
+
+/** Task 5.5: Station G2's three channels as the boards draw them. */
+const CHANNELS: Board['fixtures'] = {
+  ...PINS,
+  ...pollWith(boardChannels),
+  'POST /api/channels/encode-url': () => ({ url: 'https://meshtastic.org/e/#CgcSAQE6AggNEg8IATgDQANIAVAeaAHABgE' }),
+  'POST /api/channels/decode-url': () => ({
+    channels: [
+      { name: 'LongFast', psk: 'AQ==', positionPrecision: 13, uplinkEnabled: true, downlinkEnabled: false },
+      { name: 'Coast', psk: 'b3JkZXJzLXN0cmluZy05UT0=', positionPrecision: 15, uplinkEnabled: false, downlinkEnabled: true },
+    ],
+    loraConfig: { region: 3, modemPreset: 0, hopLimit: 3 },
+  }),
+  // The import never answers, so the page stays on its first step for the screenshot.
+  'POST /api/channels/import-config': () => new Promise(() => {}),
+};
+
+/** Station G2 after the 2.8.2 update, with two admin keys (12-04). */
+const SECURITY: Board['fixtures'] = {
+  ...PINS,
+  ...g2On282,
+  'GET /api/device/security-keys': () => ({ publicKey: 'Kq7xF2bW9mQpublicpublicpublicpublicpublic0=', privateKey: 'cHJpdmF0ZXByaXZhdGVwcml2YXRlcHJpdmF0ZTAxMjM=' }),
 };
 
 /** Station G2 holding Medium Fast, so a Long Fast edit reads as on b-set-d1 / d3 / p2. */
@@ -1121,7 +1145,90 @@ export const BOARDS: Board[] = [
       await page.getByRole('dialog', { name: 'Modem Preset' }).waitFor();
     },
   },
+  // Task 5.5: Identity, Channels (list, a channel, Share and import) and Security.
+  { id: '12-05-identity', size: 'desktop', path: '/source/src-g2/settings/identity', fixtures: PINS, setup: renameShort },
+  { id: '12-21-identity', size: 'phone', path: '/source/src-g2/settings/identity', fixtures: PINS, setup: renameShort },
+  { id: '12-01-channels', size: 'desktop', path: '/source/src-g2/settings/channels', fixtures: CHANNELS, setup: reorderAthens },
+  { id: '12-14-channels', size: 'phone', path: '/source/src-g2/settings/channels', fixtures: CHANNELS, setup: reorderAthens },
+  {
+    id: '12-02-channel-edit',
+    size: 'desktop',
+    path: '/source/src-g2/settings/channels/2',
+    fixtures: CHANNELS,
+    setup: async (page) => {
+      await page.getByLabel('Location Precision (bits)').fill('13');
+      await page.getByRole('region', { name: 'Unsaved channel changes' }).waitFor();
+    },
+  },
+  {
+    id: '12-15-channel-edit',
+    size: 'phone',
+    path: '/source/src-g2/settings/channels/2',
+    fixtures: CHANNELS,
+    setup: async (page) => {
+      await page.getByRole('switch', { name: 'Uplink Enabled' }).click();
+      await page.getByRole('region', { name: 'Unsaved channel changes' }).waitFor();
+    },
+  },
+  {
+    id: '12-03-share-import',
+    size: 'desktop',
+    path: '/source/src-g2/settings/channels/share',
+    fixtures: CHANNELS,
+    setup: async (page) => {
+      await page.getByLabel('Meshtastic Configuration URL').fill('https://meshtastic.org/e/#CgcSAQE6AggNEg8IATgDQANIAVAeaAHABgE');
+      await page.getByRole('button', { name: 'Decode URL' }).click();
+      await page.getByRole('button', { name: 'Import Selected' }).click();
+      await page.getByText('Sending configuration to device...').waitFor();
+    },
+  },
+  { id: '12-16-share-qr', size: 'phone', path: '/source/src-g2/settings/channels/share', fixtures: CHANNELS },
+  { id: '12-04-security', size: 'desktop', path: '/source/src-g2/settings/security', fixtures: SECURITY, setup: (page) => confirmPolicy(page, 'desktop', 'Strict') },
+  {
+    id: '12-17-security',
+    size: 'phone',
+    path: '/source/src-g2/settings/security',
+    fixtures: SECURITY,
+    setup: async (page) => {
+      await page.getByRole('switch', { name: 'Debug Log API Enabled' }).click();
+      await page.getByRole('region', { name: 'Unsaved radio changes' }).waitFor();
+    },
+  },
+  { id: '12-26-security-strict', size: 'phone', path: '/source/src-g2/settings/security', fixtures: SECURITY, setup: (page) => confirmPolicy(page, 'phone', 'Strict') },
+  { id: '18-07-security-balanced', size: 'desktop', path: '/source/src-g2/settings/security', fixtures: SECURITY, setup: (page) => confirmPolicy(page, 'desktop', 'Balanced') },
+  { id: '18-08-security-balanced', size: 'phone', path: '/source/src-g2/settings/security', fixtures: SECURITY, setup: (page) => confirmPolicy(page, 'phone', 'Balanced') },
 ];
+
+/** Identity: the short name G2 → SG2. */
+async function renameShort(page: Page) {
+  await page.getByLabel('Short Name').fill('SG2');
+  await page.getByRole('region', { name: 'Unsaved radio changes' }).waitFor();
+}
+
+/** Channels: Reorder mode, Athens Ops moved to the top. */
+async function reorderAthens(page: Page) {
+  await page.getByRole('button', { name: 'Reorder' }).click();
+  await page.getByRole('button', { name: 'Move Athens Ops up' }).click();
+  await page.getByRole('button', { name: 'Move Athens Ops up' }).click();
+  await page.getByRole('region', { name: 'Reorder mode' }).getByText('Channel order changed. Apply to device?').waitFor();
+}
+
+/** Security: pick a Protection Level, Save & restart, and (Strict) type the short name. */
+async function confirmPolicy(page: Page, size: 'desktop' | 'phone', level: 'Strict' | 'Balanced') {
+  const label = 'Protection Level (packet authenticity)';
+  const option = level === 'Strict' ? 'Strict: require authentication' : 'Balanced: prefer authenticated';
+  if (size === 'desktop') {
+    await page.getByLabel(label).selectOption(level === 'Strict' ? '2' : '1');
+  } else {
+    await page.getByRole('button', { name: label }).click();
+    await page.getByRole('dialog', { name: label }).getByRole('radio', { name: option }).click();
+    await page.getByRole('dialog').waitFor({ state: 'detached' });
+  }
+  await page.getByRole('region', { name: 'Unsaved radio changes' }).getByRole('button', { name: 'Save & restart' }).click();
+  const dialog = page.getByRole('dialog', { name: `Set Protection Level to ${level}?` });
+  await dialog.waitFor();
+  if (level === 'Strict') await dialog.getByLabel('Type G2 to confirm').fill('G2');
+}
 
 /** Phone: one step up on Hop Limit. */
 async function stepHops(page: Page) {

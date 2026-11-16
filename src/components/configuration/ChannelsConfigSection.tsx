@@ -15,7 +15,7 @@
  * firmware 2.8.1+ and the channel has a key. Turning it on asks first, because
  * nodes without AEAD can no longer read the channel.
  */
-import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../icons';
 import AeadBadge from '../channels/AeadBadge';
@@ -32,22 +32,17 @@ import {
   DragOverlay
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import apiService from '../../services/api';
-import { useToast } from '../ToastContainer';
 import { Channel } from '../../types/device';
-import { logger } from '../../utils/logger';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useResolvedSourceId } from '../../hooks/useResolvedSourceId';
 import { formatPrecisionAccuracy } from '../../utils/distance';
-import { NO_ENCRYPTION_PSK, pskEncryptionStatus, type PskEncryptionStatus } from '../../utils/publicChannel';
 import { NumberInput } from '../common/NumberInput';
 import Modal from '../common/Modal';
 import { ConfigSection } from '../shared/config/ConfigSection';
@@ -57,93 +52,27 @@ import { ChannelEncryptionLabel } from '../shared/config/ChannelEncryptionLabel'
 import { DiscardChangesDialog } from '../shared/config/DiscardChangesDialog';
 import { ConfirmDialog } from '../shared/automation/ConfirmDialog';
 import { useDiscardGuard } from '../shared/config/useDiscardGuard';
-import { generateChannelKey, isValidChannelKey } from '../shared/config/channelKey';
+import { isValidChannelKey } from '../shared/config/channelKey';
+import {
+  MAX_NAME_LENGTH,
+  PSK_ALLOWED_BYTES,
+  PSK_GENERATE_BYTES,
+  ROLE_LABEL_KEYS,
+  autoPositionChannelId as findAutoPositionChannel,
+  channelEncryptionStatus,
+  draftsEqual,
+  isConfigured,
+  nextFreeSlot as findNextFreeSlot,
+  openDraft,
+  roleOptions as allowedRoles,
+  useChannelActions,
+  useChannelBySlot,
+  useChannelCollisions,
+  useChannelReorder,
+  type ChannelDraft,
+  type EditingState,
+} from './channelSlots';
 import styles from './ChannelsConfigSection.module.css';
-
-/** A device channel sharing its key with a differently-named Channel Database
- *  (server-decryption) entry (#3644). */
-interface ChannelCollision {
-  channelId: number;
-  channelName: string;
-  dbId: number;
-  dbName: string;
-}
-
-const SLOT_COUNT = 8;
-const ALL_SLOTS = [0, 1, 2, 3, 4, 5, 6, 7];
-const MAX_NAME_LENGTH = 11;
-/** Key lengths the firmware accepts: none, the 1-byte default index, AES-128, AES-256. */
-const PSK_ALLOWED_BYTES = [0, 1, 16, 32] as const;
-const PSK_GENERATE_BYTES = 32;
-const ROLE_LABEL_KEYS: Record<number, string> = {
-  0: 'channels_config.role_disabled',
-  1: 'channels_config.role_primary',
-  2: 'channels_config.role_secondary',
-};
-
-// Resolve encryption status for a Channel: prefer the server-derived
-// `encryptionStatus` field (always present on API responses) and fall back
-// to deriving from `psk`. The API only sends `psk` to authorized writers
-// (issue #2951), so unauthorized callers MUST rely on `encryptionStatus`.
-const channelEncryptionStatus = (channel: Pick<Channel, 'encryptionStatus' | 'psk'>): PskEncryptionStatus =>
-  channel.encryptionStatus ?? pskEncryptionStatus(channel.psk);
-
-/** A slot holds a channel unless it is missing or DISABLED (role 0). */
-const isConfigured = (channel: Channel | undefined): channel is Channel =>
-  !!channel && channel.role !== 0;
-
-interface ChannelDraft {
-  name: string;
-  psk: string;
-  role: number;
-  uplinkEnabled: boolean;
-  downlinkEnabled: boolean;
-  positionPrecision: number;
-  /** ChannelSettings.use_aead (#5248). */
-  useAead: boolean;
-}
-
-interface EditingState {
-  slotId: number;
-  /** A slot opened by "Add channel" rather than an existing channel. */
-  isNew: boolean;
-  draft: ChannelDraft;
-  /** The draft the card opened with, for Cancel and the unsaved check. */
-  original: ChannelDraft;
-}
-
-/**
- * The `psk` to send on save (#5826). The server keeps the stored key when
- * `psk` is absent and turns encryption off for an explicit ''. So send '' only
- * when the user emptied a field that held a key (or a new channel); a field
- * that opened empty (no key, or a reader who never got one) keeps whatever
- * the device has.
- */
-const pskForSave = (edit: EditingState): string | undefined => {
-  if (edit.draft.psk !== '') return edit.draft.psk;
-  return edit.isNew || edit.original.psk !== '' ? '' : undefined;
-};
-
-/**
- * The `useAead` to send on save (#5248). Absent keeps the device's setting
- * (the server sends the stored flag back), so send it only when the user
- * changed it, or when the key was cleared: firmware clears use_aead on a
- * keyless channel, so the stored flag should follow.
- */
-const aeadForSave = (edit: EditingState): { useAead?: boolean } => {
-  const keyless = edit.draft.psk === '';
-  if (edit.draft.useAead && keyless) return { useAead: false };
-  return edit.draft.useAead !== edit.original.useAead ? { useAead: edit.draft.useAead } : {};
-};
-
-const draftsEqual = (a: ChannelDraft, b: ChannelDraft): boolean =>
-  a.name === b.name &&
-  a.psk === b.psk &&
-  a.role === b.role &&
-  a.uplinkEnabled === b.uplinkEnabled &&
-  a.downlinkEnabled === b.downlinkEnabled &&
-  a.positionPrecision === b.positionPrecision &&
-  a.useAead === b.useAead;
 
 interface ChannelsConfigSectionProps {
   baseUrl?: string;
@@ -202,7 +131,6 @@ const ChannelsConfigSection: React.FC<ChannelsConfigSectionProps> = ({
   aeadSupported = false,
 }) => {
   const { t } = useTranslation();
-  const { showToast } = useToast();
   const { distanceUnit } = useSettings();
   const { hasPermission } = useAuth();
   // Channel writes require a concrete sourceId; resolve context source or primary.
@@ -210,33 +138,9 @@ const ChannelsConfigSection: React.FC<ChannelsConfigSectionProps> = ({
   // The server also checks channel_N:write on each channel write.
   const canWrite = hasPermission('configuration', 'write', { sourceId });
 
-  // #3644: device channels whose PSK matches a server-side decryption (Channel
-  // Database) entry under a DIFFERENT name. Detected server-side because
-  // readers don't receive raw PSKs.
-  const [channelCollisions, setChannelCollisions] = useState<ChannelCollision[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    const qs = sourceId ? `?sourceId=${encodeURIComponent(sourceId)}` : '';
-    apiService.get<{ collisions: ChannelCollision[] }>(`/api/channels/collisions${qs}`)
-      .then(res => { if (!cancelled) setChannelCollisions(res.collisions ?? []); })
-      .catch(() => { if (!cancelled) setChannelCollisions([]); });
-    return () => { cancelled = true; };
-  }, [sourceId, channels]);
-  const collisionDbNamesByChannelId = useMemo(() => {
-    const m = new Map<number, string[]>();
-    for (const c of channelCollisions) {
-      const list = m.get(c.channelId) ?? [];
-      list.push(c.dbName);
-      m.set(c.channelId, list);
-    }
-    return m;
-  }, [channelCollisions]);
-
-  const channelBySlot = useMemo(() => {
-    const m = new Map<number, Channel>();
-    for (const ch of channels) if (ch.id >= 0 && ch.id < SLOT_COUNT) m.set(ch.id, ch);
-    return m;
-  }, [channels]);
+  const collisionDbNamesByChannelId = useChannelCollisions(sourceId, channels);
+  const channelBySlot = useChannelBySlot(channels);
+  const actions = useChannelActions(sourceId);
 
   const [editing, setEditing] = useState<EditingState | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -250,22 +154,9 @@ const ChannelsConfigSection: React.FC<ChannelsConfigSectionProps> = ({
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [isReordering, setIsReordering] = useState(false);
   const [activeDragId, setActiveDragId] = useState<number | null>(null);
-  // Track the current slot order for drag-and-drop (array of original slot indices)
-  const [slotOrder, setSlotOrder] = useState<number[]>(ALL_SLOTS);
-  const originalOrder = useRef<number[]>(ALL_SLOTS);
-
-  // Reset slot order when channels are refreshed from server (e.g., after successful reorder)
-  useEffect(() => {
-    setSlotOrder(ALL_SLOTS);
-    originalOrder.current = ALL_SLOTS;
-  }, [channels]);
-
-  const hasReorderChanges = useMemo(
-    () => slotOrder.some((v, i) => v !== originalOrder.current[i]),
-    [slotOrder],
-  );
+  const reorder = useChannelReorder(channels, sourceId, onChannelsUpdated);
+  const { slotOrder, hasReorderChanges, isReordering } = reorder;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -277,82 +168,26 @@ const ChannelsConfigSection: React.FC<ChannelsConfigSectionProps> = ({
     setActiveDragId(Number(event.active.id));
   }, []);
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     setActiveDragId(null);
     const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setSlotOrder(prev => arrayMove(prev, prev.indexOf(Number(active.id)), prev.indexOf(Number(over.id))));
-    }
-  }, []);
-
-  const handleApplyReorder = async () => {
-    if (!hasReorderChanges) return;
-    setIsReordering(true);
-    try {
-      await apiService.reorderDeviceChannels(slotOrder, sourceId);
-      showToast(t('channels_config.reorder_success', 'Channels reordered successfully. Device will reboot.'), 'success');
-      originalOrder.current = [...slotOrder];
-      onChannelsUpdated?.();
-    } catch (error) {
-      logger.error('Error reordering channels:', error);
-      const errorMsg = error instanceof Error ? error.message : t('channels_config.reorder_failed', 'Failed to reorder channels');
-      showToast(errorMsg, 'error');
-      setSlotOrder([...originalOrder.current]);
-    } finally {
-      setIsReordering(false);
-    }
+    if (over && active.id !== over.id) reorder.move(Number(active.id), Number(over.id));
   };
 
-  const handleCancelReorder = () => {
-    setSlotOrder([...originalOrder.current]);
-  };
+  const handleApplyReorder = reorder.apply;
+  const handleCancelReorder = reorder.cancel;
 
   // Auto-position channel: lowest-index channel with positionPrecision > 0
-  const autoPositionChannelId = useMemo(() => {
-    const sorted = channels
-      .filter(ch => (ch.positionPrecision ?? 0) > 0)
-      .sort((a, b) => a.id - b.id);
-    return sorted.length > 0 ? sorted[0].id : null;
-  }, [channels]);
+  const autoPositionChannelId = useMemo(() => findAutoPositionChannel(channels), [channels]);
 
   // Configured slots, in the current drag order.
   const visibleSlots = slotOrder.filter(slot => isConfigured(channelBySlot.get(slot)));
 
   // The lowest slot without a channel; null when all eight are in use.
-  const nextFreeSlot = useMemo(() => {
-    for (const slot of ALL_SLOTS) if (!isConfigured(channelBySlot.get(slot))) return slot;
-    return null;
-  }, [channelBySlot]);
+  const nextFreeSlot = useMemo(() => findNextFreeSlot(channelBySlot), [channelBySlot]);
 
   const openEditor = (slotId: number, isNew: boolean) => {
-    const ch = channelBySlot.get(slotId);
-    let draft: ChannelDraft;
-    if (isNew) {
-      draft = {
-        name: `Channel ${slotId}`,
-        // A new channel starts with its own random key rather than whatever
-        // the disabled slot last held.
-        psk: generateChannelKey(PSK_GENERATE_BYTES, 'base64'),
-        role: slotId === 0 ? 1 : 2,
-        uplinkEnabled: false,
-        downlinkEnabled: false,
-        positionPrecision: 0,
-        useAead: false,
-      };
-    } else {
-      draft = {
-        name: ch?.name ?? '',
-        // The "encryption off" key shows as an empty field, which is how the
-        // user asked for it (#5826).
-        psk: ch?.psk === NO_ENCRYPTION_PSK ? '' : (ch?.psk ?? ''),
-        role: ch?.role ?? (slotId === 0 ? 1 : 2),
-        uplinkEnabled: ch?.uplinkEnabled ?? true,
-        downlinkEnabled: ch?.downlinkEnabled ?? true,
-        positionPrecision: ch?.positionPrecision ?? 32,
-        useAead: !!ch?.useAead,
-      };
-    }
-    setEditing({ slotId, isNew, draft, original: draft });
+    setEditing(openDraft(slotId, isNew, channelBySlot.get(slotId)));
   };
 
   const updateDraft = (patch: Partial<ChannelDraft>) => {
@@ -364,89 +199,23 @@ const ChannelsConfigSection: React.FC<ChannelsConfigSectionProps> = ({
   // One set_channel write for this card, and only on an explicit click.
   const handleSaveChannel = async () => {
     if (!editing || !keyValid) return;
-    const { slotId, draft } = editing;
-    if (draft.name.length > MAX_NAME_LENGTH) {
-      showToast(t('channels_config.toast_name_too_long'), 'error');
-      return;
-    }
-    setIsSaving(true);
+    if (editing.draft.name.length <= MAX_NAME_LENGTH) setIsSaving(true);
     try {
-      await apiService.updateChannel(slotId, {
-        name: draft.name,
-        psk: pskForSave(editing),
-        role: draft.role,
-        uplinkEnabled: draft.uplinkEnabled,
-        downlinkEnabled: draft.downlinkEnabled,
-        positionPrecision: draft.positionPrecision,
-        ...aeadForSave(editing),
-      }, sourceId);
-      showToast(t('channels_config.toast_channel_updated', { slot: slotId }), 'success');
-      setEditing(null);
-      onChannelsUpdated?.();
-    } catch (error) {
-      logger.error('Error updating channel:', error);
-      const errorMsg = error instanceof Error ? error.message : t('channels_config.toast_update_failed');
-      showToast(errorMsg, 'error');
+      if (await actions.save(editing)) {
+        setEditing(null);
+        onChannelsUpdated?.();
+      }
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDeleteChannel = async (slotId: number) => {
-    // Channel 0 (Primary) cannot be deleted
-    if (slotId === 0) {
-      showToast(t('channels_config.toast_cannot_delete_primary', 'Cannot delete the primary channel'), 'error');
-      return;
-    }
-    if (editing?.slotId === slotId) setEditing(null);
-    try {
-      // 1. Disable channel on the device
-      await apiService.updateChannel(slotId, {
-        name: '',
-        psk: '',
-        role: 0, // DISABLED
-        uplinkEnabled: false,
-        downlinkEnabled: false,
-      }, sourceId);
-      // 2. Delete channel record and messages from database. The route
-      // requires sourceId (#5324). The device write already went through, so
-      // a failure here is reported as a partial result, not as a delete.
-      let purged = false;
-      if (sourceId) {
-        try {
-          await apiService.delete(`/api/channels/${slotId}?sourceId=${encodeURIComponent(sourceId)}`);
-          purged = true;
-        } catch (error) {
-          logger.error('Error deleting channel message history:', error);
-        }
-      }
-      if (purged) {
-        showToast(t('channels_config.toast_channel_deleted', { slot: slotId }), 'success');
-      } else {
-        showToast(t(
-          'channels_config.toast_channel_disabled_purge_failed',
-          'Channel {{slot}} was disabled on the device, but its message history could not be deleted.',
-          { slot: slotId },
-        ), 'warning');
-      }
-      onChannelsUpdated?.();
-    } catch (error) {
-      logger.error('Error deleting channel:', error);
-      const errorMsg = error instanceof Error ? error.message : t('channels_config.toast_delete_failed', 'Failed to delete channel');
-      showToast(errorMsg, 'error');
-    }
+    if (slotId !== 0 && editing?.slotId === slotId) setEditing(null);
+    if (await actions.remove(slotId)) onChannelsUpdated?.();
   };
 
-  const handleExportChannel = async (channelId: number) => {
-    try {
-      await apiService.exportChannel(channelId, sourceId);
-      showToast(t('channels_config.toast_channel_exported', { slot: channelId }), 'success');
-    } catch (error) {
-      logger.error('Error exporting channel:', error);
-      const errorMsg = error instanceof Error ? error.message : t('channels_config.toast_export_failed');
-      showToast(errorMsg, 'error');
-    }
-  };
+  const handleExportChannel = actions.exportJson;
 
   const handleImportClick = (slotId: number) => {
     setImportSlotId(slotId);
@@ -466,38 +235,17 @@ const ChannelsConfigSection: React.FC<ChannelsConfigSectionProps> = ({
 
   const handleImportChannel = async () => {
     if (!importFileContent) {
-      showToast(t('channels_config.toast_select_file'), 'error');
+      await actions.importJson(importSlotId, importFileContent);
       return;
     }
     setIsImporting(true);
     try {
-      const importData = JSON.parse(importFileContent);
-      if (!importData.channel) {
-        throw new Error(t('channels_config.toast_invalid_format'));
+      if (await actions.importJson(importSlotId, importFileContent)) {
+        setShowImportModal(false);
+        setImportFileContent('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        onChannelsUpdated?.();
       }
-      // Normalize boolean values - handle both boolean (true/false) and numeric (1/0) formats
-      const normalizeBoolean = (value: unknown, defaultValue: boolean = true): boolean => {
-        if (value === undefined || value === null) return defaultValue;
-        if (typeof value === 'boolean') return value;
-        if (typeof value === 'number') return value !== 0;
-        if (typeof value === 'string') return value.toLowerCase() === 'true' || value === '1';
-        return !!value;
-      };
-      const normalizedChannelData = {
-        ...importData.channel,
-        uplinkEnabled: normalizeBoolean(importData.channel.uplinkEnabled, true),
-        downlinkEnabled: normalizeBoolean(importData.channel.downlinkEnabled, true)
-      };
-      await apiService.importChannel(importSlotId, normalizedChannelData, sourceId);
-      showToast(t('channels_config.toast_channel_imported', { slot: importSlotId }), 'success');
-      setShowImportModal(false);
-      setImportFileContent('');
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      onChannelsUpdated?.();
-    } catch (error) {
-      logger.error('Error importing channel:', error);
-      const errorMsg = error instanceof Error ? error.message : t('channels_config.toast_import_failed');
-      showToast(errorMsg, 'error');
     } finally {
       setIsImporting(false);
     }
@@ -513,12 +261,7 @@ const ChannelsConfigSection: React.FC<ChannelsConfigSectionProps> = ({
    * only on slot 0, when it already is primary, or when no other channel is,
    * so the UI never sets up two primaries (the server does not check).
    */
-  const roleOptions = (edit: EditingState): number[] => {
-    if (edit.isNew) return edit.slotId === 0 ? [1] : [2];
-    const otherPrimary = channels.some(c => c.id !== edit.slotId && c.id >= 0 && c.id < SLOT_COUNT && c.role === 1);
-    const allowPrimary = edit.slotId === 0 || edit.original.role === 1 || !otherPrimary;
-    return allowPrimary ? [0, 1, 2] : [0, 2];
-  };
+  const roleOptions = (edit: EditingState): number[] => allowedRoles(channels, edit);
 
   const renderEditor = (edit: EditingState) => (
     <>

@@ -6,8 +6,7 @@
     "Type",
     "G2",
     "Set Strict",
-    "Managed mode",
-    "Security page"
+    "Managed Device"
   ],
   "absent": [],
   "source": "checks/s12.json"

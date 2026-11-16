@@ -1,17 +1,17 @@
 {
   "must": [
-    "Public key",
-    "Private key",
+    "Local Public Key",
+    "Local Private Key",
     "Show",
     "Copy",
     "Set private key",
-    "Admin keys",
+    "Remote Admin Public Keys",
     "2 of 3",
-    "Add key",
-    "Managed mode",
-    "Serial console",
-    "Debug log API",
-    "Legacy admin channel",
+    "Add Admin Key",
+    "Managed Device",
+    "Serial Console Enabled",
+    "Debug Log API Enabled",
+    "Legacy Admin Channel",
     "Protection Level",
     "Strict",
     "Set Protection Level to Strict?",
@@ -20,7 +20,6 @@
     "Set Strict",
     "PKI DM decryption",
     "Save & restart",
-    "after the 2.8.2 update",
     "⌘,"
   ],
   "absent": [

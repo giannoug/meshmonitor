@@ -271,3 +271,9 @@
   font-size: 14px;
   color: var(--color-text-subtle);
 }
+
+/* A key or other code in a text setting (Security, Channels). */
+.mono {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 13px;
+}

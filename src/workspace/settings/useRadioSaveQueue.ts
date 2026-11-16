@@ -14,6 +14,10 @@
  * with the strongest expectation afterwards (`runBatch`). A failed section
  * stays queued and is returned in `failed`, also across the reload that
  * follows that notice.
+ *
+ * A section with a guard (Security's confirms, Task 5.5) asks before any
+ * write goes out; a declined guard leaves that section queued and unsaved
+ * (`cancelled`), and the other sections still save.
  */
 import { createContext, useContext, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -43,6 +47,8 @@ export interface QueueEntry {
 export interface SaveResult {
   ok: ConfigSaveSection[];
   failed: ConfigSaveSection[];
+  /** Their guard was declined: still queued, nothing sent. */
+  cancelled: ConfigSaveSection[];
 }
 
 export interface RadioSaveQueue {
@@ -72,10 +78,12 @@ export interface QueueOptions {
   numberScope: NumberInputScopeHandle;
   /** Runs the saves so the frame shows one reboot notice when they are done. */
   runBatch<T>(fn: () => Promise<T>): Promise<T>;
+  /** Asked before the save; false keeps the section queued and unsent. */
+  guards?: Partial<Record<ConfigSaveSection, () => Promise<boolean>>>;
 }
 
 /** The frame's one queue; categories read it with `useRadioSaveQueue()`. */
-export function useRadioSaveQueueState({ state, saves }: SharedDeviceConfig, { numberScope, runBatch }: QueueOptions): RadioSaveQueue {
+export function useRadioSaveQueueState({ state, saves }: SharedDeviceConfig, { numberScope, runBatch, guards = {} }: QueueOptions): RadioSaveQueue {
   const { t } = useTranslation();
   const [baselines, setBaselines] = useState<Partial<Record<ConfigSaveSection, Values>>>({});
   const [seen, setSeen] = useState({ loading: true, version: -1 });
@@ -138,13 +146,19 @@ export function useRadioSaveQueueState({ state, saves }: SharedDeviceConfig, { n
   };
 
   const saveAll = async (): Promise<SaveResult> => {
-    const result: SaveResult = { ok: [], failed: [] };
+    const result: SaveResult = { ok: [], failed: [], cancelled: [] };
     if (busy.current || numberScope.invalid || queue.length === 0) return result;
     busy.current = true;
     setSaving(true);
     try {
-      await runBatch(async () => {
-        for (const { section } of queue) {
+      // Every confirm before the first write, so no write waits on a person (the node may be restarting by then).
+      for (const { section } of queue) {
+        const guard = guards[section];
+        if (guard && !(await guard().catch(() => false))) result.cancelled.push(section);
+      }
+      const sending = queue.filter((e) => !result.cancelled.includes(e.section));
+      if (sending.length > 0) await runBatch(async () => {
+        for (const { section } of sending) {
           // Today's handlers report their own errors and resolve false; a throw counts as a failure too.
           const ok = await (saves[section] as () => Promise<boolean>)().catch(() => false);
           result[ok ? 'ok' : 'failed'].push(section);
@@ -160,9 +174,9 @@ export function useRadioSaveQueueState({ state, saves }: SharedDeviceConfig, { n
           ...Object.fromEntries(sent.map((e) => [e.section, { ...current[e.section], ...Object.fromEntries(e.changes.map((c) => [c.field, c.to])) }])),
         }));
       }
-      // The reboot notice reloads the configuration when it closes, which would drop the failed edits.
+      // The reboot notice reloads the configuration when it closes, which would drop the failed and declined edits.
       if (result.ok.some((s) => rebootExpectation(s, state.localFirmwareVersion) !== 'never')) {
-        carry.current = queue.filter((e) => result.failed.includes(e.section));
+        carry.current = queue.filter((e) => result.failed.includes(e.section) || result.cancelled.includes(e.section));
       }
     }
     return result;

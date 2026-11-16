@@ -35,3 +35,24 @@ export function isValidMeshtasticKey(value: string): boolean {
     return false;
   }
 }
+
+/**
+ * The Security section's admin-key check: empty (an unused row) or well-formed
+ * base64. Shared by Classic's section and the Workspace Security page (#6365).
+ */
+export function isValidBase64(str: string): boolean {
+  if (!str || !str.trim()) return true; // Empty is valid (optional)
+  const trimmed = str.trim();
+  // Check for valid base64 characters and proper padding
+  const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+  if (!base64Regex.test(trimmed)) return false;
+  // Check length is multiple of 4 (valid base64)
+  if (trimmed.length % 4 !== 0) return false;
+  // Try to decode to verify
+  try {
+    atob(trimmed);
+    return true;
+  } catch {
+    return false;
+  }
+}

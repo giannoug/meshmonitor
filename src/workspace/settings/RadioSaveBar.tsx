@@ -110,7 +110,10 @@ export default function RadioSaveBar({ deviceName, compact }: RadioSaveBarProps)
             {t('workspace.settings.savebar.changes_in', { count, names: list })}
             {restart && ` · ${t(`workspace.settings.savebar.node_${restart}`)}`}
           </span>
-          {restart && <span className={styles.sub}>{t(`workspace.settings.savebar.${restart}_after`, { device: deviceName })}</span>}
+          <span className={styles.sub}>
+            {restart && `${t(`workspace.settings.savebar.${restart}_after`, { device: deviceName })} · `}
+            {t('workspace.settings.savebar.sends_nothing')}
+          </span>
         </div>
         <button type="button" className={styles.plain} onClick={() => q.discard()} disabled={q.saving}>
           {t('workspace.settings.savebar.discard')}

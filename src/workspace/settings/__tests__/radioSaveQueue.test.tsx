@@ -47,8 +47,8 @@ describe('queued values', () => {
     vi.unstubAllGlobals();
   });
 
-  it('Security and MQTT keep their own save', () => {
-    expect(isQueued('security')).toBe(false);
+  it('Security queues (Task 5.5); MQTT keeps its own save', () => {
+    expect(isQueued('security')).toBe(true);
     expect(isQueued('mqtt')).toBe(false);
     expect(isQueued('lora')).toBe(true);
   });
@@ -72,7 +72,7 @@ describe('queued values', () => {
 
 describe('useRadioSaveQueueState', () => {
   // The few values the test edits; every other queued value reads undefined on both sides.
-  function useFakeConfig(saves: Record<string, () => Promise<boolean>>) {
+  function useFakeConfig(saves: Record<string, () => Promise<boolean>>, guards: Record<string, () => Promise<boolean>> = {}) {
     const [loading, setLoading] = useState(true);
     const [hopLimit, setHopLimit] = useState(3);
     const [longName, setLongName] = useState('Station G2');
@@ -85,10 +85,28 @@ describe('useRadioSaveQueueState', () => {
     };
     const queue = useRadioSaveQueueState(
       { state: state as unknown as DeviceConfigState, saves: saves as unknown as DeviceConfigSaves },
-      { numberScope: { invalid: false, reset: () => {}, context: { report: () => {}, resetSignal: 0 } }, runBatch: (fn) => fn() },
+      { numberScope: { invalid: false, reset: () => {}, context: { report: () => {}, resetSignal: 0 } }, runBatch: (fn) => fn(), guards },
     );
     return { state, queue };
   }
+
+  it('a section\'s guard runs before any write; declined, that section stays queued and unsent while the others save', async () => {
+    const order: string[] = [];
+    const saves = { lora: vi.fn(async () => (order.push('lora'), true)), owner: vi.fn(async () => (order.push('owner'), true)) };
+    const { result } = renderHook(() => useFakeConfig(saves, { lora: async () => (order.push('ask lora'), false) }));
+    act(() => result.current.state.setLoading(false));
+    act(() => {
+      result.current.state.setHopLimit(4);
+      result.current.state.setLongName('Station G3');
+    });
+    let outcome: SaveResult | undefined;
+    await act(async () => {
+      outcome = await result.current.queue.saveAll();
+    });
+    expect(order).toEqual(['ask lora', 'owner']);
+    expect(outcome).toEqual({ ok: ['owner'], failed: [], cancelled: ['lora'] });
+    expect(result.current.queue.queue.map((e) => e.section)).toEqual(['lora']);
+  });
 
   it('a failed section stays queued, also after the reload that follows the restart', async () => {
     const saves = { lora: vi.fn(async () => false), owner: vi.fn(async () => true) };
@@ -103,7 +121,7 @@ describe('useRadioSaveQueueState', () => {
     await act(async () => {
       outcome = await result.current.queue.saveAll();
     });
-    expect(outcome).toEqual({ ok: ['owner'], failed: ['lora'] });
+    expect(outcome).toEqual({ ok: ['owner'], failed: ['lora'], cancelled: [] });
     expect(result.current.queue.queue.map((e) => e.section)).toEqual(['lora']);
     // The reboot notice closes and the configuration reloads from the node.
     act(() => result.current.state.setLoading(true));

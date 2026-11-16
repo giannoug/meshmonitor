@@ -11,7 +11,8 @@
  *   Notifications, gated as `settingsNavItems(mode: 'source')` and App's tabs.
  *
  * Until Tasks 5.3–5.8 build each page, a category's `component` renders
- * today's section for it (`ClassicCategories`); LoRa is built (Task 5.3).
+ * today's section for it (`ClassicCategories`); LoRa is built (Task 5.3),
+ * Identity, Channels and Security (Task 5.5, `categories/`).
  */
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import type { TFunction } from 'i18next';
@@ -36,7 +37,7 @@ export interface GateCtx {
 
 export type CategoryTarget = { kind: 'local' } | { kind: 'remote'; nodeNum: number };
 
-export type CategoryProps = { sourceId: string; target: CategoryTarget; readOnly: boolean };
+export type CategoryProps = { sourceId: string; target: CategoryTarget; readOnly: boolean; /** The path after the category, for its own deeper pages. */ sub?: string };
 
 export type CategoryDef = {
   id: string;
@@ -98,10 +99,10 @@ const meshmonitor = (
 });
 
 export const CATEGORIES: CategoryDef[] = [
-  radio('identity', 'configuration.node_identity', 'IdentityCategory', { saveSection: 'owner' }),
+  radio('identity', 'configuration.node_identity', lazy(() => import('./categories/IdentityCategory.tsx')), { saveSection: 'owner' }),
   radio('lora', 'workspace.settings.label.lora', lazy(() => import('./LoraCategory.tsx')), { saveSection: 'lora' }),
-  radio('channels', 'channels.title', 'ChannelsCategory'),
-  radio('security', 'security_config.title', 'SecurityCategory', { saveSection: 'security' }),
+  radio('channels', 'channels.title', lazy(() => import('./categories/ChannelsCategory.tsx'))),
+  radio('security', 'security_config.title', lazy(() => import('./categories/SecurityCategory.tsx')), { saveSection: 'security' }),
   radio('device/device', 'workspace.settings.label.device', 'DeviceCategory', { group: 'device', saveSection: 'device' }),
   radio('device/position', 'workspace.settings.label.position', 'PositionCategory', { group: 'device', saveSection: 'position' }),
   radio('device/power', 'workspace.settings.label.power', 'PowerCategory', { group: 'device', saveSection: 'power' }),

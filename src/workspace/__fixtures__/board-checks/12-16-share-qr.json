@@ -5,10 +5,10 @@
     "LongFast",
     "Athens",
     "gauntlet",
-    "Include LoRa settings",
+    "LoRa Configuration",
     "EU_868",
-    "QR code",
-    "Copy URL",
+    "QR Code",
+    "Copy",
     "Share",
     "Sends nothing on the mesh"
   ],

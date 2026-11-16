@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { useResolvedSourceId } from '../../hooks/useResolvedSourceId';
-import { REGION_OPTIONS } from './constants';
+import { regionNames, runMeshtasticImport } from './meshtasticConfigImport';
 import { MODEM_PRESET_NAMES } from '../../utils/loraFrequency';
 import { maskMeshcoreSecret } from '../../utils/meshcoreChannelUrl';
 
@@ -46,14 +46,6 @@ interface DecodedConfig {
 // Canonical enum-name table (covers every ModemPreset incl. TINY_FAST/TINY_SLOW,
 // #5547) instead of a hand-maintained copy that had drifted.
 const modemPresetNames = MODEM_PRESET_NAMES;
-
-// Derived from REGION_OPTIONS (the authoritative protobuf-enum-ordered table)
-// instead of a hand-maintained duplicate: the old literal table had codes 13-18
-// shifted by one (13 showed UA_433 instead of LORA_24) and knew nothing about
-// codes 19+ (PH_*, ANZ_433, KZ_*, NP_865, BR_902, ...).
-const regionNames: { [key: number]: string } = Object.fromEntries(
-  REGION_OPTIONS.map((o) => [o.value, o.label.split(' - ')[0]])
-);
 
 export const ImportConfigModal: React.FC<ImportConfigModalProps> = ({
   isOpen, onClose, onImportSuccess, nodeNum, protocol = 'meshtastic', sourceId: sourceIdProp,
@@ -131,30 +123,17 @@ export const ImportConfigModal: React.FC<ImportConfigModalProps> = ({
     setError(null);
 
     try {
-      // Call the import API which will:
-      // - Decode the URL
-      // - Write selected channels to the device
-      // - Write LoRa config to the device if selected
-      setImportStatus(t('import_config.status_sending'));
-      const result = await apiService.importConfig(url, nodeNum, sourceId);
-
-
-      // If reboot is required, wait for device to reconnect and sync
-      if (result.requiresReboot) {
-        setImportStatus(t('import_config.status_rebooting'));
-        await waitForDeviceReconnect();
-      } else {
-        setImportStatus(t('import_config.status_syncing'));
-        // Even without reboot, give device time to process and sync
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-
-      // Poll for updated channel data
-      setImportStatus(t('import_config.status_verifying'));
-      await pollForChannelUpdates();
-
-      setImportStatus(t('import_config.status_complete'));
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await runMeshtasticImport({
+        url,
+        nodeNum,
+        sourceId,
+        includeLoraConfig,
+        t,
+        onStep: (step, elapsed) =>
+          setImportStatus(elapsed !== undefined
+            ? t('import_config.status_rebooting_elapsed', { elapsed })
+            : t(`import_config.status_${step}`)),
+      });
 
       onImportSuccess();
       handleClose();
@@ -162,72 +141,6 @@ export const ImportConfigModal: React.FC<ImportConfigModalProps> = ({
       setError(err.message || t('import_config.error_import_failed'));
       setImporting(false);
     }
-  };
-
-  const waitForDeviceReconnect = async (): Promise<void> => {
-    // Wait up to 60 seconds for device to reboot and reconnect
-    const maxWaitTime = 60000; // 60 seconds
-    const pollInterval = 2000; // 2 seconds
-    const startTime = Date.now();
-
-    while (Date.now() - startTime < maxWaitTime) {
-      try {
-        // Check connection status to see if device is back online
-        const statusData = await apiService.getConnectionStatus();
-        if (statusData.connected === true) {
-          // Device is back online - request fresh config from device
-          await apiService.refreshNodes(sourceId);
-          return;
-        }
-      } catch (err) {
-        // Device still offline, continue waiting
-      }
-
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      setImportStatus(t('import_config.status_rebooting_elapsed', { elapsed }));
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
-    }
-
-    throw new Error(t('import_config.error_reconnect_timeout'));
-  };
-
-  const pollForChannelUpdates = async (): Promise<void> => {
-    // Poll for configuration updates from device for up to 45 seconds
-    // IMPORTANT: Use /api/poll (not /api/channels) to get live device state including LoRa config
-    const maxWaitTime = 45000; // 45 seconds
-    const pollInterval = 2000; // 2 seconds
-    const startTime = Date.now();
-
-    while (Date.now() - startTime < maxWaitTime) {
-      try {
-        // Fetch live device data from /api/poll (includes channels AND LoRa config)
-        const pollData = await apiService.get<{
-          channels?: Array<{ psk?: string }>;
-          deviceConfig?: { lora?: { modemPreset?: unknown } };
-        }>('/api/poll');
-
-        // Check if we have channel data with PSKs (indicates channel sync)
-        const hasChannels = pollData?.channels && pollData.channels.length > 0;
-        const channelsWithPSKs = pollData?.channels?.filter((ch: any) => ch.psk && ch.psk !== '').length || 0;
-
-        // Check if LoRa config is synced (if we're importing LoRa config)
-        // LoRa config is nested in deviceConfig.lora (requires configuration:read permission)
-        const hasLoraConfig = includeLoraConfig ? pollData?.deviceConfig?.lora?.modemPreset !== undefined : true;
-
-        if (hasChannels && channelsWithPSKs > 0 && hasLoraConfig) {
-          // Give it a bit more time to ensure all data is fully synced
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          return;
-        }
-      } catch (err) {
-        // Continue polling
-      }
-
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
-    }
-
-    // Even if we timeout, consider it successful
-    // (the data will eventually sync)
   };
 
   const handleClose = () => {

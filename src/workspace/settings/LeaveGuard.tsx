@@ -11,6 +11,9 @@
  * navigates to the link's path itself, as the link may be gone by then.
  * shortcut: browser Back and code that navigates without a link are not
  * caught; upgrade to useBlocker if the app moves to a data router.
+ *
+ * A page's own unsaved edits (`pending`: a channel's draft, Task 5.5) ask the
+ * same way before a link leaves that page, and are listed with the queue.
  */
 import { useEffect, useState } from 'react';
 import { useHref, useNavigate } from 'react-router-dom';
@@ -19,17 +22,21 @@ import { UiIcon } from '../../components/icons';
 import ConfirmSheet from '../patterns/ConfirmSheet';
 import { categoryById } from './categories';
 import { useRadioSaveQueue } from './useRadioSaveQueue';
+import type { PendingEdit } from './settingsDock';
 import styles from './RadioSaveBar.module.css';
 
-export default function LeaveGuard({ base }: { base: string }) {
+export default function LeaveGuard({ base, pending }: { base: string; pending?: PendingEdit | null }) {
   const { t, i18n } = useTranslation();
   const q = useRadioSaveQueue();
   const navigate = useNavigate();
   const baseHref = useHref(base);
   // The router's basename, which the link's href carries and navigate() adds back.
   const basename = baseHref.endsWith(base) ? baseHref.slice(0, baseHref.length - base.length) : '';
-  const [target, setTarget] = useState<string | null>(null);
-  const active = !!q && q.queue.length > 0;
+  // Where the link goes, and whether it also leaves the device's settings (which drops the queue).
+  const [target, setTarget] = useState<{ path: string; out: boolean } | null>(null);
+  const queued = !!q && q.queue.length > 0;
+  const active = queued || !!pending;
+  const pendingHref = pending ? basename + pending.scope : null;
 
   useEffect(() => {
     if (!active) return;
@@ -40,22 +47,30 @@ export default function LeaveGuard({ base }: { base: string }) {
       if (!a || (a.target && a.target !== '_self') || a.hasAttribute('download')) return;
       const url = new URL(a.href, window.location.href);
       if (url.origin !== window.location.origin) return;
-      if (url.pathname === baseHref || url.pathname.startsWith(`${baseHref}/`)) return;
+      const inside = (href: string) => url.pathname === href || url.pathname.startsWith(`${href}/`);
+      const out = !inside(baseHref);
+      if (!(out && queued) && !(pendingHref && !inside(pendingHref))) return;
       e.preventDefault();
       const path = url.pathname.startsWith(basename) ? url.pathname.slice(basename.length) || '/' : url.pathname;
-      setTarget(path + url.search + url.hash);
+      setTarget({ path: path + url.search + url.hash, out });
     };
     // Capture, so the click is marked handled before the router's Link sees it.
     document.addEventListener('click', onClick, true);
     return () => document.removeEventListener('click', onClick, true);
-  }, [active, baseHref, basename]);
+  }, [active, queued, pendingHref, baseHref, basename]);
 
   if (!q) return null;
+  const list = (labels: string[]) => new Intl.ListFormat(i18n.language, { type: 'conjunction' }).format(labels);
   const discard = () => {
     setTarget(null);
-    q.discard();
-    if (target) void navigate(target);
+    if (target?.out) q.discard();
+    pending?.discard();
+    if (target) void navigate(target.path);
   };
+  const cards = [
+    ...(target?.out ? q.queue.map((e) => ({ key: e.section, title: t(categoryById(e.categoryId)?.labelKey ?? e.categoryId), changes: e.changes.map((c) => c.label) })) : []),
+    ...(pending ? [{ key: 'pending', title: pending.title, changes: pending.changes }] : []),
+  ];
 
   return (
     <ConfirmSheet
@@ -69,17 +84,13 @@ export default function LeaveGuard({ base }: { base: string }) {
       body={
         <>
           <p className={styles.guardText}>{t('config_item_card.discard_message')}</p>
-          {q.queue.map((e) => (
-            <div key={e.section} className={styles.guardCard}>
+          {cards.map((c) => (
+            <div key={c.key} className={styles.guardCard}>
               <p className={styles.guardName}>
-                <strong>{t(categoryById(e.categoryId)?.labelKey ?? e.categoryId)}</strong>
-                <span className={styles.tag}>{t('workspace.settings.review.changes', { count: e.changes.length })}</span>
+                <strong>{c.title}</strong>
+                <span className={styles.tag}>{t('workspace.settings.review.changes', { count: c.changes.length })}</span>
               </p>
-              <p className={styles.guardFields}>
-                {t('workspace.settings.review.not_saved', {
-                  fields: new Intl.ListFormat(i18n.language, { type: 'conjunction' }).format(e.changes.map((c) => c.label)),
-                })}
-              </p>
+              <p className={styles.guardFields}>{t('workspace.settings.review.not_saved', { fields: list(c.changes) })}</p>
             </div>
           ))}
         </>

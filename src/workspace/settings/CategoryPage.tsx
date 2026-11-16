@@ -27,11 +27,14 @@ import { SettingsCategoryContext } from './kit/useFieldRegistry';
 import { moduleAvailable, moduleOn, type CategoryDef, type CategoryGroup, type CategoryTarget } from './categories';
 import { useSharedDeviceConfig } from './sharedDeviceConfig';
 import { usePins } from './usePins';
+import { SettingsHeaderContext, type SubHeader } from './settingsDock';
 import styles from './CategoryPage.module.css';
 
 export interface CategoryPageProps {
   def?: CategoryDef;
   group?: CategoryGroup;
+  /** The rest of the path after the category: its own deeper page (a channel, Share and import). */
+  sub?: string;
   /** The categories this viewer may open on the device. */
   categories: CategoryDef[];
   sourceId: string;
@@ -39,11 +42,14 @@ export interface CategoryPageProps {
   readOnly: boolean;
 }
 
-export default function CategoryPage({ def, group, categories, sourceId, target, readOnly }: CategoryPageProps) {
+export default function CategoryPage({ def, group, sub = '', categories, sourceId, target, readOnly }: CategoryPageProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const base = `/source/${encodeURIComponent(sourceId)}/settings`;
-  const title = def ? t(def.labelKey) : t(`workspace.settings.group.${group}`);
+  // A deeper page (Task 5.5) names itself and the page above it.
+  const [header, setHeader] = useState<SubHeader | null>(null);
+  const label = def ? t(def.labelKey) : t(`workspace.settings.group.${group}`);
+  const title = header?.title ?? label;
   const scope = t(def?.scope === 'meshmonitor' ? 'workspace.settings.in_meshmonitor' : 'workspace.settings.on_radio');
   const viewOnly = readOnly && <span className={styles.viewOnly}>{t('workspace.settings.view_only')}</span>;
   // What saving does on this firmware (configRebootRules), as the save bar's words say it (Task 5.3).
@@ -57,10 +63,14 @@ export default function CategoryPage({ def, group, categories, sourceId, target,
     </span>
   );
 
+  const extra = header?.scope && <span>{`· ${header.scope}`}</span>;
+
   const body = def ? (
     <SettingsCategoryContext.Provider value={{ categoryId: def.id, readOnly }}>
       <Suspense fallback={<RouteLoading />}>
-        <def.component sourceId={sourceId} target={target} readOnly={readOnly} />
+        <SettingsHeaderContext.Provider value={setHeader}>
+          <def.component sourceId={sourceId} target={target} readOnly={readOnly} sub={sub} />
+        </SettingsHeaderContext.Provider>
       </Suspense>
     </SettingsCategoryContext.Provider>
   ) : group === 'modules' ? (
@@ -73,32 +83,40 @@ export default function CategoryPage({ def, group, categories, sourceId, target,
     <main className={styles.page} data-phone={isPhone || undefined}>
       {isPhone ? (
         <header className={styles.bar}>
-          <Link to={def?.group ? `${base}/${def.group}` : base} className={styles.back} data-testid="settings-back">
+          <Link to={header?.back?.to ?? (def?.group ? `${base}/${def.group}` : base)} className={styles.back} data-testid="settings-back">
             <UiIcon name="back" size={22} />
-            <span>{t('nav.settings')}</span>
+            <span>{header?.back?.label ?? t('nav.settings')}</span>
           </Link>
-          <h1 className={styles.barTitle}>{title}</h1>
-          {def && <PinButton id={def.id} name={title} />}
+          <h1 className={styles.barTitle}>{header?.phoneTitle ?? title}</h1>
+          {def && <PinButton id={def.id} name={label} />}
         </header>
       ) : (
         <header className={styles.header}>
           <div className={styles.headText}>
+            {header?.back && (
+              <Link to={header.back.to} className={styles.crumb}>
+                {header.back.label}
+                <UiIcon name="chevronRight" size={14} />
+              </Link>
+            )}
             <h1 className={styles.title}>{title}</h1>
             {def && (
               <p className={styles.scope}>
                 <span>{scope}</span>
                 {restart}
+                {extra}
                 {viewOnly}
               </p>
             )}
           </div>
-          {def && <PinButton id={def.id} name={title} />}
+          {def && <PinButton id={def.id} name={label} />}
         </header>
       )}
       {isPhone && def && (
         <p className={styles.scope}>
           <span>{scope}</span>
           {restart}
+          {extra}
           {viewOnly}
         </p>
       )}

@@ -24,7 +24,6 @@ import { usePoll } from '../../hooks/usePoll';
 import { appBasename } from '../../init';
 import { buildAdminCommandsPath } from '../../utils/adminDeepLink';
 import ModuleAvailabilityGate from '../../components/configuration/ModuleAvailabilityGate';
-import NodeIdentitySection from '../../components/configuration/NodeIdentitySection';
 import DeviceConfigSection from '../../components/configuration/DeviceConfigSection';
 import PositionConfigSection from '../../components/configuration/PositionConfigSection';
 import MQTTConfigSection from '../../components/configuration/MQTTConfigSection';
@@ -48,10 +47,8 @@ import TrafficManagementConfigSection from '../../components/configuration/Traff
 import MeshBeaconConfigSection from '../../components/configuration/MeshBeaconConfigSection';
 import SerialConfigSection from '../../components/configuration/SerialConfigSection';
 import AmbientLightingConfigSection from '../../components/configuration/AmbientLightingConfigSection';
-import SecurityConfigSection from '../../components/configuration/SecurityConfigSection';
 import PkiDmDecryptionSection from '../../components/configuration/PkiDmDecryptionSection';
 import FirmwareUpdateSection from '../../components/configuration/FirmwareUpdateSection';
-import ChannelsConfigSection from '../../components/configuration/ChannelsConfigSection';
 import BackupManagementSection from '../../components/configuration/BackupManagementSection';
 import { ImportConfigModal } from '../../components/configuration/ImportConfigModal';
 import { ExportConfigModal } from '../../components/configuration/ExportConfigModal';
@@ -112,12 +109,6 @@ const radio = ({ readOnly }: CategoryProps, render: (c: SharedDeviceConfig, canW
   <Radio render={(c) => render(c, !readOnly)} />
 );
 
-export function IdentityCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <NodeIdentitySection {...state} canWrite={canWrite} onSave={saves.owner} />
-  ));
-}
-
 export function DeviceCategory(p: CategoryProps) {
   return radio(p, ({ state, saves }, canWrite) => (
     <DeviceConfigSection {...state} canWrite={canWrite} onSave={saves.device} />
@@ -147,23 +138,6 @@ export function NetworkCategory(p: CategoryProps) {
     <ModuleAvailabilityGate available={state.supportedModules?.network} moduleName="Network">
       <NetworkConfigSection {...state} canWrite={canWrite} onSave={saves.network} />
     </ModuleAvailabilityGate>
-  ));
-}
-
-export function SecurityCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <SecurityConfigSection
-      {...strip(state, 'security')}
-      canWrite={canWrite}
-      isSaving={state.isSaving}
-      packetSignaturePolicy={state.securitySignaturePolicy}
-      setPacketSignaturePolicy={state.setSecuritySignaturePolicy}
-      loadedPacketSignaturePolicy={state.securityLoadedSignaturePolicy}
-      firmwareVersion={state.localFirmwareVersion}
-      nodeShortName={state.shortName}
-      nodeLabel={state.longName || state.shortName}
-      onSave={saves.security}
-    />
   ));
 }
 
@@ -324,22 +298,6 @@ export function AmbientLightingCategory(p: CategoryProps) {
       <AmbientLightingConfigSection {...state} {...strip(state, 'ambient')} canWrite={canWrite} onSave={saves.ambientlighting} />
     </ModuleAvailabilityGate>
   ));
-}
-
-/** Channels read the device's slots from the poll, as on today's page (App polled there too). */
-export function ChannelsCategory() {
-  const { data, refetch } = usePoll();
-  return (
-    <Radio
-      render={({ state }) => (
-        <ChannelsConfigSection
-          channels={data?.channels ?? []}
-          onChannelsUpdated={() => void refetch()}
-          aeadSupported={state.supportedModules?.aeadChannels === true}
-        />
-      )}
-    />
-  );
 }
 
 /** Today's Import/Export section (reload, import, export, what changed) and the device backups. */
