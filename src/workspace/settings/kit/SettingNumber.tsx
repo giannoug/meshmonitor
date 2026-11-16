@@ -17,9 +17,12 @@ export interface SettingNumberProps {
   max?: number;
   step?: number;
   readOnly?: boolean;
+  /** Values outside min–max that are still valid (today's hop limit 0). */
+  alsoValid?: readonly number[];
+  zeroHint?: string;
 }
 
-export default function SettingNumber({ value, onChange, min, max, step = 1, readOnly }: SettingNumberProps) {
+export default function SettingNumber({ value, onChange, min, max, step = 1, readOnly, alsoValid, zeroHint }: SettingNumberProps) {
   const { t } = useTranslation();
   const row = useSettingRow();
   const off = useReadOnly(readOnly);
@@ -34,6 +37,8 @@ export default function SettingNumber({ value, onChange, min, max, step = 1, rea
       max={max}
       step={step}
       integer={Number.isInteger(step)}
+      alsoValid={alsoValid}
+      zeroHint={zeroHint}
       disabled={off}
       onChange={onChange}
     />

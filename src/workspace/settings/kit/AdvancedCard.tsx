@@ -11,7 +11,8 @@ import { useUserPreference } from '../../prefs/useUserPreferences';
 import { useSettingsCategory } from './useFieldRegistry';
 import styles from './kit.module.css';
 
-export default function AdvancedCard({ children }: { children: ReactNode }) {
+/** `count`: how many settings it holds, shown as "Advanced · 7 settings" (b-set-p2). */
+export default function AdvancedCard({ children, count }: { children: ReactNode; count?: number }) {
   const { t } = useTranslation();
   const { authStatus } = useAuth();
   const categoryId = useSettingsCategory()?.categoryId ?? '';
@@ -27,7 +28,7 @@ export default function AdvancedCard({ children }: { children: ReactNode }) {
     <section className={styles.group}>
       <div className={styles.card}>
         <button type="button" className={styles.advancedHead} aria-expanded={open} onClick={toggle}>
-          <span>{t('workspace.settings.advanced')}</span>
+          <span>{count === undefined ? t('workspace.settings.advanced') : t('workspace.settings.advanced_count', { count })}</span>
           <UiIcon name={open ? 'chevronDown' : 'chevronRight'} size={18} />
         </button>
         {open && children}

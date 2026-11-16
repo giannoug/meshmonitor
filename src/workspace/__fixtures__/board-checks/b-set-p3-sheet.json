@@ -1,18 +1,17 @@
 {
   "must": [
-    "Modem preset",
+    "Modem Preset",
     "Every node on your mesh must use the same preset.",
-    "Long Fast",
-    "Default for most meshes",
-    "Long Moderate",
-    "Long Slow",
-    "Medium Slow",
-    "Medium Fast",
+    "LONG_FAST",
+    "Long Range - Fast (Default)",
+    "LONG_MODERATE",
+    "LONG_SLOW",
+    "MEDIUM_SLOW",
+    "MEDIUM_FAST",
     "Current value on the radio",
-    "Short Slow",
-    "Short Fast",
-    "Short Turbo",
-    "Not legal in every region"
+    "SHORT_SLOW",
+    "SHORT_FAST",
+    "SHORT_TURBO"
   ],
   "absent": [
     "⌘K"

@@ -43,6 +43,16 @@ export default function CategoryPage({ def, group, categories, sourceId, target,
   const title = def ? t(def.labelKey) : t(`workspace.settings.group.${group}`);
   const scope = t(def?.scope === 'meshmonitor' ? 'workspace.settings.in_meshmonitor' : 'workspace.settings.on_radio');
   const viewOnly = readOnly && <span className={styles.viewOnly}>{t('workspace.settings.view_only')}</span>;
+  // What saving does on this firmware (configRebootRules), as the save bar's words say it (Task 5.3).
+  const config = useSharedDeviceConfig();
+  const firmware = config && !config.state.loading ? config.state.localFirmwareVersion : undefined;
+  const rule = def?.saveSection && firmware !== undefined ? rebootExpectation(def.saveSection, firmware) : 'never';
+  const restart = rule !== 'never' && (
+    <span>
+      {'· '}
+      {t(`workspace.settings.scope_${rule === 'always' ? 'restarts' : 'may_restart'}${firmware && !isPhone ? '_fw' : ''}`, { version: firmware })}
+    </span>
+  );
 
   const body = def ? (
     <SettingsCategoryContext.Provider value={{ categoryId: def.id, readOnly }}>
@@ -72,6 +82,7 @@ export default function CategoryPage({ def, group, categories, sourceId, target,
           {def && (
             <p className={styles.scope}>
               <span>{scope}</span>
+              {restart}
               {viewOnly}
             </p>
           )}
@@ -80,6 +91,7 @@ export default function CategoryPage({ def, group, categories, sourceId, target,
       {isPhone && def && (
         <p className={styles.scope}>
           <span>{scope}</span>
+          {restart}
           {viewOnly}
         </p>
       )}

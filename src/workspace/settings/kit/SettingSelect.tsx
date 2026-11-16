@@ -13,6 +13,9 @@ import styles from './kit.module.css';
 export interface SettingSelectOption {
   value: string;
   label: string;
+  /** A second line under the option in the phone sheet (b-set-p3). */
+  help?: string;
+  disabled?: boolean;
 }
 
 export interface SettingSelectProps {
@@ -20,9 +23,11 @@ export interface SettingSelectProps {
   options: SettingSelectOption[];
   onChange(value: string): void;
   readOnly?: boolean;
+  /** A line above the options in the phone sheet (b-set-p3). */
+  note?: string;
 }
 
-export default function SettingSelect({ value, options, onChange, readOnly }: SettingSelectProps) {
+export default function SettingSelect({ value, options, onChange, readOnly, note }: SettingSelectProps) {
   const row = useSettingRow();
   const off = useReadOnly(readOnly);
   const isPhone = useIsPhone();
@@ -40,7 +45,7 @@ export default function SettingSelect({ value, options, onChange, readOnly }: Se
         onChange={(e) => onChange(e.target.value)}
       >
         {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
+          <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>
         ))}
       </select>
     );
@@ -61,6 +66,7 @@ export default function SettingSelect({ value, options, onChange, readOnly }: Se
         <UiIcon name="chevronRight" size={18} />
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title={row?.label ?? ''} side="bottom">
+        {note && <p className={styles.sheetNote}>{note}</p>}
         <div role="radiogroup" aria-label={row?.label} className={styles.options}>
           {options.map((o) => (
             <label key={o.value} className={styles.option}>
@@ -69,12 +75,16 @@ export default function SettingSelect({ value, options, onChange, readOnly }: Se
                 className={styles.radio}
                 name={row?.inputId}
                 checked={o.value === value}
+                disabled={o.disabled}
                 onChange={() => {
                   onChange(o.value);
                   setOpen(false);
                 }}
               />
-              <span>{o.label}</span>
+              <span className={styles.optionText}>
+                <span>{o.label}</span>
+                {o.help && <span className={styles.optionHelp}>{o.help}</span>}
+              </span>
             </label>
           ))}
         </div>

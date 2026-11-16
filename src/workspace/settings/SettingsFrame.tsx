@@ -12,18 +12,25 @@
  *
  * Ruling DG: the device's configuration is loaded once here, for a viewer who
  * may open its radio categories (today's Configuration tab load), and shared
- * through `useSharedDeviceConfig()` (sharedDeviceConfig.ts); no category page loads its own. Its
- * saves are today's handlers: the Classic sections a category shows until
- * Tasks 5.3–5.8 save through today's SaveBar and reboot notice.
+ * through `useSharedDeviceConfig()` (sharedDeviceConfig.ts); no category page loads its own.
+ *
+ * Task 5.3: radio edits queue in the frame's one save queue (useRadioSaveQueue)
+ * and save from RadioSaveBar, with one reboot notice; the Classic sections a
+ * queued category still shows register with a SaveBar nobody draws, so the
+ * user sees one save bar. Security and MQTT keep today's own save (radioSections.ts),
+ * as do the In MeshMonitor categories. With edits queued, a link out of the
+ * device's settings asks first (LeaveGuard).
  */
-import { useState, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import RouteLoading from '../../components/RouteLoading/RouteLoading';
 import { RebootModal } from '../../components/RebootModal';
 import { SaveBar } from '../../components/SaveBar';
 import { useAuth } from '../../contexts/AuthContext';
 import { DataProvider } from '../../contexts/DataContext';
-import { SaveBarProvider } from '../../contexts/SaveBarContext';
+import { SaveBarProvider, useSaveBarContext } from '../../contexts/SaveBarContext';
+import { NumberInputScope } from '../../components/common/NumberInputScope';
+import { useNumberInputScope } from '../../components/common/numberInputScopeContext';
 import { SettingsProvider } from '../../contexts/SettingsContext';
 import { SourceProvider } from '../../contexts/SourceContext';
 import type { DashboardSource } from '../../hooks/useDashboardData';
@@ -37,6 +44,10 @@ import CategoryPage from './CategoryPage';
 import SettingsList from './SettingsList';
 import { DeviceConfigContext } from './sharedDeviceConfig';
 import { useVisibleCategories } from './useVisibleCategories';
+import { isQueued } from './radioSections';
+import { RadioSaveQueueContext, useRadioSaveQueueState } from './useRadioSaveQueue';
+import RadioSaveBar from './RadioSaveBar';
+import LeaveGuard from './LeaveGuard';
 
 /** Settings always configure the device this source is connected to, until Task 5.9 adds the remote target. */
 const LOCAL: CategoryTarget = { kind: 'local' };
@@ -96,21 +107,66 @@ function Frame({ sourceId, source, path: rest }: SettingsFrameProps) {
     page = <StateView kind="noPermission" />;
   }
 
-  return radio ? <RadioConfig sourceId={sourceId}>{page}</RadioConfig> : page;
+  if (!radio) return page;
+  return (
+    <RadioConfig sourceId={sourceId} deviceName={source.name} base={base} queued={isQueued(def?.saveSection)} compact={!rest && isPhone}>
+      {page}
+    </RadioConfig>
+  );
 }
 
-/** The one useDeviceConfigState of this device (Ruling DG), with today's saves and reboot notice. */
-function RadioConfig({ sourceId, children }: { sourceId: string; children: ReactNode }) {
+type Reboot = 'always' | 'possible';
+const stronger = (a: Reboot | null, b: Reboot): Reboot => (a === 'always' ? 'always' : b);
+
+interface RadioConfigProps {
+  sourceId: string;
+  deviceName: string;
+  base: string;
+  /** The open category saves through the queue: its Classic section's own SaveBar entry is not drawn. */
+  queued: boolean;
+  compact: boolean;
+  children: ReactNode;
+}
+
+/** The one useDeviceConfigState of this device (Ruling DG), its save queue and one reboot notice. */
+function RadioConfig({ sourceId, deviceName, base, queued, compact, children }: RadioConfigProps) {
   const [refresh, setRefresh] = useState(0);
-  const [reboot, setReboot] = useState<'always' | 'possible' | null>(null);
+  const [reboot, setReboot] = useState<Reboot | null>(null);
+  // While the queue saves, reboot signals collect here and open one modal at the end.
+  const batch = useRef<{ e: Reboot | null } | null>(null);
   const state = useDeviceConfigState(sourceId, refresh);
   // App's handler: one modal while several saves land, keeping the stronger expectation.
   const saves = useDeviceConfigSaves(state, {
-    onRebootExpected: (e) => setReboot((prev) => (prev === 'always' ? 'always' : e)),
+    onRebootExpected: (e) => {
+      if (batch.current) batch.current.e = stronger(batch.current.e, e);
+      else setReboot((prev) => stronger(prev, e));
+    },
   });
+  const runBatch = useCallback(async <T,>(fn: () => Promise<T>): Promise<T> => {
+    batch.current = { e: null };
+    try {
+      return await fn();
+    } finally {
+      const e = batch.current?.e;
+      batch.current = null;
+      if (e) setReboot((prev) => stronger(prev, e));
+    }
+  }, []);
+  // Every number field on a radio page reports here, so an invalid one holds the queue's Save (#5649).
+  const numbers = useNumberInputScope();
+  const config = { state, saves };
+  const queue = useRadioSaveQueueState(config, { numberScope: numbers, runBatch });
+  // Today's SaveBar, drawn for Security, MQTT and the rest: one bar at a time.
+  const classicDirty = [...useSaveBarContext().sections.values()].some((s) => s.hasChanges);
   return (
-    <DeviceConfigContext.Provider value={{ state, saves }}>
-      {children}
+    <DeviceConfigContext.Provider value={config}>
+      <RadioSaveQueueContext.Provider value={queue}>
+        <NumberInputScope scope={numbers}>
+          {queued ? <SaveBarProvider>{children}</SaveBarProvider> : children}
+        </NumberInputScope>
+        {!classicDirty && <RadioSaveBar deviceName={deviceName} compact={compact} />}
+        <LeaveGuard base={base} />
+      </RadioSaveQueueContext.Provider>
       <RebootModal
         isOpen={reboot !== null}
         expectation={reboot ?? 'always'}

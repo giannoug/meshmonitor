@@ -26,7 +26,6 @@ import { buildAdminCommandsPath } from '../../utils/adminDeepLink';
 import ModuleAvailabilityGate from '../../components/configuration/ModuleAvailabilityGate';
 import NodeIdentitySection from '../../components/configuration/NodeIdentitySection';
 import DeviceConfigSection from '../../components/configuration/DeviceConfigSection';
-import LoRaConfigSection from '../../components/configuration/LoRaConfigSection';
 import PositionConfigSection from '../../components/configuration/PositionConfigSection';
 import MQTTConfigSection from '../../components/configuration/MQTTConfigSection';
 import NeighborInfoSection from '../../components/configuration/NeighborInfoSection';
@@ -116,12 +115,6 @@ const radio = ({ readOnly }: CategoryProps, render: (c: SharedDeviceConfig, canW
 export function IdentityCategory(p: CategoryProps) {
   return radio(p, ({ state, saves }, canWrite) => (
     <NodeIdentitySection {...state} canWrite={canWrite} onSave={saves.owner} />
-  ));
-}
-
-export function LoraCategory(p: CategoryProps) {
-  return radio(p, ({ state, saves }, canWrite) => (
-    <LoRaConfigSection {...state} canWrite={canWrite} firmwareVersion={state.localFirmwareVersion} onSave={saves.lora} />
   ));
 }
 

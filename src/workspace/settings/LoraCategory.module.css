@@ -1,0 +1,17 @@
+/* LoRa's warnings and notes inside a row's help (b-set-d1). */
+.warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 6px;
+  color: var(--color-warning);
+}
+
+.block {
+  display: block;
+  margin-top: 4px;
+}
+
+.danger {
+  color: var(--color-error);
+}

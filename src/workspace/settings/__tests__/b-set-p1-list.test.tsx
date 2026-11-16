@@ -3,15 +3,15 @@
  *
  * Board b-set-p1-list (phone): a device's settings list is a page, with Back
  * to Home, PINNED, ON THE RADIO (Identity, LoRa, Channels, Security, Device ›,
- * Modules ›, Maintenance ›) and IN MESHMONITOR. The search field is Task 5.4's,
- * the save bar's Review Task 5.3's.
+ * Modules ›, Maintenance ›) and IN MESHMONITOR, and with a radio edit queued
+ * the one-line save bar with Review (Task 5.3). The search field is Task 5.4's.
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { SOURCE_IDS } from '../../__fixtures__/athens';
-import { g2, mqtt, renderSettings } from './renderSettings';
+import { g2, goTo, mqtt, renderSettings } from './renderSettings';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
@@ -24,9 +24,14 @@ const list = () => screen.findByRole('navigation', { name: 'Settings' }, { timeo
 
 describe('b-set-p1-list', () => {
   it('b-set-p1-list shows the board', async () => {
-    const { container } = renderSettings(`${g2}/settings`, { phone: true, fixtures: pins });
+    const { container } = renderSettings(`${g2}/settings/lora`, { phone: true, fixtures: pins });
+    const hops = await screen.findByLabelText('Hop Limit', {}, { timeout: 5000 });
+    await waitFor(() => expect(hops).toHaveValue(3));
+    fireEvent.change(hops, { target: { value: '4' } });
+    goTo(`${g2}/settings`);
     await within(await list()).findByText('Store & Forward');
-    expectBoard('b-set-p1-list', container, { staged: ['Search settings', 'Review'] });
+    expect(screen.getByRole('region', { name: 'Unsaved radio changes' })).toHaveTextContent('1 unsaved change');
+    expectBoard('b-set-p1-list', container, { staged: ['Search settings'] });
     const pinned = within(await list()).getByRole('list', { name: 'Pinned' });
     expect(within(pinned).getByRole('link', { name: 'MQTT' })).toHaveAttribute('href', `${g2}/settings/modules/mqtt`);
     expect(screen.queryByTestId('page-app')).toBeNull();

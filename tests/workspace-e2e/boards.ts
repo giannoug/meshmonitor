@@ -9,6 +9,7 @@ import { captureOn } from '../../src/workspace/__fixtures__/packets';
 import { usersFixtures } from '../../src/workspace/__fixtures__/users';
 import type { FixtureHandler } from '../../src/workspace/__fixtures__/fixtureApi';
 import { deviceConfigFixtures } from '../../src/workspace/__fixtures__/deviceConfig';
+import { g2deviceConfigWith } from '../../src/workspace/settings/__tests__/radioFixtures';
 
 export interface Board {
   id: string;
@@ -27,6 +28,9 @@ const PINS: Board['fixtures'] = {
     data: { preferences: { ...athensFixture.userPreferences, 'settings.pins': ['modules/mqtt', 'modules/storeforward'] } },
   }),
 };
+
+/** Station G2 holding Medium Fast, so a Long Fast edit reads as on b-set-d1 / d3 / p2. */
+const MEDIUM_FAST: Board['fixtures'] = { ...PINS, ...g2deviceConfigWith({ modemPreset: 4 }) };
 
 export const BOARDS: Board[] = [
   // Task 1.6 built the frame (rail + sidebar); Task 2.3 the channel list and the open channel.
@@ -1046,13 +1050,84 @@ export const BOARDS: Board[] = [
   },
   // Task 5.2: the device settings frame, its list and the Device / Modules indexes.
   // Station G2's device configuration; the Pinned group shows from the user's pins (Task 5.4 adds pinning).
-  { id: 'b-set-p1-list', size: 'phone', path: '/source/src-g2/settings', fixtures: PINS },
+  // Task 5.3: with a LoRa edit queued, the list shows the one-line save bar.
+  {
+    id: 'b-set-p1-list',
+    size: 'phone',
+    path: '/source/src-g2/settings/lora',
+    fixtures: PINS,
+    setup: async (page) => {
+      await stepHops(page);
+      await page.getByTestId('settings-back').click();
+      await page.getByRole('region', { name: 'Unsaved radio changes' }).getByText('1 unsaved change').waitFor();
+    },
+  },
   { id: '12-06-device-index', size: 'desktop', path: '/source/src-g2/settings/device', fixtures: PINS },
   { id: '12-22-device-index', size: 'phone', path: '/source/src-g2/settings/device', fixtures: deviceConfigFixtures },
   { id: 'b-set-d2-modules', size: 'desktop', path: '/source/src-g2/settings/modules', fixtures: PINS },
   { id: '12-07-modules-index', size: 'desktop', path: '/source/src-g2/settings/modules', fixtures: PINS },
   { id: 'b-set-p4-modules', size: 'phone', path: '/source/src-g2/settings/modules', fixtures: deviceConfigFixtures },
+  // Task 5.3: LoRa, the radio save bar and Review. Station G2 holds Medium Fast here, so the edit reads as on the boards.
+  { id: 'b-set-d1-lora', size: 'desktop', path: '/source/src-g2/settings/lora', fixtures: MEDIUM_FAST, setup: queueLoraAndDevice },
+  {
+    id: 'b-set-d3-review',
+    size: 'desktop',
+    path: '/source/src-g2/settings/lora',
+    fixtures: MEDIUM_FAST,
+    setup: async (page) => {
+      await queueLoraAndDevice(page);
+      await page.getByRole('region', { name: 'Unsaved radio changes' }).getByRole('button', { name: 'Review' }).click();
+      await page.getByRole('dialog', { name: 'Review changes' }).waitFor();
+    },
+  },
+  {
+    id: 'b-set-p2-lora',
+    size: 'phone',
+    path: '/source/src-g2/settings/lora',
+    fixtures: MEDIUM_FAST,
+    setup: async (page) => {
+      await pickLongFast(page);
+      await stepHops(page);
+      await page.getByRole('region', { name: 'Unsaved radio changes' }).waitFor();
+    },
+  },
+  {
+    // US, where Short Turbo is legal on 2.7.15 (EU_868 hides it, as today).
+    id: 'b-set-p3-sheet',
+    size: 'phone',
+    path: '/source/src-g2/settings/lora',
+    fixtures: { ...deviceConfigFixtures, ...g2deviceConfigWith({ modemPreset: 4, region: 1 }) },
+    setup: async (page) => {
+      await pickLongFast(page);
+      await page.getByRole('button', { name: 'Modem Preset' }).click();
+      await page.getByRole('dialog', { name: 'Modem Preset' }).waitFor();
+    },
+  },
 ];
+
+/** Phone: one step up on Hop Limit. */
+async function stepHops(page: Page) {
+  await page.locator('[data-setting-id="lora.hopLimit"]').getByRole('button', { name: 'Increase' }).click();
+}
+
+/** Phone: Long Fast from the preset sheet. */
+async function pickLongFast(page: Page) {
+  await page.getByRole('button', { name: 'Modem Preset' }).click();
+  await page.getByRole('dialog', { name: 'Modem Preset' }).getByRole('radio', { name: /^LONG_FAST/ }).click();
+  await page.getByRole('dialog').waitFor({ state: 'detached' });
+}
+
+/** Desktop: Long Fast and hop limit 4 on LoRa, Local only on Device, then back to LoRa. */
+async function queueLoraAndDevice(page: Page) {
+  await page.getByLabel('Modem Preset').selectOption('0');
+  await page.getByLabel('Hop Limit').fill('4');
+  const nav = page.getByRole('navigation', { name: 'Settings' });
+  await nav.getByRole('link', { name: 'Device', exact: true }).click();
+  await page.getByRole('main').getByRole('link', { name: /^Device/ }).first().click();
+  await page.getByLabel(/Rebroadcast Mode/).selectOption('2');
+  await nav.getByRole('link', { name: 'LoRa' }).click();
+  await page.getByRole('region', { name: 'Unsaved radio changes' }).getByText(/3 changes in LoRa and Device/).waitFor();
+}
 
 const ON_24H = { enabled: true, lookbackHours: 24 };
 const CANDIDATE_SITE = {

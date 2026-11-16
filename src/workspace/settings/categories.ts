@@ -11,7 +11,7 @@
  *   Notifications, gated as `settingsNavItems(mode: 'source')` and App's tabs.
  *
  * Until Tasks 5.3–5.8 build each page, a category's `component` renders
- * today's section for it (`ClassicCategories`).
+ * today's section for it (`ClassicCategories`); LoRa is built (Task 5.3).
  */
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import type { TFunction } from 'i18next';
@@ -67,14 +67,14 @@ const canReadSettings = (c: GateCtx) => c.hasPermission('settings', 'read', { an
 const radio = (
   id: string,
   labelKey: string,
-  component: ClassicName,
+  component: ClassicName | CategoryDef['component'],
   extra: Partial<Pick<CategoryDef, 'group' | 'saveSection' | 'gate'>> = {},
 ): CategoryDef => ({
   id,
   scope: 'radio',
   labelKey,
   sourceTypes: RADIO,
-  component: classic(component),
+  component: typeof component === 'string' ? classic(component) : component,
   ...extra,
   gate: (c) => canReadConfig(c) && (extra.gate?.(c) ?? true),
 });
@@ -99,7 +99,7 @@ const meshmonitor = (
 
 export const CATEGORIES: CategoryDef[] = [
   radio('identity', 'configuration.node_identity', 'IdentityCategory', { saveSection: 'owner' }),
-  radio('lora', 'workspace.settings.label.lora', 'LoraCategory', { saveSection: 'lora' }),
+  radio('lora', 'workspace.settings.label.lora', lazy(() => import('./LoraCategory.tsx')), { saveSection: 'lora' }),
   radio('channels', 'channels.title', 'ChannelsCategory'),
   radio('security', 'security_config.title', 'SecurityCategory', { saveSection: 'security' }),
   radio('device/device', 'workspace.settings.label.device', 'DeviceCategory', { group: 'device', saveSection: 'device' }),
