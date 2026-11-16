@@ -9020,7 +9020,7 @@
   "workspace.settings.channels.channel": "Channel",
   "workspace.settings.channels.position_mqtt": "Position and MQTT",
   "workspace.settings.channels.key_size": "Key size",
-  "workspace.settings.channels.key_size_help": "Generate makes a new random key of this size",
+  "workspace.settings.channels.key_size_help": "Generate makes a new random key of this size (AES-128 or AES-256)",
   "workspace.settings.channels.bytes_one": "{{count}} byte",
   "workspace.settings.channels.bytes_other": "{{count}} bytes",
   "workspace.settings.channels.aead_asks": "Turning it on asks you to confirm.",
@@ -9040,6 +9040,7 @@
   "workspace.settings.channels.step_syncing": "Syncing",
   "workspace.settings.channels.step_verifying": "Verifying",
   "workspace.settings.channels.step_complete": "Complete",
-  "workspace.settings.channels.import_note": "Importing replaces the channels on {{device}} and restarts it (offline 30–60 s). Sends nothing on the mesh.",
+  "workspace.settings.channels.import_note": "Importing replaces the channels on {{device}} and restarts it (offline 30–60 s).",
+  "workspace.settings.channels.new_not_saved": "Not saved to the device yet",
   "workspace.settings.channels.meshcore_note": "On {{device}} the same import takes one channel into a slot you pick: Add channel › {{path}}."
 }

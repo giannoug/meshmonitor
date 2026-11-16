@@ -70,7 +70,8 @@ const FIELDS: Array<[keyof ChannelDraft, string]> = [
   ['downlinkEnabled', 'channels_config.downlink_enabled'],
   ['useAead', 'channels_config.aead_label'],
 ];
-const KEY_SIZES = [1, 16, 32];
+// Today's editor generates 32 bytes; a 1-byte key is an index into the public default key, never a secret (Ruling 5.5 I1).
+const KEY_SIZES = [16, 32];
 
 export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSupported, onChannelsUpdated }: ChannelEditPageProps) {
   const { t } = useTranslation();
@@ -108,7 +109,11 @@ export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSu
     scope: t('workspace.settings.channels.edit_scope', { slot, device: sourceName }),
   });
   useClaimDock(dirty && !readOnly);
-  usePendingEdit(dirty && !readOnly ? { scope: `${base}/${slot}`, title, changes: changed.map(([, label]) => t(label)), discard } : null);
+  usePendingEdit(
+    dirty && !readOnly
+      ? { scope: `${base}/${slot}`, title, changes: isNew ? [] : changed.map(([, label]) => t(label)), note: isNew ? t('workspace.settings.channels.new_not_saved') : undefined, discard }
+      : null,
+  );
 
   const keyValid = isValidChannelKey(draft.psk, 'base64', PSK_ALLOWED_BYTES);
   const hasKey = draft.psk !== '';
@@ -238,6 +243,7 @@ export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSu
             <span className={styles.infoText}>
               <span className={styles.infoLabel}>{t('channels_config.delete_confirm')}</span>
               <span className={styles.infoHelp}>{t('workspace.settings.channels.delete_help', { slot })}</span>
+              <SendsLine>{t('workspace.settings.savebar.sends_nothing')}</SendsLine>
             </span>
             <button type="button" className={`${styles.button} ${styles.dangerButton}`} disabled={readOnly} onClick={() => setSheet('delete')}>
               {t('channels_config.delete_confirm')}
@@ -341,6 +347,7 @@ export default function ChannelEditPage({ base, sourceId, slot, channels, aeadSu
           <>
             <p className={styles.para}>{t('channels_config.delete_message')}</p>
             <p className={styles.para}><strong>{name}</strong></p>
+            <SendsLine>{t('workspace.settings.savebar.sends_nothing')}</SendsLine>
           </>
         }
         confirmLabel={t('channels_config.delete_confirm')}

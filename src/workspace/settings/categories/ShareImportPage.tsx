@@ -19,6 +19,7 @@ import { IMPORT_STEPS, regionNames, runMeshtasticImport, type ImportStep } from 
 import { ROLE_LABEL_KEYS } from '../../../components/configuration/channelSlots';
 import { useSource } from '../../../contexts/SourceContext';
 import { useDashboardSources } from '../../../hooks/useDashboardData';
+import { useToast } from '../../../components/ToastContainer';
 import apiService from '../../../services/api';
 import type { Channel } from '../../../types/device';
 import { MODEM_PRESET_NAMES } from '../../../utils/loraFrequency';
@@ -45,14 +46,17 @@ export interface ShareImportPageProps {
   base: string;
   sourceId: string;
   channels: Channel[];
+  /** Refreshes the channel list after an import, as ConfigurationTab does. */
+  onImported(): void;
 }
 
 /** A key in a table cell: its ends only. */
 const shortKey = (psk: string) => (psk.length > 10 ? `${psk.slice(0, 4)}…${psk.slice(-3)}` : psk);
 
-export default function ShareImportPage({ base, sourceId, channels }: ShareImportPageProps) {
+export default function ShareImportPage({ base, sourceId, channels, onImported }: ShareImportPageProps) {
   const { t } = useTranslation();
   const { sourceName } = useSource();
+  const { showToast } = useToast();
   const readOnly = useReadOnly();
   const state = useSharedDeviceConfig()?.state;
   const meshcore = useDashboardSources().data?.find((s) => s.type === 'meshcore');
@@ -130,6 +134,7 @@ export default function ShareImportPage({ base, sourceId, channels }: ShareImpor
     if (!decoded || !input) return;
     setImporting(true);
     setImportError(null);
+    setStep(null);
     setSeen([]);
     try {
       await runMeshtasticImport({
@@ -143,9 +148,9 @@ export default function ShareImportPage({ base, sourceId, channels }: ShareImpor
           setStatus(elapsed !== undefined ? t('import_config.status_rebooting_elapsed', { elapsed }) : t(`import_config.status_${s}`));
         },
       });
-      setDecoded(null);
-      setInput('');
-      setStep(null);
+      // Today's ImportConfigModal success: the toast and one channel refresh (ConfigurationTab's onImportSuccess). The steps stay, ending on Complete.
+      showToast(t('config.import_success'), 'success');
+      onImported();
     } catch (err) {
       setImportError((err instanceof Error && err.message) || t('import_config.error_import_failed'));
     } finally {
@@ -281,7 +286,7 @@ export default function ShareImportPage({ base, sourceId, channels }: ShareImpor
                 </span>
               </label>
             )}
-            {importing && (
+            {(importing || step === 'complete') && (
               <div className={styles.progress} role="status">
                 <h3 className={styles.subTitle}>{t('workspace.settings.channels.applying', { device: sourceName })}</h3>
                 <ol className={styles.steps}>
@@ -306,6 +311,7 @@ export default function ShareImportPage({ base, sourceId, channels }: ShareImpor
               </button>
             </div>
             <p className={styles.infoHelp}>{t('workspace.settings.channels.import_note', { device: sourceName })}</p>
+            <SendsLine>{t('workspace.settings.savebar.sends_nothing')}</SendsLine>
           </>
         )}
         {meshcore && (

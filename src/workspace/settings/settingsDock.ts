@@ -16,6 +16,8 @@ export interface PendingEdit {
   title: string;
   /** Today's label of each changed value. */
   changes: string[];
+  /** Said instead of a count and the field list (a new channel has no "before"). */
+  note?: string;
   discard(): void;
 }
 
@@ -37,7 +39,7 @@ export function usePendingEdit(edit: PendingEdit | null): void {
   const dock = useContext(SettingsDockContext);
   const latest = useRef(edit);
   latest.current = edit;
-  const key = edit ? JSON.stringify([edit.scope, edit.title, edit.changes]) : '';
+  const key = edit ? JSON.stringify([edit.scope, edit.title, edit.changes, edit.note]) : '';
   useEffect(() => {
     if (!dock || !key) return;
     const e = latest.current!;

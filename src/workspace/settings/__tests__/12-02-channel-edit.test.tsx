@@ -12,7 +12,7 @@ import type { ReactNode } from 'react';
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
-import { g2, goTo, realUrl, renderSettings } from './renderSettings';
+import { g2, realUrl, renderSettings } from './renderSettings';
 import { boardChannels, g2With, pollWith } from './categoryFixtures';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
@@ -141,6 +141,42 @@ describe('12-02-channel-edit', () => {
     renderSettings(`${g2}/settings/channels/3`, { fixtures: fixtures() });
     expect(await screen.findByLabelText('Channel Name', {}, { timeout: 5000 })).toHaveValue('Channel 3');
     expect(await dock()).toHaveTextContent('New channel');
-    goTo(`${g2}/settings/channels`);
+  });
+
+  it('leaving a new channel asks first and calls it new, with no count or field list', async () => {
+    renderSettings(`${g2}/settings/channels/3`, { fixtures: fixtures(), phone: true });
+    await screen.findByLabelText('Channel Name', {}, { timeout: 5000 });
+    fireEvent.click(screen.getByTestId('settings-back'));
+    const sheet = await screen.findByRole('dialog', { name: 'Discard unsaved changes?' });
+    expect(sheet).toHaveTextContent('New channel');
+    expect(sheet).toHaveTextContent('Not saved to the device yet');
+    expect(sheet).not.toHaveTextContent(/0 changes|, not saved/);
+  });
+
+  it('Generate never makes a 1-byte key: 1 byte is not offered, and LongFast (AQ==) generates 32 bytes', async () => {
+    renderSettings(`${g2}/settings/channels/0`, { fixtures: fixtures() });
+    const name = await screen.findByLabelText('Channel Name', {}, { timeout: 5000 });
+    await waitFor(() => expect(name).toHaveValue('LongFast'));
+    const size = screen.getByLabelText('Key size');
+    expect(within(size).queryByRole('option', { name: '1 byte' })).toBeNull();
+    expect(size).toHaveValue('32');
+    const key = screen.getByLabelText('Pre-Shared Key (PSK)');
+    expect(key).toHaveValue('AQ==');
+    for (const bytes of [32, 16]) {
+      fireEvent.change(size, { target: { value: String(bytes) } });
+      fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+      const value = (key as HTMLInputElement).value;
+      expect(value).not.toBe('AA==');
+      expect(atob(value)).toHaveLength(bytes);
+    }
+  });
+
+  it('Delete says it sends nothing on the mesh, on the row and in its confirm', async () => {
+    renderSettings(`${g2}/settings/channels/2`, { fixtures: fixtures() });
+    await nameField();
+    const row = screen.getByRole('button', { name: 'Delete channel and messages' }).closest('section')!;
+    expect(row).toHaveTextContent('Sends nothing on the mesh');
+    fireEvent.click(screen.getByRole('button', { name: 'Delete channel and messages' }));
+    expect(await screen.findByRole('dialog', { name: 'Delete channel 2?' })).toHaveTextContent('Sends nothing on the mesh');
   });
 });

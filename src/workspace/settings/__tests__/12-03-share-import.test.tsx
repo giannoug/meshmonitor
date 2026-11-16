@@ -11,8 +11,9 @@ import type { ReactNode } from 'react';
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
-import { g2, renderSettings } from './renderSettings';
+import { fetched, g2, renderSettings } from './renderSettings';
 import { boardChannels, pollWith } from './categoryFixtures';
+import { athensFixture } from '../../__fixtures__/athens';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
@@ -53,6 +54,8 @@ async function decode() {
   await screen.findByText('Coast');
 }
 
+const sourcePolls = () => fetched().filter((u) => u.includes('/api/poll?sourceId=src-g2')).length;
+
 describe('12-03-share-import', () => {
   it('12-03-share-import shows the board', async () => {
     vi.spyOn(navigator, 'platform', 'get').mockReturnValue('MacIntel');
@@ -78,6 +81,36 @@ describe('12-03-share-import', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /gauntlet/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /LoRa Configuration/ }));
     await waitFor(() => expect(encodes.at(-1)).toEqual({ channelIds: [0, 2], includeLoraConfig: false, sourceId: 'src-g2' }));
+  });
+
+  it('a finished import shows today\'s toast and refreshes the channel list', async () => {
+    // The device holds Coast in slot 3 once the import has gone through.
+    let imported = false;
+    renderSettings(`${g2}/settings/channels/share`, {
+      fixtures: {
+        ...fixtures,
+        'GET /api/poll': () => ({ ...athensFixture.poll, channels: imported ? [...boardChannels, { ...boardChannels[1], id: 3, name: 'Coast' }] : boardChannels }),
+        'POST /api/channels/import-config': () => {
+          imported = true;
+          return { success: true, requiresReboot: false, imported: { channels: 2, channelDetails: [], loraConfig: true } };
+        },
+      },
+    });
+    await decode();
+    const before = sourcePolls();
+    fireEvent.click(screen.getByRole('button', { name: 'Import Selected' }));
+    expect(await screen.findByText('Configuration imported successfully', {}, { timeout: 10000 })).toBeInTheDocument();
+    // The refresh comes with the toast, not on the next 5 s poll.
+    expect(await screen.findByRole('checkbox', { name: /Slot 3 · Coast/ }, { timeout: 1000 })).toBeInTheDocument();
+    expect(sourcePolls()).toBeGreaterThan(before);
+    expect(screen.getByText('Complete')).toBeInTheDocument();
+  }, 15000);
+
+  it('Import Selected says it sends nothing on the mesh', async () => {
+    renderSettings(`${g2}/settings/channels/share`, { fixtures });
+    await decode();
+    const card = screen.getByRole('region', { name: 'Import' });
+    expect(within(card).getByText('Sends nothing on the mesh')).toBeInTheDocument();
   });
 
   it('Import sends today\'s one import request for the pasted URL', async () => {

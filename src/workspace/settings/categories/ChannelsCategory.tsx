@@ -54,7 +54,7 @@ export default function ChannelsCategory({ sourceId, sub = '' }: CategoryProps) 
   if (!config || config.state.loading || !data) return <StateView kind="loading" />;
   const channels = data.channels ?? [];
   const refresh = () => void refetch();
-  if (sub === 'share') return <ShareImportPage base={base} sourceId={sourceId} channels={channels} />;
+  if (sub === 'share') return <ShareImportPage base={base} sourceId={sourceId} channels={channels} onImported={refresh} />;
   if (/^[0-7]$/.test(sub)) {
     return (
       <ChannelEditPage

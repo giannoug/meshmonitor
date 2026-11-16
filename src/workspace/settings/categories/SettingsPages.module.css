@@ -577,16 +577,15 @@
   color: var(--color-bg-sunken);
 }
 
-@media (max-width: 767px) {
-  .button,
-  .iconButton,
-  .keyInput {
-    min-height: 44px;
-  }
+/* Phone (D8): 44 px targets. CategoryPage's <main> carries data-phone from useIsPhone(). */
+[data-phone] .button,
+[data-phone] .iconButton,
+[data-phone] .keyInput {
+  min-height: 44px;
+}
 
-  .iconButton {
-    width: 44px;
-  }
+[data-phone] .iconButton {
+  width: 44px;
 }
 
 .table td {

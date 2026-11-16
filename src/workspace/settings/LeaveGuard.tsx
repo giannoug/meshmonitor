@@ -68,8 +68,8 @@ export default function LeaveGuard({ base, pending }: { base: string; pending?: 
     if (target) void navigate(target.path);
   };
   const cards = [
-    ...(target?.out ? q.queue.map((e) => ({ key: e.section, title: t(categoryById(e.categoryId)?.labelKey ?? e.categoryId), changes: e.changes.map((c) => c.label) })) : []),
-    ...(pending ? [{ key: 'pending', title: pending.title, changes: pending.changes }] : []),
+    ...(target?.out ? q.queue.map((e) => ({ key: e.section, title: t(categoryById(e.categoryId)?.labelKey ?? e.categoryId), changes: e.changes.map((c) => c.label), note: undefined })) : []),
+    ...(pending ? [{ key: 'pending', title: pending.title, changes: pending.changes, note: pending.note }] : []),
   ];
 
   return (
@@ -88,9 +88,9 @@ export default function LeaveGuard({ base, pending }: { base: string; pending?: 
             <div key={c.key} className={styles.guardCard}>
               <p className={styles.guardName}>
                 <strong>{c.title}</strong>
-                <span className={styles.tag}>{t('workspace.settings.review.changes', { count: c.changes.length })}</span>
+                {!c.note && <span className={styles.tag}>{t('workspace.settings.review.changes', { count: c.changes.length })}</span>}
               </p>
-              <p className={styles.guardFields}>{t('workspace.settings.review.not_saved', { fields: list(c.changes) })}</p>
+              <p className={styles.guardFields}>{c.note ?? t('workspace.settings.review.not_saved', { fields: list(c.changes) })}</p>
             </div>
           ))}
         </>

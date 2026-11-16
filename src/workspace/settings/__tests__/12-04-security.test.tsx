@@ -26,6 +26,7 @@ afterEach(() => vi.restoreAllMocks());
 
 const NEW_KEY = 'S2V5S2V5S2V5S2V5S2V5S2V5S2V5S2V5S2V5S2V5S2U=';
 const writes: Array<Record<string, unknown>> = [];
+let loraWrites = 0;
 const fixtures = {
   ...g2On282,
   'GET /api/device/security-keys': () => ({ publicKey: 'Kq7xF2bW9mQpublicpublicpublicpublicpublic0=', privateKey: 'cHJpdmF0ZXByaXZhdGVwcml2YXRlcHJpdmF0ZTAxMjM=' }),
@@ -33,7 +34,10 @@ const fixtures = {
     writes.push(JSON.parse(String(init?.body)).config);
     return { success: true };
   },
-  'POST /api/config/lora': () => ({ success: true }),
+  'POST /api/config/lora': () => {
+    loraWrites += 1;
+    return { success: true };
+  },
 };
 const bar = () => screen.findByRole('region', { name: 'Unsaved radio changes' });
 const policy = async () => {
@@ -163,6 +167,7 @@ describe('Security on the radio save queue', () => {
 
   it('the confirm runs when Save is pressed on another category, before any write', async () => {
     writes.length = 0;
+    loraWrites = 0;
     renderSettings(`${g2}/settings/security`, { fixtures });
     await pick('Strict: require authentication');
     goTo(`${g2}/settings/lora`);
@@ -174,7 +179,9 @@ describe('Security on the radio save queue', () => {
     fireEvent.click(within(sheet).getByRole('button', { name: 'Cancel' }));
     // LoRa still saves; Security stays queued.
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Set Protection Level to Strict?' })).toBeNull());
+    await waitFor(() => expect(loraWrites).toBe(1));
     expect(writes).toEqual([]);
+    await waitFor(async () => expect(await bar()).toHaveTextContent('1 change in Security'));
   });
 
   it('Review never shows the private key', async () => {
