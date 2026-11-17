@@ -30,6 +30,43 @@ export const SERVER_SETTINGS: Record<string, string> = {
   reticulum_destinations_max: '2000',
   customTilesets: JSON.stringify([ATHENS_TOPO]),
   activeMapStyleId: 'style-athens-dark',
+  // Task 6.5: Background jobs, Integrations, Security & privacy and Analytics as 13-10 … 13-12 draw them.
+  coverage_retention_days: '30',
+  solarMonitoringEnabled: '1',
+  solarMonitoringLatitude: '37.98',
+  solarMonitoringLongitude: '23.73',
+  solarMonitoringAzimuth: '180',
+  solarMonitoringDeclination: '35',
+  translationEnabled: 'true',
+  translationProvider: 'deepl',
+  translationDeeplApiKey: 'deepl-key-0f3a:fx',
+  translationDeeplUrl: '',
+  translationDefaultLanguage: 'en',
+  translationDefaultOutgoingLanguage: 'el',
+  adsbMatchEnabled: 'true',
+  adsbFeed: 'adsb.lol',
+  adsb_api_token: '',
+  adsb_opensky_client_id: '',
+  adsb_opensky_client_secret: '',
+  elevationEnabled: 'true',
+  elevationSourceUrl: 'https://api.open-elevation.com',
+  cotFeedEnabled: '0',
+  cotFeedPort: '8087',
+  virtualNodeReplayEnabled: '1',
+  virtualNodeReplayExcludeIps: '192.168.1.9',
+  ductingOverlayEnabled: 'true',
+  mqttRootDirectoryRefreshEnabled: 'false',
+  adminRetryAttempts: '3',
+  pkiDmDecryptionGloballyEnabled: 'true',
+  reliablePkiMode: 'asNeeded',
+  noIndexEnabled: '1',
+  privacyPolicyUrl: '',
+  termsOfServiceUrl: '',
+  contactUrl: 'https://athensmesh.gr/contact',
+  meshwarsEnabled: 'true',
+  meshwarsSourceId: SOURCE_IDS.heltec,
+  analyticsProvider: 'plausible',
+  analyticsConfig: JSON.stringify({ domain: 'mesh.athensmesh.gr' }),
 };
 
 const MB = 1024 * 1024;
@@ -100,6 +137,73 @@ export const VAPID_STATUS = {
   subscriptionCount: 3,
 };
 
+const DAY = 86_400_000;
+const usedBy = (triggerName: string, sourceName: string, sourceId: string = SOURCE_IDS.g2) => ({
+  type: 'auto-responder', protocol: 'meshtastic', sourceId, sourceName, triggerId: triggerName, triggerName, enabled: true,
+});
+
+/** 13-09 / 13-25: the four scripts, and what Check for updates finds (s13n6's states). */
+export const SCRIPTS = [
+  { path: '/data/scripts/weather.py', filename: 'weather.py', name: 'Weather report', language: 'Python', version: '1.4.0', author: 'athensmesh', sizeBytes: 6 * 1024, lastModified: Date.now() - 15 * DAY, usedBy: [usedBy('Weather bot', 'Station G2'), usedBy('Morning report', 'Athens MQTT', SOURCE_IDS.mqtt)] },
+  { path: '/data/scripts/battery_alert.js', filename: 'battery_alert.js', name: 'Battery alert', language: 'JavaScript', version: '2.0.1', author: 'yeraze', sizeBytes: 3 * 1024, lastModified: Date.now() - 20 * DAY, usedBy: [{ ...usedBy('Low battery', 'Heltec MeshCore', SOURCE_IDS.heltec), protocol: 'meshcore' }] },
+  { path: '/data/scripts/rpt_status.sh', filename: 'rpt_status.sh', name: 'Repeater status', language: 'Shell', version: '0.9.2', author: 'local', sizeBytes: 1024, lastModified: Date.now() - 39 * DAY, usedBy: [] },
+  { path: '/data/scripts/sun.py', filename: 'sun.py', name: 'Sun times', language: 'Python', version: '1.1.0', author: 'athensmesh', sizeBytes: 4 * 1024, lastModified: Date.now() - 6 * DAY, usedBy: [usedBy('Sunrise post', 'Station G2')] },
+];
+
+const update = (filename: string, extra: Record<string, unknown>) => ({
+  filename, installedVersion: null, latestVersion: null, updateAvailable: false, sourceOrigin: null, source: null, sourceUrl: null, hasBackup: false, backupVersion: null, error: null, ...extra,
+});
+
+export const SCRIPT_UPDATES = [
+  update('weather.py', { installedVersion: '1.4.0', latestVersion: '1.5.0', updateAvailable: true, sourceOrigin: 'gallery', source: 'athensmesh/scripts', sourceUrl: 'https://github.com/athensmesh/scripts', hasBackup: true, backupVersion: '1.3.2' }),
+  update('battery_alert.js', { installedVersion: '2.0.1', latestVersion: '2.0.1', sourceOrigin: 'manual', source: 'yeraze/mm-scripts', sourceUrl: 'https://github.com/yeraze/mm-scripts' }),
+  update('rpt_status.sh', { installedVersion: '0.9.2' }),
+  update('sun.py', { installedVersion: '1.1.0', latestVersion: '1.1.0', sourceOrigin: 'gallery', source: 'athensmesh/scripts', sourceUrl: 'https://github.com/athensmesh/scripts', hasBackup: true, backupVersion: '1.0.2' }),
+];
+
+export const SCRIPT_DEPENDENCIES = {
+  python: { manifestPresent: true, installed: true, packages: ['requests', 'astral'] },
+  node: { manifestPresent: false, installed: false, packages: [] },
+  allowSourceBuilds: false,
+  scriptsDir: '/data/scripts',
+};
+
+/** 13-10 / 13-26: the three jobs' status routes. */
+export const POSITION_ESTIMATION_STATUS = {
+  running: true, inProgress: false, enabled: true, frequencyHours: 6, lookbackHours: 168, maxUncertaintyKm: 2,
+  lastRunTime: Date.now() - 3_600_000,
+  lastRunResult: { estimatedNodeCount: 14, observationCount: 212, anchorCount: 31, rejectedNodeCount: 2, durationMs: 840 },
+};
+
+export const AUTO_ENRICHMENT_STATUS = {
+  enabled: true, scheduleType: 'interval', intervalMinutes: 360, cron: '', cronValid: true, pushToNodeDb: true, inProgress: false,
+  lastRunAt: Date.now() - 2 * 3_600_000,
+  lastRunSummary: { startedAt: 1, finishedAt: 2, nodesFilled: 9, fieldsCopied: 21, pushesSent: 9, pushesFailed: 0, pushesPending: 3, trigger: 'schedule' },
+  pendingPushes: 3,
+  limits: { minIntervalMinutes: 60, maxIntervalMinutes: 10080, pushCapPerRun: 25, pushSpacingMs: 30_000 },
+};
+
+export const MESH_ISSUES_STATUS = {
+  running: true, inProgress: false, enabled: true, frequencyHours: 24, lookbackHours: 24, pairBucketHours: 6,
+  lastRunTime: Date.now() - 1_800_000, lastRunResult: { findingCount: 7, durationMs: 1200 }, lastRunResultFromStorage: false,
+  thresholds: {
+    tierAEnabled: true, tierBEnabled: false, tierCEnabled: false, b7Enabled: true, disabledRules: ['B4_idle_router', 'C1_time_offset'],
+    airUtilTxPct: 10, channelUtilPct: 25, mobileSpanMeters: 500, snrAsymmetryDb: 6, overBroadcastSeconds: 300, autoCloseCleanRuns: 3,
+    routerClusterMaxLinkKm: 30, staleHoursMeshtastic: 24, staleHoursMeshcore: 72, lowBatteryPct: 20, lowBatteryMv: 3300,
+  },
+};
+
+/** 13-11 / 13-27: MeshWars' status route (the key itself never comes back). */
+export const MESHWARS_STATUS = {
+  enabled: true, sourceId: SOURCE_IDS.heltec, baseUrl: 'https://meshwars.gr/api', apiKeySet: true,
+  lastForwardAt: Date.now() - 600_000, lastResult: { at: Date.now() - 600_000, ok: true, repeaters: 4 }, forwardedCount: 12, skippedCount: 0, minForwardIntervalMs: 300_000,
+};
+
+/** 13-12 / 13-28: one hosted document. */
+export const PRIVACY_DOCS = [
+  { id: 1, slug: 'privacy', title: 'Privacy Policy', content: '# Privacy Policy\n\nWe keep mesh traffic for 90 days.', updatedAt: Date.now() - 15 * DAY, updatedBy: 'admin', createdAt: 1 },
+];
+
 export interface ServerLog {
   /** Every request but reads of settings, as `METHOD /path` with its JSON body. */
   writes: Array<{ method: string; path: string; body?: unknown }>;
@@ -168,5 +272,28 @@ export function serverFixtures(log: ServerLog = newServerLog(), settings: Record
     'GET /api/map-styles/styles': read(MAP_STYLES),
     'GET /api/map-styles/styles/:id/data': read({ version: 8, sources: {}, layers: [] }),
     'DELETE /api/map-styles/styles/:id': write(),
+    // Task 6.5.
+    'GET /api/scripts/inventory': read({ success: true, data: { scripts: SCRIPTS } }),
+    'GET /api/scripts/updates': read({ success: true, data: { scripts: SCRIPT_UPDATES, checkedAt: Date.now() } }),
+    'POST /api/scripts/import': write({ success: true }),
+    'POST /api/scripts/:filename/update': write({ success: true, data: { newVersion: '1.5.0' } }),
+    'POST /api/scripts/:filename/rollback': write({ success: true, data: { restoredVersion: '1.3.2' } }),
+    'PUT /api/scripts/:filename/source': write({ success: true }),
+    'DELETE /api/scripts/:filename': write({ success: true }),
+    'GET /api/scripts/dependencies': read(SCRIPT_DEPENDENCIES),
+    'POST /api/scripts/dependencies/install': write({ success: true, log: 'Installed requests, astral' }),
+    'GET /api/settings/position-estimation/status': read(POSITION_ESTIMATION_STATUS),
+    'POST /api/settings/position-estimation/run-now': write({ estimatedNodeCount: 14 }),
+    'GET /api/settings/auto-enrichment/status': read({ success: true, data: AUTO_ENRICHMENT_STATUS }),
+    'POST /api/settings/auto-enrichment/run-now': write({ success: true, data: AUTO_ENRICHMENT_STATUS.lastRunSummary }),
+    'GET /api/analysis/mesh-issues/status': read({ success: true, data: MESH_ISSUES_STATUS }),
+    'POST /api/analysis/mesh-issues/run-now': write({ success: true, data: { findingCount: 7, durationMs: 900 } }),
+    'POST /api/solar/trigger': write({ success: true, message: 'Solar estimate fetch triggered' }),
+    'GET /api/settings/meshwars/status': read({ success: true, data: MESHWARS_STATUS }),
+    'POST /api/translate/test': write({ success: true, data: { translatedText: 'Καλημέρα', sampleSourceText: 'Good morning' } }),
+    'POST /api/elevation/test': write({ success: true, data: { success: true, detectedType: 'open-elevation', sampleElevation: 112, latencyMs: 80 } }),
+    'GET /api/privacy/admin/documents': read({ success: true, data: PRIVACY_DOCS }),
+    'PUT /api/privacy/admin/documents/:slug': write((u: URL, init?: RequestInit) => ({ success: true, data: { ...PRIVACY_DOCS[0], ...body(init), slug: u.pathname.split('/').pop() } })),
+    'DELETE /api/privacy/admin/documents/:slug': write(),
   };
 }

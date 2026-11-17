@@ -39,9 +39,9 @@ describe('b-set-d7-server', () => {
     await waitFor(() => expect(entries()).toEqual(['Backup & maintenance']));
   });
 
-  it('settings:write adds General, Map & tiles and Background jobs (today\'s writer rows)', async () => {
+  it('settings:write adds General, Security & privacy (its hosted documents), Map & tiles and Background jobs (today\'s writer rows)', async () => {
     renderServer('/server/backup', { permissions: grants({ write: true }) });
-    await waitFor(() => expect(entries()).toEqual(['General', 'Backup & maintenance', 'Map & tiles', 'Background jobs']));
+    await waitFor(() => expect(entries()).toEqual(['General', 'Security & privacy', 'Backup & maintenance', 'Map & tiles', 'Background jobs']));
   });
 
   it('a direct link to an admin page shows today\'s no-permission state and reads nothing', async () => {
@@ -65,6 +65,22 @@ describe('b-set-d7-server', () => {
     ['/server/reticulum', '/server/general'],
     ['/server/maintenance', '/server/backup'],
     ['/server/system', '/server/backup'],
+    // Task 6.5: the sections of the last re-hosted categories.
+    ['/server/privacy', '/server/security'],
+    ['/server/remote-admin', '/server/security'],
+    ['/server/position-estimation', '/server/background-jobs'],
+    ['/server/auto-enrichment', '/server/background-jobs'],
+    ['/server/mesh-issues', '/server/background-jobs'],
+    ['/server/coverage', '/server/background-jobs'],
+    ['/server/solar', '/server/background-jobs'],
+    ['/server/translation', '/server/integrations'],
+    ['/server/elevation', '/server/integrations'],
+    ['/server/mqtt-root-directory', '/server/integrations'],
+    ['/server/ducting', '/server/integrations'],
+    ['/server/adsb', '/server/integrations'],
+    ['/server/meshwars', '/server/integrations'],
+    ['/server/atak-cot', '/server/integrations'],
+    ['/server/virtual-node-replay', '/server/integrations'],
   ])('today\'s section %s lands on %s', async (from, to) => {
     renderServer(from);
     await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(to));

@@ -528,3 +528,316 @@
   font-size: 13px;
   color: var(--color-text-subtle);
 }
+
+/* Task 6.5: Scripts (13-09, 13-25). */
+.scriptToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 16px;
+}
+
+.scriptToolbar[data-phone] {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.search {
+  box-sizing: border-box;
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 440px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: var(--color-bg-sunken);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.scriptToolbar[data-phone] .search {
+  flex: none;
+  max-width: none;
+  min-height: 44px;
+}
+
+.scriptCount {
+  margin-left: auto;
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}
+
+.scriptToolbar[data-phone] .scriptCount {
+  margin-left: 4px;
+}
+
+.scriptGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0 0 16px;
+}
+
+.scriptGrid[data-phone] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.scriptCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+}
+
+.scriptHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.scriptIcon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.scriptCard[data-phone] .scriptIcon {
+  display: none;
+}
+
+.scriptName {
+  flex: 1;
+  min-width: 0;
+}
+
+.scriptTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.scriptFile {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: var(--color-text-subtle);
+  overflow-wrap: anywhere;
+}
+
+.scriptMeta,
+.scriptLine {
+  margin: 0;
+  color: var(--color-text-subtle);
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.scriptLine a {
+  color: var(--color-accent);
+}
+
+.badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text-subtle);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge[data-tone='on'] {
+  background: var(--color-success);
+  color: var(--color-bg-sunken);
+}
+
+.badge[data-tone='update'] {
+  background: var(--color-warning);
+  color: var(--color-bg-sunken);
+}
+
+.scriptActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.scriptActions > :last-child {
+  margin-left: auto;
+}
+
+.scriptCard[data-phone] button,
+.scriptCard[data-phone] input,
+.scriptToolbar[data-phone] button {
+  min-height: 44px;
+}
+
+.scriptCard[data-phone] .scriptActions button:last-child {
+  min-width: 44px;
+}
+
+.sourceInput {
+  box-sizing: border-box;
+  flex: 1 1 200px;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: var(--color-bg-sunken);
+  color: var(--color-text);
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.usageList {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--color-text-subtle);
+}
+
+.log {
+  max-height: 240px;
+  margin: 0;
+  padding: 8px 16px;
+  overflow: auto;
+  border-top: 1px solid var(--color-border);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  color: var(--color-text-subtle);
+}
+
+.tag {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text-subtle);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tag[data-tone='official'] {
+  background: var(--color-accent);
+  color: var(--color-bg-sunken);
+}
+
+.ruleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 4px 16px;
+  padding: 8px 16px 12px;
+}
+
+.ruleGrid[data-phone] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ruleCheck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  font-size: 14px;
+}
+
+.ruleGrid[data-phone] .ruleCheck {
+  min-height: 44px;
+}
+
+.ruleId {
+  min-width: 2.25rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: var(--color-text-subtle);
+}
+
+.ruleTier {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-subtle);
+}
+
+/* Task 6.5: a list row on phone that opens a deeper page (13-26 Solar, 13-27 services). */
+.serviceIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--color-warning);
+  color: var(--color-bg-sunken);
+}
+
+.docRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  min-height: 56px;
+  box-sizing: border-box;
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.docRow:first-child {
+  border-top: 0;
+}
+
+.docRow[data-phone] {
+  min-height: 64px;
+}
+
+.docRow[data-phone] button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.docText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.docName {
+  font-weight: 600;
+}
+
+.toolbarButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pageNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 4px 24px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-subtle);
+}

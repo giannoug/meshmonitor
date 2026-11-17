@@ -209,6 +209,18 @@ function SERVER(): Board['fixtures'] {
   return serverFixtures();
 }
 
+/** Scripts (13-09, 13-25): Check for updates, as the boards show the update states. */
+async function checkScripts(page: Page) {
+  await page.getByRole('button', { name: /Check for updates/ }).click();
+  await page.getByText('v1.5.0 available').waitFor();
+}
+
+/** Integrations (13-11, 13-27): one translation Test, as the boards show its result. */
+async function testTranslation(page: Page) {
+  await page.getByRole('button', { name: 'Test Translation Connection' }).click();
+  await page.getByText(/Translation service connected successfully!/).waitFor();
+}
+
 /** Notification services: one Test Connection, as the boards show its result. */
 async function testApprise(page: Page) {
   await page.getByRole('button', { name: 'Test Connection' }).click();
@@ -1685,6 +1697,15 @@ export const BOARDS: Board[] = [
       await page.getByText('Retroactive Decryption', { exact: true }).waitFor();
     },
   },
+  // Task 6.5: Server categories, part 2. 13-12 draws Analytics beside Security & privacy only to fit the canvas (s13n0).
+  { id: '13-09-scripts', size: 'desktop', path: '/server/scripts', fixtures: SERVER(), setup: checkScripts },
+  { id: '13-25-scripts', size: 'phone', path: '/server/scripts', fixtures: SERVER(), setup: checkScripts },
+  { id: '13-10-background-jobs', size: 'desktop', path: '/server/background-jobs', fixtures: SERVER() },
+  { id: '13-26-background-jobs', size: 'phone', path: '/server/background-jobs', fixtures: SERVER() },
+  { id: '13-11-integrations', size: 'desktop', path: '/server/integrations', fixtures: SERVER(), setup: testTranslation },
+  { id: '13-27-integrations', size: 'phone', path: '/server/integrations', fixtures: SERVER(), setup: testTranslation },
+  { id: '13-12-security-privacy', size: 'desktop', path: '/server/security', fixtures: SERVER() },
+  { id: '13-28-security-privacy', size: 'phone', path: '/server/security', fixtures: SERVER() },
 ];
 
 /** Identity: the short name G2 → SG2. */

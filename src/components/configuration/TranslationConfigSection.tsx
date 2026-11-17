@@ -1,17 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import apiService from '../../services/api';
 import { type TranslationProvider, STANDARD_LANGUAGES } from '../../types/translation';
 import {
   TRANSLATION_PROVIDER_DESCRIPTORS,
   TRANSLATION_PROVIDER_IDS,
-  buildTranslationProviderConfig,
   getTranslationProviderFields,
-  missingRequiredTranslationFields,
   type TranslationProviderFieldValues,
   type TranslationProviderSettingKey,
 } from '../../types/translationProviders';
 import { UiIcon } from '../icons/index';
+import { useTranslationTest } from './useTranslationTest';
 import styles from './TranslationConfigSection.module.css';
 
 export interface TranslationConfigSectionProps {
@@ -48,52 +46,9 @@ export const TranslationConfigSection: React.FC<TranslationConfigSectionProps> =
   onDefaultOutgoingLanguageChange,
 }) => {
   const { t } = useTranslation();
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const { testing, testResult, handleTest } = useTranslationTest(provider, values, defaultLanguage, defaultOutgoingLanguage);
 
   const fields = getTranslationProviderFields(provider);
-
-  const handleTest = async () => {
-    setTestResult(null);
-
-    // The active provider's fields only, under the names the provider reads.
-    const providerConfig = buildTranslationProviderConfig(provider, (key) => values[key] ?? '');
-    const missing = missingRequiredTranslationFields(provider, providerConfig);
-    if (missing.length > 0) {
-      setTestResult({
-        success: false,
-        message: t('settings.translation_required_field', '{{field}} is required', {
-          field: t(missing[0].labelKey),
-        }),
-      });
-      return;
-    }
-
-    setTesting(true);
-    try {
-      const res = await apiService.testTranslationConfig({
-        provider,
-        ...providerConfig,
-        targetLanguage: defaultOutgoingLanguage || 'ja',
-        sourceLanguage: defaultLanguage || 'en',
-      });
-
-      setTestResult({
-        success: true,
-        message: t('settings.translation_test_sample', 'Success! Sample translation: "{{text}}"', {
-          text: res.translatedText,
-        }),
-      });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setTestResult({
-        success: false,
-        message: msg || t('settings.translation_test_failed_generic', 'Translation test failed. Check settings and API key.'),
-      });
-    } finally {
-      setTesting(false);
-    }
-  };
 
   return (
     <div id="settings-translation" className="settings-section">

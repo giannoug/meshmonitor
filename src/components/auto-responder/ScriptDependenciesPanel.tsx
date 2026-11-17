@@ -6,24 +6,10 @@
  * to the scripts. Talks to GET /api/scripts/dependencies and
  * POST /api/scripts/dependencies/install. Installing requires `settings:write`.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useCsrfFetch } from '../../hooks/useCsrfFetch';
-import { useAuth } from '../../contexts/AuthContext';
-import apiService from '../../services/api';
 import { UiIcon } from '../icons';
-
-interface KindStatus {
-  manifestPresent: boolean;
-  installed: boolean;
-  packages: string[];
-}
-interface DependencyStatus {
-  python: KindStatus;
-  node: KindStatus;
-  allowSourceBuilds: boolean;
-  scriptsDir: string;
-}
+import { useScriptDependencies, type KindStatus } from './useScriptDependencies';
 
 const KindRow: React.FC<{ title: string; manifest: string; status: KindStatus }> = ({ title, manifest, status }) => (
   <div style={{ marginBottom: '0.5rem' }}>
@@ -43,48 +29,7 @@ const KindRow: React.FC<{ title: string; manifest: string; status: KindStatus }>
 
 const ScriptDependenciesPanel: React.FC = () => {
   const { t } = useTranslation();
-  const csrfFetch = useCsrfFetch();
-  const { hasPermission } = useAuth();
-  // 'settings' is sourcey (Phase 6 #4416). POST /api/scripts/dependencies/install
-  // declares requirePermission('settings','write') with no sourceIdFrom — one
-  // script directory, install-wide — so anySource mirrors the server's union check.
-  const canInstall = hasPermission('settings', 'write', { anySource: true });
-
-  const [status, setStatus] = useState<DependencyStatus | null>(null);
-  const [installing, setInstalling] = useState(false);
-  const [log, setLog] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    try {
-      const baseUrl = await apiService.getBaseUrl();
-      const res = await csrfFetch(`${baseUrl}/api/scripts/dependencies`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setStatus(await res.json());
-    } catch {
-      setStatus(null);
-    }
-  }, [csrfFetch]);
-
-  useEffect(() => { void load(); }, [load]);
-
-  const install = useCallback(async () => {
-    setInstalling(true);
-    setError(null);
-    setLog(null);
-    try {
-      const baseUrl = await apiService.getBaseUrl();
-      const res = await csrfFetch(`${baseUrl}/api/scripts/dependencies/install`, { method: 'POST' });
-      const data = await res.json();
-      setLog(data.log || '');
-      if (!data.success) setError(data.error || `HTTP ${res.status}`);
-      await load();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setInstalling(false);
-    }
-  }, [csrfFetch, load]);
+  const { canInstall, status, installing, log, error, install } = useScriptDependencies();
 
   if (!status) return null;
 

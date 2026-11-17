@@ -100,8 +100,9 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     ['/automations/12', 'automations'],
     ['/automations/12/runs', 'automations'],
     ['/automations/12/trace', 'automations'],
-    // Categories Tasks 6.5 and 6.6 rebuild stay re-hosted.
-    ['/server/scripts', 'global-settings'],
+    // Server › Devices is today's source list until Task 6.6; no Server URL re-hosts the global Settings page (Task 6.5).
+    ['/server/devices', 'dashboard'],
+    ['/server/devices?add=1', 'dashboard'],
     // Nodes is the Workspace's own table and list, with App not mounted (Task 3.3, Ruling AD).
     [`${g2}/nodes`, 'nodes'],
     // Device settings are the Workspace's own frame, with App not mounted (Task 5.2, Ruling AD), the remote target too (Task 5.9).
@@ -320,7 +321,9 @@ describe('redirects', () => {
     ['/settings', false, '/preferences/appearance'],
     ['/settings#settings-language', true, '/preferences/language'],
     ['/settings#settings-units', true, '/preferences/language'],
-    ['/settings#settings-remote-admin', true, '/server/remote-admin#settings-remote-admin'],
+    // A Server section opens the Workspace page that holds it now (Task 6.5).
+    ['/settings#settings-remote-admin', true, '/server/security'],
+    ['/settings#settings-translation', true, '/server/integrations'],
     [`${g2}/configuration`, true, `${g2}/settings`],
     [`${g2}/configuration#config-lora`, true, `${g2}/settings/lora`],
     [`${g2}/settings#settings-node-display`, true, `${g2}/settings/node-display`],
@@ -423,7 +426,6 @@ describe('re-hosted pages stay mounted while the URL is fixed up', () => {
     [`${g2}/settings/lora`, `${g2}/settings/modules/mqtt`, `${g2}/settings/modules/mqtt`, 'settings-frame'],
     [`${g2}/settings/identity`, `${g2}/configuration`, `${g2}/settings`, 'settings-frame'],
     [`${g2}/settings/identity`, `${g2}/configuration#config-lora`, `${g2}/settings/lora`, 'settings-frame'],
-    ['/server/scripts', '/server/analytics', '/server/analytics#settings-analytics', 'global-settings'],
     [`${heltec}/nodes`, `${heltec}/admin`, `${heltec}/nodes`, 'meshcore'],
     // The rail's Overview square (`/overview`) and the sidebar's All-devices map row (`/overview/map`).
     ['/overview', '/overview/map', '/overview/map', 'overview-map'],

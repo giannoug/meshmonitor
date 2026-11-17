@@ -5,16 +5,13 @@
  * its Workspace area replaces the page.
  */
 import { lazy, Suspense, type ReactNode } from 'react';
-import { Navigate, Route, Routes, useLocation, useParams, type To } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, type To } from 'react-router-dom';
 import RouteLoading from '../../components/RouteLoading/RouteLoading';
 import { ShellContext } from '../../contexts/ShellContext';
-import { globalSettingsHash } from '../routes';
-import { useHashTarget } from './useHashTarget';
 
 // The same chunks Classic loads (main.tsx).
 const DashboardPage = lazy(() => import('../../pages/DashboardPage.tsx'));
 const AutomationsPage = lazy(() => import('../../components/automations/AutomationsPage.tsx'));
-const GlobalSettingsPage = lazy(() => import('../../pages/GlobalSettingsPage.tsx'));
 
 const EMBEDDED = { embedded: true };
 
@@ -60,23 +57,6 @@ export function OverviewRehost({ landing = false, notice }: { landing?: boolean;
     <Routes location={{ ...location, state: { ...(location.state as object | null), showList: true } }}>
       <Route path="*" element={page} />
     </Routes>
-  );
-}
-
-/**
- * `/server/<x>` for a category with no Workspace page yet (Devices, Security
- * & privacy, Scripts, Background jobs, Integrations, Analytics; Tasks 6.5,
- * 6.6): today's global settings page, scrolled to the category.
- */
-export function GlobalSettingsRehost() {
-  const category = (useParams()['*'] ?? '').split('/')[0];
-  const to = useHashTarget(globalSettingsHash(category));
-  return (
-    <Redirect to={to}>
-      <Rehost>
-        <GlobalSettingsPage />
-      </Rehost>
-    </Redirect>
   );
 }
 

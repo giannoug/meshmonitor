@@ -1,13 +1,13 @@
 {
   "must": [
-    "Position estimation",
-    "Auto-enrichment",
-    "Push corrections",
+    "Position Estimation",
+    "Auto-Enrichment",
+    "push corrections",
     "Sends",
-    "Mesh issues",
+    "Mesh Issues",
     "Thresholds",
     "Coverage",
-    "Retention",
+    "retention",
     "Solar"
   ],
   "absent": [],

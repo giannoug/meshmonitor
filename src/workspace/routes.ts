@@ -4,7 +4,6 @@
  * shows. Pure, so the whole table is testable without rendering. Paths are
  * router-relative (basename already stripped).
  */
-import { GLOBAL_SETTINGS_SECTIONS } from '../components/search/configSections';
 import { MESHCORE_VIEWS, type MeshCoreView } from '../components/MeshCore/meshCoreViewAccess';
 import { RETICULUM_VIEWS, type ReticulumView } from '../types/reticulum';
 import { classicFallback } from './layout/classicFallback';
@@ -53,18 +52,6 @@ export function workspaceRedirect(loc: Loc, { isAdmin = false }: { isAdmin?: boo
     return PREFERENCE_CATEGORIES.includes(category) ? `/preferences/${category}` : `/server/${category}`;
   }
   return null;
-}
-
-/** Server list entries (Task 6.4) whose page is still today's: the first section each one gathers. */
-const REHOST_FIRST_SECTION: Record<string, string> = {
-  'background-jobs': 'position-estimation',
-  integrations: 'translation',
-};
-
-/** The `#settings-<x>` section a re-hosted `/server/<x>` URL scrolls to, or '' for none. */
-export function globalSettingsHash(category: string): string {
-  const section = REHOST_FIRST_SECTION[category] ?? category;
-  return GLOBAL_SETTINGS_SECTIONS.has(`settings-${section}`) ? `#settings-${section}` : '';
 }
 
 /**
