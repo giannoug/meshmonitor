@@ -27,7 +27,7 @@ export default function YouSidebar({ onNavigate }: { onNavigate?: () => void }) 
         <ul className={shell.list}>
           {shown.map((r) => (
             <li key={r.key}>
-              <NavLink to={r.to!} end className={({ isActive }) => `${shell.row} ${isActive ? shell.on : ''}`} onClick={onNavigate}>
+              <NavLink to={r.to!} className={({ isActive }) => `${shell.row} ${isActive ? shell.on : ''}`} onClick={onNavigate}>
                 <span className={shell.label}>{r.label}</span>
               </NavLink>
             </li>

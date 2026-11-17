@@ -55,7 +55,7 @@ export function workspaceRedirect(loc: Loc, { isAdmin = false }: { isAdmin?: boo
   return null;
 }
 
-/** The `#settings-<x>` section a `/preferences/<x>` or `/server/<x>` URL scrolls to, or '' for none. */
+/** The `#settings-<x>` section a re-hosted `/server/<x>` URL scrolls to, or '' for none. */
 export function globalSettingsHash(category: string): string {
   return GLOBAL_SETTINGS_SECTIONS.has(`settings-${category}`) ? `#settings-${category}` : '';
 }

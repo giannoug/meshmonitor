@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import type { NewsItem, NewsFeed } from '../../types/ui';
 import api from '../../services/api';
+import { unseenNewsItems } from './unseenNews';
 import './NewsPopup.css';
 
 /**
@@ -78,34 +79,7 @@ export const NewsPopup: React.FC<NewsPopupProps> = ({
         let items = [...allItems];
 
         if (!forceShowAll && status) {
-          const dismissedIds = new Set(status.dismissedNewsIds || []);
-
-          // Find the date of the lastSeenNewsId item to filter out older items
-          let lastSeenDate: Date | null = null;
-          if (status.lastSeenNewsId) {
-            const lastSeenItem = allItems.find(item => item.id === status.lastSeenNewsId);
-            if (lastSeenItem) {
-              lastSeenDate = new Date(lastSeenItem.date);
-            }
-          }
-
-          items = items.filter(item => {
-            // Always show important items that haven't been dismissed
-            if (item.priority === 'important' && !dismissedIds.has(item.id)) {
-              return true;
-            }
-            // Hide dismissed items
-            if (dismissedIds.has(item.id)) {
-              return false;
-            }
-            // If we have a lastSeenDate, only show items newer than that
-            if (lastSeenDate) {
-              const itemDate = new Date(item.date);
-              return itemDate > lastSeenDate;
-            }
-            // No lastSeenDate means show all non-dismissed items (first time user)
-            return true;
-          });
+          items = unseenNewsItems(allItems, status);
         }
 
         setNewsItems(items);

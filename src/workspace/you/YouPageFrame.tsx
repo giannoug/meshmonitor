@@ -13,7 +13,7 @@ import styles from './YouAccount.module.css';
 
 export interface YouPageFrameProps {
   title: string;
-  scope?: string;
+  scope?: ReactNode;
   crumb?: string;
   /** Phone: where the back control goes, and its label; none where there is no way back (forced). */
   back?: { label: string; to?: string; onClick?: () => void };

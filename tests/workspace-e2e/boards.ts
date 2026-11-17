@@ -16,6 +16,7 @@ import { bridgeFixtures, meshmonitorFixtures } from '../../src/workspace/setting
 import { NODE, remoteFixtures } from '../../src/workspace/settings/__tests__/remoteBoardFixtures';
 import { accountFixtures, PASSKEYS, RECOVERY_CODES } from '../../src/workspace/__fixtures__/account';
 import { signInFixtures, TYPED_RECOVERY } from '../../src/workspace/__fixtures__/signIn';
+import { prefsFixtures } from '../../src/workspace/__fixtures__/preferences';
 
 export interface Board {
   id: string;
@@ -192,6 +193,14 @@ async function toTwoFactor(page: Page): Promise<void> {
   await fillSignIn(page);
   await page.getByRole('button', { name: 'Login', exact: true }).click();
   await page.getByLabel('Authenticator Code').waitFor();
+}
+
+/** Task 6.3: the display settings, themes, news and status the 13-xx boards draw, for an admin with themes:write. */
+function PREFS(): Board['fixtures'] {
+  return {
+    ...prefsFixtures(),
+    'GET /api/auth/status': () => ({ ...athensFixture.authStatus, permissions: { global: { themes: { read: true, write: true } }, bySource: {} } }),
+  };
 }
 
 export const BOARDS: Board[] = [
@@ -1590,6 +1599,17 @@ export const BOARDS: Board[] = [
       await sheet.getByText(/Loading LoRa/).waitFor();
     },
   },
+  // Task 6.3: You › Preferences and Help & about. The admin also holds themes:write (the theme UI reads only that grant).
+  { id: '13-01-appearance', size: 'desktop', path: '/preferences/appearance', fixtures: PREFS() },
+  { id: '13-15-appearance', size: 'phone', path: '/preferences/appearance', fixtures: PREFS() },
+  { id: '13-02-theme-editor', size: 'desktop', path: '/preferences/appearance/themes/custom-athens-night', fixtures: PREFS() },
+  { id: '13-19-theme-editor', size: 'phone', path: '/preferences/appearance/themes/custom-athens-night', fixtures: PREFS() },
+  { id: '13-03-language-units', size: 'desktop', path: '/preferences/language', fixtures: PREFS() },
+  { id: '13-20-language-units', size: 'phone', path: '/preferences/language', fixtures: PREFS() },
+  { id: '13-04-map-prefs', size: 'desktop', path: '/preferences/map', fixtures: PREFS() },
+  { id: '13-21-map-prefs', size: 'phone', path: '/preferences/map', fixtures: PREFS() },
+  { id: '13-14-help-about', size: 'desktop', path: '/you/help', fixtures: PREFS() },
+  { id: '13-29-help-about', size: 'phone', path: '/you/help', fixtures: PREFS() },
 ];
 
 /** Identity: the short name G2 → SG2. */

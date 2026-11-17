@@ -1,15 +1,15 @@
 {
   "must": [
     "Language",
-    "Time format",
+    "Time Format",
     "24-hour",
-    "Date format",
+    "Date Format",
     "°C",
     "°F",
     "km",
     "mi",
     "Sorting",
-    "Link previews"
+    "Link Previews"
   ],
   "absent": [],
   "source": "checks/s13.json"

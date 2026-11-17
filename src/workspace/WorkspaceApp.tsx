@@ -19,6 +19,7 @@ import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { CsrfProvider } from '../contexts/CsrfContext';
 import { SettingsProvider } from '../contexts/SettingsContext';
 import { WebSocketProvider } from '../contexts/WebSocketContext';
+import { appBasename } from '../init';
 import WorkspaceShell from './shell/WorkspaceShell';
 import { useIsPhone } from './shell/useIsPhone';
 import WorkspaceSource from './source/WorkspaceSource';
@@ -28,6 +29,7 @@ import LayoutPage from './you/LayoutPage';
 import GeneralLayoutCard from './server/GeneralLayoutCard';
 import { workspaceRedirect } from './routes';
 import { AutomationsRehost, GlobalSettingsRehost, OverviewRehost } from './rehost/pages';
+import { PreferencesRoutes } from './you/preferences/PreferencesRoutes';
 
 const OverviewMap = lazy(() => import('./overview/OverviewMap.tsx'));
 const OverviewHome = lazy(() => import('./overview/OverviewHome.tsx'));
@@ -42,6 +44,7 @@ const YouNotifications = lazy(() => import('./you/NotificationsPage.tsx'));
 const YouSecurity = lazy(() => import('./you/SecurityPage.tsx'));
 const YouToken = lazy(() => import('./you/ApiTokenPage.tsx'));
 const YouPassword = lazy(() => import('./you/ChangePasswordPage.tsx'));
+const YouHelp = lazy(() => import('./you/preferences/HelpAboutPage.tsx'));
 
 /**
  * `/`, `/overview`, `/overview/map`, `/analysis` and `/overview/analysis`: the
@@ -104,7 +107,8 @@ function WorkspaceRoutes() {
           <Route path="automations/*" element={<AutomationsRehost />} />
           <Route path="users" element={<UsersPage />} />
 
-          <Route path="preferences/*" element={<GlobalSettingsRehost />} />
+          {/* You › Preferences (Task 6.3), with no Classic page mounted (Ruling AD). */}
+          <Route path="preferences/*" element={<PreferencesRoutes />} />
           {/* General's Layout and Sources cards sit above today's page (Task 1.8); 6.4 rebuilds the rest. */}
           <Route path="server/*" element={<GlobalSettingsRehost above={{ general: <GeneralLayoutCard /> }} />} />
           <Route path="you" element={<YouHome />} />
@@ -115,6 +119,8 @@ function WorkspaceRoutes() {
           <Route path="you/security" element={<YouSecurity />} />
           <Route path="you/token" element={<YouToken />} />
           <Route path="you/password" element={<YouPassword />} />
+          {/* Help & about (Task 6.3), for everyone. */}
+          <Route path="you/help" element={<YouHelp />} />
           <Route path="you/*" element={<OverviewRehost />} />
 
           <Route path="*" element={<OverviewRehost />} />
@@ -144,7 +150,8 @@ export default function WorkspaceApp() {
   return (
     <CsrfProvider>
       <AuthProvider>
-        <SettingsProvider>
+        {/* The basename, not a guess from the URL: a Workspace path such as /preferences/map is no Classic route (Task 6.3). */}
+        <SettingsProvider baseUrl={appBasename}>
           <ToastProvider>
             <SignInGate />
           </ToastProvider>

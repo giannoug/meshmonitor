@@ -121,12 +121,12 @@ export function AutoToggle({ k, id, label, help, disabled, render, ...opts }: Ro
   );
 }
 
-/** A choice saved on change: a select, or with `segmented` one row of buttons (Reliable PKI, 12-12). */
-export function AutoSelect({ k, id, label, help, disabled, options, render, segmented, ...opts }: RowBase<string> & { options: SettingSelectOption[]; segmented?: boolean }) {
+/** A choice saved on change: a select, or with `segmented` one row of buttons (Reliable PKI, 12-12); `stacked` puts a long one under its label (13-01). */
+export function AutoSelect({ k, id, label, help, disabled, options, render, segmented, stacked, ...opts }: RowBase<string> & { options: SettingSelectOption[]; segmented?: boolean; stacked?: boolean }) {
   const [value, set, status] = useAutosaveSetting<string>(k, { ...opts, sourceId: usePageSource(), commit: 'change' });
   return (
     <>
-      <SettingRow id={id} label={label} help={help}>
+      <SettingRow id={id} label={label} help={help} stacked={stacked}>
         <SavedLine status={status} />
         {segmented ? (
           <SettingSegmented value={value} options={options} onChange={set} readOnly={off(disabled)} />

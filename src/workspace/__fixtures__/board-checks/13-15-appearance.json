@@ -1,15 +1,15 @@
 {
   "must": [
-    "Appearance mode",
+    "Appearance Mode",
     "Match system",
-    "Dark theme",
-    "Light theme",
-    "Map pin style",
-    "Pin colour",
-    "Node list style",
-    "Icon style",
-    "Tapback emojis",
-    "Custom themes"
+    "Dark Theme",
+    "Light Theme",
+    "Map Pin Style",
+    "Official Pin Color",
+    "Node List Style",
+    "Icon Style",
+    "Tapback Emojis",
+    "Custom Themes"
   ],
   "absent": [],
   "source": "checks/s13.json"

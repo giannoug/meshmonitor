@@ -3,7 +3,8 @@
  *
  * Board b-set-p5-you (Task 6.1): You on a phone with its Preferences: the
  * note that they apply to everyone (the map style follows the user), then
- * today's preference categories with today's labels.
+ * the Preferences pages (Task 6.3: Language & units holds today's Units &
+ * Formats, Sorting and Link Previews).
  */
 import { describe, it, expect } from 'vitest';
 import { screen, within } from '@testing-library/react';
@@ -38,11 +39,9 @@ describe('b-set-p5-you', () => {
     const prefs = screen.getByRole('heading', { name: 'Preferences' }).parentElement!;
     const link = (name: string) => within(prefs).getByRole('link', { name: new RegExp(`^${name}`) });
     expect(link('Layout')).toHaveAttribute('href', '/you/layout');
-    expect(link('Language')).toHaveAttribute('href', '/preferences/language');
-    expect(link('Units & Formats')).toHaveAttribute('href', '/preferences/units');
-    expect(link('Sorting')).toHaveAttribute('href', '/preferences/sorting');
+    expect(link('Language & units')).toHaveAttribute('href', '/preferences/language');
     expect(link('Appearance')).toHaveAttribute('href', '/preferences/appearance');
-    expect(link('Link Previews')).toHaveAttribute('href', '/preferences/link-previews');
     expect(link('Map')).toHaveAttribute('href', '/preferences/map');
+    expect(link('MeshCore Messaging')).toHaveAttribute('href', '/preferences/meshcore-messaging');
   });
 });

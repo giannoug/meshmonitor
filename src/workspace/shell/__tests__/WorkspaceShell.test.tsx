@@ -185,7 +185,7 @@ describe('DeviceSidebar', () => {
     ['/source/src-g2/settings/lora', 'Station G2', 'LoRa', '/source/src-g2/settings/lora'],
     ['/server/general', 'Global Settings', 'System Backup', '/server/backup'],
     // The You sidebar since Task 6.1: Account, Preferences (today's categories), the rest.
-    ['/preferences/units', 'You', 'Units & Formats', '/preferences/units'],
+    ['/preferences/language', 'You', 'Language & units', '/preferences/language'],
   ])('%s shows the %s list', async (route, name, label, href) => {
     renderShell(route);
     const side = await screen.findByRole('complementary', { name });
@@ -194,9 +194,9 @@ describe('DeviceSidebar', () => {
 });
 
 it('a guest on /preferences still gets the preference categories (6.1 M2)', async () => {
-  renderShell('/preferences/units', { anonymous: true });
+  renderShell('/preferences/language', { anonymous: true });
   const side = await screen.findByRole('complementary', { name: 'You' });
-  expect(await within(side).findByRole('link', { name: 'Units & Formats' })).toHaveAttribute('href', '/preferences/units');
+  expect(await within(side).findByRole('link', { name: 'Language & units' })).toHaveAttribute('href', '/preferences/language');
   expect(within(side).getByRole('link', { name: 'Appearance' })).toHaveAttribute('href', '/preferences/appearance');
   expect(within(side).queryByRole('link', { name: 'Layout' })).toBeNull();
   expect(within(side).queryByRole('button', { name: 'Logout' })).toBeNull();

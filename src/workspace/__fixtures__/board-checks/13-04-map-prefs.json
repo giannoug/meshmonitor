@@ -1,11 +1,11 @@
 {
   "must": [
-    "Dark mode tileset",
-    "Light mode tileset",
-    "History line",
-    "Neighbour info minimum zoom",
-    "Centre-on-node zoom",
-    "Map click zoom gate",
+    "Dark Mode Tileset",
+    "Light Mode Tileset",
+    "Position History Line Style",
+    "Neighbor Info Minimum Zoom Level",
+    "Center-on-Node Target Zoom",
+    "Map Click Zoom Gate",
     "Cluster overlapping markers",
     "Discard invalid positions"
   ],

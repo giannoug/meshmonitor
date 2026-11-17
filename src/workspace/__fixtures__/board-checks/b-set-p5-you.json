@@ -2,11 +2,8 @@
   "must": [
     "You",
     "Preferences",
-    "Language",
-    "Units & Formats",
-    "Sorting",
+    "Language & units",
     "Appearance",
-    "Link Previews",
     "Global Settings",
     "Notifications",
     "Preferences apply to everyone on this MeshMonitor.",

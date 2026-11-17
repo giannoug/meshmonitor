@@ -100,7 +100,6 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     ['/automations/12', 'automations'],
     ['/automations/12/runs', 'automations'],
     ['/automations/12/trace', 'automations'],
-    ['/preferences/units', 'global-settings'],
     ['/server/general', 'global-settings'],
     // Nodes is the Workspace's own table and list, with App not mounted (Task 3.3, Ruling AD).
     [`${g2}/nodes`, 'nodes'],
@@ -275,6 +274,18 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
   });
 
   it.each([
+    ['/preferences/units', 'Units & Formats'],
+    ['/preferences/appearance', 'Appearance Mode'],
+    ['/preferences/map', 'Map Click Zoom Gate'],
+    ['/you/help', 'Show all news'],
+  ])('%s is the Workspace page, with no Classic page mounted (Task 6.3)', async (route, text) => {
+    renderAt(route);
+    expect(await screen.findByText(text)).toBeInTheDocument();
+    expect(screen.queryByTestId('page-global-settings')).toBeNull();
+    expect(screen.queryByTestId('page-dashboard')).toBeNull();
+  });
+
+  it.each([
     ['/you/security', 'Only you · applies to your account on this MeshMonitor'],
     ['/you/token', 'Only you · one token per user, for scripts and automations'],
     ['/you/password', 'Current Password'],
@@ -301,8 +312,10 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
 describe('redirects', () => {
   it.each([
     ['/settings', true, '/server/general'],
-    ['/settings', false, '/preferences/appearance#settings-appearance'],
-    ['/settings#settings-language', true, '/preferences/language#settings-language'],
+    // Preferences are the Workspace's own (Task 6.3): no `#settings-` scroll target.
+    ['/settings', false, '/preferences/appearance'],
+    ['/settings#settings-language', true, '/preferences/language'],
+    ['/settings#settings-units', true, '/preferences/language'],
     ['/settings#settings-remote-admin', true, '/server/remote-admin#settings-remote-admin'],
     [`${g2}/configuration`, true, `${g2}/settings`],
     [`${g2}/configuration#config-lora`, true, `${g2}/settings/lora`],

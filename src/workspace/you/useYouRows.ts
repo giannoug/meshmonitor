@@ -4,19 +4,18 @@
  *
  * - Account: Sign-in & security (local accounts, as the user menu's Two-Factor
  *   and Passkeys) and API Token.
- * - Preferences: Layout (signed in), then today's preference categories of
- *   global Settings with today's labels and gates (`settingsNavItems`), for
- *   guests too.
+ * - Preferences: Layout (signed in), then the Preferences pages (Task 6.3):
+ *   Language & units (today's Language, Units & Formats, Sorting and Link
+ *   Previews), Appearance, Map, and today's MeshCore Messaging. Today's
+ *   global Settings lists them to everyone, so guests get them too.
  * - Notifications (while some device has a Notifications page), Global
- *   Settings (admins), Help & about.
+ *   Settings (admins), Help & about (everyone).
  */
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import type { UiIconName } from '../../components/icons';
 import { globalSettingsNav } from '../../components/nav/sourceNavEntries';
-import { settingsNavItems } from '../../components/search/configSections';
 import { logger } from '../../utils/logger';
-import { PREFERENCE_CATEGORIES } from '../routes';
 import { familyOf } from '../shell/deviceTabs';
 import { useShellDevices } from '../shell/shellDevices';
 import type { WorkspaceSource } from '../shell/useWorkspaceSources';
@@ -36,26 +35,14 @@ export interface YouRow {
 /** Whether the device has a Notifications page (Meshtastic and MeshCore; not Reticulum). */
 const hasNotifications = (s: WorkspaceSource) => s.type === 'meshcore' || familyOf(s.type) === 'meshtastic';
 
-const PREF_ICONS: Record<string, UiIconName> = {
-  language: 'languages',
-  units: 'ruler',
-  sorting: 'sortAscending',
-  appearance: 'sun',
-  'link-previews': 'link',
-  'meshcore-messaging': 'messages',
-  map: 'map',
-};
-
 export function useYouRows() {
   const { t } = useTranslation();
-  const { authStatus, logout, hasPermission } = useAuth();
-  const { sources, home } = useShellDevices();
+  const { authStatus, logout } = useAuth();
+  const { sources } = useShellDevices();
 
   const user = authStatus?.authenticated ? authStatus.user : null;
   const isAdmin = user?.isAdmin === true;
-  const device = home ?? sources.find((s) => s.status !== 'disabled') ?? null;
   const notifications = sources.some((s) => s.status !== 'disabled' && hasNotifications(s));
-  const help = device && device.type !== 'meshcore_mqtt' ? `/source/${encodeURIComponent(device.id)}/info` : null;
 
   const account: YouRow[] = user
     ? [
@@ -69,17 +56,17 @@ export function useYouRows() {
   // The categories show to guests too, as DeviceSidebar's list did; Layout is per user.
   const prefs: YouRow[] = [
     ...(user ? [{ key: 'layout', icon: 'monitor' as const, tone: 'prefs' as const, label: t('workspace.you.layout'), to: '/you/layout' }] : []),
-    ...settingsNavItems(t, { mode: 'global', isAdmin, canWriteSettings: hasPermission('settings', 'write', { anySource: true }) })
-      .map((item) => ({ cat: item.id.slice('settings-'.length), label: item.label }))
-      .filter(({ cat }) => PREFERENCE_CATEGORIES.includes(cat))
-      .map(({ cat, label }) => ({ key: cat, icon: PREF_ICONS[cat] ?? 'settings', tone: 'prefs' as const, label, to: `/preferences/${cat}` })),
+    { key: 'language', icon: 'languages', tone: 'prefs', label: t('workspace.you.language_units'), to: '/preferences/language' },
+    { key: 'appearance', icon: 'sun', tone: 'prefs', label: t('settings.appearance'), to: '/preferences/appearance' },
+    { key: 'map', icon: 'map', tone: 'prefs', label: t('settings.map'), to: '/preferences/map' },
+    { key: 'meshcore-messaging', icon: 'messages', tone: 'prefs', label: t('settings.meshcore_messaging', 'MeshCore Messaging'), to: '/preferences/meshcore-messaging' },
   ];
 
   const more: YouRow[] = [
     ...(user && notifications ? [{ key: 'notifications', icon: 'notifications' as const, tone: 'notify' as const, label: t('nav.notifications'), to: '/you/notifications' }] : []),
     ...(isAdmin ? [{ key: 'server', icon: 'server' as const, tone: 'server' as const, label: globalSettingsNav(t).label, to: '/server/general' }] : []),
   ];
-  const helpRow: YouRow | null = help === null ? null : { key: 'help', icon: 'help', tone: 'plain', label: t('workspace.you.help_about'), to: help };
+  const helpRow: YouRow = { key: 'help', icon: 'help', tone: 'plain', label: t('workspace.you.help_about'), to: '/you/help' };
 
   const signOut = async () => {
     try {

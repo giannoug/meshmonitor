@@ -46,13 +46,10 @@ describe('s1-you', () => {
       'Sign-in & security',
       'API Token',
       'Layout',
-      'Language',
-      'Units & Formats',
-      'Sorting',
+      'Language & units',
       'Appearance',
-      'Link Previews',
-      'MeshCore Messaging',
       'Map',
+      'MeshCore Messaging',
       'Notifications',
       'Global Settings',
       'Help & about',
@@ -66,7 +63,7 @@ describe('s1-you', () => {
     expect(link('Global Settings')).toHaveAttribute('href', '/server/general');
     // Push per device for this browser (Task 5.8, s2).
     expect(link('Notifications')).toHaveAttribute('href', '/you/notifications');
-    expect(link('Help & about')).toHaveAttribute('href', `/source/${SOURCE_IDS.g2}/info`);
+    expect(link('Help & about')).toHaveAttribute('href', '/you/help');
   });
 
   it('hides Global Settings from non-admins', async () => {

@@ -64,8 +64,8 @@ export function OverviewRehost({ landing = false, notice }: { landing?: boolean;
 }
 
 /**
- * `/preferences/<x>` and `/server/<x>`: today's global settings page, scrolled
- * to the category. `above[category]` draws above the page; it sits beside the
+ * `/server/<x>`: today's global settings page, scrolled to the category
+ * (Preferences are the Workspace's own since Task 6.3). `above[category]` draws above the page; it sits beside the
  * page, so moving between categories keeps the page mounted.
  */
 export function GlobalSettingsRehost({ above }: { above?: Record<string, ReactNode> }) {

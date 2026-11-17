@@ -3,20 +3,17 @@ import { useTranslation } from 'react-i18next';
 import { UiIcon } from './icons';
 import { ThemeEditor } from './ThemeEditor';
 import { useSettings, type CustomTheme, type BuiltInTheme } from '../contexts/SettingsContext';
-import { useAuth } from '../contexts/AuthContext';
-import api from '../services/api';
+import { useCustomThemes } from './themes/useCustomThemes';
 import './CustomThemeManagement.css';
 
 export const CustomThemeManagement: React.FC = () => {
   const { t } = useTranslation();
-  const { customThemes, loadCustomThemes, theme, darkTheme, lightTheme, setDarkTheme, setLightTheme } = useSettings();
-  const { authStatus } = useAuth();
+  const { theme, darkTheme, lightTheme, setDarkTheme, setLightTheme } = useSettings();
+  const { customThemes, canWrite, saveTheme, deleteTheme } = useCustomThemes();
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingTheme, setEditingTheme] = useState<CustomTheme | null>(null);
   const [baseTheme, setBaseTheme] = useState<BuiltInTheme | CustomTheme | undefined>(undefined);
-
-  const canWrite = authStatus?.permissions?.global?.themes?.write || false;
 
   const handleCreateNew = () => {
     setEditingTheme(null);
@@ -37,16 +34,7 @@ export const CustomThemeManagement: React.FC = () => {
   };
 
   const handleSave = async (name: string, slug: string, definition: Record<string, string>) => {
-    const body = { name, slug, definition };
-
-    if (editingTheme) {
-      await api.put(`/api/themes/${editingTheme.slug}`, body);
-    } else {
-      await api.post('/api/themes', body);
-    }
-
-    // Reload themes
-    await loadCustomThemes();
+    await saveTheme(editingTheme, name, slug, definition);
     setIsEditorOpen(false);
     setEditingTheme(null);
   };
@@ -57,21 +45,10 @@ export const CustomThemeManagement: React.FC = () => {
     }
 
     try {
-      await api.delete(`/api/themes/${themeSlug}`);
+      await deleteTheme(themeSlug);
     } catch (error) {
       alert(t('theme_management.delete_failed', { error: error instanceof Error ? error.message : String(error) }));
-      return;
     }
-
-    if (darkTheme === themeSlug) {
-      setDarkTheme('mocha');
-    }
-    if (lightTheme === themeSlug) {
-      setLightTheme('latte');
-    }
-
-    // Reload themes
-    await loadCustomThemes();
   };
 
   if (isEditorOpen) {
