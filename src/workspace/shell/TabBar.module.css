@@ -27,6 +27,15 @@
   text-decoration: none;
 }
 
+/* A guest's Login tab (i6) is a button. */
+.tabButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
 .tab:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: -4px;

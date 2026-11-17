@@ -16,7 +16,7 @@
  * Rows follow today's permission gates, read with the same rules as MeshCore's
  * tabs (`visibleMeshCoreViews`), for the device in the URL.
  */
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
@@ -28,6 +28,7 @@ import { canReadMessages, isMeshtasticFamily, statusLabel, useDeviceTab } from '
 import ActivityPanel from '../activity/ActivityPanel';
 import ChannelList from '../chat/ChannelList';
 import DmList from '../chat/DmList';
+import ConnectionCard from '../devices/ConnectionCard';
 import type { WorkspaceSource } from './useWorkspaceSources';
 import styles from './DeviceSidebar.module.css';
 
@@ -136,7 +137,10 @@ function Frame({ title, header, children }: { title: string; header?: ReactNode;
   );
 }
 
-/** Name and status line: "Connected · !a1b2c3d4", and the Activity bell (Task 2.8, Meshtastic family). */
+/**
+ * Name and status line: "Connected · !a1b2c3d4", and the Activity bell (Task 2.8, Meshtastic family).
+ * The status line opens the device's Connection card (ds6, Task 6.7).
+ */
 function DeviceHeader({ source }: { source: WorkspaceSource }) {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
@@ -144,15 +148,17 @@ function DeviceHeader({ source }: { source: WorkspaceSource }) {
   const label = statusLabel(t, source.status);
   const nodeNum = source.live?.nodeNum;
   const line = nodeNum !== undefined && source.status === 'connected' ? `${label} · !${nodeNum.toString(16).padStart(8, '0')}` : label;
+  const [cardOpen, setCardOpen] = useState(false);
   return (
     <div className={styles.head}>
       <div className={styles.headText}>
         <h2 className={styles.title} title={source.name}>{source.name}</h2>
-        <p className={styles.status}>
+        <button type="button" className={styles.status} aria-haspopup="dialog" onClick={() => setCardOpen(true)}>
           <span className={styles.dot} data-status={source.status} aria-hidden="true" />
           <span>{line}</span>
-        </p>
+        </button>
       </div>
+      <ConnectionCard source={source} open={cardOpen} onClose={() => setCardOpen(false)} />
       {bell && <ActivityPanel key={source.id} sourceId={source.id} deviceName={source.name} />}
     </div>
   );

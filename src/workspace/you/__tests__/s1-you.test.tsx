@@ -101,7 +101,8 @@ describe('s1-you', () => {
 
   it('offers Login instead of the account rows to a guest', async () => {
     renderYou({ anonymous: true });
-    fireEvent.click(await screen.findByRole('button', { name: /^Login/ }));
+    // The page's Login row; the guest tab bar has its own Login (i6, Task 6.7).
+    fireEvent.click((await screen.findAllByRole('button', { name: /^Login/ })).find((b) => b.dataset.testid === 'you-row')!);
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(screen.queryByText('API Token')).toBeNull();
     expect(screen.queryByText('Logout')).toBeNull();

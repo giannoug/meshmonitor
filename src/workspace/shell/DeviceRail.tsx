@@ -4,7 +4,7 @@
  * Global Settings for admins, and the viewer's account (or Login).
  */
 import { useState, type ReactNode } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { SignInDialog } from '../auth/SignInCard';
@@ -20,11 +20,13 @@ interface DeviceRailProps {
   overviewActive: boolean;
   /** The drawer button, at 768–1023 px. */
   drawerToggle?: ReactNode;
+  /** First run (h6): no Overview square; Add device is the current place. */
+  firstRun?: boolean;
 }
 
 const cx = (...names: Array<string | false>) => names.filter(Boolean).join(' ');
 
-export default function DeviceRail({ sources, openId, overviewActive, drawerToggle }: DeviceRailProps) {
+export default function DeviceRail({ sources, openId, overviewActive, drawerToggle, firstRun = false }: DeviceRailProps) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const { authStatus } = useAuth();
@@ -32,20 +34,26 @@ export default function DeviceRail({ sources, openId, overviewActive, drawerTogg
   const user = authStatus?.authenticated ? authStatus.user : null;
   const isAdmin = user?.isAdmin === true;
   const settingsNav = globalSettingsNav(t);
+  // On first run Add device is the current place (NavLink sets aria-current only on its own match).
+  const AddLink = firstRun ? Link : NavLink;
 
   return (
     <nav className={styles.rail} aria-label={t('workspace.shell.devices')} data-scroll="y">
       {drawerToggle}
-      <NavLink
-        to="/overview"
-        className={cx(styles.square, styles.plain, overviewActive && styles.on)}
-        aria-label={t('workspace.shell.overview_label')}
-        aria-current={overviewActive ? 'page' : undefined}
-        title={t('workspace.shell.overview')}
-      >
-        <UiIcon name="dashboard" size={20} />
-      </NavLink>
-      <span className={styles.rule} aria-hidden="true" />
+      {!firstRun && (
+        <>
+          <NavLink
+            to="/overview"
+            className={cx(styles.square, styles.plain, overviewActive && styles.on)}
+            aria-label={t('workspace.shell.overview_label')}
+            aria-current={overviewActive ? 'page' : undefined}
+            title={t('workspace.shell.overview')}
+          >
+            <UiIcon name="dashboard" size={20} />
+          </NavLink>
+          <span className={styles.rule} aria-hidden="true" />
+        </>
+      )}
 
       {sources
         .filter((s) => s.status !== 'disabled')
@@ -73,14 +81,15 @@ export default function DeviceRail({ sources, openId, overviewActive, drawerTogg
         })}
 
       {isAdmin && (
-        <NavLink
+        <AddLink
           to="/server/devices?add=1"
-          className={cx(styles.square, styles.plain)}
+          className={cx(styles.square, styles.plain, firstRun && styles.on)}
+          aria-current={firstRun ? 'page' : undefined}
           aria-label={t('workspace.shell.add_device')}
           title={t('workspace.shell.add_device')}
         >
           <UiIcon name="plus" size={18} />
-        </NavLink>
+        </AddLink>
       )}
 
       <span className={styles.spacer} />

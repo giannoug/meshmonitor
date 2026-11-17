@@ -60,6 +60,8 @@ import MessageRowD, { type RowTranslationActions } from './MessageRowD';
 import type { MessageActionContext } from './messageActions';
 import { useMessageActions } from './useMessageActions';
 import ReadOnlyNote from './ReadOnlyNote';
+import OfflineBanner from '../devices/OfflineBanner';
+import { composerGate } from './composerGate';
 import { channelLabel, heardToday, replyIdOf } from './channelLabel';
 import { useChannelDatabaseEntries } from './useChannelDatabaseEntries';
 import { useChatRuntime } from './useChatRuntime';
@@ -259,6 +261,7 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
     onBeacons: () => void navigate(`${base}/channel/${channel}/beacons`),
   };
   const radioDevice = sources.find((s) => s.type === 'meshtastic_tcp' && s.enabled && s.id !== sourceId);
+  const gate = composerGate(t, sources.find((s) => s.id === sourceId)?.status, deviceName, isTxDisabled);
 
   const header = (
     <header className={styles.header}>
@@ -274,7 +277,15 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
         </h1>
         {!(isPhone && page === 'beacons') && (
           <p className={styles.subtitle}>
-            {[config?.roleName, t('workspace.chat.heard_today', { count: heardToday(nodes) })].filter(Boolean).join(' · ')}
+            {/* A receive-only device names itself, with the chip (i5). */}
+            {isMqtt ? (
+              <>
+                {deviceName}
+                <span className={styles.chip}>{t('workspace.switcher.receive_only')}</span>
+              </>
+            ) : (
+              [config?.roleName, t('workspace.chat.heard_today', { count: heardToday(nodes) })].filter(Boolean).join(' · ')
+            )}
           </p>
         )}
       </div>
@@ -356,14 +367,13 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
         </div>
         {isMqtt ? (
           <ReadOnlyNote
-            kind="mqtt"
-            deviceName={deviceName}
-            openOn={radioDevice && { name: radioDevice.name, to: `/source/${encodeURIComponent(radioDevice.id)}/channel/0` }}
+            kind="receive-only"
+            switchTo={radioDevice && `/source/${encodeURIComponent(radioDevice.id)}/channel/0`}
           />
-        ) : canWrite && channel < CHANNEL_DB_OFFSET && connectionStatus === 'connected' ? (
+        ) : canWrite && channel < CHANNEL_DB_OFFSET && gate.show ? (
           <Composer
             target={{ kind: 'channel', channel, name }}
-            disabledReason={isTxDisabled ? t('tx_disabled.control_tooltip') : undefined}
+            disabledReason={gate.disabledReason}
             onSend={(text, replyTo) => void actions.sendChannelMessage(channel, text, replyIdOf(replyTo))}
             onBell={(text) => void actions.sendBell({ channel, text })}
             onSendPosition={() => void actions.sendPosition(channel)}
@@ -389,6 +399,7 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
   return (
     <section className={styles.page} data-phone={isPhone || undefined}>
       {header}
+      <OfflineBanner sourceId={sourceId} />
       {page === 'beacons' ? (
         <BeaconsPage
           beacons={beacons}

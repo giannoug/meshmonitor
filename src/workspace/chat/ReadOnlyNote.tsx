@@ -5,7 +5,9 @@
  * `disabledReason`).
  *
  * - `mqtt`: an MQTT mirror has no radio. Today's reason, and a link to the same
- *   conversation on a device with a radio, when there is one.
+ *   conversation on a device with a radio, when there is one (a DM, 10-05).
+ * - `receive-only`: the same, as one line in a channel (i5, Task 6.7): today's
+ *   reason, and Switch to the channel on a device with a radio.
  * - `guest`: not signed in; channels only, with today's Login.
  */
 import { useState } from 'react';
@@ -17,11 +19,26 @@ import styles from './ReadOnlyNote.module.css';
 
 export type ReadOnlyNoteProps =
   | { kind: 'mqtt'; deviceName: string; openOn?: { name: string; to: string } }
+  | { kind: 'receive-only'; switchTo?: string }
   | { kind: 'guest' };
 
 export default function ReadOnlyNote(props: ReadOnlyNoteProps) {
   const { t } = useTranslation();
   const [loginOpen, setLoginOpen] = useState(false);
+
+  if (props.kind === 'receive-only') {
+    return (
+      <div className={`${styles.note} ${styles.line}`} role="note">
+        <UiIcon name="network" size={20} />
+        <p className={styles.text}>{t('tx_disabled.no_local_radio_tooltip')}</p>
+        {props.switchTo && (
+          <Link className={styles.secondary} to={props.switchTo}>
+            {t('workspace.chat.switch')}
+          </Link>
+        )}
+      </div>
+    );
+  }
 
   if (props.kind === 'mqtt') {
     return (

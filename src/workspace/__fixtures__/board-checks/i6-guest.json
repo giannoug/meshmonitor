@@ -1,10 +1,10 @@
 {
   "must": [
     "Nodes",
-    "CHANNELS",
+    "Channels",
     "Home",
     "Sign in",
-    "You’re viewing as a guest",
+    "You're viewing as a guest",
     "Map",
     "Dashboard",
     "Connected"

@@ -19,6 +19,10 @@
  * ⌘, / Ctrl+, anywhere, or "Search everywhere" from a settings list. One of
  * the two searches shows at a time (D9c).
  *
+ * First run (board h6, Task 6.7): an admin on an install with no devices gets
+ * FirstRun in place of the Overview's own pages (`/`, `/overview`,
+ * `/overview/map`), with no sidebar; the rail keeps Add device.
+ *
  * Also here: the open device going away (Review Focus 4), the hashchange
  * that Classic's SectionNav needs after a client-side move to a `#section`,
  * and the forced password change after a recovery-code sign-in (Classic shows
@@ -45,6 +49,7 @@ import accountStyles from '../you/YouAccount.module.css';
 import NewsAutoOpen from './NewsAutoOpen';
 import PhoneShell from './PhoneShell';
 import OverviewSidebar from '../overview/OverviewSidebar';
+import FirstRun from '../devices/FirstRun';
 import { useIsNarrowDesktop, useIsPhone } from './useIsPhone';
 import { ShellDevicesContext } from './shellDevices';
 import { useWorkspaceSources } from './useWorkspaceSources';
@@ -103,6 +108,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   const isPhone = useIsPhone();
   const narrow = useIsNarrowDesktop();
   const { sources } = useWorkspaceSources();
+  const { data: allSources } = useDashboardSources();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [lastId, setLastId] = useState<string | null>(null);
 
@@ -110,6 +116,12 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   const source = sources.find((s) => s.id === openId);
   const mode = modeOf(location.pathname, source?.type);
   const home = sources.find((s) => s.id === (openId ?? lastId)) ?? null;
+  const firstRun =
+    authStatus?.authenticated === true &&
+    authStatus.user?.isAdmin === true &&
+    allSources?.length === 0 &&
+    /^\/(overview(\/map)?\/?)?$/.test(location.pathname);
+  const page = firstRun ? <FirstRun /> : children;
 
   useEffect(() => {
     if (openId) setLastId(openId);
@@ -212,7 +224,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
         <div className={styles.shell} data-workspace-shell="">
           <div className={styles.main}>
             <PhoneShell sources={sources} openId={openId} home={home} mode={mode}>
-              {children}
+              {page}
             </PhoneShell>
           </div>
         </div>
@@ -224,7 +236,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
     );
   }
 
-  const showSidebar = !narrow || drawerOpen;
+  const showSidebar = !firstRun && (!narrow || drawerOpen);
   const frame = { '--ws-frame-width': `${narrow ? RAIL : RAIL + SIDEBAR}px` } as CSSProperties;
 
   return (
@@ -234,8 +246,9 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
           sources={sources}
           openId={openId}
           overviewActive={mode === 'overview'}
+          firstRun={firstRun}
           drawerToggle={
-            narrow && (
+            narrow && !firstRun && (
               <button
                 type="button"
                 className={styles.drawerButton}
@@ -263,7 +276,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
         )}
         {narrow && drawerOpen && <div className={styles.backdrop} onClick={() => setDrawerOpen(false)} aria-hidden="true" />}
         {/* A div, not <main>: re-hosted pages bring their own <main>. */}
-        <div className={`${styles.main} ${styles.framed}`}>{children}</div>
+        <div className={`${styles.main} ${styles.framed}`}>{page}</div>
       </div>
       {search}
       {settingsSearch}

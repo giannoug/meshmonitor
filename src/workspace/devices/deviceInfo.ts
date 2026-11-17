@@ -3,6 +3,7 @@
  * (h1, i1), and where a device connects, as one short line.
  */
 import type { UiIconName } from '../../components/icons';
+import type { DashboardSource, SourceStatus } from '../../hooks/useDashboardData';
 import type { SourceType } from './useSourceForm';
 
 export const DEVICE_TYPES: ReadonlyArray<{ type: SourceType; icon: UiIconName; tone: number }> = [
@@ -56,4 +57,24 @@ export function endpointOf(type: string, config: Record<string, unknown> | undef
     default:
       return '';
   }
+}
+
+/**
+ * Today's Connect / Disconnect on a source card (DashboardSidebar, admins),
+ * for this source now: Connect for a manual source, or one that stopped after
+ * rejected logins or evictions; Retry when only gateways stopped; Disconnect
+ * for a connected manual source. Shared by Server › Devices and the Connection card.
+ */
+export function sourceControls(s: DashboardSource, status: SourceStatus | null | undefined) {
+  const autoConnectOff = (s.config as { autoConnect?: unknown } | undefined)?.autoConnect === false;
+  const connected = status?.connected === true;
+  return {
+    canConnect:
+      s.enabled &&
+      (((autoConnectOff || status?.authStopped === true || status?.evictionStopped === true) && !connected) ||
+        (status?.authStoppedGatewayCount ?? 0) > 0 ||
+        (status?.evictionStoppedGatewayCount ?? 0) > 0),
+    gatewaysOnly: connected,
+    canDisconnect: autoConnectOff && connected,
+  };
 }

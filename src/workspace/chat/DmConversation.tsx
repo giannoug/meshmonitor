@@ -50,6 +50,8 @@ import MessageRowD, { type RowTranslationActions } from './MessageRowD';
 import type { MessageActionContext } from './messageActions';
 import { useMessageActions } from './useMessageActions';
 import ReadOnlyNote from './ReadOnlyNote';
+import OfflineBanner from '../devices/OfflineBanner';
+import { composerGate } from './composerGate';
 import TracerouteStripD from './TracerouteStripD';
 import { replyIdOf } from './channelLabel';
 import { useChatRuntime } from './useChatRuntime';
@@ -222,6 +224,7 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
   const localNodeNum = currentNodeId ? parseNodeId(currentNodeId) : null;
   const peerNum = node?.nodeNum ?? parseNodeId(nodeId);
   const radioDevice = sources.find((s) => s.type === 'meshtastic_tcp' && s.enabled && s.id !== sourceId);
+  const gate = composerGate(t, sources.find((s) => s.id === sourceId)?.status, deviceName, isTxDisabled);
   const hopLimit = typeof deviceConfig?.lora?.hopLimit === 'number' ? deviceConfig.lora.hopLimit : undefined;
   const messageStyle = prefs['workspace.messageStyle'] === 'bubbles' ? 'bubbles' : 'rows';
   const signalDetail = prefs['workspace.signalDetail'] === 'always' ? 'always' : 'hover';
@@ -244,6 +247,7 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
         dateFormat={dateFormat}
         onMessagesPurged={dropMessages}
       />
+      <OfflineBanner sourceId={sid} />
       <div className={styles.split}>
         <div className={styles.column}>
           <div className={dmStyles.top} data-fill={!showLog || undefined}>
@@ -310,10 +314,10 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
               openOn={radioDevice && { name: radioDevice.name, to: `/source/${encodeURIComponent(radioDevice.id)}/dm/${encodeURIComponent(nodeId)}` }}
             />
           ) : (
-            showLog && canWrite && connectionStatus === 'connected' && (
+            showLog && canWrite && gate.show && (
               <Composer
                 target={{ kind: 'dm', nodeId, name }}
-                disabledReason={isTxDisabled ? t('tx_disabled.control_tooltip') : undefined}
+                disabledReason={gate.disabledReason}
                 onSend={(text, replyTo) => void actions.sendDirectMessage(nodeId, text, replyIdOf(replyTo))}
                 onBell={(text) => void actions.sendBell({ nodeId, text })}
                 hopLimit={hopLimit}

@@ -1,12 +1,10 @@
 {
   "must": [
-    "Offline since 14:02",
+    "Disconnected",
     "History is here; sending is paused.",
     "Connection",
-    "Last 24 hours",
-    "Retry now",
+    "Connecting",
     "Edit connection",
-    "Disconnect",
     "Nodes",
     "Home"
   ],

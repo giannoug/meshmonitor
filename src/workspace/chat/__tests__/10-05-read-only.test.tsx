@@ -94,7 +94,8 @@ describe('read-only states', () => {
     expect(screen.queryByRole('combobox')).toBeNull();
     expect(screen.queryByText(/^Sends /)).toBeNull();
     expect(screen.getByText('This MQTT source has no radio of its own, so it cannot send. Open a Meshtastic source to send.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open on Station G2' })).toHaveAttribute('href', `/source/${SOURCE_IDS.g2}/channel/0`);
+    // A channel shows it as one line with Switch (i5, Task 6.7); the DM keeps the card above.
+    expect(screen.getByRole('link', { name: 'Switch' })).toHaveAttribute('href', `/source/${SOURCE_IDS.g2}/channel/0`);
   });
 
   it("with TX disabled the controls are visible but disabled, with today's tooltip", async () => {

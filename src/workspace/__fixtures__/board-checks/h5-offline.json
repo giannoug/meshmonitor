@@ -1,12 +1,10 @@
 {
   "must": [
-    "Offline since 14:02",
+    "Disconnected",
     "Sending is paused while Rooftop RAK is offline",
-    "Last error: connection refused.",
-    "Last 24 hours",
-    "Retry now",
+    "Connection",
+    "Connecting",
     "Edit connection",
-    "Disconnect",
     "History stays here; sending is paused until it reconnects."
   ],
   "absent": [

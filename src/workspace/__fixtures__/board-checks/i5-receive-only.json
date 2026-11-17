@@ -2,15 +2,15 @@
   "must": [
     "Home",
     "DMs",
-    "so it can’t send. Reply from a device with a radio.",
+    "no radio of its own, so it cannot send.",
     "Receive-only",
     "Switch",
-    "Heard by",
+    "heard via",
     "Athens MQTT",
-    "only listens to gateways"
+    "Open a Meshtastic source to send."
   ],
   "absent": [
-    "Message",
+    "Sends 1 message",
     "⌘K"
   ],
   "source": "written"

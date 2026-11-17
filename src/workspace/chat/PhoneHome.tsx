@@ -6,11 +6,17 @@
  * Workspace has none yet), the device's channels with unread, and its most
  * recent DMs with "All direct messages".
  *
+ * Task 6.7: an offline device shows the offline note first (i4), which opens
+ * its Connection sheet. A guest (i6) sees a note on what signing in adds, and
+ * the tiles anonymous read opens (Dashboard among them, with today's gates).
+ *
  * One owner per screen (Ruling AD): App is not mounted here. The screen runs
  * the source's poll itself (the same request App would run), and the lists
  * read it and the shell's unread counts. Nothing here sends.
  */
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import OfflineBanner from '../devices/OfflineBanner';
 import { useTranslation } from 'react-i18next';
 import { UiIcon, type UiIconName } from '../../components/icons';
 import { mapNav } from '../../components/nav/sourceNavEntries';
@@ -47,10 +53,12 @@ function PhoneHome({ sourceId, sourceType }: { sourceId: string; sourceType: str
   const device = sources.find((s) => s.id === sourceId);
   const tab = useDeviceTab(device);
   const active = device?.live?.activeNodeCount;
+  const guest = useAuth().authStatus?.authenticated !== true;
 
   const tiles: Array<{ key: string; icon: UiIconName; label: string }> = [
     { key: 'map', icon: 'map', label: mapNav(t).label },
     { key: 'nodes', icon: 'radioSignal', label: active !== undefined ? `${t('nodes.title')} · ${active}` : t('nodes.title') },
+    ...(guest ? [{ key: 'dashboard', icon: 'dashboard' as const, label: t('nav.dashboard') }] : []),
     { key: 'automation', icon: 'zap', label: t('nav.automation') },
     { key: 'tools', icon: 'more', label: t('workspace.home.tools') },
   ];
@@ -59,7 +67,14 @@ function PhoneHome({ sourceId, sourceType }: { sourceId: string; sourceType: str
 
   return (
     <div className={threadStyles.page} data-phone="">
+      <OfflineBanner sourceId={sourceId} />
       <div className={styles.top}>
+        {guest && (
+          <p className={styles.guest} role="note">
+            <UiIcon name="visibility" size={20} />
+            <span>{t('workspace.chat.guest_note')}</span>
+          </p>
+        )}
         {openSearch && (
           <button type="button" className={styles.pill} onClick={openSearch}>
             <UiIcon name="search" size={18} />

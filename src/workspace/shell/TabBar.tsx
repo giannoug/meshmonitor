@@ -12,12 +12,16 @@
  * - With no device, DMs and Activity are shown disabled; so is DMs for a
  *   viewer the sidebar would not show Direct messages to, and Activity on a
  *   MeshCore or Reticulum device (their chat is Phase 7) or without read.
+ * - A guest (i6, Task 6.7): Home, and today's Login, which opens the sign-in
+ *   dialog (Task 6.2); DMs, Activity and You need an account.
  */
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon, type UiIconName } from '../../components/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useActivity } from '../activity/useActivity';
+import { SignInDialog } from '../auth/SignInCard';
 import { canReadMessages, isMeshtasticFamily, useDeviceTab } from './deviceTabs';
 import type { WorkspaceSource } from './useWorkspaceSources';
 import styles from './TabBar.module.css';
@@ -35,14 +39,20 @@ export default function TabBar({ home, active }: TabBarProps) {
   const base = home && `/source/${encodeURIComponent(home.id)}`;
   // Gated as the desktop sidebar's Direct messages entry (messages:read, type).
   const dms = useDeviceTab(home)('dms');
-  const { hasPermission } = useAuth();
-  const hasActivity = !!home && isMeshtasticFamily(home.type) && canReadMessages(hasPermission, home.id);
+  const { authStatus, hasPermission } = useAuth();
+  const [loginOpen, setLoginOpen] = useState(false);
+  const guest = authStatus?.authenticated !== true;
+  const hasActivity = !guest && !!home && isMeshtasticFamily(home.type) && canReadMessages(hasPermission, home.id);
   const { unseenCount } = useActivity(home?.id, { enabled: hasActivity });
   const tabs: Array<{ key: PhoneTab; to: string | null; icon: UiIconName; badge?: number }> = [
     { key: 'home', to: base ?? '/overview', icon: 'home' },
-    { key: 'dms', to: dms, icon: 'messages', badge: home?.dmUnread },
-    { key: 'activity', to: hasActivity ? `${base}/activity` : null, icon: 'notifications', badge: unseenCount },
-    { key: 'you', to: '/you', icon: 'user' },
+    ...(guest
+      ? []
+      : [
+          { key: 'dms' as const, to: dms, icon: 'messages' as const, badge: home?.dmUnread },
+          { key: 'activity' as const, to: hasActivity ? `${base}/activity` : null, icon: 'notifications' as const, badge: unseenCount },
+          { key: 'you' as const, to: '/you', icon: 'user' as const },
+        ]),
   ];
 
   return (
@@ -81,6 +91,17 @@ export default function TabBar({ home, active }: TabBarProps) {
           </Link>
         );
       })}
+      {guest && (
+        <>
+          <button type="button" className={`${styles.tab} ${styles.tabButton}`} onClick={() => setLoginOpen(true)}>
+            <span className={styles.icon}>
+              <UiIcon name="user" size={22} />
+            </span>
+            <span>{t('auth.login')}</span>
+          </button>
+          <SignInDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
+        </>
+      )}
     </nav>
   );
 }

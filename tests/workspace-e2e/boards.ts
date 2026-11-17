@@ -251,6 +251,20 @@ async function addMeshtastic(page: Page, host: string, name: string, phone: bool
   await dialog.getByText(result).waitFor();
 }
 
+/** Task 6.7: Rooftop RAK's stored history (the fixture's G2 poll). */
+const RAK_HISTORY: Board['fixtures'] = { 'GET /api/poll': () => athensFixture.poll };
+
+/** Task 6.7 (i6): a guest whom anonymous read lets see Station G2's nodes, dashboard and two channels. */
+const GUEST_READ = { read: true, write: false };
+const GUEST: Board['fixtures'] = {
+  'GET /api/auth/status': () => ({
+    ...athensFixture.authStatus,
+    authenticated: false,
+    user: null,
+    permissions: { global: {}, bySource: { 'src-g2': { nodes: GUEST_READ, dashboard: GUEST_READ, channel_0: GUEST_READ, channel_1: GUEST_READ } } },
+  }),
+};
+
 export const BOARDS: Board[] = [
   // Task 1.6 built the frame (rail + sidebar); Task 2.3 the channel list and the open channel.
   { id: 'a-chat-D-desktop', size: 'desktop', path: '/source/src-g2/channel/0' },
@@ -1789,7 +1803,32 @@ export const BOARDS: Board[] = [
     fixtures: DEVICES({ outcome: 'failed' }),
     setup: (page) => addMeshtastic(page, '192.168.1.52', 'Rooftop RAK', true, 'Couldn’t connect.'),
   },
+  // Task 6.7: device states. Rooftop RAK is offline (its stored history is G2's poll); the status line or the banner opens its Connection card.
+  {
+    id: 'h5-offline',
+    size: 'desktop',
+    path: '/source/src-rak/channel/0',
+    fixtures: RAK_HISTORY,
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Disconnected', exact: true }).click();
+      await page.getByRole('dialog', { name: 'Connection' }).waitFor();
+    },
+  },
+  { id: 'h6-first-run', size: 'desktop', path: '/', fixtures: { 'GET /api/sources': () => [] } },
+  {
+    id: 'i4-offline',
+    size: 'phone',
+    path: '/source/src-rak',
+    fixtures: RAK_HISTORY,
+    setup: async (page) => {
+      await page.getByRole('button', { name: /Rooftop RAK is offline/ }).click();
+      await page.getByRole('dialog', { name: 'Connection' }).waitFor();
+    },
+  },
+  { id: 'i5-receive-only', size: 'phone', path: '/source/src-mqtt/channel/0' },
+  { id: 'i6-guest', size: 'phone', path: '/source/src-g2', fixtures: GUEST },
 ];
+
 
 /** Identity: the short name G2 → SG2. */
 async function renameShort(page: Page) {

@@ -12,7 +12,9 @@
  *   today's card offers them, Resync (a connected Meshtastic node; it asks,
  *   with today's words on what it sends), Prune Outside ROI (a bridge with a
  *   geofence) and Delete (today's words; the server removes its data as today).
- * - Add device opens the flow (`?add=1`, also the rail's "+").
+ * - Add device opens the flow (`?add=1`, also the rail's "+"); `?edit=<id>`
+ *   opens it on that device (the Connection card's Edit connection).
+ * - A row's status line opens the device's Connection card (ds6, Task 6.7).
  *
  * Statuses ride the shell's existing device poll; this page adds no timer.
  */
@@ -38,7 +40,8 @@ import { useServerSettings } from '../settings/useAutosaveSetting';
 import { useIsPhone } from '../shell/useIsPhone';
 import { useWorkspaceSources, type WorkspaceSource } from '../shell/useWorkspaceSources';
 import AddDeviceFlow from './AddDeviceFlow';
-import { endpointOf } from './deviceInfo';
+import ConnectionCard from './ConnectionCard';
+import { endpointOf, sourceControls } from './deviceInfo';
 import { connectSourceAndWait } from './useSourceForm';
 import styles from './Devices.module.css';
 
@@ -99,6 +102,9 @@ function DevicesBody() {
   }, []);
 
   const adding = params.get('add') === '1';
+  // `?edit=<id>`: the Connection card's Edit connection (Task 6.7).
+  const editParam = params.get('edit');
+  const editing = editId ?? (editParam && sources.some((s) => s.id === editParam) ? editParam : null);
   const byId = new Map(live.map((s) => [s.id, s]));
   // Today's default Meshtastic source (Server › General); "Automatic" is the first enabled node.
   const primaryId =
@@ -235,7 +241,7 @@ function DevicesBody() {
 
   const closeFlow = () => {
     setEditId(null);
-    if (adding) void navigate('/server/devices', { replace: true });
+    if (adding || editParam) void navigate('/server/devices', { replace: true });
   };
 
   const words: Record<ConfirmKind, { title: string; confirm: string; body: ReactNode; danger?: boolean }> | null = confirm && {
@@ -300,7 +306,7 @@ function DevicesBody() {
         onConfirm={confirmAction}
         onCancel={() => setConfirm(null)}
       />
-      {(adding || editId) && <AddDeviceFlow key={editId ?? 'add'} sources={sources} editId={editId} onClose={closeFlow} />}
+      {(adding || editing) && <AddDeviceFlow key={editing ?? 'add'} sources={sources} editId={editing} onClose={closeFlow} />}
     </>
   );
 }
@@ -326,14 +332,8 @@ function DeviceRow({ source: s, shell, primary, first, last, connecting, onMove,
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: s.id });
   const status: SourceStatus | null = shell?.live ?? null;
   const { dotClass, label } = getStatusInfo(s, status, t);
-  const autoConnectOff = (s.config as { autoConnect?: unknown } | undefined)?.autoConnect === false;
-  // Today's Connect button (DashboardSidebar): manual sources, and ones that stopped after rejected logins or evictions.
-  const canConnect =
-    s.enabled &&
-    ((((autoConnectOff || status?.authStopped === true || status?.evictionStopped === true) && !status?.connected) ||
-      (status?.authStoppedGatewayCount ?? 0) > 0 ||
-      (status?.evictionStoppedGatewayCount ?? 0) > 0));
-  const gatewaysOnly = status?.connected === true;
+  const [cardOpen, setCardOpen] = useState(false);
+  const { canConnect, gatewaysOnly, canDisconnect } = sourceControls(s, status);
   const endpoint = endpointOf(s.type, s.config, (port) => t('workspace.devices.port', { port }));
   const kind = t(`workspace.devices.type.${s.type}`, s.type);
 
@@ -342,7 +342,7 @@ function DeviceRow({ source: s, shell, primary, first, last, connecting, onMove,
     ...(canConnect
       ? [{ key: 'connect', label: connecting ? t('source.connecting') : gatewaysOnly ? t('source.retry_gateways') : t('source.connect'), icon: 'power' as const, disabled: connecting, onSelect: onConnect }]
       : []),
-    ...(autoConnectOff && status?.connected === true ? [{ key: 'disconnect', label: t('source.kebab.disconnect'), icon: 'power' as const, onSelect: onDisconnect }] : []),
+    ...(canDisconnect ? [{ key: 'disconnect', label: t('source.kebab.disconnect'), icon: 'power' as const, onSelect: onDisconnect }] : []),
     ...(s.type === 'meshtastic_tcp' && status?.connected === true
       ? [{ key: 'resync', label: t('source.kebab.resync', 'Resync'), icon: 'refresh' as const, onSelect: () => onConfirm('resync') }]
       : []),
@@ -373,10 +373,27 @@ function DeviceRow({ source: s, shell, primary, first, last, connecting, onMove,
         </span>
         <span className={styles.rowSub}>{[kind, endpoint].filter(Boolean).join(' · ')}</span>
       </span>
-      <span className={styles.status} data-tone={dotClass} title={status && !status.connected ? (status as { lastError?: string }).lastError ?? undefined : undefined}>
-        <span className={styles.dot} aria-hidden="true" />
-        {label}
-      </span>
+      {/* ds6: the status line opens the device's Connection card. */}
+      {shell ? (
+        <button
+          type="button"
+          className={`${styles.status} ${styles.statusButton}`}
+          data-tone={dotClass}
+          aria-haspopup="dialog"
+          aria-label={t('workspace.connection.status_line', { name: s.name, status: label })}
+          title={status && !status.connected ? (status as { lastError?: string }).lastError ?? undefined : undefined}
+          onClick={() => setCardOpen(true)}
+        >
+          <span className={styles.dot} aria-hidden="true" />
+          {label}
+        </button>
+      ) : (
+        <span className={styles.status} data-tone={dotClass} title={status && !status.connected ? (status as { lastError?: string }).lastError ?? undefined : undefined}>
+          <span className={styles.dot} aria-hidden="true" />
+          {label}
+        </span>
+      )}
+      {shell && <ConnectionCard source={shell} open={cardOpen} onClose={() => setCardOpen(false)} />}
       <span className={styles.moves}>
         <button type="button" className={styles.iconButton} aria-label={t('workspace.devices.move_up', { name: s.name })} disabled={first} onClick={() => onMove(-1)}>
           <UiIcon name="chevronUp" size={18} />

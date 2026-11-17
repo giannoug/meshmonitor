@@ -1,0 +1,140 @@
+/* A device's Connection card (boards h5, i4), inside the shared Sheet. */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 20px 12px;
+}
+
+.device {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.square {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  color: var(--color-bg);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.deviceText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.name {
+  font-size: 17px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sub {
+  font-size: 14px;
+  color: var(--color-text-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.state {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  background: var(--color-surface);
+}
+
+.state > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.state[data-tone='disconnected'],
+.state[data-tone='connecting'] {
+  border-color: var(--color-error);
+}
+
+.state[data-tone='connected'] > svg {
+  color: var(--color-success);
+}
+
+.stateText {
+  min-width: 0;
+}
+
+.word {
+  margin: 0;
+  font-weight: 700;
+}
+
+.detail {
+  margin: 4px 0 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.primary {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-bg-sunken);
+}
+
+/* Phone (i4): full-width buttons at 48 px, the first on its own row. */
+.card[data-phone] .button {
+  flex: 1 1 40%;
+  min-height: 48px;
+}
+
+.card[data-phone] .primary {
+  flex-basis: 100%;
+}

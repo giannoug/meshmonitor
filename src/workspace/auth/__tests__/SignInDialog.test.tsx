@@ -93,7 +93,8 @@ describe('sign-in dialog', () => {
 
   it('the phone guest You tab opens the same card', async () => {
     renderShell('/you', true, <YouHome />);
-    fireEvent.click(await screen.findByRole('button', { name: /^Login/ }));
+    // The page's Login row; the guest tab bar has its own Login (i6, Task 6.7).
+    fireEvent.click((await screen.findAllByRole('button', { name: /^Login/ })).find((b) => b.dataset.testid === 'you-row')!);
     const dialog = await screen.findByRole('dialog', { name: 'Login' });
     expect(within(dialog).getByLabelText('Username')).toBeInTheDocument();
     expect(dialog.querySelector('[data-phone]')).not.toBeNull();
