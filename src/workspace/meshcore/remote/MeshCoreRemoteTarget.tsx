@@ -15,18 +15,23 @@
  *
  * It is keyed by the node, so another node starts logged out, as today.
  */
-import { useCallback, useMemo, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MeshCoreContact } from '../../../utils/meshcoreHelpers';
 import type { CliConsoleBodyHandle } from '../../../components/MeshCore/CliConsoleBody';
 import { useMeshCoreRemoteSession } from '../../../components/MeshCore/hooks/useMeshCoreRemoteSession';
 import { useRemoteRepeaterSettings } from '../../../components/MeshCore/hooks/useRemoteRepeaterSettings';
+import { useRepeaterSettingsDraft } from '../../../components/MeshCore/hooks/useRepeaterSettingsDraft';
+import { useRemoteStats } from '../../../components/MeshCore/hooks/useRemoteStats';
+import { useNumberInputScope } from '../../../components/common/numberInputScopeContext';
+import LeaveGuard from '../../settings/LeaveGuard';
+import { remoteEntry, updateRemote } from '../../settings/remote/remoteTargetStore';
 import { useMeshCoreRuntime } from '../runtime';
-import { contactLabel, TargetContext, type MeshCoreTarget, type RemoteActions } from './remoteTarget';
+import { contactLabel, SETTING_LABELS, TargetContext, type MeshCoreTarget, type RemoteActions } from './remoteTarget';
 
 export function MeshCoreTargetProvider({ contact, children }: { contact: MeshCoreContact; children: ReactNode }) {
   const { t } = useTranslation();
-  const { meshCore, receiveOnly } = useMeshCoreRuntime();
+  const { meshCore, receiveOnly, sourceId } = useMeshCoreRuntime();
   const a = meshCore.actions;
   // useMeshCore rebuilds `actions` on every render; its members are stable, so the session's lookups run once.
   const actions = useMemo<RemoteActions>(
@@ -80,6 +85,52 @@ export function MeshCoreTargetProvider({ contact, children }: { contact: MeshCor
     ...(typeof contact.snr === 'number' ? [t('workspace.meshcore.remote.snr', { snr: contact.snr })] : []),
   ].join(' · ');
 
+  const radio = useMemo(
+    () => ({ sf: status?.localNode?.radioSf, bw: status?.localNode?.radioBw, cr: status?.localNode?.radioCr }),
+    [status?.localNode?.radioSf, status?.localNode?.radioBw, status?.localNode?.radioCr],
+  );
+  // The settings draft lives here, so Settings → Console → Settings keeps it (GR).
+  const numbers = useNumberInputScope();
+  const draft = useRepeaterSettingsDraft({
+    values: settings.values,
+    firmwareVersion: settings.firmware,
+    radio,
+    canWrite: !blocked,
+    disabled: !!blocked,
+    onSave: settings.save,
+    mode: 'remote',
+    deviceType: isRepeater ? 'repeater' : 'room',
+    loadedGroups: settings.loadedGroups,
+    numbers,
+  });
+  const stats = useRemoteStats(publicKey, actions.getRemoteStatus, receiveOnly);
+
+  // What the draft would send, by today's labels: the leave guard and the picker ask before dropping it.
+  const settingsBase = `/source/${encodeURIComponent(sourceId)}/settings`;
+  const changes = Object.keys(draft.changed).map((k) => {
+    const [key, fallback] = SETTING_LABELS[k as keyof typeof SETTING_LABELS] ?? [k, k];
+    return t(key, fallback);
+  });
+  const unsentTitle = `${t('meshcore.repeater.remote_title')} · ${name}`;
+  const unsentKey = JSON.stringify(changes);
+  useEffect(() => {
+    const list = JSON.parse(unsentKey) as string[];
+    updateRemote(sourceId, { unsent: list.length ? [{ key: 'node-settings', title: unsentTitle, changes: list }] : [] });
+  }, [sourceId, unsentKey, unsentTitle]);
+  // The settings list's Session line (8-06).
+  const sessionStatus = session.loggedIn
+    ? [t('workspace.meshcore.remote.logged_in'), ...(session.session?.isAdmin ? [t('workspace.meshcore.remote.as_admin')] : [])].join(' · ')
+    : session.canResume
+      ? t('meshcore.remoteConsole.session_saved')
+      : t('meshcore.remoteConsole.not_logged_in', 'Not logged in');
+  useEffect(() => {
+    updateRemote(sourceId, { session: { loggedIn: session.loggedIn, status: sessionStatus } });
+  }, [sourceId, session.loggedIn, sessionStatus]);
+  // Leaving drops the line; the frame may already have forgotten the target.
+  useEffect(() => () => {
+    if (remoteEntry(sourceId).node) updateRemote(sourceId, { session: null, unsent: [] });
+  }, [sourceId]);
+
   const value: MeshCoreTarget = {
     contact,
     publicKey,
@@ -93,7 +144,22 @@ export function MeshCoreTargetProvider({ contact, children }: { contact: MeshCor
     receiveOnly,
     blocked,
     pathHops,
-    radio: { sf: status?.localNode?.radioSf, bw: status?.localNode?.radioBw, cr: status?.localNode?.radioCr },
+    radio,
+    draft,
+    numbers,
+    stats,
   };
-  return <TargetContext.Provider value={value}>{children}</TargetContext.Provider>;
+  return (
+    <TargetContext.Provider value={value}>
+      {children}
+      <LeaveGuard
+        base={settingsBase}
+        pending={
+          changes.length > 0
+            ? { scope: settingsBase, title: unsentTitle, changes, discard: draft.handleDiscard }
+            : null
+        }
+      />
+    </TargetContext.Provider>
+  );
 }

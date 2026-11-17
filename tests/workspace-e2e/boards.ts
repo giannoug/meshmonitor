@@ -1902,9 +1902,8 @@ export const BOARDS: Board[] = [
     init: macPlatform,
     setup: async (page) => {
       await resumeMcSession(page);
-      await page.getByRole('button', { name: 'Fetch stats', exact: true }).first().click();
+      await page.getByRole('button', { name: 'Fetch stats', exact: true }).click();
       await page.getByText('4.11 V').waitFor();
-      await page.getByRole('button', { name: 'Command history' }).click();
       await page.getByRole('button', { name: 'Load more' }).waitFor();
       await page.getByRole('button', { name: 'reboot', exact: true }).click();
       await page.getByRole('dialog', { name: 'Confirm destructive command' }).waitFor();
@@ -1916,7 +1915,18 @@ export const BOARDS: Board[] = [
     path: `/source/src-heltec/settings/node-settings?node=${MC.lycabettus}`,
     fixtures: MESHCORE({ adminSession: true }),
     init: macPlatform,
-    setup: readMcSettings(['identity', 'adverts', 'access']),
+    setup: async (page) => {
+      await readMcSettings(page);
+      // Two changes, as the board draws them: Flood advert interval 24 → 12 h and TX power 20 → 17 dBm.
+      for (const [label, value] of [['Flood advert interval', '12'], ['TX power', '17']]) {
+        await page.getByRole('button', { name: label, exact: true }).click();
+        const sheet = page.getByRole('dialog', { name: label });
+        await sheet.getByLabel(label).fill(value);
+        await sheet.getByLabel(label).blur();
+        await sheet.getByRole('button', { name: 'Done' }).click();
+      }
+      await page.getByText('2 changes · Save repeater settings').waitFor();
+    },
   },
   {
     id: '8-21-repeater-console',
@@ -1930,7 +1940,12 @@ export const BOARDS: Board[] = [
     size: 'phone',
     path: `/source/src-heltec/settings/node-settings?node=${MC.lycabettus}`,
     fixtures: MESHCORE({ adminSession: true }),
-    setup: readMcSettings(['identity', 'adverts']),
+    setup: async (page) => {
+      await readMcSettings(page);
+      await page.getByRole('button', { name: 'Increase' }).click();
+      await page.getByText('1 change · Lycabettus Repeater').waitFor();
+      await page.evaluate(() => window.scrollTo(0, 0));
+    },
   },
 ];
 
@@ -1945,16 +1960,11 @@ async function resumeMcSession(page: Page) {
   await page.getByText('Logged in', { exact: true }).first().waitFor();
 }
 
-/** 8-07 / 8-25: logged in, with these setting groups read. */
-function readMcSettings(groups: string[]) {
-  return async (page: Page) => {
-    await page.getByRole('button', { name: 'Resume session' }).click();
-    for (const g of groups) {
-      await page.getByTestId(`repeater-read-${g}`).click();
-      await page.getByTestId(`repeater-read-${g}`).getByText('Read again').waitFor();
-    }
-    await page.evaluate(() => window.scrollTo(0, 0));
-  };
+/** 8-07 / 8-25: logged in, every group read with one Read. */
+async function readMcSettings(page: Page) {
+  await page.getByRole('button', { name: 'Resume session' }).click();
+  await page.getByRole('button', { name: 'Read', exact: true }).click();
+  await page.getByRole('button', { name: 'Read again' }).waitFor();
 }
 
 /** 8-05 / 8-20: the board shows a ping and a trace already answered. */

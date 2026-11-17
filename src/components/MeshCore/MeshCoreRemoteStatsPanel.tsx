@@ -13,9 +13,11 @@
  * path has gone stale since login.
  */
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { MeshCoreActions, MeshCoreRemoteStatus } from './hooks/useMeshCore';
+import type { MeshCoreActions } from './hooks/useMeshCore';
+import { useRemoteStats } from './hooks/useRemoteStats';
+import { formatAirTime, formatBattery, formatNumber, formatRssi, formatSnr, formatUptime } from './remoteStatsFormat';
 import './MeshCoreRemoteStatsPanel.css';
 import { UiIcon } from '../icons';
 
@@ -35,40 +37,8 @@ export const MeshCoreRemoteStatsPanel: React.FC<Props> = ({
   receiveOnly = false,
 }) => {
   const { t } = useTranslation();
-  const [status, setStatus] = useState<MeshCoreRemoteStatus | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const { status, loading, error, lastUpdated, load } = useRemoteStats(publicKey, fetchStatus, receiveOnly);
   const [collapsed, setCollapsed] = useState(false);
-
-  // Track an in-flight fetch so a slow Refresh + an interval tick can't
-  // race. The interval skips its tick if a fetch is already in flight.
-  const inFlightRef = useRef(false);
-
-  const load = useCallback(async () => {
-    if (inFlightRef.current) return;
-    // Receive-only mode: silently skip — no request, no toast, no loading
-    // state. Guards every caller of `load()` (both the manual Refresh /
-    // Fetch-stats buttons below, which are also separately disabled, and any
-    // future automatic caller), before any fetchStatus() call and before any
-    // loading state is set (#4547 Phase 2 §3.4a(c)).
-    if (receiveOnly) return;
-    inFlightRef.current = true;
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await fetchStatus(publicKey);
-      if (result) {
-        setStatus(result);
-        setLastUpdated(Date.now());
-      } else {
-        setError(t('meshcore.remoteStats.unavailable', 'Status unavailable'));
-      }
-    } finally {
-      inFlightRef.current = false;
-      setLoading(false);
-    }
-  }, [fetchStatus, publicKey, receiveOnly, t]);
 
   // No auto-fetch and no polling — status is loaded only when the user asks
   // (the "Fetch stats" / "Refresh" buttons below), to avoid spending radio
@@ -184,48 +154,3 @@ const StatField: React.FC<StatFieldProps> = ({ label, value, compact }) => (
     <span className="mrs-field-value">{value}</span>
   </div>
 );
-
-// ----- formatters -----
-
-function formatNumber(v: number | undefined): string {
-  if (v === undefined || v === null) return '—';
-  return v.toLocaleString();
-}
-
-function formatUptime(secs: number | undefined): string {
-  if (secs === undefined || secs === null) return '—';
-  if (secs < 60) return `${secs}s`;
-  const d = Math.floor(secs / 86400);
-  const h = Math.floor((secs % 86400) / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  if (d > 0) return `${d}d ${h}h ${m}m`;
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
-}
-
-function formatBattery(mv: number | undefined): string {
-  if (mv === undefined || mv === null) return '—';
-  return `${(mv / 1000).toFixed(2)} V`;
-}
-
-function formatRssi(rssi: number | undefined): string {
-  if (rssi === undefined || rssi === null) return '—';
-  return `${rssi} dBm`;
-}
-
-function formatSnr(snr: number | undefined): string {
-  if (snr === undefined || snr === null) return '—';
-  // The wire value is a signed int16 representing dB×10 in some firmware
-  // versions and raw dB in others — meshcore.js currently emits raw dB,
-  // so render as-is with one decimal.
-  return `${snr.toFixed(1)} dB`;
-}
-
-function formatAirTime(secs: number | undefined): string {
-  if (secs === undefined || secs === null) return '—';
-  if (secs < 60) return `${secs}s`;
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
-}

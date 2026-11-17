@@ -5,14 +5,12 @@
  * through MeshMonitor (from any user, and from Virtual Node apps), then pages
  * back with "Load more". The console's own in-session transcript is separate.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../icons';
 import { CliHistoryList } from './CliHistoryList';
-import { fetchSourceCliHistory, nextCliHistoryCursor, type CliHistoryCursor, type CliHistoryEntry } from './cliHistoryApi';
+import { useCliHistory } from './hooks/useCliHistory';
 import styles from './CliHistory.module.css';
-
-const PAGE_SIZE = 25;
 
 export interface CliHistoryTarget {
   sourceId: string;
@@ -23,36 +21,12 @@ export interface CliHistoryTarget {
 export const CliHistoryPanel: React.FC<CliHistoryTarget> = ({ sourceId, target }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [entries, setEntries] = useState<CliHistoryEntry[]>([]);
-  const [nextCursor, setNextCursor] = useState<CliHistoryCursor | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { entries, nextCursor, loading, error, load } = useCliHistory(sourceId, target, open);
 
-  const load = useCallback(async (cursor: CliHistoryCursor | null) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const page = await fetchSourceCliHistory(sourceId, { target, limit: PAGE_SIZE, before: cursor?.before, beforeId: cursor?.beforeId });
-      setEntries((prev) => (cursor === null ? page.entries : [...prev, ...page.entries]));
-      setNextCursor(nextCliHistoryCursor(page));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [sourceId, target]);
-
-  // A new target starts closed and empty.
+  // A new target starts closed.
   useEffect(() => {
     setOpen(false);
-    setEntries([]);
-    setNextCursor(null);
-    setError(null);
   }, [sourceId, target]);
-
-  useEffect(() => {
-    if (open) void load(null);
-  }, [open, load]);
 
   return (
     <section className={styles.panel} aria-label={t('meshcore.cliHistory.title', 'Command history')}>

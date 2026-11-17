@@ -236,6 +236,17 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
             />
             <Section title={t('workspace.settings.remote.remote_only')} rows={[...remoteOnly, ...radioTail]} sidebar={sidebar} onNavigate={onNavigate} />
             <Section title={t('workspace.settings.in_meshmonitor')} rows={meshmonitor} sidebar={sidebar} onNavigate={onNavigate} />
+            {remote.session && (
+              // A MeshCore target's admin session (board 8-06).
+              <section className={styles.section}>
+                <h2 className={styles.sectionTitle}>{t('workspace.meshcore.remote.session')}</h2>
+                <p className={styles.session}>
+                  <span className={styles.sessionDot} data-on={remote.session.loggedIn || undefined} aria-hidden="true" />
+                  <span className={styles.sessionLabel}>{t('workspace.meshcore.remote.admin_session')}</span>
+                  <span className={styles.sessionStatus} data-on={remote.session.loggedIn || undefined}>{remote.session.status}</span>
+                </p>
+              </section>
+            )}
           </>
         )}
       </nav>

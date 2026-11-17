@@ -25,6 +25,8 @@ export function useRemoteRepeaterSettings(
   const [loadedGroups, setLoadedGroups] = useState<Set<RemoteSettingsGroup>>(() => new Set());
   const [readingGroup, setReadingGroup] = useState<RemoteSettingsGroup | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  /** When the last read answered (ms), for the Workspace's read line. */
+  const [readAt, setReadAt] = useState<number | null>(null);
 
   const describe = useCallback((code: string | undefined, error: string, retryAfterSeconds?: number) => {
     switch (code) {
@@ -44,20 +46,26 @@ export function useRemoteRepeaterSettings(
     }
   }, [t]);
 
-  const readGroup = useCallback(async (group: RemoteSettingsGroup) => {
-    setReadingGroup(group);
+  // Several groups in one request (the Workspace's Read again, Task 7.3); one group is today's per-group Read.
+  const readGroups = useCallback(async (groups: RemoteSettingsGroup[]) => {
+    setReadingGroup(groups[0]);
     setMessage(null);
     try {
-      const result = await actions.readRemoteSettings(publicKey, [group]);
+      const result = await actions.readRemoteSettings(publicKey, groups);
       if (!result.ok) {
         setMessage(describe(result.code, result.error, result.retryAfterSeconds));
         return;
       }
       const data = result.data;
       setValues((v) => ({ ...v, ...data.values }));
-      if (group === 'access') setGuestPasswordSet(data.guestPasswordSet);
+      if (groups.includes('access')) setGuestPasswordSet(data.guestPasswordSet);
       if (data.firmware) setFirmware(data.firmware);
-      setLoadedGroups((g) => new Set(g).add(group));
+      setLoadedGroups((g) => {
+        const next = new Set(g);
+        for (const group of groups) next.add(group);
+        return next;
+      });
+      setReadAt(Date.now());
       if (data.stoppedAt) {
         setMessage(t('meshcore.repeater.remote_read_stopped', {
           key: data.stoppedAt,
@@ -68,6 +76,8 @@ export function useRemoteRepeaterSettings(
       setReadingGroup(null);
     }
   }, [actions, publicKey, describe, t]);
+
+  const readGroup = useCallback((group: RemoteSettingsGroup) => readGroups([group]), [readGroups]);
 
   const save = useCallback(async (patch: RepeaterSettingsPatch) => {
     setMessage(null);
@@ -81,5 +91,5 @@ export function useRemoteRepeaterSettings(
     return result.data;
   }, [actions, publicKey, describe]);
 
-  return { values, guestPasswordSet, firmware, loadedGroups, readingGroup, message, readGroup, save };
+  return { values, guestPasswordSet, firmware, loadedGroups, readingGroup, message, readAt, readGroup, readGroups, save };
 }

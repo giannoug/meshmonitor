@@ -19,17 +19,31 @@ describe('8-25-repeater-settings', () => {
   it('8-25-repeater-settings shows the board', async () => {
     const { container } = renderMeshCore(route, { phone: true, meshcore: { adminSession: true } });
     fireEvent.click(await screen.findByRole('button', { name: 'Resume session' }));
-    for (const g of ['identity', 'adverts']) {
-      fireEvent.click(await screen.findByTestId(`repeater-read-${g}`));
-      await waitFor(() => expect(screen.getByTestId(`repeater-read-${g}`)).toHaveTextContent('Read again'));
-    }
+    fireEvent.click(await screen.findByRole('button', { name: /^Read$/ }));
+    await screen.findByRole('button', { name: /Read again/ });
+    // The hop limit and the field sheets are the phone's 44 px steppers and sheets (kit).
+    fireEvent.click(screen.getByRole('button', { name: 'Increase' }));
+    expect(await screen.findByText('1 change · Lycabettus Repeater')).toBeInTheDocument();
     expectBoard('8-25-repeater-settings', container);
+  });
+
+  it('the phone dock: Discard and Send to node, which sends the one changed field once', async () => {
+    const { log } = renderMeshCore(route, { phone: true, meshcore: { adminSession: true } });
+    fireEvent.click(await screen.findByRole('button', { name: 'Resume session' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Read$/ }));
+    await screen.findByRole('button', { name: /Read again/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Increase' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Send to node' }));
+    await waitFor(() => expect(log.writes.filter((w) => w.method === 'PATCH')).toHaveLength(1));
+    expect(log.writes.find((w) => w.method === 'PATCH')!.body).toEqual({ floodMax: 9 });
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeInTheDocument();
   });
 
   it('Access list opens the key form in a sheet with Apply and its Sends line; opening sends nothing', async () => {
     const { log } = renderMeshCore(route, { phone: true, meshcore: { adminSession: true } });
     fireEvent.click(await screen.findByRole('button', { name: 'Resume session' }));
     expect(screen.queryByRole('region', { name: 'Manage access list' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Access list' })).toBeNull();
     fireEvent.click(await screen.findByRole('button', { name: /Access list/ }));
     const sheet = await screen.findByRole('dialog', { name: 'Access list' });
     expect(within(sheet).getByRole('button', { name: 'Apply' })).toBeInTheDocument();

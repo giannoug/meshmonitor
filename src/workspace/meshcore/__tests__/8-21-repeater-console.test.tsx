@@ -10,6 +10,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
+import { joined } from '../../chat/__tests__/renderChat';
 import { MC } from '../../__fixtures__/meshcore';
 import { HELTEC, renderMeshCore } from './renderMeshCore';
 
@@ -22,7 +23,30 @@ describe('8-21-repeater-console', () => {
     const { container } = renderMeshCore(route, { phone: true, meshcore: { adminSession: true } });
     fireEvent.click(await screen.findByRole('button', { name: 'Resume session' }));
     await screen.findAllByText('Logged in');
-    expectBoard('8-21-repeater-console', container);
+    const page = container.textContent ?? '';
+    // Remote node status is a row that opens its panel (note s8n6), where Fetch stats and its Sends line sit.
+    fireEvent.click(screen.getByRole('button', { name: /Remote node status/ }));
+    await screen.findByRole('dialog', { name: 'Remote node status' });
+    expectBoard('8-21-repeater-console', joined(page, document.body));
+  });
+
+  it('the phone shows the first quick actions and "+2 more" for the rest', async () => {
+    renderMeshCore(route, { phone: true, meshcore: { adminSession: true } });
+    fireEvent.click(await screen.findByRole('button', { name: 'Resume session' }));
+    const group = await screen.findByRole('group', { name: 'Quick actions' });
+    expect(within(group).getAllByRole('button').map((b) => b.textContent)).toEqual(['ver', 'neighbors', 'clock sync', 'advert', 'reboot']);
+    fireEvent.click(screen.getByRole('button', { name: '+2 more' }));
+    expect(within(screen.getByRole('group', { name: 'Quick actions' })).getAllByRole('button')).toHaveLength(7);
+    expect(screen.queryByRole('button', { name: /more$/ })).toBeNull();
+  });
+
+  it('History is a row that opens today\'s history with All users and Mine', async () => {
+    renderMeshCore(route, { phone: true, meshcore: { adminSession: true } });
+    fireEvent.click(await screen.findByRole('button', { name: 'Resume session' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Command history/ }));
+    const sheet = await screen.findByRole('dialog', { name: 'Command history' });
+    expect(within(sheet).getByRole('button', { name: 'All users' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await within(sheet).findByText('password ********')).toBeInTheDocument();
   });
 
   it('Back leads to the remote target\'s settings list, which keeps the target', async () => {

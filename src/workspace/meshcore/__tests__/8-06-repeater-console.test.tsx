@@ -36,11 +36,9 @@ describe('8-06-repeater-console', () => {
     // Before logging in the login card shows Guest / Admin and Remember.
     const before = container.textContent ?? '';
     await resume();
-    // Fetch stats turns into today's Refresh once fetched.
     const unfetched = container.textContent ?? '';
-    fireEvent.click(screen.getAllByRole('button', { name: 'Fetch stats' })[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch stats' }));
     await screen.findByText('4.11 V');
-    fireEvent.click(screen.getByRole('button', { name: 'Command history' }));
     await screen.findByRole('button', { name: 'Load more' });
     fireEvent.click(screen.getByRole('button', { name: 'reboot' }));
     await screen.findByRole('dialog', { name: 'Confirm destructive command' });
@@ -134,10 +132,11 @@ describe('8-06-repeater-console', () => {
   it('Fetch stats sends one status request per press; nothing fetches it on its own', async () => {
     renderMeshCore(route, { meshcore: { adminSession: true } });
     await resume();
-    expect(screen.getByText('Sends 1 status request to Lycabettus Repeater; nothing fetches it automatically')).toBeInTheDocument();
+    expect(screen.getByText('Sends 1 status request')).toBeInTheDocument();
+    expect(screen.getByText('Status is not fetched automatically.')).toBeInTheDocument();
     await settle();
     expect(requests('GET', `${ADMIN}/status/${MC.lycabettus}`)).toBe(0);
-    fireEvent.click(screen.getAllByRole('button', { name: 'Fetch stats' })[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch stats' }));
     await screen.findByText('4.11 V');
     await settle();
     expect(requests('GET', `${ADMIN}/status/${MC.lycabettus}`)).toBe(1);
@@ -171,5 +170,80 @@ describe('8-06-repeater-console', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Resume session' })).toBeDisabled());
     expect(screen.getByRole('button', { name: 'Log in' })).toBeDisabled();
     expect(screen.getAllByText(/Receive-only mode is on for this MeshCore source/).length).toBeGreaterThan(0);
+  });
+
+  it('the quick actions are exactly today\'s catalog, each labelled with its command', async () => {
+    renderMeshCore(route, { meshcore: { adminSession: true } });
+    await resume();
+    const group = screen.getByRole('group', { name: 'Quick actions' });
+    expect(within(group).getAllByRole('button').map((b) => b.textContent)).toEqual([
+      'ver', 'neighbors', 'discover.neighbors', 'clock', 'clock sync', 'advert', 'reboot',
+    ]);
+    // A chip fills the input; only Send sends.
+    fireEvent.click(within(group).getByRole('button', { name: 'clock sync' }));
+    expect(screen.getByPlaceholderText('Type a command (e.g. ver, stats, neighbors)')).toHaveValue('clock sync');
+  });
+
+  it('the reboot confirm lists what happens (ConfirmSheet consequences) and keeps today\'s typed name', async () => {
+    renderMeshCore(route, { meshcore: { adminSession: true } });
+    await resume();
+    fireEvent.click(screen.getByRole('button', { name: 'reboot' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Confirm destructive command' });
+    expect(within(sheet).getByText('What happens:')).toBeInTheDocument();
+    expect(within(sheet).getByText('Lycabettus Repeater restarts; nodes that route through it lose it until it is back')).toBeInTheDocument();
+    expect(within(sheet).getByRole('button', { name: 'Send reboot' })).toBeDisabled();
+  });
+
+  it('re-renders fetch the credential capability and the session once each, not again', async () => {
+    const { rerenderWorkspace } = renderMeshCore(route, { meshcore: { adminSession: true } });
+    await screen.findByRole('button', { name: 'Resume session' });
+    await settle();
+    const cap = () => requests('GET', `${ADMIN}/credentials-capability`);
+    const session = () => requests('GET', `${ADMIN}/session/${MC.lycabettus}`);
+    expect(cap()).toBe(1);
+    expect(session()).toBe(1);
+    rerenderWorkspace();
+    rerenderWorkspace();
+    await settle();
+    expect(cap()).toBe(1);
+    expect(session()).toBe(1);
+  });
+
+  it('Log out and Forget stored password each send one request and nothing to the node', async () => {
+    const { log } = renderMeshCore(route, { meshcore: { adminSession: true } });
+    await resume();
+    fireEvent.click(screen.getByRole('button', { name: 'Forget stored password' }));
+    await waitFor(() => expect(log.writes.filter((w) => w.method === 'DELETE' && w.path === `${ADMIN}/credentials/${MC.lycabettus}`)).toHaveLength(1));
+    fireEvent.click(screen.getByRole('button', { name: /Log out/ }));
+    await waitFor(() => expect(log.writes.filter((w) => w.method === 'DELETE' && w.path === `${ADMIN}/session/${MC.lycabettus}`)).toHaveLength(1));
+    await settle();
+    expect(log.writes).toHaveLength(2);
+    expect(cliWrites(log)).toHaveLength(0);
+  });
+
+  it('the settings list shows the admin session (8-06)', async () => {
+    renderMeshCore(route, { meshcore: { adminSession: true } });
+    await resume();
+    const nav = screen.getByRole('navigation', { name: 'Settings' });
+    expect(within(nav).getByText('Admin session')).toBeInTheDocument();
+    expect(within(nav).getByText('Logged in · admin')).toBeInTheDocument();
+  });
+
+  it('without remote_admin:write the frame says so and links the node page; nothing redirects', async () => {
+    renderMeshCore(route, {
+      permissions: { bySource: { 'src-heltec': { connection: { read: true, write: false }, nodes: { read: true, write: true }, messages: { read: true, write: true } } } },
+    });
+    expect(await screen.findByText("You don't have permission to do this")).toBeInTheDocument();
+    expect(screen.getByText('Needs remote_admin:write')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open the node page' })).toHaveAttribute('href', `${HELTEC}/node/${MC.lycabettus}`);
+    await settle();
+    expect(screen.getByRole('link', { name: 'Open the node page' })).toBeInTheDocument();
+  });
+
+  it('a key that is no repeater or room server says not found and links the node page', async () => {
+    renderMeshCore(`${HELTEC}/settings/console?node=${MC.glyfada}`);
+    expect(await screen.findByText('Not found')).toBeInTheDocument();
+    expect(screen.getByText("This key is not a repeater or room server in this radio's contacts.")).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open the node page' })).toHaveAttribute('href', `${HELTEC}/node/${MC.glyfada}`);
   });
 });

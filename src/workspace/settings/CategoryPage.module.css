@@ -21,6 +21,20 @@
   min-width: 0;
 }
 
+/* A MeshCore remote target's own header actions (Task 7.3). */
+.headActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.headActions[data-phone] {
+  justify-content: flex-start;
+  padding: 0 16px 8px;
+}
+
 /* The ☆: 36 px on desktop, 44 px in the phone bar (D8). */
 .pin {
   flex: none;

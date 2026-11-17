@@ -38,6 +38,8 @@ export interface ActionCommand {
   key: string;
   labelKey: string;
   defaultLabel: string;
+  /** Shown as is instead of `labelKey`: the Workspace labels a chip with its command (Task 7.3). */
+  label?: string;
   command: string;
   danger?: boolean;
   /** When true, this specific quick action renders disabled even though the
@@ -337,7 +339,7 @@ export const CliConsoleBody = forwardRef<CliConsoleBodyHandle, CliConsoleBodyPro
                 ? t('meshcore.receive_only.control_tooltip', 'Receive-only mode is on for this MeshCore source. Turn it off in MeshCore Settings to use this.')
                 : action.command}
             >
-              {t(action.labelKey, action.defaultLabel)}
+              {action.label ?? t(action.labelKey, action.defaultLabel)}
             </button>
           ))}
         </div>

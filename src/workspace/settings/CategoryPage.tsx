@@ -34,7 +34,7 @@ import { useSharedDeviceConfig } from './sharedDeviceConfig';
 import { usePins } from './usePins';
 import { deviceSummary } from './deviceSummaries';
 import PinsInUseCard from './PinsInUseCard';
-import { SettingsHeaderContext, type SubHeader } from './settingsDock';
+import { SettingsHeaderContext, SettingsHeaderSlotContext, type SubHeader } from './settingsDock';
 import { useRemoteTarget } from './remote/useRemoteTarget';
 import { REMOTE_READS } from './remote/remoteConfig';
 import RemoteReadBar, { RemoteScope } from './remote/RemoteReadBar';
@@ -66,6 +66,9 @@ export default function CategoryPage({ def, group, sub = '', categories, sourceI
   const remote = useRemoteTarget();
   // A MeshCore remote target's page (Task 7.3) names the node in its own scope line.
   const ownScope = !remote && def?.remote === 'only' ? header?.scope : undefined;
+  // Its header actions too: a slot the page portals into (Meshtastic pages draw none).
+  const ownActions = !remote && def?.remote === 'only';
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
   const scope = ownScope ?? t(def?.scope === 'meshmonitor' ? 'workspace.settings.in_meshmonitor' : 'workspace.settings.on_radio');
   const viewOnly = readOnly && <span className={styles.viewOnly}>{t('workspace.settings.view_only')}</span>;
   // What saving does on this firmware (configRebootRules), as the save bar's words say it (Task 5.3).
@@ -89,7 +92,9 @@ export default function CategoryPage({ def, group, sub = '', categories, sourceI
       {(!reads || remote.lastRead[def.id]) && (
         <Suspense fallback={<RouteLoading />}>
           <SettingsHeaderContext.Provider value={setHeader}>
-            <def.component sourceId={sourceId} target={target} readOnly={readOnly} sub={sub} />
+            <SettingsHeaderSlotContext.Provider value={slot}>
+              <def.component sourceId={sourceId} target={target} readOnly={readOnly} sub={sub} />
+            </SettingsHeaderSlotContext.Provider>
           </SettingsHeaderContext.Provider>
         </Suspense>
       )}
@@ -135,6 +140,7 @@ export default function CategoryPage({ def, group, sub = '', categories, sourceI
               </p>
             )}
           </div>
+          {ownActions && <div ref={setSlot} className={styles.headActions} />}
           {def && def.remote !== 'only' && <PinButton id={def.id} name={label} />}
         </header>
       )}
@@ -146,6 +152,7 @@ export default function CategoryPage({ def, group, sub = '', categories, sourceI
           {viewOnly}
         </p>
       )}
+      {isPhone && ownActions && <div ref={setSlot} className={styles.headActions} data-phone="" />}
       <div className={styles.body}>{body}</div>
     </main>
   );

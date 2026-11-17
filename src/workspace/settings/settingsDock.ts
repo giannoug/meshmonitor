@@ -71,3 +71,10 @@ export function useSettingsHeader(header: SubHeader | null): void {
     return () => set(null);
   }, [set, key]);
 }
+
+/**
+ * Where a page puts its own header actions (a MeshCore remote target's Read
+ * again / Import / Export, Log out / Forget, Task 7.3): CategoryPage draws the
+ * slot only for those pages, and a page portals into it.
+ */
+export const SettingsHeaderSlotContext = createContext<HTMLElement | null>(null);

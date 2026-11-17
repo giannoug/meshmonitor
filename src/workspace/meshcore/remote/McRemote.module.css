@@ -169,10 +169,7 @@
   font-size: 14px;
 }
 
-.stats,
-.console,
-.form,
-.acl {
+.console {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -206,25 +203,245 @@
   gap: 8px;
 }
 
+.page[data-phone] .status {
+  margin-left: 0;
+}
+
+/* Settings (8-07): two columns of row groups; one on the phone (8-25). */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.columns[data-phone] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.readLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+}
+
+.hidden {
+  display: none;
+}
+
+/* A row's value and chevron, opening its field (8-07). */
+.value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 4px 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.value[data-changed] {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.value:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.value:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.page[data-phone] .value {
+  min-height: 44px;
+}
+
+.readonly {
+  color: var(--color-text-muted);
+}
+
+.mono {
+  font-family: var(--font-mono, monospace);
+}
+
+.groupNote {
+  margin: 0;
+  padding: 10px 20px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* Manage access list (8-07). */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.groupTitle {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.aclCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.sheet .aclCard {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.aclRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.aclRow .input {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.rowIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--color-accent);
+  color: var(--color-bg-sunken);
+}
+
+/* The Console's panels (8-06): Remote node status and History. */
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.panelTools {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px 20px;
+  margin: 4px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+}
+
+.stat dt {
+  font-size: 13px;
+}
+
+.statValue {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.history {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.historyRow {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 4px 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.historyUser {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.historyCommand {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono, monospace);
+}
+
+.historyReply {
+  margin: 4px 0 8px;
+  white-space: pre-wrap;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+}
+
 /* Phone targets (s8n6): 44 px, the shared console's input and buttons too. */
 .page[data-phone] :where(button, input, select),
 .sheet[data-phone] :where(button, input, select) {
   min-height: 44px;
 }
 
-.page[data-phone] .status {
-  margin-left: 0;
+/* The Console (8-06): the transcript beside its History. */
+.consoleColumns {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
 }
 
-/* Today's settings form and access list inputs, on the Workspace surface. */
-.form :where(input:not([type='checkbox']), select),
-.acl :where(input:not([type='checkbox']), select) {
-  box-sizing: border-box;
-  min-height: 36px;
-  padding: 0 10px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 8px;
-  background: var(--color-bg);
-  color: var(--color-text);
-  font: inherit;
+.consoleColumns[data-phone] {
+  grid-template-columns: minmax(0, 1fr);
 }

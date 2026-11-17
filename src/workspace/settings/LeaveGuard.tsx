@@ -59,15 +59,16 @@ export default function LeaveGuard({ base, pending }: { base: string; pending?: 
     return () => document.removeEventListener('click', onClick, true);
   }, [active, queued, pendingHref, baseHref, basename]);
 
-  if (!q) return null;
+  // A MeshCore target (Task 7.3) has no radio queue, only its page's own edits.
+  if (!q && !pending) return null;
   const discard = () => {
     setTarget(null);
-    if (target?.out) q.discard();
+    if (target?.out) q?.discard();
     pending?.discard();
     if (target) void navigate(target.path);
   };
   const cards = [
-    ...(target?.out
+    ...(target?.out && q
       ? q.queue.map((e, i) => ({ key: `${i}:${e.section}`, title: e.where ?? t(categoryById(e.categoryId)?.labelKey ?? e.categoryId), changes: e.changes.map((c) => c.label), note: undefined }))
       : []),
     ...(pending ? [{ key: 'pending', title: pending.title, changes: pending.changes, note: pending.note }] : []),

@@ -9,11 +9,12 @@
  * links), else the target picked earlier while these settings stay open;
  * links inside drop the query, so the frame puts it back. A key that is not a
  * repeater or room server in this radio's contacts, or a viewer without
- * today's `remote_admin:write`, leaves for today's settings page (the URL
- * without the query). Picking or opening a target sends nothing.
+ * today's `remote_admin:write`, gets a not-found or no-permission note with a
+ * link to the node's page (Ruling 7.3 HJ). Picking or opening a target sends nothing.
  */
 import { useEffect, useMemo, type ReactNode } from 'react';
-import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import RouteLoading from '../../../components/RouteLoading/RouteLoading';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { MeshCoreContact } from '../../../utils/meshcoreHelpers';
@@ -29,6 +30,7 @@ import { useMeshCoreRuntime } from '../runtime';
 import { MeshCoreTargetProvider } from './MeshCoreRemoteTarget';
 import { contactLabel, isRemoteTarget } from './remoteTarget';
 import MeshCoreTargetPicker from './MeshCoreTargetPicker';
+import styles from './McRemote.module.css';
 
 // A MeshCore node has no node number: its pages read the target from useMeshCoreTarget().
 const TARGET: CategoryTarget = { kind: 'remote', nodeNum: 0 };
@@ -56,9 +58,8 @@ function useTargetFromUrl(sourceId: string, allowed: boolean) {
   );
   const pending = allowed && !!wanted && !meshCore.hasLoadedOnce;
   const contact = allowed && wanted ? targets.find((c) => c.publicKey.toLowerCase() === wanted) ?? null : null;
-  let fix: string | null = null;
-  if (!pending && asked && !contact) fix = pathname + hash;
-  else if (contact && asked !== contact.publicKey) fix = `${pathname}?node=${contact.publicKey}${hash}`;
+  // A key that names no repeater or room server here stays in the URL: the frame says so (HJ).
+  const fix = contact && asked !== contact.publicKey ? `${pathname}?node=${contact.publicKey}${hash}` : null;
 
   // The settings list (sidebar) reads the target from the store.
   useEffect(() => {
@@ -68,10 +69,11 @@ function useTargetFromUrl(sourceId: string, allowed: boolean) {
   // Closing the device's settings forgets the target.
   useEffect(() => () => clearRemote(sourceId), [sourceId]);
 
-  return { pending, contact, targets, fix };
+  return { pending, contact, targets, fix, asked };
 }
 
 export default function MeshCoreSettingsFrame({ path }: { path: string }) {
+  const { t } = useTranslation();
   const { sourceId, deviceName } = useMeshCoreRuntime();
   const isPhone = useIsPhone();
   const { hasPermission } = useAuth();
@@ -85,7 +87,21 @@ export default function MeshCoreSettingsFrame({ path }: { path: string }) {
   const { categoryId, sub } = resolveSettingsPath(path);
   const def = categories.find((c) => c.id === categoryId);
   let page: ReactNode;
-  if (!path && isPhone) {
+  if (pick.asked && !pick.contact) {
+    // Without today's remote_admin:write, or with a key that is no repeater or room server in this
+    // radio's contacts: a note, and the node page (what the old Node Details link showed), not a redirect.
+    page = (
+      <section className={styles.page}>
+        <StateView
+          kind={allowed ? 'notFound' : 'noPermission'}
+          detail={allowed ? t('workspace.meshcore.remote.not_a_target') : t('workspace.node_menu.needs', { permission: 'remote_admin:write' })}
+        />
+        <Link className={styles.button} to={`/source/${encodeURIComponent(sourceId)}/node/${encodeURIComponent(pick.asked)}`}>
+          {t('workspace.meshcore.remote.open_node_page')}
+        </Link>
+      </section>
+    );
+  } else if (!path && isPhone) {
     page = <SettingsList sourceId={sourceId} sourceName={deviceName} sourceType="meshcore" variant="page" />;
   } else if (def) {
     page = (

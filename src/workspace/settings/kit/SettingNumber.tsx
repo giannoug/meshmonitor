@@ -20,9 +20,11 @@ export interface SettingNumberProps {
   /** Values outside min–max that are still valid (today's hop limit 0). */
   alsoValid?: readonly number[];
   zeroHint?: string;
+  /** The − field + stepper on desktop too (a small count, as board 8-07's hop limit). */
+  stepper?: boolean;
 }
 
-export default function SettingNumber({ value, onChange, min, max, step = 1, readOnly, alsoValid, zeroHint }: SettingNumberProps) {
+export default function SettingNumber({ value, onChange, min, max, step = 1, readOnly, alsoValid, zeroHint, stepper }: SettingNumberProps) {
   const { t } = useTranslation();
   const row = useSettingRow();
   const off = useReadOnly(readOnly);
@@ -43,7 +45,7 @@ export default function SettingNumber({ value, onChange, min, max, step = 1, rea
       onChange={onChange}
     />
   );
-  if (!isPhone) return field;
+  if (!isPhone && !stepper) return field;
   // Rounded to the step's places, so 0.1 + 0.2 steps to 0.3, not 0.30000000000000004.
   const [mantissa, exponent] = step.toExponential().split('e');
   const places = Math.max(0, (mantissa.split('.')[1]?.length ?? 0) - Number(exponent));

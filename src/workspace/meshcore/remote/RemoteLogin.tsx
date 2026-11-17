@@ -24,7 +24,7 @@ import styles from './McRemote.module.css';
 /** The server's MESHCORE_LOGIN_MAX_ATTEMPTS (server/constants/meshcoreLogin.ts); the progress line reports the live count. */
 const LOGIN_ATTEMPTS = 3;
 
-export default function RemoteLogin({ target }: { target: MeshCoreTarget }) {
+export default function RemoteLogin({ target, headerActions = false }: { target: MeshCoreTarget; headerActions?: boolean }) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const id = useId();
@@ -101,12 +101,8 @@ export default function RemoteLogin({ target }: { target: MeshCoreTarget }) {
                 {s.loginBusy ? busyLabel : t('meshcore.remoteConsole.login_again_button')}
               </button>
             )}
-            <button type="button" className={styles.button} onClick={() => void s.handleLogout()}>
-              <UiIcon name="power" size={16} /> {t('meshcore.remoteConsole.logout_button')}
-            </button>
-            <button type="button" className={styles.button} onClick={() => void s.handleForgetCredential()}>
-              {t('meshcore.remoteConsole.forget_credential', 'Forget stored password')}
-            </button>
+            {/* On the desktop Console they sit in the page header (8-06). */}
+            {!headerActions && <SessionButtons target={target} />}
           </span>
         )}
       </div>
@@ -192,5 +188,21 @@ export default function RemoteLogin({ target }: { target: MeshCoreTarget }) {
       {s.loginError && !s.loginProgressState && <p className={styles.error} role="alert">{s.loginError}</p>}
       {!s.loggedIn && <SendsLine>{t('workspace.meshcore.sends_login', { room: name, max: s.loginProgressState?.maxAttempts || LOGIN_ATTEMPTS })}</SendsLine>}
     </section>
+  );
+}
+
+/** Log out (sends nothing) and Forget stored password: today's two session actions. */
+export function SessionButtons({ target }: { target: MeshCoreTarget }) {
+  const { t } = useTranslation();
+  const s = target.session;
+  return (
+    <>
+      <button type="button" className={styles.button} onClick={() => void s.handleLogout()}>
+        <UiIcon name="power" size={16} /> {t('meshcore.remoteConsole.logout_button')}
+      </button>
+      <button type="button" className={styles.button} onClick={() => void s.handleForgetCredential()}>
+        {t('meshcore.remoteConsole.forget_credential', 'Forget stored password')}
+      </button>
+    </>
   );
 }

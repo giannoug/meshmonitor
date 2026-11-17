@@ -14,6 +14,7 @@ import SendsLine from '../../patterns/SendsLine';
 import Sheet from '../../patterns/Sheet';
 import { useIsPhone } from '../../shell/useIsPhone';
 import { clearRemote, updateRemote, useRemoteEntry } from '../../settings/remote/remoteTargetStore';
+import { DiscardChangesSheet } from '../../settings/LeaveGuard';
 import { contactLabel } from './remoteTarget';
 import styles from '../../settings/remote/Remote.module.css';
 
@@ -34,8 +35,18 @@ export default function MeshCoreTargetPicker({ sourceId, targets, deviceName }: 
     setQuery('');
     updateRemote(sourceId, { pickerOpen: false });
   };
+  // A switch drops the node's unsent settings: ask first, with the leave guard's words (as Task 5.9); one sheet at a time.
+  const [asking, setAsking] = useState<{ key: string | null } | null>(null);
   const pick = (key: string | null) => {
     close();
+    const same = key === (entry.node?.nodeId ?? null);
+    if (entry.node && !same && entry.unsent.length > 0) {
+      setAsking({ key });
+      return;
+    }
+    go(key);
+  };
+  const go = (key: string | null) => {
     if (key) {
       void navigate(`${pathname}?node=${key}`);
       return;
@@ -49,6 +60,17 @@ export default function MeshCoreTargetPicker({ sourceId, targets, deviceName }: 
   const kind = (c: MeshCoreContact) => t(c.advType === 2 ? 'workspace.meshcore.remote.kind_repeater' : 'workspace.meshcore.remote.kind_room');
 
   return (
+    <>
+    <DiscardChangesSheet
+      open={asking !== null}
+      cards={entry.unsent}
+      onDiscard={() => {
+        const next = asking;
+        setAsking(null);
+        if (next) go(next.key);
+      }}
+      onCancel={() => setAsking(null)}
+    />
     <Sheet open={entry.pickerOpen} onClose={close} title={t('workspace.settings.remote.configuring')} side={isPhone ? 'bottom' : 'auto'}>
       <div className={styles.picker} data-phone={isPhone || undefined}>
         <p className={styles.help}>{t('workspace.meshcore.remote.picker_help')}</p>
@@ -92,5 +114,6 @@ export default function MeshCoreTargetPicker({ sourceId, targets, deviceName }: 
         <SendsLine>{t('workspace.settings.remote.picker_sends')}</SendsLine>
       </div>
     </Sheet>
+    </>
   );
 }

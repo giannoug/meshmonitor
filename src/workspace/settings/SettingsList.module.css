@@ -344,3 +344,41 @@
 .status[data-tone='noReply'] {
   color: var(--color-error);
 }
+
+/* A MeshCore target's admin session line (8-06, Task 7.3). */
+.session {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 8px 16px;
+  min-height: 36px;
+}
+
+.sessionDot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-text-faint);
+}
+
+.sessionDot[data-on] {
+  background: var(--color-success);
+}
+
+.sessionLabel {
+  flex: 1 0 auto;
+  color: var(--color-text);
+}
+
+.sessionStatus {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.sessionStatus[data-on] {
+  color: var(--color-success);
+}

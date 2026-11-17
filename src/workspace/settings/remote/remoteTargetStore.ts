@@ -45,6 +45,8 @@ export interface RemoteEntry {
   sent: Record<string, SendStatus>;
   /** The node's unsent edits, for the picker to ask before a switch drops them (I3). */
   unsent: Array<{ key: string; title: string; changes: string[] }>;
+  /** A MeshCore target's admin session (Task 7.3), for the settings list's Session line. */
+  session?: { loggedIn: boolean; status: string } | null;
 }
 
 const EMPTY: RemoteEntry = { node: null, pickerOpen: false, passkey: null, lastRead: {}, sent: {}, unsent: [] };
