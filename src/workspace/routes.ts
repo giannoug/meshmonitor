@@ -64,7 +64,7 @@ export function classicSourceLocation(loc: Loc): { pathname: string; hash: strin
   return { pathname: classicFallback(loc.pathname) ?? loc.pathname, hash: loc.hash };
 }
 
-const MESHCORE_ALIASES: Record<string, MeshCoreView> = { channel: 'channels', dm: 'dms', room: 'rooms', node: 'nodes' };
+const MESHCORE_ALIASES: Record<string, MeshCoreView> = { channel: 'channels', dm: 'dms', room: 'rooms', node: 'nodes', map: 'nodes' };
 
 /**
  * The MeshCore view a source URL asks for (`splat` is the path after

@@ -1,7 +1,8 @@
 /**
  * The Workspace-native MeshCore screens (Task 7.1): a channel
  * (`/source/:id/channel/:idx`), a room (`room/:key`) and the phone Home (the
- * bare device URL below 768 px). Every other MeshCore view stays re-hosted
+ * bare device URL below 768 px); Nodes (`nodes`) and a node's page
+ * (`node/:key[/<tab>]`, Task 7.2). Every other MeshCore view stays re-hosted
  * (WorkspaceSource).
  *
  * One owner per screen (Ruling AD): today's MeshCoreSourcePage is not mounted
@@ -29,13 +30,20 @@ import RouteLoading from '../../components/RouteLoading/RouteLoading';
 import MeshCoreChannelThread from './MeshCoreChannelThread';
 import MeshCoreHome from './MeshCoreHome';
 import MeshCoreRoom from './MeshCoreRoom';
+import MeshCoreNodesTable from './MeshCoreNodesTable';
+import ContactPage from './ContactPage';
 import { mcKeys } from './useMeshCoreLists';
 import { RuntimeContext } from './runtime';
 import PhoneDeviceHeader from './PhoneDeviceHeader';
 import { useIsPhone } from '../shell/useIsPhone';
 import styles from './MeshCoreScreen.module.css';
 
-export type MeshCoreScreenKind = { kind: 'home' } | { kind: 'channel'; idx: number } | { kind: 'room'; key: string };
+export type MeshCoreScreenKind =
+  | { kind: 'home' }
+  | { kind: 'channel'; idx: number }
+  | { kind: 'room'; key: string }
+  | { kind: 'nodes' }
+  | { kind: 'node'; key: string; tab: string };
 
 export interface MeshCoreScreenProps {
   sourceId: string;
@@ -87,7 +95,11 @@ function Runtime({ sourceId, deviceName, screen }: { sourceId: string; deviceNam
 
   return (
     <RuntimeContext.Provider value={{ sourceId, deviceName, meshCore, receiveOnly }}>
-      {!readReady ? (
+      {screen.kind === 'nodes' ? (
+        <MeshCoreNodesTable />
+      ) : screen.kind === 'node' ? (
+        <ContactPage key={screen.key} publicKey={screen.key} tab={screen.tab} />
+      ) : !readReady ? (
         <RouteLoading />
       ) : screen.kind === 'channel' ? (
         <MeshCoreChannelThread idx={screen.idx} />

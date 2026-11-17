@@ -115,7 +115,11 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     [`${g2}/node/!a1b2c301`, 'node-page'],
     [`${g2}/node/!a1b2c301/telemetry`, 'node-page'],
     [`/source/${SOURCE_IDS.mqtt}/node/!a1b2c301/links`, 'node-page'],
-    [`${heltec}/node/n1`, 'meshcore'],
+    // A MeshCore node and Nodes are the Workspace's own screens (Task 7.2); today's Nodes view (list and map) is `map`.
+    [`${heltec}/node/n1`, 'meshcore-screen'],
+    [`${heltec}/node/n1/neighbours`, 'meshcore-screen'],
+    [`${heltec}/nodes`, 'meshcore-screen'],
+    [`${heltec}/map`, 'meshcore'],
     // Activity is the Workspace's own feed on a Meshtastic-family device (Task 2.8, Ruling AD); MeshCore keeps its page.
     [`${g2}/activity`, 'activity'],
     [`/source/${SOURCE_IDS.mqtt}/activity`, 'activity'],
@@ -191,7 +195,7 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
       permissions: { bySource: { [SOURCE_IDS.heltec]: { connection: { read: true, write: false }, nodes: { read: true, write: false } } } },
     });
     await expectPage('meshcore');
-    await waitFor(() => expect(realUrl()).toBe(`${heltec}/nodes`));
+    await waitFor(() => expect(realUrl()).toBe(`${heltec}/map`));
     expect(screen.queryByTestId('page-meshcore-screen')).toBeNull();
   });
 
@@ -391,17 +395,38 @@ describe('MeshCore and Reticulum views come from the URL', () => {
     renderAt(`${heltec}/channels`, {
       permissions: { bySource: { [SOURCE_IDS.heltec]: { connection: { read: true, write: false }, nodes: { read: true, write: false } } } },
     });
-    await waitFor(() => expect(realUrl()).toBe(`${heltec}/nodes`));
+    await waitFor(() => expect(realUrl()).toBe(`${heltec}/map`));
     expect(screen.getByTestId('view')).toHaveTextContent('nodes');
   });
 
   it('a segment MeshCore has no view for goes to the fallback view', async () => {
     renderAt(`${heltec}/admin`);
-    await waitFor(() => expect(realUrl()).toBe(`${heltec}/nodes`));
+    await waitFor(() => expect(realUrl()).toBe(`${heltec}/map`));
+  });
+
+  it('the node page\'s Console link opens today\'s console (the node\'s Node Details) on that node, and the URL stays (Task 7.2)', async () => {
+    renderAt(`${heltec}/settings/console?node=abcd`);
+    await expectPage('meshcore');
+    expect(screen.getByTestId('view')).toHaveTextContent('dms');
+    expect(screen.getByTestId('dm-contact')).toHaveTextContent('abcd');
+    expect(realUrl()).toBe(`${heltec}/settings/console?node=abcd`);
+  });
+
+  it('Show on Map opens today\'s Nodes map on that node (Task 7.2)', async () => {
+    renderAt(`${heltec}/map?node=abcd`);
+    await expectPage('meshcore');
+    expect(screen.getByTestId('view')).toHaveTextContent('nodes');
+    expect(screen.getByTestId('map-node')).toHaveTextContent('abcd');
+  });
+
+  it('an unknown MeshCore node tab shows the node page and moves to its Overview (Task 7.2)', async () => {
+    renderAt(`${heltec}/node/abcd/bogus`);
+    await expectPage('meshcore-screen');
+    await waitFor(() => expect(realUrl()).toBe(`${heltec}/node/abcd`));
   });
 
   it('a view change from the page navigates', async () => {
-    renderAt(`${heltec}/nodes`);
+    renderAt(`${heltec}/map`);
     await expectPage('meshcore');
     fireEvent.click(screen.getByText('go-channels'));
     await waitFor(() => expect(realUrl()).toBe(`${heltec}/channels`));
@@ -433,7 +458,7 @@ describe('unknown sources (Review Focus 4)', () => {
 describe('sockets (Ruling N)', () => {
   it.each([
     [`${g2}/channels`, 'app'],
-    [`${heltec}/nodes`, 'meshcore'],
+    [`${heltec}/map`, 'meshcore'],
     [`${rns}/destinations`, 'reticulum'],
     ['/overview/reports', 'reports-route'],
     ['/', 'overview-map'],
@@ -456,7 +481,7 @@ describe('re-hosted pages stay mounted while the URL is fixed up', () => {
     [`${g2}/settings/lora`, `${g2}/settings/modules/mqtt`, `${g2}/settings/modules/mqtt`, 'settings-frame'],
     [`${g2}/settings/identity`, `${g2}/configuration`, `${g2}/settings`, 'settings-frame'],
     [`${g2}/settings/identity`, `${g2}/configuration#config-lora`, `${g2}/settings/lora`, 'settings-frame'],
-    [`${heltec}/nodes`, `${heltec}/admin`, `${heltec}/nodes`, 'meshcore'],
+    [`${heltec}/map`, `${heltec}/admin`, `${heltec}/map`, 'meshcore'],
     // The rail's Overview square (`/overview`) and the sidebar's All-devices map row (`/overview/map`).
     ['/overview', '/overview/map', '/overview/map', 'overview-map'],
     ['/overview/map', '/overview', '/overview', 'overview-map'],

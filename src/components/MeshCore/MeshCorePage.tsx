@@ -81,9 +81,11 @@ interface MeshCorePageProps {
   dmContact?: string | null;
   /** Changes on every visit to that URL (the location key), so a repeat click opens the contact again. */
   dmRequest?: string;
+  /** Centres the Nodes map on this node and opens its popup (the Workspace's `map?node=<key>`, #6365): Show on Map's hand-off. */
+  mapNode?: string | null;
 }
 
-export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, enabled, onStatusChange, view: viewProp, onViewChange, dmContact, dmRequest }) => {
+export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, enabled, onStatusChange, view: viewProp, onViewChange, dmContact, dmRequest, mapNode }) => {
   const { t } = useTranslation();
   const { authStatus } = useAuth();
   const isAdmin = authStatus?.user?.isAdmin ?? false;
@@ -226,6 +228,9 @@ export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, e
     setPendingDmContact(null);
     setDmHandOff(dmContact);
   }, [dmContact, dmRequest]);
+  useEffect(() => {
+    if (mapNode) setPendingMapNode(mapNode);
+  }, [mapNode, dmRequest]);
   useEffect(() => {
     if (!dmHandOff) return;
     setPendingDmContact(dmHandOff);

@@ -1,0 +1,175 @@
+/* MeshCore Nodes (boards 8-11, 8-28): what the shared Nodes styles (NodesTable.module.css) lack. */
+.line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.discoverBar {
+  flex: none;
+  padding: 0 24px 12px;
+}
+
+.discover {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.discoverRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.discoverLabel {
+  font-weight: 600;
+}
+
+.segments {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.segment {
+  min-height: 36px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.segment[aria-pressed='true'] {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.segment:disabled {
+  cursor: not-allowed;
+}
+
+.discover[data-phone] .segment {
+  min-height: 44px;
+}
+
+.reason {
+  margin: 0;
+  color: var(--color-text-subtle);
+  font-size: 13px;
+}
+
+.outcome {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-error);
+  border-radius: 10px;
+  background: var(--color-bg-raised);
+}
+
+.outcome[data-ok] {
+  border-color: var(--color-success);
+}
+
+.tag {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tag[data-new] {
+  background: var(--color-success);
+  color: var(--color-bg);
+}
+
+.star {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-warning);
+  cursor: pointer;
+}
+
+.star:disabled {
+  cursor: default;
+}
+
+.details {
+  color: var(--color-accent);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.groupRow td {
+  padding: 0;
+  background: var(--color-bg-sunken);
+}
+
+.group {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-subtle);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.import {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.import p {
+  margin: 0;
+}
+
+.textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  resize: vertical;
+}

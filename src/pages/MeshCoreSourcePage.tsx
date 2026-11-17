@@ -41,9 +41,10 @@ interface MeshCoreSourcePageProps {
   /** The Workspace's `dm/<key>`: open this contact's DM (#6365). */
   dmContact?: string | null;
   dmRequest?: string;
+  mapNode?: string | null;
 }
 
-function MeshCoreSourceInner({ view, onViewChange, dmContact, dmRequest }: MeshCoreSourcePageProps) {
+function MeshCoreSourceInner({ view, onViewChange, dmContact, dmRequest, mapNode }: MeshCoreSourcePageProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { sourceId, sourceName } = useSource();
@@ -138,7 +139,7 @@ function MeshCoreSourceInner({ view, onViewChange, dmContact, dmRequest }: MeshC
       )}
 
       {canReadConnection ? (
-        <MeshCorePage baseUrl={appBasename} sourceId={sourceId} onStatusChange={handleStatusChange} view={view} onViewChange={onViewChange} dmContact={dmContact} dmRequest={dmRequest} />
+        <MeshCorePage baseUrl={appBasename} sourceId={sourceId} onStatusChange={handleStatusChange} view={view} onViewChange={onViewChange} dmContact={dmContact} dmRequest={dmRequest} mapNode={mapNode} />
       ) : (
         <div className="meshcore-tab">
           <h2>{t('meshcore.title')}</h2>

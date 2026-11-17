@@ -1,0 +1,352 @@
+/* The MeshCore node page (boards 8-05, 8-20, g6-meshcore) and its path editor. */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cardTitle {
+  margin: 0;
+  flex: 1;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.muted {
+  margin: 0;
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}
+
+.reason {
+  margin: 0;
+  color: var(--color-text-subtle);
+  font-size: 13px;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-error);
+  font-size: 14px;
+}
+
+.ok {
+  margin: 0;
+  color: var(--color-success);
+  font-size: 14px;
+}
+
+.warn {
+  color: var(--color-warning);
+}
+
+.key {
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.segments {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.segment {
+  min-height: 36px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+button.segment {
+  cursor: pointer;
+}
+
+.segment[data-on],
+.segment[aria-pressed='true'] {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.button {
+  min-height: 36px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button[data-quiet] {
+  border-color: transparent;
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.link {
+  min-height: 36px;
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--color-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.askRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.askRow + .askRow {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.askText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.askText p {
+  margin: 0;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.chips,
+.chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chipItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chip {
+  min-height: 36px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 0 12px;
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.hash {
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+}
+
+.chipButton {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.chipButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.arrow {
+  color: var(--color-text-subtle);
+}
+
+.mark {
+  min-width: 28px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.label {
+  color: var(--color-text-subtle);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.input {
+  min-height: 36px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.switchRow > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.switch {
+  width: 44px;
+  height: 24px;
+  flex: none;
+  accent-color: var(--color-accent);
+}
+
+.historyRow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.disclosure {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Phone: 44 px targets, one column. */
+.editor[data-phone] .button,
+.editor[data-phone] .input,
+.editor[data-phone] .segment,
+.editor[data-phone] .chipButton {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.stack[data-phone] .button,
+.stack[data-phone] .link,
+.stack[data-phone] .disclosure {
+  min-height: 44px;
+}
+
+.stack[data-phone] .pair {
+  grid-template-columns: minmax(0, 1fr);
+}

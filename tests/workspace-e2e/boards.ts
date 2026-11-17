@@ -1879,7 +1879,42 @@ export const BOARDS: Board[] = [
     },
   },
   { id: '8-24-route-details', size: 'phone', path: '/source/src-heltec/channel/1', fixtures: MESHCORE(), setup: openMcRoute },
+  // Task 7.2: MeshCore contacts, the node page and Nodes.
+  { id: '8-05-companion-contact', size: 'desktop', path: `/source/src-heltec/node/${MC.glyfada}`, fixtures: MESHCORE(), setup: pingAndTrace },
+  { id: '8-20-companion-contact', size: 'phone', path: `/source/src-heltec/node/${MC.glyfada}`, fixtures: MESHCORE(), setup: pingAndTrace },
+  {
+    id: 'g6-meshcore',
+    size: 'phone',
+    path: `/source/src-heltec/node/${MC.lycabettus}`,
+    fixtures: MESHCORE(),
+    setup: async (page) => {
+      await page.getByText('Not logged in').waitFor();
+    },
+  },
+  { id: '8-11-nodes', size: 'desktop', path: '/source/src-heltec/nodes', fixtures: MESHCORE(), init: groupByRole, setup: discoverRepeaters },
+  { id: '8-28-nodes-discover', size: 'phone', path: '/source/src-heltec/nodes', fixtures: MESHCORE(), init: groupByRole, setup: discoverRepeaters },
 ];
+
+/** 8-05 / 8-20: the board shows a ping and a trace already answered. */
+async function pingAndTrace(page: Page) {
+  await page.getByRole('heading', { level: 1, name: 'Glyfada Beach' }).waitFor();
+  await page.getByRole('button', { name: 'Ping', exact: true }).first().click();
+  await page.getByText(/RTT 412 ms/).waitFor();
+  await page.getByRole('button', { name: 'Trace path', exact: true }).first().click();
+  await page.getByText(/per-hop SNR/).first().waitFor();
+  await page.getByRole('heading', { level: 1, name: 'Glyfada Beach' }).scrollIntoViewIfNeeded();
+}
+
+/** 8-11 / 8-28: grouped by role (today's per-browser switch). */
+async function groupByRole(page: Page) {
+  await page.addInitScript(() => localStorage.setItem('groupNodesByRole', 'true'));
+}
+
+/** 8-11 / 8-28: after Discover Repeaters answered. */
+async function discoverRepeaters(page: Page) {
+  await page.getByRole('button', { name: /Discover Repeaters/ }).click();
+  await page.getByText(/4 contacts returned/).waitFor();
+}
 
 /** Heltec MeshCore's section 8 data, a fresh log per board. */
 function MESHCORE(opts?: MeshCoreFixtureOptions): Board['fixtures'] {

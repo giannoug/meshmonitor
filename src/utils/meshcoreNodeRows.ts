@@ -6,8 +6,9 @@
  */
 import type { MeshCoreNode } from '../components/MeshCore/hooks/useMeshCore.js';
 import type { MeshCoreContact } from './meshcoreHelpers.js';
-import { meshcoreLastHeardMs } from './meshcoreAge.js';
-import { MESHCORE_DEVICE_TYPE_LABELS } from '../components/MeshCore/meshcoreRole.js';
+import { isWithinMeshcoreAge, meshcoreAgeCutoffMs, meshcoreLastHeardMs } from './meshcoreAge.js';
+import { isMeshCoreRowComplete } from './meshcoreNodeCompleteness.js';
+import { isMeshCoreInfrastructureAdvType, MESHCORE_DEVICE_TYPE_LABELS } from '../components/MeshCore/meshcoreRole.js';
 import type { SortField } from '../types/ui.js';
 import type { SortKey } from './nodeSort.js';
 import type { NodeFilterSubject } from './nodeAdvancedFilter.js';
@@ -146,6 +147,30 @@ export function mergeNodesAndContacts(
     for (const r of rows) r.isIgnored = ignoredKeys.has(r.publicKey.toLowerCase());
   }
   return rows;
+}
+
+/**
+ * The node list's age window (moved here from MeshCoreNodesView, #6365):
+ * favourites and the local node always stay; with "hide incomplete" on, a row
+ * with no advertised name or type goes (#6258); repeaters and room servers use
+ * their own, usually longer, window (#4899); 0 hours keeps every row (#4947).
+ */
+export function filterMeshCoreRowsByAge(
+  rows: readonly MeshCoreNodeRow[],
+  opts: { companionAgeHours: number; infraAgeHours: number; hideIncompleteNodes: boolean },
+): MeshCoreNodeRow[] {
+  const cutoffMs = meshcoreAgeCutoffMs(opts.companionAgeHours);
+  const infraNever = opts.infraAgeHours <= 0;
+  const infraCutoffMs = infraNever ? 0 : meshcoreAgeCutoffMs(opts.infraAgeHours);
+  const companionNever = opts.companionAgeHours <= 0;
+  return rows.filter((r) => {
+    if (r.isFavorite || r.isLocal) return true;
+    if (opts.hideIncompleteNodes && !isMeshCoreRowComplete({ rawName: r.hasName ? r.name : null, advType: r.advType })) {
+      return false;
+    }
+    if (isMeshCoreInfrastructureAdvType(r.advType)) return infraNever || isWithinMeshcoreAge(r, infraCutoffMs);
+    return companionNever || isWithinMeshcoreAge(r, cutoffMs);
+  });
 }
 
 /** Sort fields the MeshCore node list offers (adverts lack short name / hardware). */

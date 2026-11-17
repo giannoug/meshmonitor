@@ -9,7 +9,7 @@
  * Gates are the peek's (Ruling 3.1): Message needs messages:read, the menus a
  * signed-in viewer, and each menu item keeps today's own gate.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
@@ -27,10 +27,22 @@ import { useIsPhone } from '../shell/useIsPhone';
 import type { NodeTab } from './NodePage';
 import styles from './NodeHeader.module.css';
 
+/** Another protocol's parts of the same header (the MeshCore node page, Task 7.2); unset parts stay the Meshtastic ones. */
+export interface NodeHeaderParts {
+  role?: string | null;
+  /** The id under the name (MeshCore: the short key). */
+  id?: string;
+  tabs?: Array<{ key: string; label: string; to: string; external?: boolean }>;
+  /** In place of Message (a repeater's Log in), or false for none. */
+  primary?: ReactNode | false;
+  menus?(variant: 'menus' | 'sheet' | 'buttons'): ReactNode;
+}
+
 export interface NodeHeaderProps {
   sourceId: string;
   node: DeviceInfo;
-  tab: NodeTab;
+  tab: NodeTab | string;
+  parts?: NodeHeaderParts;
 }
 
 /** The phone bar's height (NodeHeader.module.css `.bar`). */
@@ -44,7 +56,7 @@ const TABS: Array<[NodeTab, string]> = [
   ['admin', 'workspace.node.tab_admin'],
 ];
 
-export default function NodeHeader({ sourceId, node, tab }: NodeHeaderProps) {
+export default function NodeHeader({ sourceId, node, tab, parts }: NodeHeaderProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const { authStatus, hasPermission } = useAuth();
@@ -64,10 +76,11 @@ export default function NodeHeader({ sourceId, node, tab }: NodeHeaderProps) {
   }, [isPhone]);
 
   const nodeId = nodeIdOf(node);
+  const shownId = parts?.id ?? nodeId;
   const name = nodeNameOf(node);
   const base = `/source/${encodeURIComponent(sourceId)}`;
   const page = `${base}/node/${encodeURIComponent(nodeId)}`;
-  const role = node.user?.role != null && String(node.user.role) !== '0' ? getDeviceRoleName(node.user.role) : null;
+  const role = parts?.role !== undefined ? parts.role : node.user?.role != null && String(node.user.role) !== '0' ? getDeviceRoleName(node.user.role) : null;
   const hw = node.user?.hwModel ? getHardwareModelName(node.user.hwModel) : null;
   const fw = node.firmwareVersion ?? node.user?.firmwareVersion;
   const heard = node.lastHeard ? t('workspace.map.heard', { time: formatRelativeTime(node.lastHeard * 1000, timeFormat, dateFormat) }) : null;
@@ -87,7 +100,7 @@ export default function NodeHeader({ sourceId, node, tab }: NodeHeaderProps) {
       {heard}
     </span>
   );
-  const message = canMessage && (
+  const message = parts?.primary !== undefined ? parts.primary : canMessage && (
     <Link className={styles.message} to={`${base}/dm/${encodeURIComponent(nodeId)}`}>
       <UiIcon name="messages" size={isPhone ? 22 : 18} />
       {t('workspace.map.message')}
@@ -101,15 +114,22 @@ export default function NodeHeader({ sourceId, node, tab }: NodeHeaderProps) {
   );
   const tabs = (
     <nav className={styles.tabs} aria-label={name}>
-      {TABS.map(([key, label]) => (
-        <Link key={key} className={styles.tab} to={key === 'overview' ? page : `${page}/${key}`} aria-current={key === tab ? 'page' : undefined}>
-          {t(label)}
-        </Link>
-      ))}
+      {parts?.tabs
+        ? parts.tabs.map(({ key, label, to, external }) => (
+            <Link key={key} className={styles.tab} to={to} aria-current={key === tab ? 'page' : undefined}>
+              {label}
+              {external && <UiIcon name="forward" size={14} />}
+            </Link>
+          ))
+        : TABS.map(([key, label]) => (
+            <Link key={key} className={styles.tab} to={key === 'overview' ? page : `${page}/${key}`} aria-current={key === tab ? 'page' : undefined}>
+              {t(label)}
+            </Link>
+          ))}
     </nav>
   );
   const menus = (variant: 'menus' | 'sheet' | 'buttons') =>
-    signedIn && <NodeActionMenus key={`${nodeId}-${variant}`} protocol={protocol} sourceId={sourceId} node={node} variant={variant} />;
+    signedIn && (parts?.menus ? parts.menus(variant) : <NodeActionMenus key={`${nodeId}-${variant}`} protocol={protocol} sourceId={sourceId} node={node} variant={variant} />);
 
   if (isPhone) {
     // Siblings under the page scroller, so the bar and the tabs stay stuck while the rest scrolls.
@@ -136,7 +156,7 @@ export default function NodeHeader({ sourceId, node, tab }: NodeHeaderProps) {
               <h1 className={styles.name}>{name}</h1>
               <p className={styles.meta}>
                 {roleBadge}
-                <span className={styles.id}>{nodeId}</span>
+                <span className={styles.id}>{shownId}</span>
                 {hw && <span>· {hw}</span>}
               </p>
               {presence && <p className={styles.meta}>{presence}</p>}
@@ -164,7 +184,7 @@ export default function NodeHeader({ sourceId, node, tab }: NodeHeaderProps) {
             {node.isFavorite && <UiIcon name="favorite" size={18} className={styles.star} title={t('node_filter.favorites')} />}
           </div>
           <p className={styles.meta}>
-            <span className={styles.id}>{nodeId}</span>
+            <span className={styles.id}>{shownId}</span>
             {[hw, fw ? t('workspace.node.firmware', { version: fw }) : null].filter(Boolean).map((s) => <span key={s}>· {s}</span>)}
             {presence && <span className={styles.heard}>· {presence}</span>}
           </p>

@@ -230,7 +230,7 @@ export default function MeshCoreChannelThread({ idx }: { idx: number }) {
         break;
       case 'node':
         // Today's sender-name link: that contact's Node Details (the DM view).
-        if (row.senderKey) void navigate(`${base}/dm/${encodeURIComponent(row.senderKey)}`);
+        if (row.senderKey) void navigate(`${base}/node/${encodeURIComponent(row.senderKey)}`);
         break;
       case 'copy':
         void navigator.clipboard

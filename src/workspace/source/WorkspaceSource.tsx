@@ -19,8 +19,12 @@
  *   navigate. A MeshCore view the viewer may not open is replaced in the URL
  *   by the one the page shows. A MeshCore channel (`channel/<idx>`), room
  *   (`room/<key>`) and the phone's bare device URL are the Workspace's own
- *   MeshCoreScreen (Task 7.1), with today's page not mounted; `dm/<key>`
- *   opens today's DM view on that contact; every other view stays re-hosted.
+ *   MeshCoreScreen (Task 7.1), with today's page not mounted, and so are Nodes
+ *   (`nodes`) and a node's page (`node/<key>[/<tab>]`, Task 7.2). Today's
+ *   Nodes view (list and map) is `map` (`?node=<key>` centres it on a node);
+ *   `dm/<key>` opens today's DM view on that contact, and so does the node
+ *   page's Console link (`settings/console?node=<key>`), whose console lives
+ *   there until Task 7.4; every other view stays re-hosted.
  * - An unknown source shows the Overview with a "not found" note.
  */
 import { lazy, useCallback } from 'react';
@@ -95,6 +99,14 @@ const MeshCoreScreen = lazy(() => import('../meshcore/MeshCoreScreen.tsx'));
 const MC_CHANNEL_PATH = /^channel\/(\d+)\/?$/;
 const MC_ROOM_PATH = /^room\/([^/]+)\/?$/;
 const MC_DM_PATH = /^dm\/([^/]+)\/?$/;
+/** MeshCore Nodes (Task 7.2); today's Nodes view (list and map) is `map`. */
+const MC_NODES_PATH = /^nodes\/?$/;
+/** The MeshCore node page's tabs besides Overview (Task 7.2). */
+const MC_NODE_TABS: readonly string[] = ['telemetry', 'links', 'position', 'admin', 'neighbours'];
+/** The node page's Console link (Task 7.2): today's console for that node, until Task 7.4. */
+const MC_CONSOLE_PATH = /^settings\/console\/?$/;
+/** The URL of a MeshCore view: the re-hosted Nodes view (list and map) lives at `map`. */
+const mcViewPath = (view: MeshCoreView) => (view === 'nodes' ? 'map' : view);
 
 export default function WorkspaceSource() {
   const { t } = useTranslation();
@@ -133,32 +145,50 @@ export default function WorkspaceSource() {
     });
     const channel = splat.match(MC_CHANNEL_PATH);
     const room = splat.match(MC_ROOM_PATH);
+    const node = splat.match(NODE_PATH);
+    // An unknown node tab shows the Overview, and the URL follows.
+    const nodeTabKnown = !node?.[2] || MC_NODE_TABS.includes(node[2]);
     const screen: MeshCoreScreenKind | null =
       channel && visible.includes('channels')
         ? { kind: 'channel', idx: Number(channel[1]) }
         : room && visible.includes('rooms')
           ? { kind: 'room', key: room[1] }
-          : isPhone && splat === '' && !location.hash
-            ? { kind: 'home' }
-            : null;
+          : MC_NODES_PATH.test(splat)
+            ? { kind: 'nodes' }
+            : node
+              ? { kind: 'node', key: decodeURIComponent(node[1]), tab: nodeTabKnown && node[2] ? node[2] : 'overview' }
+              : isPhone && splat === '' && !location.hash
+                ? { kind: 'home' }
+                : null;
     if (screen) {
       return (
-        <Rehost>
-          <MeshCoreScreen key={sourceId} sourceId={sourceId} source={source} screen={screen} />
-        </Rehost>
+        <Redirect to={node && !nodeTabKnown ? `${base}/node/${node[1]}` : null}>
+          <Rehost>
+            <MeshCoreScreen key={sourceId} sourceId={sourceId} source={source} screen={screen} />
+          </Rehost>
+        </Redirect>
       );
     }
-    const view = resolveMeshCoreView(requested ?? MESHCORE_FALLBACK_VIEW, visible);
+    const query = new URLSearchParams(location.search);
+    // The Console link: today's console sits in that node's Node Details (the DM view).
+    const consoleNode = MC_CONSOLE_PATH.test(splat) && visible.includes('dms') ? query.get('node') : null;
+    const view = consoleNode ? 'dms' : resolveMeshCoreView(requested ?? MESHCORE_FALLBACK_VIEW, visible);
     const dm = splat.match(MC_DM_PATH);
     // Keep the URL on the view the page shows: a forbidden or unknown view, or
     // the `#configuration` deep link, becomes `/source/:id/<view>`.
-    const fix = requested !== view || (splat === '' && location.hash === '#configuration');
-    const onViewChange = (next: MeshCoreView) => next !== view && goToView(next);
+    const fix = !consoleNode && (requested !== view || (splat === '' && location.hash === '#configuration'));
+    const onViewChange = (next: MeshCoreView) => next !== view && goToView(mcViewPath(next));
     return (
-      <Redirect to={fix ? `${base}/${view}` : null}>
+      <Redirect to={fix ? `${base}/${mcViewPath(view)}` : null}>
         <Rehost>
           {renderSourceApp(PAGES, sourceId, source, splat, {
-            meshcore: { view, onViewChange, dmContact: view === 'dms' && dm ? dm[1] : null, dmRequest: location.key },
+            meshcore: {
+              view,
+              onViewChange,
+              dmContact: consoleNode ?? (view === 'dms' && dm ? dm[1] : null),
+              dmRequest: location.key,
+              mapNode: splat.startsWith('map') ? query.get('node') : null,
+            },
           })}
         </Rehost>
       </Redirect>

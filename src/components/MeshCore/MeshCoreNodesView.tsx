@@ -20,6 +20,7 @@ import { exportNodeList } from '../../utils/nodeExport';
 import { readGroupNodesByRole, writeGroupNodesByRole, type GroupedNodeListItem } from '../../utils/nodeGrouping';
 import {
   mergeNodesAndContacts,
+  filterMeshCoreRowsByAge,
   meshcoreNodeSortKey,
   toMeshCoreFilterSubject,
   MESHCORE_NODE_SORT_FIELDS,
@@ -35,8 +36,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { useSource } from '../../contexts/SourceContext';
 import { useNodeDisplaySettings } from '../../hooks/useNodeDisplaySettings';
 import { calculateNodeOpacity } from '../../utils/nodeDimming';
-import { isMeshCoreRowComplete } from '../../utils/meshcoreNodeCompleteness';
-import { meshcoreAgeCutoffMs, isWithinMeshcoreAge, meshcoreLastHeardMs } from '../../utils/meshcoreAge';
+import { meshcoreLastHeardMs } from '../../utils/meshcoreAge';
 import { formatTimeOrDate } from '../../utils/datetime';
 import { UiIcon } from '../icons';
 import type { SecurityFilter } from '../../types/ui';
@@ -313,41 +313,13 @@ export const MeshCoreNodesView: React.FC<MeshCoreNodesViewProps> = ({
 
   /** Favorites and the operator's own node are never hidden by the age cutoff
    *  (parity with useProcessedNodes.ts:194 + #4412 Phase 4 spec §2 D6). Uses
-   *  the `isLocal` flag (#4438), not a name/advName substring match — the
-   *  `(local)` suffix stays as display text, but is no longer the predicate,
-   *  so a stranger who names their device `Foo (local)` is not exempted. */
-  const isAgeExempt = useCallback((r: MeshCoreNodeRow): boolean =>
-    r.isFavorite || r.isLocal, []);
-
-  const aged = useMemo(() => {
-    // Date.now() is read inside the memo, so the cutoff refreshes on every
-    // nodes/contacts poll (`merged` changes) rather than freezing at mount —
-    // the same property useProcessedNodes relies on.
-    const cutoffMs = meshcoreAgeCutoffMs(companionAgeHours);
-    // #4899: repeaters and room servers (advType 2/3) get a SEPARATE, usually
-    // longer cutoff. They re-flood-advertise on a long, often multi-day
-    // interval and never send DMs, so a stale `lastHeard` doesn't mean the node
-    // left the mesh — aging them off the companion window just makes fixed
-    // infrastructure vanish while its DB row/position stay intact. A value of
-    // 0 means "never expire" (show regardless of age, like favorites).
-    const infraNever = infraAgeHours <= 0;
-    const infraCutoffMs = infraNever ? 0 : meshcoreAgeCutoffMs(infraAgeHours);
-    // The companion window itself can be "never / show all" (#4947) — stealthy
-    // MeshCore companions may go days/weeks between adverts, so 0 keeps them all.
-    const companionNever = companionAgeHours <= 0;
-    return merged.filter(r => {
-      if (isAgeExempt(r)) return true;
-      // #6258: no advertised name or unknown type. Favorites/local are exempt above.
-      if (hideIncompleteNodes
-        && !isMeshCoreRowComplete({ rawName: r.hasName ? r.name : null, advType: r.advType })) {
-        return false;
-      }
-      if (isMeshCoreInfrastructureAdvType(r.advType)) {
-        return infraNever || isWithinMeshcoreAge(r, infraCutoffMs);
-      }
-      return companionNever || isWithinMeshcoreAge(r, cutoffMs);
-    });
-  }, [merged, companionAgeHours, infraAgeHours, isAgeExempt, hideIncompleteNodes]);
+   *  the `isLocal` flag (#4438). Repeaters and room servers get their own
+   *  window (#4899); 0 means "never expire" (#4947). Date.now() is read on
+   *  every nodes/contacts poll (`merged` changes), not frozen at mount. */
+  const aged = useMemo(
+    () => filterMeshCoreRowsByAge(merged, { companionAgeHours, infraAgeHours, hideIncompleteNodes }),
+    [merged, companionAgeHours, infraAgeHours, hideIncompleteNodes],
+  );
 
   // #6258: map-marker dimming only (the list is never dimmed). The window end is
   // the row's configured window from settings (not the quick filter); window 0

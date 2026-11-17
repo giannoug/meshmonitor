@@ -1,7 +1,7 @@
 {
   "must": [
     "Glyfada Beach",
-    "COMPANION",
+    "Companion",
     "Message",
     "Ask the node",
     "Organise",
@@ -13,7 +13,7 @@
     "2-byte",
     "3-byte",
     "Add hop",
-    "Discover path",
+    "Discover Path",
     "Ping",
     "RTT",
     "Trace path",
@@ -21,11 +21,11 @@
     "Reset path",
     "Share contact",
     "Export meshcore://",
-    "Not in radio",
+    "Not in the radio",
     "Add to radio",
     "Allow this contact to run CLI commands",
     "Clock offset",
-    "Signature",
+    "Advert signature",
     "Link history",
     "Trace SNR",
     "Sends"

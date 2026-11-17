@@ -20,12 +20,14 @@ export interface OverridePositionSheetProps {
   nodeName: string;
   onClose(): void;
   onSave(nodeNum: number, data: PositionOverrideValue): Promise<void>;
+  /** MeshCore reads the saved override from its own route (`node.user.id` is the public key). */
+  protocol?: 'meshtastic' | 'meshcore';
 }
 
-export default function OverridePositionSheet({ open, node, nodeName, onClose, onSave }: OverridePositionSheetProps) {
+export default function OverridePositionSheet({ open, node, nodeName, onClose, onSave, protocol }: OverridePositionSheetProps) {
   const { t } = useTranslation();
   const id = useId();
-  const form = usePositionOverrideForm({ isOpen: open, nodeId: node.user?.id, nodeNum: node.nodeNum, onSave, onClose });
+  const form = usePositionOverrideForm({ isOpen: open, nodeId: node.user?.id, nodeNum: node.nodeNum, onSave, onClose, protocol });
 
   return (
     <ConfirmSheet

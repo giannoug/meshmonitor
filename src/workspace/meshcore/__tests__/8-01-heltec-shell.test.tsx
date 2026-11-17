@@ -50,7 +50,8 @@ describe('8-01-heltec-shell', () => {
   it('lists the device tools, channels (virtual tagged), rooms by login state and direct messages', async () => {
     renderMeshCore(route);
     const side = await screen.findByRole('complementary', { name: 'Heltec MeshCore' });
-    expect(await within(side).findByRole('link', { name: 'Map' })).toHaveAttribute('href', `${HELTEC}/nodes`);
+    expect(await within(side).findByRole('link', { name: 'Map' })).toHaveAttribute('href', `${HELTEC}/map`);
+    expect(within(side).getByRole('link', { name: /^Nodes/ })).toHaveAttribute('href', `${HELTEC}/nodes`);
     expect(within(side).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', `${HELTEC}/telemetry`);
     expect(within(side).getByRole('link', { name: 'Automations' })).toHaveAttribute('href', `${HELTEC}/automations`);
     expect(await within(side).findByRole('link', { name: /athens/ })).toHaveAttribute('href', `${HELTEC}/channel/1`);

@@ -84,7 +84,7 @@ export default function RoomPosts({ room, name, roomKey, readOnly = false }: { r
   const onAction = (kind: string, row: McRow) => {
     if (kind === 'translate') void translateMessage(row.message.id, row.message.text);
     else if (kind === 'details') setDetails(row.message);
-    else if (kind === 'node' && row.senderKey) void navigate(`/source/${encodeURIComponent(sourceId)}/dm/${encodeURIComponent(row.senderKey)}`);
+    else if (kind === 'node' && row.senderKey) void navigate(`/source/${encodeURIComponent(sourceId)}/node/${encodeURIComponent(row.senderKey)}`);
     else if (kind === 'copy')
       void navigator.clipboard
         .writeText(row.message.text)

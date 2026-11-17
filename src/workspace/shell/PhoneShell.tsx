@@ -66,10 +66,14 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
 
   const source = sources.find((s) => s.id === openId);
   // A Meshtastic conversation draws its own header (boards 10-06, 10-14; DMs 10-07), and so do the inbox (c-home-e3), Activity (c-home-e4), the full-screen map (g1-map), Nodes (g3-nodes), the node page (g4-node), an MQTT device's packet monitor (18-04) and device settings (b-set-p1-list).
-  // A MeshCore device's Home, channel and room draw their own (8-16 … 8-19, Task 7.1).
+  // A MeshCore device's Home, channel and room draw their own (8-16 … 8-19, Task 7.1), and so do Nodes and the node page (8-20, 8-28, g6, Task 7.2).
   const meshcoreOwn =
     source?.type === 'meshcore' &&
-    ((/^\/source\/[^/]+\/?$/.test(pathname) && !hash) || !!matchPath('/source/:id/channel/:idx', pathname) || !!matchPath('/source/:id/room/:key', pathname));
+    ((/^\/source\/[^/]+\/?$/.test(pathname) && !hash) ||
+      !!matchPath('/source/:id/channel/:idx', pathname) ||
+      !!matchPath('/source/:id/room/:key', pathname) ||
+      !!matchPath('/source/:id/nodes', pathname) ||
+      !!matchPath('/source/:id/node/*', pathname));
   const ownHeader =
     meshcoreOwn ||
     (!!source &&

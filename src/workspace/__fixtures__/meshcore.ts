@@ -10,7 +10,7 @@
  */
 import { SOURCE_IDS } from './athens';
 import type { FixtureHandler } from './fixtureApi';
-import type { MeshCoreMessage } from '../../components/MeshCore/hooks/useMeshCore';
+import type { MeshCoreMessage, MeshCoreNode } from '../../components/MeshCore/hooks/useMeshCore';
 import type { MeshCoreContact } from '../../utils/meshcoreHelpers';
 
 const key = (seed: string) => (seed + '0'.repeat(64)).slice(0, 64);
@@ -26,6 +26,7 @@ export const MC = {
   glyfada: key('6a1b0188'),
   nikos: key('b44e0299'),
   marousi: key('d81303aa'),
+  weather: key('91de0abb'),
 } as const;
 
 const NOW = Date.now();
@@ -42,15 +43,29 @@ const contact = (publicKey: string, advName: string, advType: number, lat?: numb
 
 export const mcContacts: MeshCoreContact[] = [
   { ...contact(MC.self, 'Heltec MeshCore', 1, 37.975, 23.735), isLocal: true } as MeshCoreContact,
-  contact(MC.lycabettus, 'Lycabettus Repeater', 2, 37.9838, 23.7432),
-  contact(MC.penteli, 'Penteli Repeater', 2, 38.0496, 23.8644),
-  contact(MC.parnitha, 'Parnitha Repeater', 2, 38.1717, 23.7181),
+  contact(MC.lycabettus, 'Lycabettus Repeater', 2, 37.9838, 23.7432, { pathLen: 0, outPath: '', snr: 6.5, rssi: -88, lastAdvert: NOW - 180_000 }),
+  contact(MC.penteli, 'Penteli Repeater', 2, 38.0496, 23.8644, { pathLen: 0, outPath: '', snr: 7, rssi: -97 }),
+  contact(MC.parnitha, 'Parnitha Repeater', 2, 38.1717, 23.7181, { pathLen: 2, snr: -3, rssi: -109 }),
   contact(MC.athensRoom, 'Athens Room', 3, 37.98, 23.73),
   contact(MC.kifisia, 'Kifisia BBS', 3, 38.074, 23.811),
   contact(MC.psychiko, 'Psychiko Board', 3, 38.0, 23.77),
-  contact(MC.glyfada, 'Glyfada Beach', 1, 37.86, 23.75),
-  contact(MC.nikos, 'Nikos T-Echo', 1),
-  contact(MC.marousi, 'Marousi Mobile', 1),
+  // Board 8-05: two 2-byte hops set by a path reply, not in the radio's list, its clock 2 min ahead.
+  contact(MC.glyfada, 'Glyfada Beach', 1, 37.8642, 23.7471, {
+    pathLen: 2, outPath: 'a7f1,3fa1', pathDiscoveredAt: NOW - 540_000, snr: 6.5, rssi: -88, lastAdvert: NOW - 360_000,
+    onDevice: false, flags: 0, advertSignatureVerified: true, clockOffsetSeconds: -120,
+  }),
+  contact(MC.nikos, 'Nikos T-Echo', 1, undefined, undefined, { pathLen: 1, snr: 4, rssi: -95 }),
+  contact(MC.marousi, 'Marousi Mobile', 1, undefined, undefined, { pathLen: 1, snr: 8, rssi: -90 }),
+];
+
+/** The durable node rows (battery, first heard, favourites, Lycabettus in the neighbours table) and a sensor heard by advert only. */
+export const mcNodes: MeshCoreNode[] = [
+  { publicKey: MC.lycabettus, name: 'Lycabettus Repeater', advType: 2, lastHeard: NOW - 60_000, rssi: -88, snr: 6.5, batteryMv: 4110,
+    uptimeSecs: 23 * 86_400, latitude: 37.9838, longitude: 23.7432, isFavorite: true, repeaterNeighborAt: NOW - 60_000 },
+  { publicKey: MC.glyfada, name: 'Glyfada Beach', advType: 1, lastHeard: NOW - 120_000, firstHeard: NOW - 40 * 86_400_000, rssi: -92, snr: 6,
+    batteryMv: 3920, latitude: 37.8642, longitude: 23.7471, isFavorite: true },
+  { publicKey: MC.penteli, name: 'Penteli Repeater', advType: 2, lastHeard: NOW - 240_000, rssi: -97, snr: 7, batteryMv: 3980, latitude: 38.0496, longitude: 23.8644 },
+  { publicKey: MC.weather, name: 'Kifisia Weather', advType: 4, lastHeard: NOW - 1_320_000, rssi: -104, snr: -1, batteryMv: 3600, latitude: 38.07, longitude: 23.81 },
 ];
 
 export const mcStatus = {
@@ -147,7 +162,7 @@ export function meshcoreFixtures(log: MeshCoreLog = { writes: [] }, opts: MeshCo
         : undefined,
     'GET /api/sources/:id/meshcore/status': only(() => ok(status)),
     'GET /api/sources/:id/meshcore/snapshot': only(() =>
-      ok({ status, contacts: mcContacts, nodes: [], messages: athensMessages, seqCursor: NOW }),
+      ok({ status, contacts: mcContacts, nodes: mcNodes, messages: athensMessages, seqCursor: NOW }),
     ),
     'GET /api/sources/:id/meshcore/contacts': only(() => ({ success: true, data: mcContacts, count: mcContacts.length })),
     'GET /api/sources/:id/meshcore/messages': only(() => ok(athensMessages)),
@@ -235,5 +250,41 @@ export function meshcoreFixtures(log: MeshCoreLog = { writes: [] }, opts: MeshCo
     'DELETE /api/sources/:id/meshcore/messages/channel/:idx': only(write()),
     'POST /api/sources/:id/disconnect': (u, init) => (isHeltec(u) ? write()(u, init) : undefined),
     'POST /api/sources/:id/connect': (u, init) => (isHeltec(u) ? write()(u, init) : undefined),
+    // The node page and Nodes (Task 7.2).
+    'POST /api/sources/:id/meshcore/contacts/:pk/ping': only(write(() => ok({ hopHash: 'b2', rttMs: 412, snrToTarget: 5.5, snrFromTarget: 6 }))),
+    'POST /api/sources/:id/meshcore/contacts/:pk/trace-path': only(write(() => ({ success: true, hops: [{ index: 0, snr: 7 }, { index: 1, snr: 3 }], lastSnr: -2.5, path: ['a7f1', '3fa1'] }))),
+    'POST /api/sources/:id/meshcore/contacts/:pk/discover-path': only(write(() => ok({ suggestedTimeoutMs: 0, discoveryTimeoutMs: 30_000 }))),
+    'POST /api/sources/:id/meshcore/contacts/:pk/reset-path': only(write()),
+    'PUT /api/sources/:id/meshcore/contacts/:pk/out-path': only(write()),
+    'POST /api/sources/:id/meshcore/contacts/:pk/share': only(write()),
+    'GET /api/sources/:id/meshcore/contacts/:pk/export': only(() => ok({ advertBytes: [4, 163, 183] })),
+    'POST /api/sources/:id/meshcore/contacts/:pk/add-to-device': only(write(() => ok({ status: 'added' }))),
+    'DELETE /api/sources/:id/meshcore/contacts/:pk': only(write()),
+    'POST /api/sources/:id/meshcore/contacts/import': only(write()),
+    'POST /api/sources/:id/meshcore/contacts/refresh': only(write(() => ok(mcContacts))),
+    'POST /api/sources/:id/meshcore/nodes/:pk/favorite': only(write()),
+    'POST /api/sources/:id/meshcore/nodes/:pk/remote-cli': only(write()),
+    'POST /api/sources/:id/meshcore/discover': only(write((_u, b) => ({
+      success: true, returned: 4, new: 1,
+      nodes: [MC.lycabettus, MC.penteli, MC.parnitha, MC.athensRoom].map((pk) => ({
+        publicKey: pk, name: null, advType: 2, snr: 6, snrToNode: 5, rssi: -90, isNew: pk === MC.penteli && (b as { mode?: string })?.mode === 'repeaters',
+      })),
+    }))),
+    'GET /api/sources/:id/meshcore/ignored-nodes': only(() => ok([])),
+    'GET /api/sources/:id/meshcore/admin/session/:pk': only(() => ok(null)),
+    'GET /api/sources/:id/meshcore/neighbors': only(() => ok({ items: [] })),
+    'GET /api/sources/:id/meshcore/hop-snr': only((u) =>
+      u.searchParams.get('publicKey') === MC.glyfada
+        ? ok({
+            hours: 168,
+            links: [{
+              sender: { publicKey: MC.lycabettus, hash: null, candidates: 1 },
+              receiver: { publicKey: MC.glyfada, hash: null, candidates: 1 },
+              count: 9, lastSnr: -2.5, avgSnr: -1.8, minSnr: -4, maxSnr: 1, lastTimestamp: NOW - 780_000, initiatedCount: 9,
+              points: [[NOW - 3_600_000, -2], [NOW - 780_000, -2.5]],
+            }],
+          })
+        : ok({ hours: 168, links: [] }),
+    ),
   };
 }

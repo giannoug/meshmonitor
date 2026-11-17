@@ -2,8 +2,8 @@
  * @vitest-environment jsdom
  *
  * Review fixes M1 and M6: a message's ⋯ keeps today's sender link (Node Details,
- * opening today's DM view on that contact), and a room row keeps today's
- * distance while the rooms are sorted by Distance.
+ * now the native node page of that contact, Task 7.2), and a room row keeps
+ * today's distance while the rooms are sorted by Distance.
  */
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, within } from '@testing-library/react';
@@ -14,14 +14,14 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('./m
 vi.mock('../../../pages/MeshCoreSourcePage', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('meshcore') }));
 
 describe('MeshCore rows', () => {
-  it('a channel message\'s ⋯ Node Details opens today\'s DM view on the sender', async () => {
+  it('a channel message\'s ⋯ Node Details opens the sender\'s node page, whose Message keeps the DM a click away', async () => {
     renderMeshCore(`${HELTEC}/channel/1`);
     const row = (await screen.findByText('Morning, anyone on the coast road? Testing a new antenna.')).closest('[data-message-id]') as HTMLElement;
     fireEvent.click(within(row).getByRole('button', { name: 'More actions' }));
     fireEvent.click(within(row).getByRole('button', { name: /^Node Details/ }));
-    expect(await screen.findByTestId('page-meshcore')).toBeInTheDocument();
-    expect(screen.getByTestId('view')).toHaveTextContent('dms');
-    expect(screen.getByTestId('dm-contact')).toHaveTextContent(MC.glyfada);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Glyfada Beach' })).toBeInTheDocument();
+    expect(screen.queryByTestId('page-meshcore')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Message' })).toHaveAttribute('href', `${HELTEC}/dm/${MC.glyfada}`);
   });
 
   it('our own message has no Node Details', async () => {

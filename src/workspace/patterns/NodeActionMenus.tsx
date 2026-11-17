@@ -13,8 +13,9 @@
  *   a PKI DM (CLAUDE.md, key repair).
  * - Gates are today's (the server's): an item the viewer lacks stays listed,
  *   disabled, with the reason as its tooltip and as a line under it.
- * - MQTT mirrors have no Ask the node; Reticulum has no asks; MeshCore's asks
- *   are listed, off until MeshCore chat comes to the Workspace (Phase 7).
+ * - MQTT mirrors have no Ask the node; Reticulum has no asks. The MeshCore
+ *   node page builds its own items (`groups`, Task 7.2); elsewhere (the map
+ *   peek) MeshCore's asks are listed, off.
  */
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -59,6 +60,8 @@ export interface NodeActionMenusProps {
   onOpenNodePage?(): void;
   /** After Purge All Messages succeeds, so the open conversation can drop them (as App does). */
   onMessagesPurged?(): void;
+  /** The items, built by the caller (the MeshCore node page, Task 7.2): drawn as given. */
+  groups?: NodeMenuGroups;
 }
 
 interface ChannelPick {
@@ -69,7 +72,7 @@ interface ChannelPick {
   onChange(v: number | ''): void;
 }
 
-interface Item {
+export interface NodeMenuItem {
   id: string;
   icon: UiIconName;
   label: string;
@@ -81,8 +84,10 @@ interface Item {
   channel?: ChannelPick;
   run(): void;
 }
+type Item = NodeMenuItem;
 
-type Groups = Partial<Record<GroupKey, Item[]>>;
+export type NodeMenuGroups = Partial<Record<GroupKey, NodeMenuItem[]>>;
+type Groups = NodeMenuGroups;
 
 const GROUP_LABELS: Record<GroupKey, string> = {
   ask: 'workspace.node_menu.ask',
@@ -97,6 +102,7 @@ const GROUP_ICONS: Record<GroupKey, UiIconName> = { ask: 'activity', organise: '
 const isSlot = (n: unknown): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 7;
 
 export default function NodeActionMenus(props: NodeActionMenusProps) {
+  if (props.groups) return <MenusView {...props} groups={props.groups} />;
   return props.protocol === 'meshtastic' || props.protocol === 'mqtt' ? <MeshtasticMenus {...props} /> : <OtherMenus {...props} />;
 }
 

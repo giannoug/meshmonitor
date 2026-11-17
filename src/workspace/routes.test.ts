@@ -90,6 +90,7 @@ describe('meshcoreViewForPath', () => {
     ['dm/abcd', '', 'dms'],
     ['room/r1', '', 'rooms'],
     ['node/abcd/info', '', 'nodes'],
+    ['map', '', 'nodes'],
     ['admin', '', null],
   ])('%s %s → %s', (splat, hash, view) => {
     expect(meshcoreViewForPath(splat, hash)).toBe(view);
