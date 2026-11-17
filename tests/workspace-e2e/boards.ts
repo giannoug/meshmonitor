@@ -1893,7 +1893,69 @@ export const BOARDS: Board[] = [
   },
   { id: '8-11-nodes', size: 'desktop', path: '/source/src-heltec/nodes', fixtures: MESHCORE(), init: groupByRole, setup: discoverRepeaters },
   { id: '8-28-nodes-discover', size: 'phone', path: '/source/src-heltec/nodes', fixtures: MESHCORE(), init: groupByRole, setup: discoverRepeaters },
+  // Task 7.3: MeshCore remote targets (repeater and room admin).
+  {
+    id: '8-06-repeater-console',
+    size: 'desktop',
+    path: `/source/src-heltec/settings/console?node=${MC.lycabettus}`,
+    fixtures: MESHCORE({ adminSession: true }),
+    init: macPlatform,
+    setup: async (page) => {
+      await resumeMcSession(page);
+      await page.getByRole('button', { name: 'Fetch stats', exact: true }).first().click();
+      await page.getByText('4.11 V').waitFor();
+      await page.getByRole('button', { name: 'Command history' }).click();
+      await page.getByRole('button', { name: 'Load more' }).waitFor();
+      await page.getByRole('button', { name: 'reboot', exact: true }).click();
+      await page.getByRole('dialog', { name: 'Confirm destructive command' }).waitFor();
+    },
+  },
+  {
+    id: '8-07-repeater-settings',
+    size: 'desktop',
+    path: `/source/src-heltec/settings/node-settings?node=${MC.lycabettus}`,
+    fixtures: MESHCORE({ adminSession: true }),
+    init: macPlatform,
+    setup: readMcSettings(['identity', 'adverts', 'access']),
+  },
+  {
+    id: '8-21-repeater-console',
+    size: 'phone',
+    path: `/source/src-heltec/settings/console?node=${MC.lycabettus}`,
+    fixtures: MESHCORE({ adminSession: true }),
+    setup: resumeMcSession,
+  },
+  {
+    id: '8-25-repeater-settings',
+    size: 'phone',
+    path: `/source/src-heltec/settings/node-settings?node=${MC.lycabettus}`,
+    fixtures: MESHCORE({ adminSession: true }),
+    setup: readMcSettings(['identity', 'adverts']),
+  },
 ];
+
+/** 8-06 / 8-07: the board draws the Mac hint in the settings list. */
+async function macPlatform(page: Page) {
+  await page.addInitScript(() => Object.defineProperty(navigator, 'platform', { get: () => 'MacIntel' }));
+}
+
+/** 8-06 / 8-21: Resume the remembered admin session (sends nothing). */
+async function resumeMcSession(page: Page) {
+  await page.getByRole('button', { name: 'Resume session' }).click();
+  await page.getByText('Logged in', { exact: true }).first().waitFor();
+}
+
+/** 8-07 / 8-25: logged in, with these setting groups read. */
+function readMcSettings(groups: string[]) {
+  return async (page: Page) => {
+    await page.getByRole('button', { name: 'Resume session' }).click();
+    for (const g of groups) {
+      await page.getByTestId(`repeater-read-${g}`).click();
+      await page.getByTestId(`repeater-read-${g}`).getByText('Read again').waitFor();
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
+  };
+}
 
 /** 8-05 / 8-20: the board shows a ping and a trace already answered. */
 async function pingAndTrace(page: Page) {

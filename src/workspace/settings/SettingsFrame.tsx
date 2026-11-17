@@ -27,7 +27,7 @@
  * (Channels' reorder mode, a channel's edit page) claims the dock and the
  * radio bar yields; a channel's draft is listed by the leave guard (settingsDock.ts).
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { lazy, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import RouteLoading from '../../components/RouteLoading/RouteLoading';
 import { RebootModal } from '../../components/RebootModal';
@@ -65,6 +65,9 @@ import TargetPickerSheet from './remote/TargetPicker';
 
 const LOCAL: CategoryTarget = { kind: 'local' };
 
+/** A MeshCore device's settings run in its screen's one useMeshCore (Task 7.3, Ruling AD). */
+const MeshCoreScreen = lazy(() => import('../meshcore/MeshCoreScreen.tsx'));
+
 export interface SettingsFrameProps {
   sourceId: string;
   source: DashboardSource;
@@ -73,6 +76,8 @@ export interface SettingsFrameProps {
 }
 
 export default function SettingsFrame({ sourceId, source, path }: SettingsFrameProps) {
+  // A MeshCore device: its remote targets (Task 7.3), on the shared list, pages and categories.
+  if (source.type === 'meshcore') return <MeshCoreScreen sourceId={sourceId} source={source} screen={{ kind: 'settings', path }} />;
   return (
     <SourceProvider sourceId={sourceId} sourceName={source.name} sourceType={source.type}>
       <SettingsProvider baseUrl={appBasename}>

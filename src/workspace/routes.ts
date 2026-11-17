@@ -79,6 +79,13 @@ export function meshcoreViewForPath(splat: string, hash: string): MeshCoreView |
   return MESHCORE_ALIASES[segment] ?? null;
 }
 
+/**
+ * A MeshCore repeater's or room server's Settings and Console (Task 7.3), the
+ * part of a source URL after `/source/:id/`: with a remote target these are
+ * the Workspace settings frame; other settings URLs stay today's page.
+ */
+export const MESHCORE_REMOTE_SETTINGS = /^settings(?:\/(?:console|node-settings))?\/?$/;
+
 /** Destinations: the Reticulum page's default view. */
 export const RETICULUM_DEFAULT_VIEW: ReticulumView = 'destinations';
 

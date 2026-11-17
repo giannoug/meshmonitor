@@ -112,6 +112,11 @@ interface CliConsoleBodyProps {
    *  the Meshtastic console passes its own (shared with its server guard) so the
    *  two agree on what is destructive (#6154). */
   dangerPattern?: RegExp;
+  /** When set, a destructive command (typed, or a danger quick action) is handed
+   *  here instead of opening the built-in typed-name modal; `send` runs it with
+   *  `confirm: true`, exactly as that modal's confirm does. The Workspace
+   *  console asks in its own ConfirmSheet (Task 7.3). */
+  onDangerCommand?: (command: string, send: () => Promise<void>) => void;
 }
 
 const nextId = (() => {
@@ -133,6 +138,7 @@ export const CliConsoleBody = forwardRef<CliConsoleBodyHandle, CliConsoleBodyPro
     timeoutHint,
     history,
     dangerPattern = DANGER_COMMAND_PATTERN,
+    onDangerCommand,
   },
   ref,
 ) {
@@ -286,23 +292,28 @@ export const CliConsoleBody = forwardRef<CliConsoleBodyHandle, CliConsoleBodyPro
     runCommand: (cmd: string, opts?: { confirm?: boolean }) => runAndLog(cmd, opts),
   }), [appendTranscript, runAndLog]);
 
+  const askDanger = useCallback((cmd: string) => {
+    if (onDangerCommand) onDangerCommand(cmd, () => runAndLog(cmd, { confirm: true }));
+    else setDangerConfirm({ command: cmd, typedName: '' });
+  }, [onDangerCommand, runAndLog]);
+
   const handleSend = useCallback(async () => {
     const trimmed = command.trim();
     if (!trimmed || sending) return;
     if (dangerPattern.test(trimmed)) {
-      setDangerConfirm({ command: trimmed, typedName: '' });
+      askDanger(trimmed);
       return;
     }
     await runAndLog(trimmed);
-  }, [command, dangerPattern, runAndLog, sending]);
+  }, [askDanger, command, dangerPattern, runAndLog, sending]);
 
   const handleActionClick = useCallback((action: ActionCommand) => {
     if (action.danger) {
-      setDangerConfirm({ command: action.command, typedName: '' });
+      askDanger(action.command);
       return;
     }
     setCommand(action.command);
-  }, []);
+  }, [askDanger]);
 
   const handleDangerConfirm = useCallback(async () => {
     if (!dangerConfirm) return;

@@ -29,6 +29,8 @@ import DeviceSwitcherSheet from './DeviceSwitcherSheet';
 import { ShellDevicesContext, useShellDevices } from './shellDevices';
 import TabBar, { type PhoneTab } from './TabBar';
 import type { WorkspaceSource } from './useWorkspaceSources';
+import { MESHCORE_REMOTE_SETTINGS } from '../routes';
+import { useRemoteEntry } from '../settings/remote/remoteTargetStore';
 import styles from './PhoneShell.module.css';
 
 const HEADER = 64;
@@ -54,7 +56,7 @@ function activeTab(pathname: string, mode: SidebarMode): PhoneTab {
 
 export default function PhoneShell({ sources, openId, home, mode, children }: PhoneShellProps) {
   const { t } = useTranslation();
-  const { pathname, hash } = useLocation();
+  const { pathname, hash, search } = useLocation();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
   const shell = useShellDevices();
@@ -65,6 +67,7 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
   }, [pathname]);
 
   const source = sources.find((s) => s.id === openId);
+  const remote = useRemoteEntry(openId ?? '');
   // A Meshtastic conversation draws its own header (boards 10-06, 10-14; DMs 10-07), and so do the inbox (c-home-e3), Activity (c-home-e4), the full-screen map (g1-map), Nodes (g3-nodes), the node page (g4-node), an MQTT device's packet monitor (18-04) and device settings (b-set-p1-list).
   // A MeshCore device's Home, channel and room draw their own (8-16 … 8-19, Task 7.1), and so do Nodes and the node page (8-20, 8-28, g6, Task 7.2).
   const meshcoreOwn =
@@ -73,7 +76,10 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
       !!matchPath('/source/:id/channel/:idx', pathname) ||
       !!matchPath('/source/:id/room/:key', pathname) ||
       !!matchPath('/source/:id/nodes', pathname) ||
-      !!matchPath('/source/:id/node/*', pathname));
+      !!matchPath('/source/:id/node/*', pathname) ||
+      // A remote target's settings list and pages have Back (8-21, 8-25, Task 7.3).
+      ((new URLSearchParams(search).has('node') || remote.node !== null) &&
+        MESHCORE_REMOTE_SETTINGS.test(pathname.replace(/^\/source\/[^/]+\//, ''))));
   const ownHeader =
     meshcoreOwn ||
     (!!source &&

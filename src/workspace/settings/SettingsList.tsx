@@ -59,6 +59,7 @@ const ICONS: Record<string, UiIconName> = {
   'reliable-pki': 'encrypted',
   data: 'database',
   'coverage-recording': 'radio',
+  console: 'terminal',
 };
 
 interface Row {
@@ -91,7 +92,11 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
   const { hasPermission, authStatus } = useAuth();
   const remote = useRemoteEntry(sourceId);
   const { categories } = useVisibleCategories(sourceId, sourceType, !!remote.node);
-  const canPick = authStatus?.user?.isAdmin === true && sourceType === 'meshtastic_tcp';
+  // Today's remote admin: an admin on a Meshtastic radio; remote_admin:write on a MeshCore device (Task 7.3).
+  const meshcore = sourceType === 'meshcore';
+  const canPick = meshcore
+    ? hasPermission('remote_admin', 'write', { sourceId })
+    : authStatus?.user?.isAdmin === true && sourceType === 'meshtastic_tcp';
   const SENT: Record<string, string> = {
     sending: 'workspace.settings.remote.sent_waiting',
     sent: 'workspace.settings.remote.sent',
@@ -128,7 +133,8 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
     .map((id) => ({ ...row(categoryById(id)!, 'pin'), key: `pin:${id}`, icon: 'favorite', active: false }));
 
   const radio: Row[] = [];
-  for (const c of categories.filter((c) => c.scope === 'radio' && !c.group && c.remote !== 'only')) radio.push(row(c, 'radio'));
+  // A MeshCore target's pages are all its own: listed under its name (8-06).
+  for (const c of categories.filter((c) => c.scope === 'radio' && !c.group && (c.remote !== 'only' || meshcore))) radio.push(row(c, 'radio'));
   for (const g of GROUPS) {
     const children = categories.filter((c) => c.group === g);
     if (children.length === 0) continue;
@@ -146,7 +152,7 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
     if (variant === 'sidebar' && openGroup === g && openChild) radio.push(row(openChild, 'device', true));
   }
   const meshmonitor = categories.filter((c) => c.scope === 'meshmonitor').map((c) => row(c, 'meshmonitor'));
-  const remoteOnly = categories.filter((c) => c.remote === 'only').map((c) => row(c, 'radio'));
+  const remoteOnly = meshcore ? [] : categories.filter((c) => c.remote === 'only').map((c) => row(c, 'radio'));
   // Maintenance › closes the list on a remote node, as b-set-d6 draws it.
   const maintenance = remote.node ? radio.findIndex((r) => r.key === 'maintenance') : -1;
   const radioTail = maintenance >= 0 ? radio.splice(maintenance) : [];

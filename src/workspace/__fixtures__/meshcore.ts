@@ -136,7 +136,16 @@ export interface MeshCoreFixtureOptions {
   /** Room login: `hang` keeps the request open (the progress card), else it answers. */
   login?: 'hang' | 'ok' | 'no_reply';
   connected?: boolean;
+  /** Remote admin (Task 7.3): a remembered admin login on Lycabettus Repeater. */
+  adminSession?: boolean;
 }
+
+/** Lycabettus Repeater's settings as a remote read returns them, per group (boards 8-07, 8-25). */
+export const lycabettusSettings = {
+  identity: { name: 'Lycabettus Repeater', lat: 37.9819, lon: 23.7432, txPower: 20, radio: '869.618,62.5,8,8' },
+  adverts: { advertInterval: 120, floodAdvertInterval: 24, floodMax: 8, repeat: true, af: 1, rxDelay: 0, txDelay: 0.5, directTxDelay: 0.3 },
+  access: { allowReadOnly: true },
+} as const;
 
 const ok = (data?: unknown) => ({ success: true, ...(data === undefined ? {} : { data }) });
 
@@ -271,7 +280,51 @@ export function meshcoreFixtures(log: MeshCoreLog = { writes: [] }, opts: MeshCo
       })),
     }))),
     'GET /api/sources/:id/meshcore/ignored-nodes': only(() => ok([])),
-    'GET /api/sources/:id/meshcore/admin/session/:pk': only(() => ok(null)),
+    'GET /api/sources/:id/meshcore/admin/session/:pk': only((u) =>
+      ok(opts.adminSession && u.pathname.endsWith(MC.lycabettus) ? { active: true, loggedInAt: NOW - 3_600_000, isAdmin: true } : null),
+    ),
+    // Remote admin (Task 7.3): the credential store, login, CLI, status and settings of a repeater.
+    'GET /api/sources/:id/meshcore/admin/credentials-capability': only(() =>
+      ok({ canRemember: true, rotatedCount: 0, rotated: [], stored: [{ publicKey: MC.lycabettus, name: 'Lycabettus Repeater' }] }),
+    ),
+    'POST /api/sources/:id/meshcore/admin/login': only(write(() => ({ success: true, persisted: false }))),
+    'POST /api/sources/:id/meshcore/admin/login-with-saved': only(write(() => ({ success: true, usedStored: true }))),
+    'DELETE /api/sources/:id/meshcore/admin/session/:pk': only(write()),
+    'DELETE /api/sources/:id/meshcore/admin/credentials/:pk': only(write()),
+    'POST /api/sources/:id/meshcore/admin/cli': only(write((_u, b) => {
+      const cmd = (b as { command?: string })?.command ?? '';
+      return ok({ reply: cmd === 'ver' ? 'MeshCore v1.8.2 (Build: 14-Sep-2026)' : cmd === 'get radio' ? '869.618,62.5,8,8' : 'OK', elapsedMs: 900 });
+    })),
+    'GET /api/sources/:id/meshcore/admin/status/:pk': only(() =>
+      ok({
+        batteryMv: 4110, uptimeSecs: 23 * 86_400, queueLen: 0, noiseFloor: -112, lastRssi: -88, lastSnr: 6.5, airTimeSecs: 83_000,
+        packetsRecv: 9412, packetsSent: 1584, sentFlood: 1204, sentDirect: 380, recvFlood: 8400, recvDirect: 1012, floodDups: 812, directDups: 41, recvErrors: 3,
+      }),
+    ),
+    'GET /api/sources/:id/meshcore/cli-history': only(() =>
+      ok({
+        entries: [
+          { id: 3, sourceId: SOURCE_IDS.heltec, timestamp: clock(10, 24), targetKind: 'remote', targetPublicKey: MC.lycabettus, targetName: 'Lycabettus Repeater',
+            origin: 'user', userId: 1, username: 'GI', command: 'ver', outcome: 'ok', reply: 'MeshCore v1.8.2', error: null, elapsedMs: 900, ipAddress: null },
+          { id: 2, sourceId: SOURCE_IDS.heltec, timestamp: clock(10, 23), targetKind: 'remote', targetPublicKey: MC.lycabettus, targetName: 'Lycabettus Repeater',
+            origin: 'user', userId: 1, username: 'GI', command: 'password ********', outcome: 'ok', reply: 'password now: ********', error: null, elapsedMs: 900, ipAddress: null },
+          { id: 1, sourceId: SOURCE_IDS.heltec, timestamp: clock(9, 12), targetKind: 'remote', targetPublicKey: MC.lycabettus, targetName: 'Lycabettus Repeater',
+            origin: 'user', userId: 2, username: 'maria', command: 'get radio', outcome: 'ok', reply: '869.618,62.5,8,8', error: null, elapsedMs: 900, ipAddress: null },
+        ],
+        nextBefore: clock(9, 12),
+        nextBeforeId: 1,
+      }),
+    ),
+    'POST /api/sources/:id/meshcore/admin/settings/:pk/read': only(write((_u, b) => {
+      const groups = ((b as { groups?: Array<keyof typeof lycabettusSettings> })?.groups ?? []);
+      const values = Object.assign({}, ...groups.map((g) => lycabettusSettings[g]));
+      return ok({ values, guestPasswordSet: true, errors: {}, firmware: 'v1.8.2', deviceType: 'repeater', sent: Object.keys(values).length });
+    })),
+    'PATCH /api/sources/:id/meshcore/admin/settings/:pk': only(write((_u, b) => {
+      const patch = (b ?? {}) as Record<string, unknown>;
+      const results = Object.fromEntries(Object.keys(patch).map((k) => [k, { ok: true, changed: true, verified: true }]));
+      return ok({ ok: true, results, values: patch, sent: Object.keys(patch).length });
+    })),
     'GET /api/sources/:id/meshcore/neighbors': only(() => ok({ items: [] })),
     'GET /api/sources/:id/meshcore/hop-snr': only((u) =>
       u.searchParams.get('publicKey') === MC.glyfada

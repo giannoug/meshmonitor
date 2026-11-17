@@ -63,7 +63,10 @@ export default function CategoryPage({ def, group, sub = '', categories, sourceI
   const [header, setHeader] = useState<SubHeader | null>(null);
   const label = def ? t(def.labelKey) : t(`workspace.settings.group.${group}`);
   const title = header?.title ?? label;
-  const scope = t(def?.scope === 'meshmonitor' ? 'workspace.settings.in_meshmonitor' : 'workspace.settings.on_radio');
+  const remote = useRemoteTarget();
+  // A MeshCore remote target's page (Task 7.3) names the node in its own scope line.
+  const ownScope = !remote && def?.remote === 'only' ? header?.scope : undefined;
+  const scope = ownScope ?? t(def?.scope === 'meshmonitor' ? 'workspace.settings.in_meshmonitor' : 'workspace.settings.on_radio');
   const viewOnly = readOnly && <span className={styles.viewOnly}>{t('workspace.settings.view_only')}</span>;
   // What saving does on this firmware (configRebootRules), as the save bar's words say it (Task 5.3).
   const config = useSharedDeviceConfig();
@@ -76,8 +79,7 @@ export default function CategoryPage({ def, group, sub = '', categories, sourceI
     </span>
   );
 
-  const extra = header?.scope && <span>{`· ${header.scope}`}</span>;
-  const remote = useRemoteTarget();
+  const extra = !ownScope && header?.scope && <span>{`· ${header.scope}`}</span>;
   const reads = !!remote && !!def && !!REMOTE_READS[def.id];
 
   const body = def ? (

@@ -17,6 +17,11 @@
  * A remote target (Task 5.9, `?node=`) shows only `remote` categories: those
  * today's Admin Commands reads and sends for a remote node, the Danger zone,
  * and the two remote-only pages (Node management, Remote console).
+ *
+ * A MeshCore device (Task 7.3) has only its remote targets here so far: a
+ * repeater's or room server's Settings (with the access list) and Console,
+ * behind today's `remote_admin:write`. Its other settings stay today's page
+ * until Task 7.4.
  */
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import type { TFunction } from 'i18next';
@@ -26,8 +31,8 @@ import type { DeviceConfigState } from '../../hooks/deviceConfig/useDeviceConfig
 import { configurationNavItems, settingsNavItems } from '../../components/search/configSections';
 import { isCoverageMqttSourceType } from '../../utils/coverage';
 
-/** The device types the settings frame serves (Classic serves them with App). */
-export type SourceType = 'meshtastic_tcp' | 'mqtt_broker' | 'mqtt_bridge';
+/** The device types the settings frame serves (Classic serves them with App), and MeshCore's remote targets (Task 7.3). */
+export type SourceType = 'meshtastic_tcp' | 'mqtt_broker' | 'mqtt_bridge' | 'meshcore';
 
 export interface GateCtx {
   sourceId: string;
@@ -108,6 +113,16 @@ const meshmonitor = (
   gate: extra.gate ?? canReadSettings,
 });
 
+const meshcoreRemote = (id: string, labelKey: string, component: CategoryDef['component']): CategoryDef => ({
+  id,
+  scope: 'radio',
+  labelKey,
+  sourceTypes: ['meshcore'],
+  remote: 'only',
+  component,
+  gate: (c) => c.hasPermission('remote_admin', 'write', { sourceId: c.sourceId }),
+});
+
 export const CATEGORIES: CategoryDef[] = [
   radio('identity', 'configuration.node_identity', lazy(() => import('./categories/IdentityCategory.tsx')), { saveSection: 'owner', remote: 'yes' }),
   radio('lora', 'workspace.settings.label.lora', lazy(() => import('./LoraCategory.tsx')), { saveSection: 'lora', remote: 'yes' }),
@@ -151,6 +166,9 @@ export const CATEGORIES: CategoryDef[] = [
     remote: 'only',
     gate: (c) => c.isAdmin,
   }),
+  // MeshCore remote targets (Task 7.3), gated as today's remote console (`remote_admin:write` on this source).
+  meshcoreRemote('node-settings', 'meshcore.repeater.remote_title', lazy(() => import('../meshcore/remote/RepeaterSettingsCategory.tsx'))),
+  meshcoreRemote('console', 'workspace.meshcore.tab_console', lazy(() => import('../meshcore/remote/RepeaterConsoleCategory.tsx'))),
   radio('maintenance/danger', 'config.danger_zone', lazy(() => import('./categories/DangerCategory.tsx')), { group: 'maintenance', remote: 'yes' }),
 
   // The bridge setup reads `sources` (#5683 follow-up): its own grant, not the Settings tab's.
@@ -238,6 +256,8 @@ export function readOnlyFor(def: CategoryDef | undefined, hasPermission: GateCtx
   if (def?.id === 'notifications') return false;
   // The bridge setup saves to the source row (MqttBridgeConfigurationView checks sources:write).
   if (def?.id === 'mqtt-bridge') return !hasPermission('sources', 'write');
+  // A MeshCore remote target writes through today's remote admin routes.
+  if (def?.sourceTypes.includes('meshcore')) return !hasPermission('remote_admin', 'write', { sourceId });
   // PKI DM decryption saves this source's configuration.
   const configuration = !def || def.scope === 'radio' || def.id === 'pki-dm';
   return !hasPermission(configuration ? 'configuration' : 'settings', 'write', { sourceId });

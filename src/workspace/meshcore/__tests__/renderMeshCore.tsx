@@ -23,9 +23,10 @@ configure({ asyncUtilTimeout: 4000 });
 
 export function renderMeshCore(route: string, opts: RenderWorkspaceOptions & { meshcore?: MeshCoreFixtureOptions } = {}) {
   const log: MeshCoreLog = { writes: [] };
-  // Read marks are per browser: each test starts from the fixture's.
+  // Read marks are per browser: each test starts from the fixture's (and a console's transcript, sessionStorage, empty).
   onTestFinished(() => {
     localStorage.clear();
+    sessionStorage.clear();
     resetReadStateCache();
   });
   // jsdom: no scrolling.

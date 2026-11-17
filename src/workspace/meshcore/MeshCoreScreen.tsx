@@ -2,8 +2,9 @@
  * The Workspace-native MeshCore screens (Task 7.1): a channel
  * (`/source/:id/channel/:idx`), a room (`room/:key`) and the phone Home (the
  * bare device URL below 768 px); Nodes (`nodes`) and a node's page
- * (`node/:key[/<tab>]`, Task 7.2). Every other MeshCore view stays re-hosted
- * (WorkspaceSource).
+ * (`node/:key[/<tab>]`, Task 7.2); a remote target's settings
+ * (`settings[/…]?node=<key>`, Task 7.3, through SettingsFrame). Every other
+ * MeshCore view stays re-hosted (WorkspaceSource).
  *
  * One owner per screen (Ruling AD): today's MeshCoreSourcePage is not mounted
  * here. This runs today's `useMeshCore` once for the device, inside the
@@ -13,7 +14,7 @@
  * the body is a permission note, and an error shows in a bar under the
  * status line with Dismiss.
  */
-import { useEffect } from 'react';
+import { lazy, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
@@ -38,12 +39,17 @@ import PhoneDeviceHeader from './PhoneDeviceHeader';
 import { useIsPhone } from '../shell/useIsPhone';
 import styles from './MeshCoreScreen.module.css';
 
+/** A repeater's or room server's Settings and Console (Task 7.3), in the settings frame's parts. */
+const MeshCoreSettingsFrame = lazy(() => import('./remote/MeshCoreSettingsFrame.tsx'));
+
 export type MeshCoreScreenKind =
   | { kind: 'home' }
   | { kind: 'channel'; idx: number }
   | { kind: 'room'; key: string }
   | { kind: 'nodes' }
-  | { kind: 'node'; key: string; tab: string };
+  | { kind: 'node'; key: string; tab: string }
+  /** Device settings with a remote target (Task 7.3): `path` follows `/settings/`. */
+  | { kind: 'settings'; path: string };
 
 export interface MeshCoreScreenProps {
   sourceId: string;
@@ -95,7 +101,9 @@ function Runtime({ sourceId, deviceName, screen }: { sourceId: string; deviceNam
 
   return (
     <RuntimeContext.Provider value={{ sourceId, deviceName, meshCore, receiveOnly }}>
-      {screen.kind === 'nodes' ? (
+      {screen.kind === 'settings' ? (
+        <MeshCoreSettingsFrame path={screen.path} />
+      ) : screen.kind === 'nodes' ? (
         <MeshCoreNodesTable />
       ) : screen.kind === 'node' ? (
         <ContactPage key={screen.key} publicKey={screen.key} tab={screen.tab} />

@@ -404,12 +404,17 @@ describe('MeshCore and Reticulum views come from the URL', () => {
     await waitFor(() => expect(realUrl()).toBe(`${heltec}/map`));
   });
 
-  it('the node page\'s Console link opens today\'s console (the node\'s Node Details) on that node, and the URL stays (Task 7.2)', async () => {
+  it('the node page\'s Console link opens the settings frame with that remote target, and the URL stays (Task 7.3)', async () => {
     renderAt(`${heltec}/settings/console?node=abcd`);
-    await expectPage('meshcore');
-    expect(screen.getByTestId('view')).toHaveTextContent('dms');
-    expect(screen.getByTestId('dm-contact')).toHaveTextContent('abcd');
+    await expectPage('settings-frame');
+    expect(mounts.meshcore).toBeUndefined();
     expect(realUrl()).toBe(`${heltec}/settings/console?node=abcd`);
+  });
+
+  it('a MeshCore settings URL without a remote target stays today\'s page (Task 7.3, until Task 7.4)', async () => {
+    renderAt(`${heltec}/settings/console`);
+    await expectPage('meshcore');
+    expect(screen.getByTestId('view')).toHaveTextContent('settings');
   });
 
   it('Show on Map opens today\'s Nodes map on that node (Task 7.2)', async () => {

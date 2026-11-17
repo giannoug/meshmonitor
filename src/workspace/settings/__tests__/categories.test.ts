@@ -68,7 +68,7 @@ describe('categories', () => {
     const held = new Set(Object.values(SECTION_TO_CATEGORY));
     // The remote-only pages hold Admin Commands' sections, which these catalogues do not list (Task 5.9).
     expect(CATEGORIES.filter((c) => !held.has(c.id) && c.remote !== 'only').map((c) => c.id)).toEqual([]);
-    expect(CATEGORIES.filter((c) => c.remote === 'only').map((c) => c.id)).toEqual(['node-management', 'remote-console']);
+    expect(CATEGORIES.filter((c) => c.remote === 'only').map((c) => c.id)).toEqual(['node-management', 'remote-console', 'node-settings', 'console']);
   });
 
   it('every label has an English string', () => {

@@ -3,12 +3,12 @@
     "Remote repeater",
     "Lycabettus Repeater",
     "Logged in",
-    "QUICK ACTIONS",
+    "Quick actions",
     "reboot",
     "Send",
     "Sends",
     "Remote node status",
-    "History"
+    "Command history"
   ],
   "absent": [],
   "source": "checks/s08.json"
