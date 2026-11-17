@@ -1,13 +1,10 @@
 /**
  * @vitest-environment jsdom
  *
- * Board r4-server-general, Layout and Sources cards (Task 1.8). The Server
- * sidebar and the rest of General are Task 6.4's, which owns the full
- * `expectBoard('r4-server-general')`; here only the cards' must strings.
+ * Board r4-server-general: Server › General (the Layout and Sources cards of
+ * Task 1.8, the Server sidebar and the rest of General of Task 6.4: the
+ * default landing page, MeshCore messaging and the Reticulum cap, s13n5).
  */
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { renderWorkspace, type RenderWorkspaceOptions } from '../../test/renderWorkspace';
@@ -16,20 +13,10 @@ import type { FixtureHandler } from '../../__fixtures__/fixtureApi';
 import { ToastProvider } from '../../../components/ToastContainer';
 import { useLayout } from '../../layout/useLayout';
 import { prefsFixture } from '../../__fixtures__/prefsFixture';
+import { expectBoard } from '../../test/boardChecks';
+import { SERVER_SETTINGS } from '../../__fixtures__/server';
 import GeneralLayoutCard from '../GeneralLayoutCard';
-
-const check = JSON.parse(
-  readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../../__fixtures__/board-checks/r4-server-general.json'), 'utf8'),
-) as { must: string[]; absent: string[] };
-
-/** The board's must strings in the two cards; the sidebar's are 6.4's. */
-const CARD_MUST = [
-  'General',
-  'Default layout for new users',
-  'People who already picked one keep their choice.',
-  'Offer Workspace to Classic users',
-  'Who uses which',
-];
+import { grants, renderServer } from './serverHarness';
 
 /** `/api/settings` that keeps what is posted. */
 function settingsFixture(initial: Record<string, string> = {}) {
@@ -65,13 +52,10 @@ function renderCard(opts: RenderWorkspaceOptions = {}) {
 const row = (title: string) => screen.getByText(title).closest('[data-testid="general-row"]') as HTMLElement;
 
 describe('r4-server-general (Layout and Sources cards)', () => {
-  it('r4-server-general shows the board (cards)', async () => {
-    const { container } = renderCard();
+  it('r4-server-general shows the board', async () => {
+    const { container } = renderServer('/server/general');
     await screen.findByText('Classic 9 · Workspace 4');
-    expect(check.must).toEqual(expect.arrayContaining(CARD_MUST));
-    const text = (container.textContent ?? '').replace(/\s+/g, ' ');
-    for (const s of CARD_MUST) expect(text).toContain(s);
-    for (const s of check.absent) expect(text).not.toContain(s);
+    expectBoard('r4-server-general', container);
   });
 
   it('shows the stored values: default layout, banner offer, usage and the default source', async () => {
@@ -215,5 +199,71 @@ describe('r4-server-general (Layout and Sources cards)', () => {
     expect(screen.queryByRole('heading')).toBeNull();
     expect(screen.queryByTestId('general-row')).toBeNull();
     expect(urls().some((u) => u.includes('/api/admin/layout-usage'))).toBe(false);
+  });
+});
+
+describe('Server › General, the rest of the page (Task 6.4, s13n5)', () => {
+  it('draws, below the cards, the default landing page, MeshCore Messaging and the Reticulum cap', async () => {
+    renderServer('/server/general');
+    await screen.findByText('Classic 9 · Workspace 4');
+    const titles = screen.getAllByRole('heading', { level: 2 }).filter((h) => !h.closest('aside')).map((h) => h.textContent);
+    expect(titles).toEqual(['Layout', 'Sources', 'Landing page', 'MeshCore Messaging', 'Reticulum Settings']);
+  });
+
+  it('the default landing page saves as you go, with today\'s choices and the devices', async () => {
+    const { log } = renderServer('/server/general');
+    const select = await screen.findByRole('combobox', { name: 'Default Landing Page' });
+    const options = within(select).getAllByRole('option').map((o) => o.textContent);
+    expect(options.slice(0, 5)).toEqual(['Unified View (default)', 'Unified Messages', 'Unified Telemetry', 'Map Analysis', 'Reports']);
+    expect(options).toContain('Station G2');
+    fireEvent.change(select, { target: { value: 'reports' } });
+    await waitFor(() => expect(log.writes).toContainEqual({ method: 'POST', path: '/api/settings', body: { defaultLandingPage: 'reports' } }));
+  });
+
+  it('MeshCore Messaging: today\'s rows, the retry\'s Sends line, today\'s keys', async () => {
+    const { log } = renderServer('/server/general');
+    const retry = await screen.findByRole('switch', { name: 'Auto-retry automated MeshCore channel sends' });
+    expect(screen.getByText(/hears no repeater in 30 s is sent once more/)).toBeInTheDocument();
+    fireEvent.click(retry);
+    await waitFor(() => expect(log.writes).toContainEqual({ method: 'POST', path: '/api/settings', body: { meshcoreChannelRetryEnabled: '1' } }));
+    const timeout = screen.getByLabelText('Remote CLI reply timeout (seconds)');
+    expect(timeout).toHaveValue(15);
+    fireEvent.change(timeout, { target: { value: '8' } });
+    fireEvent.blur(timeout);
+    await waitFor(() => expect(log.writes).toContainEqual({ method: 'POST', path: '/api/settings', body: { meshcoreCliTimeoutSeconds: '8' } }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Use other sources to resolve unknown hops' }));
+    await waitFor(() => expect(log.writes).toContainEqual({ method: 'POST', path: '/api/settings', body: { meshcoreCrossSourceHopResolution: '1' } }));
+  });
+
+  it('reads only \'1\' / \'true\' as on for the MeshCore keys, as today', async () => {
+    renderServer('/server/general', { settings: { ...SERVER_SETTINGS, meshcoreChannelRetryEnabled: 'yes', meshcoreCrossSourceHopResolution: 'true' } });
+    expect(await screen.findByRole('switch', { name: 'Auto-retry automated MeshCore channel sends' })).not.toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Use other sources to resolve unknown hops' })).toBeChecked();
+  });
+
+  it('the Reticulum cap saves on blur, 1–100000, and an unset cap reads as 2000', async () => {
+    const { log } = renderServer('/server/general', { settings: { ...SERVER_SETTINGS, reticulum_destinations_max: '' } });
+    const cap = await screen.findByLabelText('Destination retention cap');
+    expect(cap).toHaveValue(2000);
+    fireEvent.change(cap, { target: { value: '500' } });
+    fireEvent.blur(cap);
+    await waitFor(() => expect(log.writes).toContainEqual({ method: 'POST', path: '/api/settings', body: { reticulum_destinations_max: '500' } }));
+  });
+
+  it('a non-admin settings writer gets only today\'s writer rows: MeshCore Messaging and the Reticulum cap', async () => {
+    renderServer('/server/general', { permissions: grants({ write: true }) });
+    await screen.findByRole('switch', { name: 'Auto-retry automated MeshCore channel sends' });
+    expect(screen.getAllByRole('heading', { level: 2 }).filter((h) => !h.closest('aside')).map((h) => h.textContent)).toEqual(['MeshCore Messaging', 'Reticulum Settings']);
+    expect(screen.queryByRole('combobox', { name: 'Default Landing Page' })).toBeNull();
+  });
+
+  it('a settings viewer without write gets no access', async () => {
+    renderServer('/server/general', { permissions: grants({ read: true }) });
+    expect(await screen.findByText("You don't have permission to do this")).toBeInTheDocument();
+  });
+
+  it('You › Preferences › MeshCore Messaging lands here', async () => {
+    renderServer('/server/meshcore-messaging');
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/server/general'));
   });
 });

@@ -42,6 +42,7 @@ describe('b-set-p5-you', () => {
     expect(link('Language & units')).toHaveAttribute('href', '/preferences/language');
     expect(link('Appearance')).toHaveAttribute('href', '/preferences/appearance');
     expect(link('Map')).toHaveAttribute('href', '/preferences/map');
-    expect(link('MeshCore Messaging')).toHaveAttribute('href', '/preferences/meshcore-messaging');
+    // MeshCore Messaging moved to Server › General (Task 6.4).
+    expect(within(prefs).queryByRole('link', { name: /^MeshCore Messaging/ })).toBeNull();
   });
 });

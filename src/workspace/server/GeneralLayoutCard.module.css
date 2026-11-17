@@ -1,29 +1,6 @@
 /* Server › General, Layout and Sources cards (board r4-server-general). */
-.page {
-  box-sizing: border-box;
-  max-width: 760px;
-  padding: 24px 32px 8px;
-  color: var(--color-text);
-}
-
-.head {
-  margin-bottom: 8px;
-}
-
-.title {
-  margin: 0;
-  font-size: 26px;
-  font-weight: 700;
-}
-
-.scope {
-  margin: 4px 0 0;
-  font-size: 15px;
-  color: var(--color-text-subtle);
-}
-
 .groupTitle {
-  margin: 24px 4px 10px;
+  margin: 0 4px 10px;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -32,6 +9,7 @@
 }
 
 .group {
+  margin-bottom: 24px;
   overflow: hidden;
   border: 1px solid var(--color-surface);
   border-radius: 12px;

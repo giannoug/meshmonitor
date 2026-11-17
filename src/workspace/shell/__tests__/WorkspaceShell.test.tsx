@@ -183,7 +183,7 @@ describe('DeviceSidebar', () => {
   it.each([
     ['/overview/reports', 'Overview', 'Analysis & Reports', '/overview/reports'],
     ['/source/src-g2/settings/lora', 'Station G2', 'LoRa', '/source/src-g2/settings/lora'],
-    ['/server/general', 'Global Settings', 'System Backup', '/server/backup'],
+    ['/server/general', 'Server', 'Backup & maintenance', '/server/backup'],
     // The You sidebar since Task 6.1: Account, Preferences (today's categories), the rest.
     ['/preferences/language', 'You', 'Language & units', '/preferences/language'],
   ])('%s shows the %s list', async (route, name, label, href) => {

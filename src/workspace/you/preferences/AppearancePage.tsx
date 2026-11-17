@@ -2,8 +2,8 @@
  * You › Preferences › Appearance (boards 13-01 desktop, 13-15 phone; Task
  * 6.3): today's Appearance section of global Settings, saving as you go.
  *
- * - Look: appearance mode, dark and light theme; for admins today's default
- *   landing page (s13n5 moves it to Server › General in 6.4).
+ * - Look: appearance mode, dark and light theme (today's default landing
+ *   page moved to Server › General in Task 6.4, s13n5).
  * - Map pins and lists: pin style, the official pin's colour (official
  *   only, #5018), node list style, icon style.
  * - Tapback emojis: today's add / remove / reset (useTapbackEmojiEditor);
@@ -15,13 +15,12 @@
  * Each row writes today's key to `POST /api/settings` and fans out to
  * SettingsContext as global Settings' Save did. Nothing here transmits.
  */
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../../components/icons';
 import { useCustomThemes } from '../../../components/themes/useCustomThemes';
 import { useTapbackEmojiEditor } from '../../../components/themes/useTapbackEmojiEditor';
-import { useAuth } from '../../../contexts/AuthContext';
 import {
   useSettings,
   type AppearanceMode,
@@ -33,10 +32,10 @@ import {
 } from '../../../contexts/SettingsContext';
 import type { NodeListStyle } from '../../../utils/nodeColor';
 import ConfirmSheet from '../../patterns/ConfirmSheet';
+import RowMenu from '../../patterns/RowMenu';
 import SettingGroup from '../../settings/kit/SettingGroup';
 import { useReadOnly } from '../../settings/kit/useFieldRegistry';
 import { AutoSelect } from '../../settings/categories/autosave';
-import { useShellDevices } from '../../shell/shellDevices';
 import { useIsPhone } from '../../shell/useIsPhone';
 import PrefsFrame from './PrefsFrame';
 import { swatchesOf, text, themeOptions } from './prefValues';
@@ -65,9 +64,6 @@ export default function AppearancePage() {
 function LookRows() {
   const { t } = useTranslation();
   const s = useSettings();
-  const { authStatus } = useAuth();
-  const { sources } = useShellDevices();
-  const isAdmin = authStatus?.authenticated === true && authStatus.user?.isAdmin === true;
   const themes = themeOptions(t, s.customThemes);
   // A slot on a theme that is gone (deleted here or elsewhere) shows context's value, as today's page did.
   const theme = (fallback: string) => (raw?: string) => (raw && themes.some((o) => o.value === raw) ? raw : fallback);
@@ -110,25 +106,6 @@ function LookRows() {
           parse={theme(s.lightTheme)}
           onSaved={(v) => s.setLightTheme(v as Theme)}
         />
-        {isAdmin && (
-          <AutoSelect
-            stacked
-            k="defaultLandingPage"
-            id="appearance.defaultLandingPage"
-            label={t('settings.default_landing_page_label', 'Default Landing Page')}
-            help={t('settings.default_landing_page_description', 'Page shown to users at the root URL. The Sources button always returns to the Unified view.')}
-            options={[
-              { value: 'unified', label: t('settings.default_landing_page_unified', 'Unified View (default)') },
-              { value: 'unified-messages', label: t('settings.default_landing_page_unified_messages', 'Unified Messages') },
-              { value: 'unified-telemetry', label: t('settings.default_landing_page_unified_telemetry', 'Unified Telemetry') },
-              { value: 'map-analysis', label: t('settings.default_landing_page_map_analysis', 'Map Analysis') },
-              { value: 'reports', label: t('settings.default_landing_page_reports', 'Reports') },
-              ...sources.map((src) => ({ value: src.id, label: src.name })),
-            ]}
-            parse={text(s.defaultLandingPage)}
-            onSaved={(v) => s.setDefaultLandingPage(v)}
-          />
-        )}
       </SettingGroup>
 
       <SettingGroup title={t('workspace.prefs.pins_lists')}>
@@ -422,74 +399,13 @@ export function CustomThemeList() {
  */
 function ThemeMenu({ name, onClone, onDelete }: { name: string; onClone(): void; onDelete?: () => void }) {
   const { t } = useTranslation();
-  const isPhone = useIsPhone();
-  const [open, setOpen] = useState(false);
-  const wrap = useRef<HTMLSpanElement>(null);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const menu = useRef<HTMLSpanElement>(null);
-  const label = t('workspace.prefs.theme_actions', { name });
-  const items = () => Array.from(menu.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
-
-  useEffect(() => {
-    if (!open) return;
-    menu.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
-    const onDown = (e: MouseEvent) => {
-      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [open]);
-
-  const onKeyDown = (e: ReactKeyboardEvent) => {
-    if (!open) return;
-    if (e.key === 'Escape') {
-      e.stopPropagation();
-      setOpen(false);
-      trigger.current?.focus();
-      return;
-    }
-    const list = items();
-    const at = list.indexOf(document.activeElement as HTMLButtonElement);
-    const to = { ArrowDown: at + 1, ArrowUp: at - 1, Home: 0, End: list.length - 1 }[e.key];
-    if (to === undefined || list.length === 0) return;
-    e.preventDefault();
-    list[(to + list.length) % list.length].focus();
-  };
-
-  const then = (fn: () => void) => () => {
-    setOpen(false);
-    fn();
-  };
-
   return (
-    <span className={styles.menuWrap} ref={wrap} onKeyDown={onKeyDown}>
-      <button
-        ref={trigger}
-        type="button"
-        className={styles.iconButton}
-        data-phone={isPhone || undefined}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={label}
-        title={label}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <UiIcon name="more" size={18} />
-      </button>
-      {open && (
-        <span className={styles.menu} role="menu" aria-label={label} ref={menu}>
-          <button type="button" role="menuitem" className={styles.menuItem} data-phone={isPhone || undefined} onClick={then(onClone)}>
-            <UiIcon name="copy" size={16} />
-            {t('theme_management.clone')}
-          </button>
-          {onDelete && (
-            <button type="button" role="menuitem" className={styles.menuItem} data-phone={isPhone || undefined} data-danger="" onClick={then(onDelete)}>
-              <UiIcon name="delete" size={16} />
-              {t('common.delete')}
-            </button>
-          )}
-        </span>
-      )}
-    </span>
+    <RowMenu
+      label={t('workspace.prefs.theme_actions', { name })}
+      items={[
+        { key: 'clone', label: t('theme_management.clone'), icon: 'copy', onSelect: onClone },
+        ...(onDelete ? [{ key: 'delete', label: t('common.delete'), icon: 'delete' as const, danger: true, onSelect: onDelete }] : []),
+      ]}
+    />
   );
 }

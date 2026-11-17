@@ -38,6 +38,7 @@ import { canReadMessages, isMeshtasticFamily } from './deviceTabs';
 import DeviceRail from './DeviceRail';
 import DeviceSidebar, { type SidebarMode } from './DeviceSidebar';
 import YouSidebar from '../you/YouSidebar';
+import { ServerSidebar } from '../server/ServerSidebar';
 import { ChangePasswordForm } from '../you/ChangePasswordPage';
 import Sheet from '../patterns/Sheet';
 import accountStyles from '../you/YouAccount.module.css';
@@ -251,7 +252,8 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
         />
         {showSidebar && mode === 'overview' && <OverviewSidebar sources={sources} onNavigate={() => setDrawerOpen(false)} />}
         {showSidebar && mode === 'you' && <YouSidebar onNavigate={() => setDrawerOpen(false)} />}
-        {showSidebar && mode !== 'overview' && mode !== 'you' && (
+        {showSidebar && mode === 'server' && <ServerSidebar onNavigate={() => setDrawerOpen(false)} />}
+        {showSidebar && mode !== 'overview' && mode !== 'you' && mode !== 'server' && (
           <DeviceSidebar
             mode={mode}
             source={source}

@@ -11,8 +11,8 @@
  *   describes a different setting; D9b, Ruling V).
  *
  * Each control saves as it changes (`POST /api/settings`) and shows a Saved
- * tick once the server has it; a failed save leaves the old value and says so. The rest of General stays
- * re-hosted below until Task 6.4.
+ * tick once the server has it; a failed save leaves the old value and says so.
+ * GeneralPage (Task 6.4) draws the page frame and the rest of General.
  */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -117,12 +117,7 @@ function Cards() {
   const offerLabel = t('workspace.server.offer_banner');
 
   return (
-    <div className={styles.page}>
-      <header className={styles.head}>
-        <h1 className={styles.title}>{t('workspace.server.general')}</h1>
-        <p className={styles.scope}>{t('workspace.server.general_scope')}</p>
-      </header>
-
+    <>
       <h2 className={styles.groupTitle}>{t('workspace.you.layout')}</h2>
       <div className={styles.group}>
         <TwoLineRow
@@ -176,6 +171,6 @@ function Cards() {
           trailing={select('defaultMeshtasticSourceId', t('settings.default_source.title', 'Default Meshtastic source'), sourceId, sourceOptions)}
         />
       </div>
-    </div>
+    </>
   );
 }

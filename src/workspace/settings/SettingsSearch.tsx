@@ -39,6 +39,8 @@ import { useHealth } from '../../hooks/useHealth';
 import { appBasename } from '../../init';
 import { PREFERENCE_CATEGORIES } from '../routes';
 import { PREF_FIELDS, PREF_PAGE_LABELS } from '../you/preferences/prefFields';
+import { SERVER_FIELDS } from '../server/serverFields';
+import { SERVER_ALIASES, useServerAccess } from '../server/serverEntries';
 import type { WorkspaceSource } from '../shell/useWorkspaceSources';
 import { SECTION_TO_CATEGORY, visibleCategories, type CategoryDef } from './categories';
 import { isMac, settingAnchor, useFieldRegistry } from './kit/useFieldRegistry';
@@ -87,6 +89,7 @@ export default function SettingsSearch({ sources, openId, phone, initialQuery, o
   useEffect(() => inputRef.current?.focus(), []);
 
   const isAdmin = authStatus?.user?.isAdmin === true;
+  const { canWrite: canWriteServer } = useServerAccess();
   const isAuthenticated = authStatus?.authenticated === true;
   const groups = useMemo<Group[]>(() => {
     const tokens = tokenize(query);
@@ -170,13 +173,26 @@ export default function SettingsSearch({ sources, openId, phone, initialQuery, o
         rank: matchRank(label, tokens),
       }];
     });
+    // Server › General's rows (Task 6.4), behind the page's gates.
+    const serverFields: Hit[] = SERVER_FIELDS.filter((f) => (f.gate === 'admin' ? isAdmin : canWriteServer)).flatMap((f) => {
+      const label = t(f.labelKey, f.fallback ?? f.labelKey);
+      const page = t('workspace.server.general');
+      if (!matchesQuery(`${label} ${page}`, tokens)) return [];
+      return [{
+        to: `/server/${f.page}#${settingAnchor(f.id)}`,
+        label,
+        where: t('workspace.settings.search.where', { scope: globalSettingsNav(t).label, category: page }),
+        kind: 'setting' as const,
+        rank: matchRank(label, tokens),
+      }];
+    });
     for (const prefs of [true, false]) {
-      const hits: Hit[] = (prefs ? prefFields : []).concat(global
+      const hits: Hit[] = (prefs ? prefFields : serverFields).concat(global
         .map((item) => ({ item, cat: item.id.slice('settings-'.length) }))
         .filter(({ cat }) => PREFERENCE_CATEGORIES.includes(cat) === prefs)
         .filter(({ item }) => matchesQuery(`${item.label} ${(item.keywords ?? []).join(' ')}`, tokens))
         .map(({ item, cat }) => ({
-          to: `/${prefs ? 'preferences' : 'server'}/${cat}`,
+          to: prefs ? `/preferences/${cat}` : `/server/${SERVER_ALIASES[cat] ?? cat}`,
           label: item.label,
           kind: 'section' as const,
           rank: matchRank(item.label, tokens),
@@ -194,7 +210,7 @@ export default function SettingsSearch({ sources, openId, phone, initialQuery, o
         .slice(0, MAX_HITS),
     );
     return out.map((g) => ({ ...g, hits: g.hits.filter((h) => kept.has(h)) })).filter((g) => g.hits.length > 0);
-  }, [query, sources, openId, fields, isAdmin, isAuthenticated, hasPermission, health?.firmwareOtaEnabled, health?.databaseType, t]);
+  }, [query, sources, openId, fields, isAdmin, isAuthenticated, hasPermission, canWriteServer, health?.firmwareOtaEnabled, health?.databaseType, t]);
 
   const total = groups.reduce((n, g) => n + g.hits.length, 0);
   const optionId = (i: number) => `${ids.list}-${i}`;

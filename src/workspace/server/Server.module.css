@@ -1,0 +1,506 @@
+/* Server pages (Task 6.4): the list, and the parts the category pages share. */
+
+/* Phone Server list (13-16). */
+.listScope {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 4px 12px;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.listNote {
+  margin: 12px 4px 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-subtle);
+}
+
+/* Text inside a card. */
+.cardPara {
+  margin: 0;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-subtle);
+}
+
+.cardPara:first-child {
+  border-top: 0;
+}
+
+.lead {
+  margin: 0 4px 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-subtle);
+}
+
+.cardActions,
+.formActions,
+.sheetActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cardActions {
+  justify-content: flex-start;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* An input with its buttons on one line. */
+.fieldLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.form:first-child {
+  border-top: 0;
+}
+
+.twoUp {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.form[data-phone] .twoUp {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.subTitle {
+  margin: 8px 16px 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.form .subTitle {
+  margin: 0;
+}
+
+.textarea,
+.codeBox {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  resize: vertical;
+}
+
+.codeBox {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 13px;
+}
+
+.code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  word-break: break-all;
+}
+
+.block {
+  display: block;
+}
+
+.value {
+  font-variant-numeric: tabular-nums;
+}
+
+.bigValue {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.unit {
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}
+
+.small {
+  max-width: 64px;
+  flex: none;
+}
+
+/* A test or import result: green when it passed. */
+.result {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 16px 12px;
+  font-size: 14px;
+  color: var(--color-error);
+}
+
+.result[data-ok] {
+  color: var(--color-success);
+}
+
+.form .result {
+  padding: 0;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-error);
+}
+
+.status[data-ok] {
+  color: var(--color-success);
+}
+
+.groupError {
+  margin: 0;
+  padding: 8px 16px;
+}
+
+.resultList {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+}
+
+/* Restore note and the channel database banner. */
+.restore,
+.banner,
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: -12px 0 24px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text);
+}
+
+.banner {
+  margin: 0 0 12px;
+  border-color: var(--color-warning);
+}
+
+.notice {
+  align-items: center;
+  margin: 0;
+  border-width: 0 0 1px;
+  border-radius: 0;
+  border-color: var(--color-warning);
+}
+
+.notice > span {
+  flex: 1;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 20px;
+}
+
+/* Channel database keys. */
+.keyRow,
+.layerRow {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px 12px;
+  min-height: 56px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-raised);
+}
+
+.keyRow:first-child,
+.layerRow:first-child {
+  border-top: 0;
+}
+
+.keyRow[data-phone],
+.layerRow[data-phone] {
+  min-height: 52px;
+}
+
+.keyRow[data-off] .keyText {
+  opacity: 0.6;
+}
+
+.keyRow[data-dragging] {
+  position: relative;
+  z-index: 1;
+  opacity: 0.7;
+}
+
+.handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-faint);
+  cursor: grab;
+  touch-action: none;
+}
+
+.keyRow[data-phone] .handle {
+  min-height: 44px;
+}
+
+.handle:focus-visible {
+  outline: 2px solid var(--color-accent);
+}
+
+.keyText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.keyName {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.rowSwitch {
+  flex: none;
+}
+
+.keyRow[data-phone] .rowSwitch,
+.layerRow[data-phone] .rowSwitch {
+  width: 44px;
+  height: 44px;
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+}
+
+.progressHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+
+.bar {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--color-accent);
+}
+
+/* GeoJSON layers. */
+.layerRow {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.layerHead,
+.layerStyle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.colour {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+
+.layerRow[data-phone] .colour {
+  width: 44px;
+  height: 44px;
+}
+
+.nameInput {
+  flex: 1;
+  min-width: 120px;
+  font-family: inherit;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  font-size: 14px;
+}
+
+.checkGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 4px 12px;
+  margin-top: 4px;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.importBox {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.decoded {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.decoded[data-off] {
+  opacity: 0.55;
+}
+
+.decodedText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.preview {
+  max-height: 220px;
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--color-bg-sunken);
+  font-size: 12px;
+}
+
+/* The bar under a profile form: what Save does, then Cancel and Save profile. */
+.dock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.dock > :first-child {
+  flex: 1;
+  min-width: 200px;
+}
+
+.mapFrame {
+  height: 300px;
+  overflow: hidden;
+  border-top: 1px solid var(--color-border);
+}
+
+.sheetBody .mapFrame {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+/* Portalled sheet content sets its own [data-phone]. */
+.sheetBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+
+.sheetBody[data-phone] {
+  padding: 16px;
+}
+
+.sheetBody[data-phone] input,
+.sheetBody[data-phone] select,
+.sheetBody[data-phone] button {
+  min-height: 44px;
+}
+
+.sheetActions[data-phone] button {
+  min-height: 44px;
+}
+
+.state {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-faint);
+}
+
+.state[data-on] {
+  color: var(--color-success);
+}
+
+.crumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 4px 12px;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}

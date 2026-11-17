@@ -26,9 +26,9 @@ import WorkspaceSource from './source/WorkspaceSource';
 import YouHome from './you/YouHome';
 import SignInPage from './auth/SignInPage';
 import LayoutPage from './you/LayoutPage';
-import GeneralLayoutCard from './server/GeneralLayoutCard';
 import { workspaceRedirect } from './routes';
-import { AutomationsRehost, GlobalSettingsRehost, OverviewRehost } from './rehost/pages';
+import { AutomationsRehost, OverviewRehost } from './rehost/pages';
+import { ServerRoutes } from './server/ServerRoutes';
 import { PreferencesRoutes } from './you/preferences/PreferencesRoutes';
 
 const OverviewMap = lazy(() => import('./overview/OverviewMap.tsx'));
@@ -109,8 +109,8 @@ function WorkspaceRoutes() {
 
           {/* You › Preferences (Task 6.3), with no Classic page mounted (Ruling AD). */}
           <Route path="preferences/*" element={<PreferencesRoutes />} />
-          {/* General's Layout and Sources cards sit above today's page (Task 1.8); 6.4 rebuilds the rest. */}
-          <Route path="server/*" element={<GlobalSettingsRehost above={{ general: <GeneralLayoutCard /> }} />} />
+          {/* Server (Task 6.4): the Workspace's own pages; the categories 6.5 and 6.6 rebuild stay re-hosted. */}
+          <Route path="server/*" element={<ServerRoutes />} />
           <Route path="you" element={<YouHome />} />
           {/* Other You categories are Phase 6's. */}
           <Route path="you/layout" element={<LayoutPage />} />

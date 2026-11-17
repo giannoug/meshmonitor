@@ -1,9 +1,9 @@
 {
   "must": [
-    "Custom tilesets",
-    "Test URL",
+    "Custom Tile Servers",
+    "Test",
     "GeoJSON layers",
-    "Map styles",
+    "Map Styles",
     "Carto",
     "Default map centre",
     "Admins only"

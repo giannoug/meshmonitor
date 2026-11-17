@@ -13,7 +13,7 @@ import { SECTION_TO_CATEGORY } from './settings/categories';
 type Loc = { pathname: string; hash: string; search: string };
 
 /** `/settings#settings-<x>` categories that are per-user preferences; the rest are Server categories. */
-export const PREFERENCE_CATEGORIES = ['language', 'units', 'sorting', 'appearance', 'link-previews', 'map', 'meshcore-messaging'];
+export const PREFERENCE_CATEGORIES = ['language', 'units', 'sorting', 'appearance', 'link-previews', 'map'];
 
 const RETIRED_SOURCE_TAB = /^\/source\/([^/]+)\/(configuration|settings|admin|notifications)\/?$/;
 
@@ -55,9 +55,16 @@ export function workspaceRedirect(loc: Loc, { isAdmin = false }: { isAdmin?: boo
   return null;
 }
 
+/** Server list entries (Task 6.4) whose page is still today's: the first section each one gathers. */
+const REHOST_FIRST_SECTION: Record<string, string> = {
+  'background-jobs': 'position-estimation',
+  integrations: 'translation',
+};
+
 /** The `#settings-<x>` section a re-hosted `/server/<x>` URL scrolls to, or '' for none. */
 export function globalSettingsHash(category: string): string {
-  return GLOBAL_SETTINGS_SECTIONS.has(`settings-${category}`) ? `#settings-${category}` : '';
+  const section = REHOST_FIRST_SECTION[category] ?? category;
+  return GLOBAL_SETTINGS_SECTIONS.has(`settings-${section}`) ? `#settings-${section}` : '';
 }
 
 /**

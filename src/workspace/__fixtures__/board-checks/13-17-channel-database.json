@@ -1,12 +1,12 @@
 {
   "must": [
-    "Retroactive decryption",
+    "Retroactive Decryption",
     "decrypted",
     "Drag",
     "Enabled",
-    "Add channel",
-    "Import file",
-    "Import URL",
+    "Add Channel",
+    "Import",
+    "Import from URL",
     "Export",
     "Meshtastic",
     "MeshCore"

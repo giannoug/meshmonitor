@@ -1,87 +1,14 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { GeoJsonLayer } from '../server/services/geojsonService.js';
-import api from '../services/api';
+import React from 'react';
 import { NumberInput } from './common/NumberInput';
-import { useCsrfFetch } from '../hooks/useCsrfFetch';
+import { useGeoJsonLayers } from './useGeoJsonLayers';
 import styles from './GeoJsonLayerManager.module.css';
 
 const GeoJsonLayerManager: React.FC = () => {
-  const [layers, setLayers] = useState<GeoJsonLayer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const csrfFetch = useCsrfFetch();
-
-  const fetchLayers = useCallback(async () => {
-    try {
-      const data = await api.get<GeoJsonLayer[]>('/api/geojson/layers');
-      setLayers(data);
-    } catch (err) {
-      console.error('Failed to fetch GeoJSON layers:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void fetchLayers();
-  }, [fetchLayers]);
-
-  const handleUpload = async (file: File) => {
-    setUploading(true);
-    try {
-      const baseUrl = await api.getBaseUrl();
-      const buffer = await file.arrayBuffer();
-      const response = await csrfFetch(`${baseUrl}/api/geojson/upload`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/octet-stream',
-          'X-Filename': file.name,
-        },
-        body: buffer,
-      });
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: 'Upload failed' }));
-        throw new Error(err.error ?? 'Upload failed');
-      }
-      await fetchLayers();
-    } catch (err) {
-      console.error('Failed to upload GeoJSON file:', err);
-      alert(`Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  const updateLayer = async (id: string, updates: Partial<GeoJsonLayer>) => {
-    try {
-      const baseUrl = await api.getBaseUrl();
-      const response = await csrfFetch(`${baseUrl}/api/geojson/layers/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      });
-      if (!response.ok) throw new Error('Update failed');
-      const updated = await response.json();
-      setLayers(prev => prev.map(l => l.id === id ? updated : l));
-    } catch (err) {
-      console.error('Failed to update layer:', err);
-    }
-  };
+  const { layers, setLayers, loading, uploading, fileInputRef, handleUpload, updateLayer, removeLayer } = useGeoJsonLayers((message) => alert(message));
 
   const deleteLayer = async (id: string, name: string) => {
     if (!confirm(`Delete layer "${name}"? This cannot be undone.`)) return;
-    try {
-      const baseUrl = await api.getBaseUrl();
-      const response = await csrfFetch(`${baseUrl}/api/geojson/layers/${id}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Delete failed');
-      setLayers(prev => prev.filter(l => l.id !== id));
-    } catch (err) {
-      console.error('Failed to delete layer:', err);
-    }
+    await removeLayer(id);
   };
 
   if (loading) {

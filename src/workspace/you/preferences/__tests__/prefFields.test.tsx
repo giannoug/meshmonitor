@@ -18,7 +18,6 @@ describe('Preferences in settings search', () => {
     ['language', 'Time Format'],
     ['appearance', 'Official Pin Color'],
     ['map', 'Map Click Zoom Gate'],
-    ['meshcore-messaging', 'Remote CLI reply timeout (seconds)'],
   ])('PREF_FIELDS lists every row of /preferences/%s', async (page, text) => {
     renderPrefs(`/preferences/${page}`);
     await screen.findByText(text);
@@ -45,9 +44,10 @@ describe('Preferences in settings search', () => {
     const d = within(await screen.findByRole('dialog', { name: 'Search settings' }));
     const box = d.getByRole('combobox', { name: 'Search settings' });
     fireEvent.change(box, { target: { value: 'retry' } });
+    // MeshCore Messaging moved to Server › General (Task 6.4); a settings writer still finds it.
     expect(d.getByRole('option', { name: /Auto-retry automated MeshCore channel sends/ })).toHaveAttribute(
       'href',
-      '/preferences/meshcore-messaging#setting-meshcore-messaging.meshcoreChannelRetryEnabled',
+      '/server/general#setting-general.meshcoreChannelRetryEnabled',
     );
     fireEvent.change(box, { target: { value: 'link previews' } });
     expect(d.getByRole('option', { name: /Show link previews/ })).toHaveAttribute('href', '/preferences/language#setting-link-previews.linkPreviewsEnabled');

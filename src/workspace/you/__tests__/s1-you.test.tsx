@@ -49,7 +49,6 @@ describe('s1-you', () => {
       'Language & units',
       'Appearance',
       'Map',
-      'MeshCore Messaging',
       'Notifications',
       'Global Settings',
       'Help & about',
@@ -60,7 +59,8 @@ describe('s1-you', () => {
     expect(link('Language')).toHaveAttribute('href', '/preferences/language');
     expect(link('Appearance')).toHaveAttribute('href', '/preferences/appearance');
     expect(link('Map')).toHaveAttribute('href', '/preferences/map');
-    expect(link('Global Settings')).toHaveAttribute('href', '/server/general');
+    // The Server list (Task 6.4).
+    expect(link('Global Settings')).toHaveAttribute('href', '/server');
     // Push per device for this browser (Task 5.8, s2).
     expect(link('Notifications')).toHaveAttribute('href', '/you/notifications');
     expect(link('Help & about')).toHaveAttribute('href', '/you/help');

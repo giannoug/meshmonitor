@@ -17,6 +17,7 @@ import { NODE, remoteFixtures } from '../../src/workspace/settings/__tests__/rem
 import { accountFixtures, PASSKEYS, RECOVERY_CODES } from '../../src/workspace/__fixtures__/account';
 import { signInFixtures, TYPED_RECOVERY } from '../../src/workspace/__fixtures__/signIn';
 import { prefsFixtures } from '../../src/workspace/__fixtures__/preferences';
+import { serverFixtures } from '../../src/workspace/__fixtures__/server';
 
 export interface Board {
   id: string;
@@ -203,6 +204,17 @@ function PREFS(): Board['fixtures'] {
   };
 }
 
+/** Task 6.4: the install as the Server boards draw it, for an admin. */
+function SERVER(): Board['fixtures'] {
+  return serverFixtures();
+}
+
+/** Notification services: one Test Connection, as the boards show its result. */
+async function testApprise(page: Page) {
+  await page.getByRole('button', { name: 'Test Connection' }).click();
+  await page.getByText('Connected successfully (42ms)').waitFor();
+}
+
 export const BOARDS: Board[] = [
   // Task 1.6 built the frame (rail + sidebar); Task 2.3 the channel list and the open channel.
   { id: 'a-chat-D-desktop', size: 'desktop', path: '/source/src-g2/channel/0' },
@@ -222,7 +234,7 @@ export const BOARDS: Board[] = [
   // r3-classic-banner is not here: the banner ships off (WORKSPACE_ENTRY_ENABLED), so its check is Vitest-only.
   { id: 'r2-you-layout', size: 'desktop', path: '/you/layout' },
   { id: 's3-layout', size: 'phone', path: '/you/layout' },
-  { id: 'r4-server-general', size: 'desktop', path: '/server/general' },
+  { id: 'r4-server-general', size: 'desktop', path: '/server/general', fixtures: SERVER() },
   // Task 2.3: the channel thread, its menu and info, beacons, the read-only states.
   { id: '10-06-channel-thread', size: 'phone', path: '/source/src-g2/channel/0' },
   {
@@ -1610,6 +1622,69 @@ export const BOARDS: Board[] = [
   { id: '13-21-map-prefs', size: 'phone', path: '/preferences/map', fixtures: PREFS() },
   { id: '13-14-help-about', size: 'desktop', path: '/you/help', fixtures: PREFS() },
   { id: '13-29-help-about', size: 'phone', path: '/you/help', fixtures: PREFS() },
+  // Task 6.4: Server categories, part 1.
+  { id: 'b-set-d7-server', size: 'desktop', path: '/server/notification-services', fixtures: SERVER(), setup: testApprise },
+  { id: '18-11-notification-services', size: 'desktop', path: '/server/notification-services', fixtures: SERVER(), setup: testApprise },
+  { id: '18-12-notification-services', size: 'phone', path: '/server/notification-services', fixtures: SERVER(), setup: testApprise },
+  { id: '13-16-server-list', size: 'phone', path: '/server', fixtures: SERVER() },
+  { id: '13-05-map-tiles', size: 'desktop', path: '/server/map', fixtures: SERVER() },
+  { id: '13-22-map-tiles', size: 'phone', path: '/server/map', fixtures: SERVER() },
+  {
+    id: '13-06-embed',
+    size: 'desktop',
+    path: '/server/embed',
+    fixtures: SERVER(),
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Edit Athens public' }).click();
+      await page.getByTestId('embed-preview').waitFor();
+    },
+  },
+  {
+    id: '13-23-embed',
+    size: 'phone',
+    path: '/server/embed',
+    fixtures: SERVER(),
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Edit Athens public' }).click();
+      await page.getByTestId('embed-preview').waitFor();
+    },
+  },
+  {
+    // The board also draws the restart confirm beside the page; built one at a time (D9c), the shot shows it open.
+    id: '13-07-backup-maintenance',
+    size: 'desktop',
+    path: '/server/backup',
+    fixtures: SERVER(),
+    setup: async (page) => {
+      await page.getByRole('button', { name: /Restart Container/ }).click();
+      await page.getByRole('dialog', { name: 'Are you sure you want to restart MeshMonitor?' }).waitFor();
+    },
+  },
+  { id: '13-24-backup-maintenance', size: 'phone', path: '/server/backup', fixtures: SERVER() },
+  {
+    id: '13-08-channel-database',
+    size: 'desktop',
+    path: '/server/channel-database',
+    fixtures: SERVER(),
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'More for Athens Ops' }).click();
+      await page.getByRole('menuitem', { name: 'Decrypt' }).click();
+      await page.getByText('Retroactive Decryption', { exact: true }).waitFor();
+      await page.getByRole('button', { name: 'Edit Athens Ops' }).click();
+      await page.getByRole('textbox', { name: 'Channel Name' }).waitFor();
+    },
+  },
+  {
+    id: '13-17-channel-database',
+    size: 'phone',
+    path: '/server/channel-database',
+    fixtures: SERVER(),
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'More for Athens Ops' }).click();
+      await page.getByRole('menuitem', { name: 'Decrypt' }).click();
+      await page.getByText('Retroactive Decryption', { exact: true }).waitFor();
+    },
+  },
 ];
 
 /** Identity: the short name G2 → SG2. */

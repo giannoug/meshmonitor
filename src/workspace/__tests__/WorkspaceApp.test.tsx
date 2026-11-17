@@ -100,7 +100,8 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     ['/automations/12', 'automations'],
     ['/automations/12/runs', 'automations'],
     ['/automations/12/trace', 'automations'],
-    ['/server/general', 'global-settings'],
+    // Categories Tasks 6.5 and 6.6 rebuild stay re-hosted.
+    ['/server/scripts', 'global-settings'],
     // Nodes is the Workspace's own table and list, with App not mounted (Task 3.3, Ruling AD).
     [`${g2}/nodes`, 'nodes'],
     // Device settings are the Workspace's own frame, with App not mounted (Task 5.2, Ruling AD), the remote target too (Task 5.9).
@@ -259,11 +260,14 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     expect(screen.queryByTestId('page-dashboard')).toBeNull();
   });
 
-  it('/server/general shows the Layout and Sources cards above today\'s General (Task 1.8)', async () => {
-    renderAt('/server/general');
-    const card = await screen.findByText('Default layout for new users');
-    const page = await expectPage('global-settings');
-    expect(card.compareDocumentPosition(page) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  it.each([
+    ['/server/general', 'Default layout for new users'],
+    ['/server/notification-services', 'Links in notifications'],
+    ['/server/backup', 'System backups'],
+  ])('%s is the Workspace page, with no Classic page mounted (Task 6.4)', async (route, text) => {
+    renderAt(route);
+    expect(await screen.findByText(text)).toBeInTheDocument();
+    expect(screen.queryByTestId('page-global-settings')).toBeNull();
   });
 
   it('/you shows the You page (Task 1.7)', async () => {
@@ -419,7 +423,7 @@ describe('re-hosted pages stay mounted while the URL is fixed up', () => {
     [`${g2}/settings/lora`, `${g2}/settings/modules/mqtt`, `${g2}/settings/modules/mqtt`, 'settings-frame'],
     [`${g2}/settings/identity`, `${g2}/configuration`, `${g2}/settings`, 'settings-frame'],
     [`${g2}/settings/identity`, `${g2}/configuration#config-lora`, `${g2}/settings/lora`, 'settings-frame'],
-    ['/server/general', '/server/backup', '/server/backup#settings-backup', 'global-settings'],
+    ['/server/scripts', '/server/analytics', '/server/analytics#settings-analytics', 'global-settings'],
     [`${heltec}/nodes`, `${heltec}/admin`, `${heltec}/nodes`, 'meshcore'],
     // The rail's Overview square (`/overview`) and the sidebar's All-devices map row (`/overview/map`).
     ['/overview', '/overview/map', '/overview/map', 'overview-map'],

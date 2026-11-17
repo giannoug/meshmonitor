@@ -8,7 +8,7 @@
 export interface PrefField {
   id: string;
   /** The page under `/preferences/`. */
-  page: 'language' | 'appearance' | 'map' | 'meshcore-messaging';
+  page: 'language' | 'appearance' | 'map';
   labelKey: string;
   fallback?: string;
   adminOnly?: boolean;
@@ -19,7 +19,6 @@ export const PREF_PAGE_LABELS: Record<PrefField['page'], [string, string?]> = {
   language: ['workspace.you.language_units'],
   appearance: ['settings.appearance'],
   map: ['settings.map'],
-  'meshcore-messaging': ['settings.meshcore_messaging', 'MeshCore Messaging'],
 };
 
 export const PREF_FIELDS: PrefField[] = [
@@ -35,7 +34,6 @@ export const PREF_FIELDS: PrefField[] = [
   { id: 'appearance.appearanceMode', page: 'appearance', labelKey: 'settings.appearance_mode_label' },
   { id: 'appearance.darkTheme', page: 'appearance', labelKey: 'settings.dark_theme_label' },
   { id: 'appearance.lightTheme', page: 'appearance', labelKey: 'settings.light_theme_label' },
-  { id: 'appearance.defaultLandingPage', page: 'appearance', labelKey: 'settings.default_landing_page_label', fallback: 'Default Landing Page', adminOnly: true },
   { id: 'appearance.mapPinStyle', page: 'appearance', labelKey: 'settings.map_pin_label' },
   { id: 'appearance.mapPinColorMode', page: 'appearance', labelKey: 'settings.map_pin_color_label', fallback: 'Official Pin Color' },
   { id: 'appearance.nodeListStyle', page: 'appearance', labelKey: 'settings.node_list_style_label', fallback: 'Node List Style' },
@@ -48,22 +46,4 @@ export const PREF_FIELDS: PrefField[] = [
   { id: 'map.mapZoomGateThreshold', page: 'map', labelKey: 'settings.map_zoom_gate_threshold_label' },
   { id: 'map.mapClusteringEnabled', page: 'map', labelKey: 'settings.map_clustering_enabled_label' },
   { id: 'map.discardInvalidPositions', page: 'map', labelKey: 'settings.discard_invalid_positions', fallback: 'Discard invalid positions' },
-  {
-    id: 'meshcore-messaging.meshcoreChannelRetryEnabled',
-    page: 'meshcore-messaging',
-    labelKey: 'settings.meshcore_channel_retry_enabled',
-    fallback: 'Auto-retry automated MeshCore channel sends',
-  },
-  {
-    id: 'meshcore-messaging.meshcoreCliTimeoutSeconds',
-    page: 'meshcore-messaging',
-    labelKey: 'settings.meshcore_cli_timeout_label',
-    fallback: 'Remote CLI reply timeout (seconds)',
-  },
-  {
-    id: 'meshcore-messaging.meshcoreCrossSourceHopResolution',
-    page: 'meshcore-messaging',
-    labelKey: 'settings.meshcore_cross_source_hops_label',
-    fallback: 'Use other sources to resolve unknown hops',
-  },
 ];

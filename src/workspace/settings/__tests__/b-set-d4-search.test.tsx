@@ -136,7 +136,8 @@ describe('b-set-d4-search', () => {
     fireEvent.change(d.getByRole('combobox', { name: 'Search settings' }), { target: { value: 'vacuum' } });
     expect(within(d.getByRole('group', { name: 'Global Settings' })).getByRole('option', { name: /Database Maintenance/ })).toHaveAttribute(
       'href',
-      '/server/maintenance',
+      // Database Maintenance lives on Server › Backup & maintenance (Task 6.4).
+      '/server/backup',
     );
   });
 

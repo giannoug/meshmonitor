@@ -3,7 +3,8 @@
  * like the other You pages. Today's Units & Formats, Sorting and Link
  * Previews categories live on Language & units, so their URLs (and a search
  * result's `#setting-…` anchor) land there; any other category lands on
- * Appearance, as `/settings` does for a non-admin.
+ * Appearance, as `/settings` does for a non-admin. MeshCore Messaging moved
+ * to Server › General (Task 6.4).
  */
 import { lazy } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
@@ -13,7 +14,6 @@ const Appearance = lazy(() => import('./AppearancePage.tsx'));
 const Themes = lazy(() => import('./ThemesPage.tsx'));
 const ThemeEditor = lazy(() => import('./ThemeEditorPage.tsx'));
 const MapPrefs = lazy(() => import('./MapPrefsPage.tsx'));
-const MeshCoreMessaging = lazy(() => import('./MeshCoreMessagingPage.tsx'));
 
 function To({ pathname }: { pathname: string }) {
   const { hash } = useLocation();
@@ -31,7 +31,8 @@ export function PreferencesRoutes() {
       <Route path="appearance/themes" element={<Themes />} />
       <Route path="appearance/themes/:slug" element={<ThemeEditor />} />
       <Route path="map" element={<MapPrefs />} />
-      <Route path="meshcore-messaging" element={<MeshCoreMessaging />} />
+      {/* Moved to Server › General (Task 6.4, s13n5). */}
+      <Route path="meshcore-messaging" element={<Navigate replace to="/server/general" />} />
       <Route path="*" element={<To pathname="/preferences/appearance" />} />
     </Routes>
   );

@@ -64,16 +64,15 @@ export function OverviewRehost({ landing = false, notice }: { landing?: boolean;
 }
 
 /**
- * `/server/<x>`: today's global settings page, scrolled to the category
- * (Preferences are the Workspace's own since Task 6.3). `above[category]` draws above the page; it sits beside the
- * page, so moving between categories keeps the page mounted.
+ * `/server/<x>` for a category with no Workspace page yet (Devices, Security
+ * & privacy, Scripts, Background jobs, Integrations, Analytics; Tasks 6.5,
+ * 6.6): today's global settings page, scrolled to the category.
  */
-export function GlobalSettingsRehost({ above }: { above?: Record<string, ReactNode> }) {
+export function GlobalSettingsRehost() {
   const category = (useParams()['*'] ?? '').split('/')[0];
   const to = useHashTarget(globalSettingsHash(category));
   return (
     <Redirect to={to}>
-      {above && Object.hasOwn(above, category) && above[category]}
       <Rehost>
         <GlobalSettingsPage />
       </Rehost>

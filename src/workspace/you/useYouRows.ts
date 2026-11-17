@@ -6,10 +6,12 @@
  *   and Passkeys) and API Token.
  * - Preferences: Layout (signed in), then the Preferences pages (Task 6.3):
  *   Language & units (today's Language, Units & Formats, Sorting and Link
- *   Previews), Appearance, Map, and today's MeshCore Messaging. Today's
- *   global Settings lists them to everyone, so guests get them too.
- * - Notifications (while some device has a Notifications page), Global
- *   Settings (admins), Help & about (everyone).
+ *   Previews), Appearance and Map. Today's global Settings lists them to
+ *   everyone, so guests get them too. MeshCore Messaging moved to Server ›
+ *   General (Task 6.4).
+ * - Notifications (while some device has a Notifications page), the Server
+ *   list (anyone who can open one of its categories, Task 6.4), Help & about
+ *   (everyone).
  */
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
@@ -19,6 +21,7 @@ import { logger } from '../../utils/logger';
 import { familyOf } from '../shell/deviceTabs';
 import { useShellDevices } from '../shell/shellDevices';
 import type { WorkspaceSource } from '../shell/useWorkspaceSources';
+import { useServerEntries } from '../server/serverEntries';
 
 export type Tone = 'account' | 'prefs' | 'notify' | 'server' | 'plain';
 
@@ -41,7 +44,8 @@ export function useYouRows() {
   const { sources } = useShellDevices();
 
   const user = authStatus?.authenticated ? authStatus.user : null;
-  const isAdmin = user?.isAdmin === true;
+  // The Server list, for anyone who can open one of its categories (s13n2, Task 6.4).
+  const server = useServerEntries().length > 0;
   const notifications = sources.some((s) => s.status !== 'disabled' && hasNotifications(s));
 
   const account: YouRow[] = user
@@ -59,12 +63,11 @@ export function useYouRows() {
     { key: 'language', icon: 'languages', tone: 'prefs', label: t('workspace.you.language_units'), to: '/preferences/language' },
     { key: 'appearance', icon: 'sun', tone: 'prefs', label: t('settings.appearance'), to: '/preferences/appearance' },
     { key: 'map', icon: 'map', tone: 'prefs', label: t('settings.map'), to: '/preferences/map' },
-    { key: 'meshcore-messaging', icon: 'messages', tone: 'prefs', label: t('settings.meshcore_messaging', 'MeshCore Messaging'), to: '/preferences/meshcore-messaging' },
   ];
 
   const more: YouRow[] = [
     ...(user && notifications ? [{ key: 'notifications', icon: 'notifications' as const, tone: 'notify' as const, label: t('nav.notifications'), to: '/you/notifications' }] : []),
-    ...(isAdmin ? [{ key: 'server', icon: 'server' as const, tone: 'server' as const, label: globalSettingsNav(t).label, to: '/server/general' }] : []),
+    ...(server ? [{ key: 'server', icon: 'server' as const, tone: 'server' as const, label: globalSettingsNav(t).label, to: '/server' }] : []),
   ];
   const helpRow: YouRow = { key: 'help', icon: 'help', tone: 'plain', label: t('workspace.you.help_about'), to: '/you/help' };
 

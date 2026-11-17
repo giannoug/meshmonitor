@@ -1,13 +1,13 @@
 {
   "must": [
     "System backups",
-    "Create backup",
-    "Automatic backups",
+    "Create Backup Now",
+    "Enable automatic system backups",
     "RESTORE_FROM_BACKUP",
-    "Database size",
+    "Current Database Size",
     "Retention",
     "days",
-    "Run now",
+    "Run Maintenance Now",
     "Restart",
     "Shut down"
   ],

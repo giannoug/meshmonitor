@@ -25,7 +25,7 @@ describe('workspaceRedirect', () => {
     ['/source/s1/settings#settings-node-display', false, '/source/s1/settings/node-display'],
     ['/source/s1/settings#settings-mqtt-bridge', false, '/source/s1/settings/mqtt-bridge'],
     ['/settings#settings-language', true, '/preferences/language'],
-    ['/settings#settings-meshcore-messaging', false, '/preferences/meshcore-messaging'],
+    ['/settings#settings-meshcore-messaging', false, '/server/meshcore-messaging'],
     ['/settings#settings-backup', true, '/server/backup'],
     ['/settings#settings-remote-admin', true, '/server/remote-admin'],
     // Retired tabs.

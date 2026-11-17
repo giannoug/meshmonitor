@@ -16,11 +16,7 @@
     "Integrations",
     "Analytics",
     "Server",
-    "Admins · applies to everyone",
-    "CONNECTION",
-    "WHERE IT IS USED",
-    "Last test",
-    "Server · applies to everyone on this MeshMonitor"
+    "Admins · applies to everyone"
   ],
   "absent": [
     "Reached in 42 ms",

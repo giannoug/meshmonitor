@@ -6,7 +6,8 @@
  *
  * - Each preference saves as you go through today's `POST /api/push/preferences`
  *   (only the field sent is merged); text and numbers save on blur or Enter.
- *   The Apprise URLs and the VAPID contact keep an inline Save (bs2).
+ *   The Apprise URLs keep an inline Save (bs2); the VAPID block is Server ›
+ *   Notification services' (Task 6.4, s18n6).
  * - Web Push on this browser subscribes or unsubscribes this browser for this
  *   source (today's per-source rows, #5493); turning it on also turns on the
  *   Web Push service, which a subscription needs to deliver.
@@ -585,20 +586,12 @@ function FormatRows({ sourceId, prefs }: { sourceId: string; prefs: Notification
   );
 }
 
-/** Test notification (admins, subscribed), leave every source, and the VAPID block (admins), as today. */
+/** Test notification (admins, subscribed) and leave every source, as today. The VAPID block moved to Server › Notification services (Task 6.4, s18n6). */
 function PushToolsRows({ sourceId, isAdmin }: { sourceId: string; isAdmin: boolean }) {
   const { t } = useTranslation();
   const push = usePushHere(sourceId);
   const [testResult, setTestResult] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
-  const vapid = useQuery({
-    queryKey: ['workspace', 'vapidStatus'],
-    queryFn: () => apiService.get<{ configured: boolean; publicKey: string | null; subject: string | null; subscriptionCount: number }>('/api/push/status'),
-    enabled: isAdmin,
-    staleTime: Infinity,
-  });
-  const [subject, setSubject] = useState<string | null>(null);
-  const [subjectState, setSubjectState] = useState<{ saved: boolean; error?: string }>({ saved: false });
 
   return (
     <>
@@ -624,39 +617,6 @@ function PushToolsRows({ sourceId, isAdmin }: { sourceId: string; isAdmin: boole
         <SettingRow id="notifications.unsubscribeAll" label={t('notifications.unsubscribe_all_button')}>
           <button type="button" className={pages.button} onClick={() => setAsking(true)}>
             {t('notifications.unsubscribe_all_button')}
-          </button>
-        </SettingRow>
-      )}
-      {isAdmin && vapid.data && (
-        <SettingRow
-          id="notifications.vapidSubject"
-          label={t('notifications.contact_email')}
-          help={`${t('notifications.vapid_title')} · ${vapid.data.configured ? t('notifications.vapid_configured') : t('notifications.vapid_not_configured')} · ${t('notifications.active_subscriptions')} ${vapid.data.subscriptionCount}`}
-        >
-          <SavedLine status={subjectState} />
-          <input
-            type="text"
-            className={pages.keyInput}
-            aria-label={t('notifications.contact_email')}
-            value={subject ?? vapid.data.subject ?? ''}
-            onChange={(e) => setSubject(e.target.value)}
-          />
-          <button
-            type="button"
-            className={pages.button}
-            disabled={subject === null}
-            onClick={async () => {
-              try {
-                await apiService.put('/api/push/vapid-subject', { subject });
-                setSubjectState({ saved: true });
-                setSubject(null);
-                await vapid.refetch();
-              } catch {
-                setSubjectState({ saved: false, error: t('notifications.alert_update_email_failed') });
-              }
-            }}
-          >
-            {t('notifications.update_contact_email')}
           </button>
         </SettingRow>
       )}
