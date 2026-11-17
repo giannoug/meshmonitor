@@ -101,7 +101,7 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
   const { view, actions, homoglyph, deviceConfig } = useChatRuntime(channel);
   const { channels } = useChannels();
   const { nodes } = useNodes();
-  const { currentNodeId, connectionStatus } = useData();
+  const { currentNodeId } = useData();
   const { setSelectedChannel, replyingTo, setReplyingTo, markMessagesAsRead, setUnreadCounts, unreadCounts } = useMessaging();
   const { channel: pinnedFirstUnread } = useUnreadDividerAnchors();
   const { showMqttMessages, setShowMqttMessages } = useUI();
@@ -209,7 +209,10 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
   }, [rows, pinnedFirstUnread, currentNodeId]);
 
   // Today's gates (ChannelsTab): channel_N:write for reply, react, resend and delete; sends on a device
-  // channel only, never on an MQTT mirror; off while TX is disabled or the device is disconnected.
+  // channel only, never on an MQTT mirror; off while TX is disabled or the device is not connected (composerGate).
+  // One gate (composerGate) for the composer and a row's sends.
+  const gate = composerGate(t, sources.find((s) => s.id === sourceId)?.status, deviceName, isTxDisabled);
+  const sendReason = gate.sendReason;
   const actionContext = useMemo<MessageActionContext>(() => {
     const writeReason = canWrite ? undefined : t('workspace.node_menu.needs', { permission: `channel_${channel}:write` });
     return {
@@ -217,7 +220,7 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
       writeReason,
       sendReason:
         writeReason ??
-        (isTxDisabled ? t('tx_disabled.control_tooltip') : connectionStatus !== 'connected' ? t('source.status_disconnected') : undefined),
+        sendReason,
       deleteReason: writeReason,
       canTranslate: translationSettings.canTranslate,
       translateHint: t('workspace.chat.translate_hint', {
@@ -226,7 +229,7 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
       sendsTapback: t('workspace.chat.sends_tapback_channel', { channel: name }),
       sendsResend: t('workspace.chat.sends_resend_channel', { channel: name }),
     };
-  }, [t, canWrite, channel, isMqtt, isTxDisabled, connectionStatus, translationSettings.canTranslate, viewerLang, name]);
+  }, [t, canWrite, channel, isMqtt, sendReason, translationSettings.canTranslate, viewerLang, name]);
   const translationActions = useMemo<RowTranslationActions>(
     () => ({ dismiss: dismissTranslation, translate: translationSettings.canTranslate ? translateMessage : undefined }),
     [dismissTranslation, translateMessage, translationSettings.canTranslate],
@@ -261,7 +264,6 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
     onBeacons: () => void navigate(`${base}/channel/${channel}/beacons`),
   };
   const radioDevice = sources.find((s) => s.type === 'meshtastic_tcp' && s.enabled && s.id !== sourceId);
-  const gate = composerGate(t, sources.find((s) => s.id === sourceId)?.status, deviceName, isTxDisabled);
 
   const header = (
     <header className={styles.header}>

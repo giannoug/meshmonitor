@@ -8711,6 +8711,7 @@
   "workspace.connection.banner": "{{name}} is offline. History stays here; sending is paused until it reconnects.",
   "workspace.connection.banner_short": "{{name}} is offline. History is here; sending is paused.",
   "workspace.connection.sending_paused": "Sending is paused while {{name}} is offline",
+  "workspace.connection.banner_listen_only": "{{name}} is offline. History stays here.",
   "workspace.chat.switch": "Switch",
   "workspace.first_run.title": "Welcome to MeshMonitor",
   "workspace.first_run.body": "Add the radio, broker or Reticulum node you want to watch. Each one gets its own square on the left, with its map, nodes and channels.",

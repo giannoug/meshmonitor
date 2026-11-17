@@ -124,3 +124,10 @@
 .guide {
   color: var(--color-accent);
 }
+
+/* A 44 px target on the phone. */
+.page[data-phone] .guide {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}

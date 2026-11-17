@@ -91,7 +91,7 @@ describe('sign-in dialog', () => {
     await waitFor(() => expect(passkey.cancel).toHaveBeenCalled());
   });
 
-  it('the phone guest You tab opens the same card', async () => {
+  it('the phone guest You page\'s Login row opens the same card', async () => {
     renderShell('/you', true, <YouHome />);
     // The page's Login row; the guest tab bar has its own Login (i6, Task 6.7).
     fireEvent.click((await screen.findAllByRole('button', { name: /^Login/ })).find((b) => b.dataset.testid === 'you-row')!);

@@ -34,7 +34,7 @@ import Sheet from '../patterns/Sheet';
 import { useIsPhone } from '../shell/useIsPhone';
 import type { WorkspaceSource } from '../shell/useWorkspaceSources';
 import { endpointOf, sourceControls } from './deviceInfo';
-import { connectSourceAndWait } from './useSourceForm';
+import { connectSourceAndWait, useConnectInFlight } from './useSourceForm';
 import styles from './ConnectionCard.module.css';
 
 interface ConnectionCardProps {
@@ -61,7 +61,7 @@ function CardBody({ source: s, onClose }: { source: WorkspaceSource; onClose(): 
   const isAdmin = authStatus?.authenticated === true && authStatus.user?.isAdmin === true;
   const status = s.live;
   const connected = status?.connected === true;
-  const { dotClass, label } = getStatusInfo(s, status, t);
+  const { dotClass, label, idle } = getStatusInfo(s, status, t);
   const lastError = !connected && typeof status?.lastError === 'string' && status.lastError ? status.lastError : null;
   const endpoint = endpointOf(s.type, s.config, (port) => t('workspace.devices.port', { port }));
 
@@ -81,6 +81,8 @@ function CardBody({ source: s, onClose }: { source: WorkspaceSource; onClose(): 
   const showDisconnect = linkDisconnect || !!card?.canDisconnect;
 
   const [busy, setBusy] = useState<'connect' | 'disconnect' | null>(null);
+  // A connect from Server › Devices' row for this source counts as this card's too: one POST at a time.
+  const connecting = useConnectInFlight(s.id);
   const connectAbort = useRef<AbortController | null>(null);
   useEffect(() => () => connectAbort.current?.abort(), []);
   const refetchStatus = () => void queryClient.refetchQueries({ queryKey: ['dashboard', 'status', s.id], type: 'active' });
@@ -138,7 +140,7 @@ function CardBody({ source: s, onClose }: { source: WorkspaceSource; onClose(): 
   };
 
   const connectLabel =
-    busy === 'connect' && !linkConnect
+    (busy === 'connect' || connecting) && !linkConnect
       ? t('source.connecting')
       : linkConnect
         ? t('header.connect')
@@ -162,7 +164,7 @@ function CardBody({ source: s, onClose }: { source: WorkspaceSource; onClose(): 
         <div className={styles.stateText}>
           <p className={styles.word}>{label}</p>
           {lastError && <p className={styles.detail}>{t('workspace.connection.last_error', { error: lastError })}</p>}
-          {card?.canConnect && !card.gatewaysOnly && label === t('source.status_idle') && (
+          {idle && card?.canConnect && (
             <p className={styles.detail}>{t('source.connect_help')}</p>
           )}
         </div>
@@ -173,7 +175,7 @@ function CardBody({ source: s, onClose }: { source: WorkspaceSource; onClose(): 
             <button
               type="button"
               className={`${styles.button} ${styles.primary}`}
-              disabled={busy !== null}
+              disabled={busy !== null || (connecting && !linkConnect)}
               title={linkConnect ? t('header.connectTitle') : undefined}
               onClick={() => void connect()}
             >

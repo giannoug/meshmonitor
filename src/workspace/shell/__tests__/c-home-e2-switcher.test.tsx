@@ -95,8 +95,9 @@ describe('c-home-e2-switcher', () => {
   it('the header shows the open device and the Overview elsewhere', async () => {
     renderShell(`/source/${SOURCE_IDS.g2}/channels`);
     const button = await screen.findByRole('button', { name: /switch device/i });
-    await waitFor(() => expect(button).toHaveTextContent('Connected · 12 online'));
     expect(button).toHaveTextContent('Station G2');
+    // The status line is its own button under the name, for the Connection card (Task 6.7).
+    expect(await screen.findByRole('button', { name: 'Station G2: Connected · 12 online' })).toBeInTheDocument();
   });
 
   it('has no header on You pages', async () => {

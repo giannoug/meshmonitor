@@ -6,7 +6,7 @@
  * to the Add device flow (Task 6.6) and to Server › Backup to restore one.
  */
 import { describe, it, expect } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { renderServer } from '../../server/__tests__/serverHarness';
 
@@ -29,9 +29,14 @@ describe('h6 first run', () => {
   });
 
   it('a viewer who is not an admin gets the usual page', async () => {
-    renderServer('/', { fixtures: NO_DEVICES, permissions: { bySource: {} } });
-    await screen.findByTestId('where');
-    await new Promise((r) => setTimeout(r, 50));
+    let served = 0;
+    renderServer('/', {
+      fixtures: { 'GET /api/sources': () => (served++, []) },
+      permissions: { bySource: {} },
+    });
+    await waitFor(() => expect(served).toBeGreaterThan(0));
+    // The usual page: the rail's Overview square, which first run hides.
+    expect(await screen.findByRole('link', { name: 'Overview: all devices' })).toBeInTheDocument();
     expect(screen.queryByText('Welcome to MeshMonitor')).toBeNull();
   });
 

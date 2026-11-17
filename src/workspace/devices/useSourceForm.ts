@@ -16,7 +16,7 @@
  *   back into a field, and a blank one is left out so the server keeps it
  *   (`DashboardPage.maskedFields.ts` says what the form may show).
  */
-import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useMemo, useState, useSyncExternalStore, type Dispatch, type SetStateAction } from 'react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -533,8 +533,36 @@ function refreshSources(queryClient: QueryClient) {
  * verbatim: POST `/connect`, then re-poll the source's status every 1.5 s for
  * at most 20 s, stopping as soon as it reports connected. `signal` stops the
  * loop early (the Workspace flow passes one and aborts it on unmount).
+ *
+ * One connect per source at a time (Task 6.7): a press while one is running,
+ * from any surface (Server › Devices' row, the Connection card), joins it
+ * instead of sending a second POST. `useConnectInFlight` reads that state.
  */
-export async function connectSourceAndWait(queryClient: QueryClient, id: string, signal?: AbortSignal): Promise<void> {
+export function connectSourceAndWait(queryClient: QueryClient, id: string, signal?: AbortSignal): Promise<void> {
+  const running = connectsInFlight.get(id);
+  if (running) return running;
+  const connect = connectOnce(queryClient, id, signal).finally(() => {
+    connectsInFlight.delete(id);
+    connectListeners.forEach((l) => l());
+  });
+  connectsInFlight.set(id, connect);
+  connectListeners.forEach((l) => l());
+  return connect;
+}
+
+const connectsInFlight = new Map<string, Promise<void>>();
+const connectListeners = new Set<() => void>();
+const subscribeConnects = (listener: () => void) => {
+  connectListeners.add(listener);
+  return () => void connectListeners.delete(listener);
+};
+
+/** True while a `connectSourceAndWait` for this source is running, from any surface. */
+export function useConnectInFlight(id: string): boolean {
+  return useSyncExternalStore(subscribeConnects, () => connectsInFlight.has(id));
+}
+
+async function connectOnce(queryClient: QueryClient, id: string, signal?: AbortSignal): Promise<void> {
   try {
     await api.post(`/api/sources/${id}/connect`);
   } catch (err) {
@@ -554,7 +582,11 @@ export async function connectSourceAndWait(queryClient: QueryClient, id: string,
     const cached = queryClient.getQueriesData<{ connected?: boolean } | null>({ queryKey: ['dashboard', 'status', id] });
     const connected = cached.some(([, data]) => data?.connected === true);
     if (connected || signal?.aborted) break;
-    await new Promise((r) => setTimeout(r, 1500));
+    // An abort ends the wait at once, so the in-flight mark clears with the surface that started it.
+    await new Promise<void>((r) => {
+      const timer = setTimeout(r, 1500);
+      signal?.addEventListener('abort', () => (clearTimeout(timer), r()), { once: true });
+    });
   }
 }
 

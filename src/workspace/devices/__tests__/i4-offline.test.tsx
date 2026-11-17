@@ -42,6 +42,36 @@ describe('i4 offline', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Connection' })).toBeNull());
   });
 
+  it('the header\'s status line is its own button and opens the Connection sheet', async () => {
+    renderChat(rakHome, { phone: true, fixtures: RAK_HISTORY });
+    fireEvent.click(await screen.findByRole('button', { name: 'Rooftop RAK: Disconnected' }));
+    const sheet = within(await screen.findByRole('dialog', { name: 'Connection' }));
+    expect(sheet.getByText('Rooftop RAK')).toBeInTheDocument();
+  });
+
+  it('the square and name still open the switcher, not the card', async () => {
+    renderChat(rakHome, { phone: true, fixtures: RAK_HISTORY });
+    fireEvent.click(await screen.findByRole('button', { name: 'Rooftop RAK: switch device' }));
+    expect(await screen.findByRole('dialog', { name: 'Devices' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Connection' })).toBeNull();
+  });
+
+  it('a non-admin with connection:write reaches today\'s Disconnect from the phone status line', async () => {
+    const R = { read: true, write: false };
+    renderChat(`/source/${SOURCE_IDS.g2}`, {
+      phone: true,
+      permissions: { bySource: { [SOURCE_IDS.g2]: { connection: { read: true, write: true }, nodes: R, messages: R, channel_0: R } } },
+      fixtures: { 'POST /api/connection/disconnect': () => ({ success: true }) },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Station G2: Connected · 12 online' }));
+    const sheet = within(await screen.findByRole('dialog', { name: 'Connection' }));
+    expect(sheet.queryByRole('link', { name: 'Edit connection' })).toBeNull();
+    fireEvent.click(sheet.getByRole('button', { name: 'Disconnect' }));
+    await screen.findByText('Disconnected from node');
+    const posts = vi.mocked(globalThis.fetch).mock.calls.filter(([u, init]) => init?.method === 'POST' && String(u).includes('/api/connection/disconnect'));
+    expect(posts).toHaveLength(1);
+  });
+
   it('a connected device shows no banner', async () => {
     renderChat(`/source/${SOURCE_IDS.g2}`, { phone: true });
     await screen.findByRole('link', { name: 'Athens Rover, 1 unread' });

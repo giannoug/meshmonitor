@@ -42,7 +42,7 @@ import { useWorkspaceSources, type WorkspaceSource } from '../shell/useWorkspace
 import AddDeviceFlow from './AddDeviceFlow';
 import ConnectionCard from './ConnectionCard';
 import { endpointOf, sourceControls } from './deviceInfo';
-import { connectSourceAndWait } from './useSourceForm';
+import { connectSourceAndWait, useConnectInFlight } from './useSourceForm';
 import styles from './Devices.module.css';
 
 type ConfirmKind = 'delete' | 'prune' | 'disable' | 'resync';
@@ -334,13 +334,15 @@ function DeviceRow({ source: s, shell, primary, first, last, connecting, onMove,
   const { dotClass, label } = getStatusInfo(s, status, t);
   const [cardOpen, setCardOpen] = useState(false);
   const { canConnect, gatewaysOnly, canDisconnect } = sourceControls(s, status);
+  // One connect per source: the Connection card's Connect counts too.
+  const busy = useConnectInFlight(s.id) || connecting;
   const endpoint = endpointOf(s.type, s.config, (port) => t('workspace.devices.port', { port }));
   const kind = t(`workspace.devices.type.${s.type}`, s.type);
 
   const items: RowMenuItem[] = [
     { key: 'edit', label: t('source.kebab.edit'), icon: 'edit', onSelect: onEdit },
     ...(canConnect
-      ? [{ key: 'connect', label: connecting ? t('source.connecting') : gatewaysOnly ? t('source.retry_gateways') : t('source.connect'), icon: 'power' as const, disabled: connecting, onSelect: onConnect }]
+      ? [{ key: 'connect', label: busy ? t('source.connecting') : gatewaysOnly ? t('source.retry_gateways') : t('source.connect'), icon: 'power' as const, disabled: busy, onSelect: onConnect }]
       : []),
     ...(canDisconnect ? [{ key: 'disconnect', label: t('source.kebab.disconnect'), icon: 'power' as const, onSelect: onDisconnect }] : []),
     ...(s.type === 'meshtastic_tcp' && status?.connected === true

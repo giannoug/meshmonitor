@@ -14,6 +14,7 @@ import { expectBoard } from '../../test/boardChecks';
 import { athensFixture as A, SOURCE_IDS } from '../../__fixtures__/athens';
 import { renderChat } from '../../chat/__tests__/renderChat';
 import { renderDevices } from './devicesHarness';
+import { deviceList } from '../../__fixtures__/devices';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
@@ -92,6 +93,15 @@ describe('h5 offline', () => {
     expect(card.getByText('Last error: connection refused')).toBeInTheDocument();
   });
 
+  it('an MQTT mirror that is offline is not told sending is paused', async () => {
+    renderChat(`/source/${SOURCE_IDS.mqtt}/channel/0`, {
+      fixtures: { 'GET /api/sources/:id/status': (u) => (u.pathname.includes(SOURCE_IDS.mqtt) ? { ...A.statuses[SOURCE_IDS.mqtt], connected: false } : A.statuses[u.pathname.split('/')[3]]) },
+    });
+    const banner = (await screen.findByText('Athens MQTT is offline. History stays here.')).closest('[role="status"]') as HTMLElement;
+    expect(banner).not.toHaveTextContent(/paused/);
+    expect(screen.getByText(/no radio of its own/)).toBeInTheDocument();
+  });
+
   it('Disconnect on a connected node: today\'s /api/connection/disconnect, once, with no confirm', async () => {
     renderChat(g2, { fixtures: { 'POST /api/connection/disconnect': ok } });
     const card = await openCard(/^Connected/);
@@ -161,6 +171,22 @@ describe('Server › Devices and the Connection card', () => {
     fireEvent.click(status);
     const card = within(await screen.findByRole('dialog', { name: 'Connection' }));
     expect(card.getByText('Rooftop RAK')).toBeInTheDocument();
+  });
+
+  it('one connect per device: the row\'s Connect running holds the card\'s Connect, so only one POST is sent', async () => {
+    const manual = deviceList().map((d) => (d.id === SOURCE_IDS.rak ? { ...d, config: { ...d.config, autoConnect: false } } : d));
+    const { log } = renderDevices('/server/devices', { fixtures: { 'GET /api/sources': () => manual } });
+    const row = (await screen.findAllByTestId('device-row')).find((r) => within(r).queryByText('Rooftop RAK'))!;
+    fireEvent.click(within(row).getByRole('button', { name: 'More for Rooftop RAK' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Connect' }));
+    const connects = () => log.writes.filter((w) => w.path === `/api/sources/${SOURCE_IDS.rak}/connect`).length;
+    await waitFor(() => expect(connects()).toBe(1));
+    fireEvent.click(within(row).getByRole('button', { name: 'Rooftop RAK: Idle (manual)' }));
+    const card = within(await screen.findByRole('dialog', { name: 'Connection' }));
+    const button = card.getByRole('button', { name: 'Connecting…' });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(connects()).toBe(1);
   });
 
   it('?edit=<id> opens the edit flow on that device', async () => {

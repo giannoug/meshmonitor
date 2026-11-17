@@ -50,7 +50,10 @@ describe('i6 guest', () => {
     expect(tabs.queryByText('Activity')).toBeNull();
     expect(tabs.queryByText('You')).toBeNull();
     fireEvent.click(tabs.getByRole('button', { name: 'Login' }));
-    expect(await screen.findByRole('dialog', { name: 'Login' })).toBeInTheDocument();
+    // 6.2's sign-in card, as the phone draws it (s11n0).
+    const dialog = await screen.findByRole('dialog', { name: 'Login' });
+    expect(within(dialog).getByLabelText('Username')).toBeInTheDocument();
+    expect(dialog.querySelector('[data-phone]')).not.toBeNull();
   });
 
   it('tiles follow today\'s gates: Map, Nodes and Dashboard with these grants; no Automation, no DMs', async () => {

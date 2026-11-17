@@ -83,7 +83,7 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
   const { sources } = useShellDevices();
   const { view, actions, homoglyph, deviceConfig } = useChatRuntime(-1);
   const { nodes } = useNodes();
-  const { currentNodeId, connectionStatus } = useData();
+  const { currentNodeId } = useData();
   const { setSelectedDMNode, setSelectedChannel, replyingTo, setReplyingTo } = useMessaging();
   const { dm: pinnedFirstUnread } = useUnreadDividerAnchors();
   const { timeFormat, dateFormat } = useSettings();
@@ -163,8 +163,11 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
   }, [rows, pinnedFirstUnread, currentNodeId]);
 
   // Today's gates (MessagesTab): messages:write for reply, react, resend and delete; no sends on an
-  // MQTT mirror; off while TX is disabled or the device is disconnected.
+  // MQTT mirror; off while TX is disabled or the device is not connected (composerGate).
   const canWrite = hasPermission('messages', 'write', scope);
+  // One gate (composerGate) for the composer and a row's sends.
+  const gate = composerGate(t, sources.find((s) => s.id === sourceId)?.status, deviceName, isTxDisabled);
+  const sendReason = gate.sendReason;
   const actionContext = useMemo<MessageActionContext>(() => {
     const writeReason = canWrite ? undefined : t('workspace.node_menu.needs', { permission: 'messages:write' });
     return {
@@ -172,7 +175,7 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
       writeReason,
       sendReason:
         writeReason ??
-        (isTxDisabled ? t('tx_disabled.control_tooltip') : connectionStatus !== 'connected' ? t('source.status_disconnected') : undefined),
+        sendReason,
       deleteReason: writeReason,
       canTranslate: translationSettings.canTranslate,
       translateHint: t('workspace.chat.translate_hint', {
@@ -181,7 +184,7 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
       sendsTapback: t('workspace.chat.sends_tapback_dm', { name }),
       sendsResend: t('workspace.chat.sends_resend_dm', { name }),
     };
-  }, [t, canWrite, isMqtt, isTxDisabled, connectionStatus, translationSettings.canTranslate, viewerLang, name]);
+  }, [t, canWrite, isMqtt, sendReason, translationSettings.canTranslate, viewerLang, name]);
   const translationActions = useMemo<RowTranslationActions>(
     () => ({ dismiss: dismissTranslation, translate: translationSettings.canTranslate ? translateMessage : undefined }),
     [dismissTranslation, translateMessage, translationSettings.canTranslate],
@@ -224,7 +227,6 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
   const localNodeNum = currentNodeId ? parseNodeId(currentNodeId) : null;
   const peerNum = node?.nodeNum ?? parseNodeId(nodeId);
   const radioDevice = sources.find((s) => s.type === 'meshtastic_tcp' && s.enabled && s.id !== sourceId);
-  const gate = composerGate(t, sources.find((s) => s.id === sourceId)?.status, deviceName, isTxDisabled);
   const hopLimit = typeof deviceConfig?.lora?.hopLimit === 'number' ? deviceConfig.lora.hopLimit : undefined;
   const messageStyle = prefs['workspace.messageStyle'] === 'bubbles' ? 'bubbles' : 'rows';
   const signalDetail = prefs['workspace.signalDetail'] === 'always' ? 'always' : 'hover';

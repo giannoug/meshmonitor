@@ -7,6 +7,10 @@
  * Overview the header reads "Overview ▾" and "All devices · N of M connected"
  * (5-07); the all-devices map has none (5-08).
  *
+ * On a device the status line is its own button under the name, which opens
+ * the device's Connection card (ds6, Task 6.7); the square and the name open
+ * the switcher. Both are 44 px tall, so that header is taller (96 px).
+ *
  * Re-hosted Classic pages reserve room for their own header and bottom bar
  * from `--app-header-height` and `--app-nav-bar-height`; here those carry the
  * phone header and the tab bar instead.
@@ -18,6 +22,7 @@ import { UiIcon } from '../../components/icons';
 import type { SidebarMode } from './DeviceSidebar';
 import { isMeshtasticFamily, overviewStatus, statusLabel } from './deviceTabs';
 import { isMqttOnlySourceType } from '../../utils/nodeTransport';
+import ConnectionCard from '../devices/ConnectionCard';
 import DeviceSwitcherSheet from './DeviceSwitcherSheet';
 import { ShellDevicesContext, useShellDevices } from './shellDevices';
 import TabBar, { type PhoneTab } from './TabBar';
@@ -25,6 +30,8 @@ import type { WorkspaceSource } from './useWorkspaceSources';
 import styles from './PhoneShell.module.css';
 
 const HEADER = 64;
+/** A device's header: the switcher row and the status line, each a 44 px target. */
+const DEVICE_HEADER = 96;
 const TAB_BAR = 64;
 /** Other devices beside the open one; the switcher holds the rest (Review Focus 1). */
 const QUICK_SQUARES = 2;
@@ -49,9 +56,13 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
   const shell = useShellDevices();
-  // Following a row (or any link) closes the switcher.
-  useEffect(() => setSwitcherOpen(false), [pathname]);
+  // Following a row (or any link) closes the switcher and the Connection card.
+  useEffect(() => {
+    setSwitcherOpen(false);
+    setCardOpen(false);
+  }, [pathname]);
 
   const source = sources.find((s) => s.id === openId);
   // A Meshtastic conversation draws its own header (boards 10-06, 10-14; DMs 10-07), and so do the inbox (c-home-e3), Activity (c-home-e4), the full-screen map (g1-map), Nodes (g3-nodes), the node page (g4-node), an MQTT device's packet monitor (18-04) and device settings (b-set-p1-list).
@@ -81,7 +92,7 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
       ? `${statusLabel(t, source.status)} · ${t('workspace.shell.online_count', { count: active })}`
       : statusLabel(t, source.status);
   const vars = {
-    '--app-header-height': `${showHeader ? HEADER : 0}px`,
+    '--app-header-height': `${showHeader ? (source ? DEVICE_HEADER : HEADER) : 0}px`,
     '--app-nav-bar-height': `${TAB_BAR}px`,
     '--ws-tabbar-height': `${TAB_BAR}px`,
   } as CSSProperties;
@@ -90,31 +101,46 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
     <ShellDevicesContext.Provider value={{ ...shell, openSwitcher: () => setSwitcherOpen(true) }}>
       <div style={vars}>
         {showHeader && (
-          <header className={styles.header}>
-            <button
-              type="button"
-              className={styles.switch}
-              aria-haspopup="dialog"
-              aria-expanded={switcherOpen}
-              aria-label={t('workspace.switcher.open', { name: title })}
-              onClick={() => setSwitcherOpen(true)}
-            >
-              {source ? (
-                <span className={styles.square} style={{ background: source.colorToken }}>{source.abbrev}</span>
-              ) : (
-                <span className={`${styles.square} ${styles.plain}`}><UiIcon name="dashboard" size={22} /></span>
-              )}
-              <span className={styles.text}>
-                <span className={styles.title}>
-                  <span className={styles.name}>{title}</span>
-                  <UiIcon name="chevronDown" size={18} />
+          <header className={styles.header} data-device={source ? '' : undefined}>
+            <div className={styles.ident}>
+              <button
+                type="button"
+                className={styles.switch}
+                aria-haspopup="dialog"
+                aria-expanded={switcherOpen}
+                aria-label={t('workspace.switcher.open', { name: title })}
+                onClick={() => setSwitcherOpen(true)}
+              >
+                {source ? (
+                  <span className={styles.square} style={{ background: source.colorToken }}>{source.abbrev}</span>
+                ) : (
+                  <span className={`${styles.square} ${styles.plain}`}><UiIcon name="dashboard" size={22} /></span>
+                )}
+                <span className={styles.text}>
+                  <span className={styles.title}>
+                    <span className={styles.name}>{title}</span>
+                    <UiIcon name="chevronDown" size={18} />
+                  </span>
+                  {!source && (
+                    <span className={styles.status}>
+                      <span>{status}</span>
+                    </span>
+                  )}
                 </span>
-                <span className={styles.status}>
-                  {source && <span className={styles.dot} data-status={source.status} />}
+              </button>
+              {source && (
+                <button
+                  type="button"
+                  className={`${styles.status} ${styles.statusButton}`}
+                  aria-haspopup="dialog"
+                  aria-label={t('workspace.connection.status_line', { name: source.name, status })}
+                  onClick={() => setCardOpen(true)}
+                >
+                  <span className={styles.dot} data-status={source.status} />
                   <span>{status}</span>
-                </span>
-              </span>
-            </button>
+                </button>
+              )}
+            </div>
             {quick.length > 0 && (
               <div className={styles.quick}>
                 {quick.map((s) => (
@@ -137,6 +163,7 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
             )}
           </header>
         )}
+        {source && <ConnectionCard source={source} open={cardOpen} onClose={() => setCardOpen(false)} />}
         {children}
         <TabBar home={home} active={activeTab(pathname, mode)} />
         <DeviceSwitcherSheet
