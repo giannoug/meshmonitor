@@ -2,7 +2,7 @@
   "must": [
     "Add device",
     "Step 3 of 3",
-    "Connect automatically",
+    "Automatically connect on startup",
     "Couldn’t connect.",
     "Edit connection",
     "Save anyway, connect later",

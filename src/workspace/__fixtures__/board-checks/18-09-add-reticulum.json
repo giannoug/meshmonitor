@@ -4,7 +4,6 @@
     "Attach to shared rnsd",
     "TCP peer",
     "Config directory",
-    "/rns",
     "Bridge URL",
     "ws://127.0.0.1:8765",
     "Bridge token",

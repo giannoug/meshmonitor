@@ -28,30 +28,15 @@ import {
 import { useMeshCoreNeighbors } from '../hooks/useMapAnalysisData';
 import { useMaxNodeAgeHoursAcross, useMaxInfraNodeAgeHoursAcross } from '../hooks/useNodeDisplaySettings';
 import type { DashboardSource, SourceStatus, DashboardDataOptions } from '../hooks/useDashboardData';
-import {
-  hasHiddenUrlParts,
-  hasStoredSecret,
-  storedSecretWillBeDropped,
-  type MaskedFieldSource,
-} from './DashboardPage.maskedFields';
+import { hasHiddenUrlParts, storedSecretWillBeDropped } from './DashboardPage.maskedFields';
 import { DroppedSecretNote, HiddenUrlPartsNote } from '../components/Dashboard/StoredSecretNotes';
 import DashboardSidebar from '../components/Dashboard/DashboardSidebar';
 import { PasswordField } from '../components/shared/config/PasswordField';
 import DashboardMap from '../components/Dashboard/DashboardMap';
 import type { NodeSourceRef } from '../components/Dashboard/DashboardNodePopup';
-import { buildBridgeConfig, formFromBridgeConfig } from '../components/MQTT/mqttBridgeConfig';
 import HopLimitPolicyFields from '../components/MQTT/HopLimitPolicyFields';
 import { NumberInput } from '../components/common/NumberInput';
 import { NumberInputScope } from '../components/common/NumberInputScope';
-import { useNumberInputScope } from '../components/common/numberInputScopeContext';
-import {
-  EMPTY_HOP_LIMIT_POLICY_FORM,
-  formFromHopLimitConfig,
-  hopLimitConfigFromForm,
-  legacyHopOverrideNotice,
-  type HopLimitPolicyForm,
-} from '../components/MQTT/hopLimitPolicyForm';
-import { observerErrorMessageKey, observerConfigForSourceSave } from '../components/MeshCore/observerConfig';
 import { MqttDocsLinks } from '../components/MQTT/MqttDocsLinks';
 import LoginModal from '../components/LoginModal';
 import UserMenu from '../components/UserMenu';
@@ -64,6 +49,7 @@ import { MESHCORE_DEFAULT_TCP_PORT } from '../constants';
 import { useDefaultLandingRedirect } from '../hooks/useDefaultLandingRedirect';
 import '../styles/dashboard.css';
 import { UiIcon } from '../components/icons';
+import { connectSourceAndWait, useSourceForm } from '../workspace/devices/useSourceForm';
 
 
 // ---------------------------------------------------------------------------
@@ -158,115 +144,33 @@ function DashboardInner() {
 
   // Source add/edit modal state
   const [showSourceModal, setShowSourceModal] = useState(false);
-  const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
-  const [formType, setFormType] = useState<
-    'meshtastic_tcp' | 'meshcore' | 'meshcore_mqtt' | 'mqtt_broker' | 'mqtt_bridge' | 'reticulum'
-  >('meshtastic_tcp');
-  // MeshCore MQTT ingest source (#5040). One broker per source, deliberately:
-  // it keeps "which broker did this come from" collapsed to "which source".
-  const [formMcMqttBrokerUrl, setFormMcMqttBrokerUrl] = useState('');
-  const [formMcMqttRegion, setFormMcMqttRegion] = useState('');
-  const [formMcMqttUsername, setFormMcMqttUsername] = useState('');
-  const [formMcMqttPassword, setFormMcMqttPassword] = useState('');
-  const [formMcMqttRejectUnauthorized, setFormMcMqttRejectUnauthorized] = useState(true);
-  const [formMcMqttAutoConnect, setFormMcMqttAutoConnect] = useState(true);
-  const [formName, setFormName] = useState('');
-  const [formHost, setFormHost] = useState('');
-  const [formPort, setFormPort] = useState('4403');
-  const [formVnEnabled, setFormVnEnabled] = useState(false);
-  const [formVnPort, setFormVnPort] = useState('');
-  const [formVnAllowAdmin, setFormVnAllowAdmin] = useState(false);
-  // MeshCore-only: serve ExportPrivateKey(23) over the virtual node port.
-  // Security-sensitive, so it never defaults on and is never inherited when
-  // switching a form between source types.
-  const [formVnAllowPkiExport, setFormVnAllowPkiExport] = useState(false);
-  const [formVnAllowPkiImport, setFormVnAllowPkiImport] = useState(false);
-  // MeshCore Analyzer Observer (#4457). Edited on the source's MeshCore
-  // Configuration page since #5831; this form only carries the stored block
-  // through a save unchanged, so editing the source never drops it.
-  const [formObserverStored, setFormObserverStored] = useState<unknown>(undefined);
-  const [formHeartbeat, setFormHeartbeat] = useState('30'); // seconds, 0 = disabled (issue 2609)
-  // True once the user types in the heartbeat field, or when the form holds a
-  // saved source. Until then, picking a MeshCore device type sets the default:
-  // Repeater = 0, because its serial probe is opt-in (#5563).
-  const [formHeartbeatTouched, setFormHeartbeatTouched] = useState(false);
-  const [formAutoConnect, setFormAutoConnect] = useState(true); // issue #2773
-  const [formPassiveMode, setFormPassiveMode] = useState(false); // issue #3122 — large/fragile TCP nodes
-  // Empty string = "use default 4 h". Numeric string in hours when overridden (#3122 follow-up).
-  const [formPassiveResyncStaleHours, setFormPassiveResyncStaleHours] = useState('');
-  // MeshCore-specific (slice 4): companion-USB v1 — serial path + device type.
-  // TCP transport added in v2: same Companion firmware reachable over a TCP
-  // socket (e.g. esp-link, ser2net, native TCP-capable MeshCore firmware).
-  const [formMcTransport, setFormMcTransport] = useState<'usb' | 'tcp'>('usb');
-  const [formMcSerialPort, setFormMcSerialPort] = useState('');
-  const [formMcTcpHost, setFormMcTcpHost] = useState('');
-  // MeshCore WiFi/Ethernet companion firmware opens its TCP server on 5000
-  // (#5160). 4403 is Meshtastic's port, and also what MeshCore's less common
-  // "native TCP" companion builds use — but the WiFi/Ethernet build is what
-  // people actually add here, so it gets the default.
-  const [formMcTcpPort, setFormMcTcpPort] = useState(MESHCORE_DEFAULT_TCP_PORT);
-  const [formMcDeviceType, setFormMcDeviceType] = useState<'companion' | 'repeater'>('companion');
-  // MQTT broker (mqtt_broker) form state.
-  const [formMqttListenPort, setFormMqttListenPort] = useState('1883');
-  const [formMqttUsername, setFormMqttUsername] = useState('');
-  const [formMqttPassword, setFormMqttPassword] = useState('');
-  const [formMqttRootTopic, setFormMqttRootTopic] = useState('msh');
-  // Downlink hop-limit override (#4081). The checkbox is the on/off gate and
-  // the select carries the value 0–7; 0 reproduces the legacy "zero-hop
-  // injection" toggle (#3084), which stored configs may still express as the
-  // boolean `zeroHopInjection`.
-  // Hop-limit raise/clamp policy (#5188/#5190), successor to the #4081
-  // "set hop_limit to N" override. `formMqttLegacyHopNotice` carries the
-  // one-time explanation shown for a source still storing the old field.
-  const [formMqttHopPolicy, setFormMqttHopPolicy] = useState<HopLimitPolicyForm>(
-    EMPTY_HOP_LIMIT_POLICY_FORM,
-  );
-  const [formMqttLegacyHopNotice, setFormMqttLegacyHopNotice] = useState<string | null>(null);
-  // Per-bridge topic-rewrite form state, surfaced inside the broker's
-  // edit modal so an operator can manage all rewrites for the bridges
-  // attached to this broker in one place. Keyed by bridge source id.
-  // Schema: { downlinkFrom, downlinkTo, uplinkFrom, uplinkTo } — empty
-  // strings mean "not configured" and a partial entry (only `from` or
-  // only `to` filled in) is a client-side validation error matching the
-  // server-side `error_rewrite_incomplete` rule.
-  const [formBrokerBridgeRewrites, setFormBrokerBridgeRewrites] = useState<
-    Record<string, { downlinkFrom: string; downlinkTo: string; uplinkFrom: string; uplinkTo: string }>
-  >({});
-  // Snapshot at modal-open time so onSaveSource knows which bridges
-  // actually changed and skips PUTs for the rest.
-  const [originalBrokerBridgeRewrites, setOriginalBrokerBridgeRewrites] = useState<
-    Record<string, { downlinkFrom: string; downlinkTo: string; uplinkFrom: string; uplinkTo: string }>
-  >({});
-  // MQTT bridge (mqtt_bridge) form state.
-  const [formMqttBridgeBrokerId, setFormMqttBridgeBrokerId] = useState('');
-  const [formMqttBridgeUrl, setFormMqttBridgeUrl] = useState('');
-  const [formMqttBridgeUsername, setFormMqttBridgeUsername] = useState('');
-  const [formMqttBridgePassword, setFormMqttBridgePassword] = useState('');
-  const [formMqttBridgeSubscriptions, setFormMqttBridgeSubscriptions] = useState('msh/#');
-  // Advanced bridge settings (mode, forwarding, ok_to_mqtt, publish/subscribe
-  // filters, geofence, topic rewrites) are NOT edited here — they live on the
-  // bridge's Configuration page. buildBridgeConfig preserves them on save.
-  // Meshtastic source ↔ embedded MQTT broker proxy link (issue #3003
-  // follow-up). Empty string = unset / no proxy bridge.
-  const [formMtMqttLinkBrokerId, setFormMtMqttLinkBrokerId] = useState('');
-  // Reticulum form state (#3960 Phase 1b WP6). Mirrors `ReticulumSourceConfig`
-  // (src/server/reticulumConfig.ts): 'attach' joins a shared rnsd instance's
-  // RNS config directory via the bridge sidecar; 'tcp_peer' has the bridge's
-  // own RNS instance dial out to a single TCPClientInterface peer.
-  const [formRnsMode, setFormRnsMode] = useState<'attach' | 'tcp_peer'>('attach');
-  const [formRnsConfigDir, setFormRnsConfigDir] = useState('');
-  const [formRnsBridgeUrl, setFormRnsBridgeUrl] = useState('');
-  const [formRnsToken, setFormRnsToken] = useState('');
-  const [formRnsAutoConnect, setFormRnsAutoConnect] = useState(true);
-  const [formRnsPeerHost, setFormRnsPeerHost] = useState('');
-  const [formRnsPeerPort, setFormRnsPeerPort] = useState('4965');
-  const [formError, setFormError] = useState('');
-  const [formSaving, setFormSaving] = useState(false);
-  const sourceFormNumbers = useNumberInputScope();
 
   // ----- data -----
   const { data: sources = [], isSuccess } = useDashboardSources();
   const sourceIds = sources.map((s) => s.id);
+  // The add/edit form's state, checks and Save (Rule X, #6365: shared with the Workspace's Add device).
+  const sourceForm = useSourceForm(sources);
+  const { editingSourceId, editingSource, secretPlaceholder, formError, formSaving, numbers: sourceFormNumbers } = sourceForm;
+  const {
+    formAutoConnect, formBrokerBridgeRewrites, formHeartbeat, formHeartbeatTouched, formHost, formMcDeviceType,
+    formMcMqttAutoConnect, formMcMqttBrokerUrl, formMcMqttPassword, formMcMqttRegion, formMcMqttRejectUnauthorized,
+    formMcMqttUsername, formMcSerialPort, formMcTcpHost, formMcTcpPort, formMcTransport, formMqttBridgeBrokerId,
+    formMqttBridgePassword, formMqttBridgeSubscriptions, formMqttBridgeUrl, formMqttBridgeUsername,
+    formMqttHopPolicy, formMqttLegacyHopNotice, formMqttListenPort, formMqttPassword, formMqttRootTopic,
+    formMqttUsername, formMtMqttLinkBrokerId, formName, formPassiveMode, formPassiveResyncStaleHours, formPort,
+    formRnsAutoConnect, formRnsBridgeUrl, formRnsConfigDir, formRnsMode, formRnsPeerHost, formRnsPeerPort,
+    formRnsToken, formType, formVnAllowAdmin, formVnAllowPkiExport, formVnAllowPkiImport, formVnEnabled, formVnPort,
+    setFormAutoConnect, setFormBrokerBridgeRewrites, setFormHeartbeat, setFormHeartbeatTouched, setFormHost,
+    setFormMcDeviceType, setFormMcMqttAutoConnect, setFormMcMqttBrokerUrl, setFormMcMqttPassword,
+    setFormMcMqttRegion, setFormMcMqttRejectUnauthorized, setFormMcMqttUsername, setFormMcSerialPort,
+    setFormMcTcpHost, setFormMcTcpPort, setFormMcTransport, setFormMqttBridgeBrokerId, setFormMqttBridgePassword,
+    setFormMqttBridgeSubscriptions, setFormMqttBridgeUrl, setFormMqttBridgeUsername, setFormMqttHopPolicy,
+    setFormMqttListenPort, setFormMqttPassword, setFormMqttRootTopic, setFormMqttUsername,
+    setFormMtMqttLinkBrokerId, setFormName, setFormPassiveMode, setFormPassiveResyncStaleHours, setFormPort,
+    setFormRnsAutoConnect, setFormRnsBridgeUrl, setFormRnsConfigDir, setFormRnsMode, setFormRnsPeerHost,
+    setFormRnsPeerPort, setFormRnsToken, setFormType, setFormVnAllowAdmin, setFormVnAllowPkiExport,
+    setFormVnAllowPkiImport, setFormVnEnabled, setFormVnPort,
+  } = sourceForm;
 
   // DashboardPage renders outside any SourceProvider, so there is no single
   // "current source" to read maxNodeAgeHours from. Per D3 (#4412 Phase 3),
@@ -400,564 +304,16 @@ function DashboardInner() {
 
   // ----- admin actions -----
   const onAddSource = () => {
-    setEditingSourceId(null);
-    setFormType('meshtastic_tcp');
-    setFormName('');
-    setFormHost('');
-    setFormPort('4403');
-    setFormVnEnabled(false);
-    setFormVnPort('');
-    setFormVnAllowAdmin(false);
-    setFormVnAllowPkiExport(false);
-    setFormVnAllowPkiImport(false);
-    setFormObserverStored(undefined);
-    setFormHeartbeat('30');
-    setFormHeartbeatTouched(false);
-    setFormAutoConnect(true);
-    setFormPassiveMode(false);
-    setFormPassiveResyncStaleHours('');
-    setFormMcTransport('usb');
-    setFormMcSerialPort('');
-    setFormMcTcpHost('');
-    setFormMcTcpPort(MESHCORE_DEFAULT_TCP_PORT);
-    setFormMcDeviceType('companion');
-    setFormMqttListenPort('1883');
-    setFormMqttUsername('');
-    setFormMqttPassword('');
-    setFormMqttRootTopic('msh');
-    setFormMqttHopPolicy(EMPTY_HOP_LIMIT_POLICY_FORM);
-    setFormMqttLegacyHopNotice(null);
-    setFormMqttBridgeBrokerId('');
-    setFormMqttBridgeUrl('');
-    setFormMqttBridgeUsername('');
-    setFormMqttBridgePassword('');
-    setFormMqttBridgeSubscriptions('msh/#');
-    setFormMtMqttLinkBrokerId('');
-    setFormBrokerBridgeRewrites({});
-    setOriginalBrokerBridgeRewrites({});
-    setFormRnsMode('attach');
-    setFormRnsConfigDir('');
-    setFormRnsBridgeUrl('');
-    setFormRnsToken('');
-    setFormRnsAutoConnect(true);
-    setFormRnsPeerHost('');
-    setFormRnsPeerPort('4965');
-    setFormError('');
+    sourceForm.startAdd();
     setShowSourceModal(true);
   };
 
-  // The source being edited, for what the form may say about stored
-  // credentials it does not show (see DashboardPage.maskedFields.ts).
-  const editingSource: (MaskedFieldSource & { id: string }) | undefined = editingSourceId
-    ? sources.find((s) => s.id === editingSourceId)
-    : undefined;
-
-  /** Placeholder for a password or token input: says so when a value is stored. */
-  const secretPlaceholder = (path: string): string =>
-    hasStoredSecret(editingSource, path)
-      ? t('source.form.secret_stored_placeholder', 'Unchanged (leave blank to keep)')
-      : '';
-
   const onEditSource = (id: string) => {
-    const source = sources.find((s) => s.id === id);
-    if (!source) return;
-    const cfg = source.config as Record<string, any> | undefined;
-    setEditingSourceId(id);
-    if (source.type === 'meshcore_mqtt') {
-      setFormType('meshcore_mqtt');
-      setFormName(source.name);
-      setFormMcMqttBrokerUrl(cfg?.brokerUrl ?? '');
-      setFormMcMqttRegion(cfg?.region ?? '');
-      setFormMcMqttUsername(cfg?.username ?? '');
-      // Never seed the password back into the form — the server keeps the
-      // stored value when this is left blank.
-      setFormMcMqttPassword('');
-      setFormMcMqttRejectUnauthorized(cfg?.rejectUnauthorized !== false);
-      setFormMcMqttAutoConnect(cfg?.autoConnect !== false);
-      setFormError('');
-      setShowSourceModal(true);
-      return;
-    }
-    if (source.type === 'reticulum') {
-      setFormType('reticulum');
-      setFormName(source.name);
-      const rnsMode: 'attach' | 'tcp_peer' = cfg?.mode === 'tcp_peer' ? 'tcp_peer' : 'attach';
-      setFormRnsMode(rnsMode);
-      setFormRnsConfigDir(cfg?.configDir ?? '');
-      setFormRnsBridgeUrl(cfg?.bridgeUrl ?? '');
-      // Never seed the token back into the form — the server keeps the stored
-      // value when this is left blank, as it does for the broker passwords.
-      setFormRnsToken('');
-      setFormRnsAutoConnect(cfg?.autoConnect !== false);
-      const peer = Array.isArray(cfg?.peers) ? cfg.peers[0] : undefined;
-      setFormRnsPeerHost(peer?.host ?? '');
-      setFormRnsPeerPort(peer?.port != null ? String(peer.port) : '4965');
-      setFormError('');
-      setShowSourceModal(true);
-      return;
-    }
-    if (source.type === 'mqtt_broker') {
-      setFormType('mqtt_broker');
-      setFormName(source.name);
-      setFormMqttListenPort(String(cfg?.listener?.port ?? 1883));
-      setFormMqttUsername(cfg?.auth?.username ?? '');
-      // Non-admin GETs strip the password — leave the field empty, the
-      // backend round-trips the existing value when the field stays empty.
-      setFormMqttPassword('');
-      setFormMqttRootTopic(cfg?.rootTopic ?? 'msh');
-      // New raise/clamp policy wins; a pre-4.17 source loads its legacy
-      // "set to N" override as a clamp at N with the raise left off, plus a
-      // notice explaining what saving will change.
-      setFormMqttHopPolicy(formFromHopLimitConfig(cfg));
-      setFormMqttLegacyHopNotice(legacyHopOverrideNotice(cfg));
-      // Build the per-bridge rewrite form data from every mqtt_bridge
-      // source that points at this broker. Empty rewrites are fine —
-      // the UI just shows blank inputs.
-      const attached = sources.filter(
-        (s) => s.type === 'mqtt_bridge' && (s.config as any)?.brokerSourceId === id,
-      );
-      const rewrites: Record<string, { downlinkFrom: string; downlinkTo: string; uplinkFrom: string; uplinkTo: string }> = {};
-      for (const b of attached) {
-        const bcfg = b.config as any;
-        rewrites[b.id] = {
-          downlinkFrom: bcfg?.downlinkTopicRewrite?.from ?? '',
-          downlinkTo: bcfg?.downlinkTopicRewrite?.to ?? '',
-          uplinkFrom: bcfg?.uplinkTopicRewrite?.from ?? '',
-          uplinkTo: bcfg?.uplinkTopicRewrite?.to ?? '',
-        };
-      }
-      setFormBrokerBridgeRewrites(rewrites);
-      // Deep clone for the comparison-on-save baseline. Object spread
-      // would alias the nested rewrite objects and falsely report "no
-      // changes" once the user edits.
-      setOriginalBrokerBridgeRewrites(JSON.parse(JSON.stringify(rewrites)));
-      setFormError('');
-      setShowSourceModal(true);
-      return;
-    }
-    if (source.type === 'mqtt_bridge') {
-      // Hydrate via the shared serializer so the modal and the dedicated
-      // bridge Configuration page never drift on config shape.
-      // Only the basics are edited here; advanced settings are preserved on
-      // save (buildBridgeConfig merges over the existing config) and edited on
-      // the Configuration page.
-      const bf = formFromBridgeConfig(cfg);
-      setFormType('mqtt_bridge');
-      setFormName(source.name);
-      setFormMqttBridgeBrokerId(bf.brokerId);
-      setFormMqttBridgeUrl(bf.url);
-      setFormMqttBridgeUsername(bf.username);
-      setFormMqttBridgePassword('');
-      setFormMqttBridgeSubscriptions(bf.subscriptions);
-      setFormError('');
-      setShowSourceModal(true);
-      return;
-    }
-    setFormType(source.type === 'meshcore' ? 'meshcore' : 'meshtastic_tcp');
-    setFormName(source.name);
-    setFormHost(cfg?.host ?? '');
-    setFormPort(String(cfg?.port ?? 4403));
-    const vn = cfg?.virtualNode as
-      | { enabled?: boolean; port?: number; allowAdminCommands?: boolean; allowPkiExport?: boolean; allowPkiImport?: boolean }
-      | undefined;
-    setFormVnEnabled(vn?.enabled === true);
-    setFormVnPort(vn?.port != null ? String(vn.port) : '');
-    setFormVnAllowAdmin(vn?.allowAdminCommands === true);
-    setFormVnAllowPkiExport(vn?.allowPkiExport === true);
-    setFormVnAllowPkiImport(vn?.allowPkiImport === true);
-    setFormObserverStored(cfg?.observer);
-    setFormHeartbeat(String(cfg?.heartbeatIntervalSeconds ?? 0));
-    setFormHeartbeatTouched(true);
-    // Default to true when unset (legacy sources pre-#2773 auto-connected).
-    setFormAutoConnect(cfg?.autoConnect !== false);
-    setFormPassiveMode(cfg?.passiveMode === true);
-    // Stored as ms; the UI works in whole hours for operator ergonomics.
-    // Anything not a positive number leaves the field blank → server default.
-    const staleMs = cfg?.passiveResyncStaleMs;
-    setFormPassiveResyncStaleHours(
-      typeof staleMs === 'number' && staleMs > 0
-        ? String(Math.round((staleMs / (60 * 60 * 1000)) * 100) / 100)
-        : '',
-    );
-    // MeshCore-specific config. transport=tcp is a v2 addition; legacy rows
-    // with no transport field are treated as USB (the original v1 default).
-    const mcTransport: 'usb' | 'tcp' = cfg?.transport === 'tcp' ? 'tcp' : 'usb';
-    setFormMcTransport(mcTransport);
-    setFormMcSerialPort(cfg?.serialPort ?? cfg?.port ?? '');
-    setFormMcTcpHost(cfg?.tcpHost ?? '');
-    setFormMcTcpPort(cfg?.tcpPort != null ? String(cfg.tcpPort) : MESHCORE_DEFAULT_TCP_PORT);
-    setFormMcDeviceType(cfg?.deviceType === 'repeater' ? 'repeater' : 'companion');
-    const link = cfg?.mqttLink as { enabled?: boolean; mqttBrokerSourceId?: string } | undefined;
-    setFormMtMqttLinkBrokerId(link?.enabled && link.mqttBrokerSourceId ? link.mqttBrokerSourceId : '');
-    setFormError('');
-    setShowSourceModal(true);
+    if (sourceForm.startEdit(id)) setShowSourceModal(true);
   };
 
   const onSaveSource = async () => {
-    // #5649: a blank or out-of-range port / interval is never saved.
-    if (sourceFormNumbers.invalid) return;
-    if (!formName.trim()) { setFormError(t('source.form.error_name_required')); return; }
-
-    let cfg: Record<string, any>;
-    if (formType === 'mqtt_broker') {
-      const port = parseInt(formMqttListenPort, 10);
-      if (isNaN(port) || port < 1 || port > 65535) {
-        setFormError(t('source.form.error_port_range'));
-        return;
-      }
-      if (!formMqttUsername.trim()) {
-        setFormError(t('source.form.error_mqtt_username_required', 'Broker username is required'));
-        return;
-      }
-      if (!editingSourceId && !formMqttPassword) {
-        setFormError(t('source.form.error_mqtt_password_required', 'Broker password is required'));
-        return;
-      }
-      // Generate a synthetic gateway identity. nodeNum bit 31 set keeps it
-      // outside the legitimate Meshtastic node-id range so it can't be
-      // confused with a real radio.
-      const nodeNum = (Math.floor(Math.random() * 0x7fffffff) | 0x80000000) >>> 0;
-      const nodeId = '!' + nodeNum.toString(16).padStart(8, '0');
-      const shortName = formName.trim().substring(0, 4) || 'MM';
-      cfg = {
-        listener: { port, host: '0.0.0.0' },
-        auth: { username: formMqttUsername.trim(), password: formMqttPassword },
-        gateway: { nodeNum, nodeId, longName: formName.trim(), shortName },
-        rootTopic: formMqttRootTopic.trim() || 'msh',
-        // Write only the new `hopLimitPolicy` shape (#5188/#5190). Dropping
-        // the legacy `downlinkHopLimitOverride` / `zeroHopInjection` fields is
-        // intentional: the PUT replaces the whole config blob, so an edited
-        // source stops carrying two representations of the same setting.
-        ...hopLimitConfigFromForm(formMqttHopPolicy),
-      };
-      if (editingSourceId && !formMqttPassword) {
-        // Empty password on edit → tell server to keep the existing one.
-        // Drop the password field so the merge logic on the server preserves it.
-        delete (cfg.auth as { password?: string }).password;
-      }
-    } else if (formType === 'mqtt_bridge') {
-      // Serialize via the shared helper. The modal manages connection /
-      // forwarding / subscribe-side fields; publish (uplink) filters and topic
-      // rewrites are edited on the dedicated Configuration page, so we pass the
-      // existing config as `base` to preserve them instead of clobbering.
-      const base = editingSourceId
-        ? (sources.find((s) => s.id === editingSourceId)?.config as Record<string, any> | undefined)
-        : undefined;
-      // Only the basics are posted from the modal; every advanced field
-      // (mode, forwarding, ok_to_mqtt, downlink/uplink filters, geofence,
-      // rewrites) is omitted so buildBridgeConfig preserves it from `base`.
-      const result = buildBridgeConfig(
-        {
-          brokerId: formMqttBridgeBrokerId,
-          url: formMqttBridgeUrl,
-          username: formMqttBridgeUsername,
-          password: formMqttBridgePassword,
-          subscriptions: formMqttBridgeSubscriptions,
-        },
-        { editing: !!editingSourceId, base },
-      );
-      if (result.error) {
-        setFormError(t(result.error.key, result.error.fallback));
-        return;
-      }
-      cfg = result.config!;
-    } else if (formType === 'meshcore') {
-      // MeshCore source: USB/serial or TCP. Both transports flow through the
-      // same MeshCoreManager via the Python bridge — only the connect params
-      // differ. BLE remains out of scope.
-      if (formMcTransport === 'tcp') {
-        const host = formMcTcpHost.trim();
-        if (!host) {
-          setFormError(t('meshcore.form.error_tcp_host_required', 'Host is required'));
-          return;
-        }
-        const tcpPort = parseInt(formMcTcpPort, 10);
-        if (isNaN(tcpPort) || tcpPort < 1 || tcpPort > 65535) {
-          setFormError(t('source.form.error_port_range'));
-          return;
-        }
-        cfg = {
-          transport: 'tcp',
-          tcpHost: host,
-          tcpPort,
-          deviceType: formMcDeviceType,
-          autoConnect: formAutoConnect,
-        };
-      } else {
-        const port = formMcSerialPort.trim();
-        if (!port) {
-          setFormError(t('meshcore.form.error_port_required', 'Serial port is required'));
-          return;
-        }
-        cfg = {
-          transport: 'usb',
-          port,
-          deviceType: formMcDeviceType,
-          autoConnect: formAutoConnect,
-        };
-      }
-
-      // Heartbeat / auto-reconnect (mirrors the Meshtastic setting).
-      // 0 = disabled; otherwise probe + reconnect with backoff. A Companion
-      // probes the native backend; a Repeater probes the serial CLI (#5563).
-      const mcHeartbeat = parseInt(formHeartbeat, 10);
-      if (isNaN(mcHeartbeat) || mcHeartbeat < 0 || mcHeartbeat > 3600) {
-        setFormError(t('source.form.error_heartbeat_range'));
-        return;
-      }
-      if (mcHeartbeat > 0) cfg.heartbeatIntervalSeconds = mcHeartbeat;
-
-      // Virtual Node server (opt-in): expose this MeshCore node to the MeshCore
-      // mobile app over WiFi/TCP (#3535). Shares the formVn* state with the
-      // Meshtastic form.
-      if (formVnEnabled) {
-        const vnPort = parseInt(formVnPort, 10);
-        if (isNaN(vnPort) || vnPort < 1 || vnPort > 65535) {
-          setFormError(t('source.form.error_vn_port_range'));
-          return;
-        }
-        // allowPkiExport is MeshCore-only — the Meshtastic VN has no equivalent
-        // key-export command, so it is not written in the branch below.
-        cfg.virtualNode = {
-          enabled: true,
-          port: vnPort,
-          allowAdminCommands: formVnAllowAdmin,
-          allowPkiExport: formVnAllowPkiExport,
-          allowPkiImport: formVnAllowPkiImport,
-        };
-      }
-
-      // Analyzer Observer (#4457): edited on the MeshCore Configuration page
-      // since #5831. Carry the stored block through unchanged so this save
-      // does not drop it (the server stores the config it is sent).
-      const observer = observerConfigForSourceSave(formObserverStored, formMcDeviceType === 'repeater');
-      if (observer) cfg.observer = observer;
-    } else if (formType === 'meshcore_mqtt') {
-      // Mirrors the server-side validation in sourceRoutes.ts: both fields are
-      // structural. The subscribe topic is built from the region, so a source
-      // without one would subscribe to nothing at all.
-      const brokerUrl = formMcMqttBrokerUrl.trim();
-      const region = formMcMqttRegion.trim();
-      if (!brokerUrl) {
-        setFormError(t('source.form.error_mc_mqtt_broker_required', 'Broker URL is required'));
-        return;
-      }
-      if (!region) {
-        setFormError(t('source.form.error_mc_mqtt_region_required', 'Region is required'));
-        return;
-      }
-      cfg = {
-        brokerUrl,
-        region: region.toUpperCase(),
-        rejectUnauthorized: formMcMqttRejectUnauthorized,
-        autoConnect: formMcMqttAutoConnect,
-      };
-      const mcUser = formMcMqttUsername.trim();
-      if (mcUser) cfg.username = mcUser;
-      if (formMcMqttPassword) cfg.password = formMcMqttPassword;
-    } else if (formType === 'reticulum') {
-      // Reticulum source (#3960 Phase 1b WP6): validation mirrors
-      // reticulumConfigFromSource() server-side (src/server/reticulumConfig.ts)
-      // for fast client-side feedback — 'attach' needs a non-blank configDir,
-      // 'tcp_peer' needs a well-formed {host, port} peer, and an explicit
-      // bridgeUrl (when provided) must be ws:// or wss://.
-      const bridgeUrl = formRnsBridgeUrl.trim();
-      if (bridgeUrl && !/^wss?:\/\//i.test(bridgeUrl)) {
-        setFormError(t('source.form.error_reticulum_bridge_url', 'Bridge URL must start with ws:// or wss://'));
-        return;
-      }
-
-      cfg = { mode: formRnsMode, autoConnect: formRnsAutoConnect };
-      if (bridgeUrl) cfg.bridgeUrl = bridgeUrl;
-      const token = formRnsToken.trim();
-      if (token) cfg.token = token;
-
-      if (formRnsMode === 'attach') {
-        const configDir = formRnsConfigDir.trim();
-        if (!configDir) {
-          setFormError(t('source.form.error_reticulum_config_dir_required', 'Config directory is required'));
-          return;
-        }
-        cfg.configDir = configDir;
-      } else {
-        const host = formRnsPeerHost.trim();
-        if (!host) { setFormError(t('source.form.error_host_required')); return; }
-        const port = parseInt(formRnsPeerPort, 10);
-        if (isNaN(port) || port < 1 || port > 65535) { setFormError(t('source.form.error_port_range')); return; }
-        cfg.peers = [{ host, port }];
-      }
-    } else {
-      if (!formHost.trim()) { setFormError(t('source.form.error_host_required')); return; }
-      const port = parseInt(formPort, 10);
-      if (isNaN(port) || port < 1 || port > 65535) { setFormError(t('source.form.error_port_range')); return; }
-
-      // Heartbeat interval (issue 2609): 0 = disabled, otherwise a positive
-      // number of seconds. We clamp to a sane range to prevent pathological
-      // configurations (sub-second floods or 24h naps that defeat the point).
-      const heartbeatSeconds = parseInt(formHeartbeat, 10);
-      if (isNaN(heartbeatSeconds) || heartbeatSeconds < 0 || heartbeatSeconds > 3600) {
-        setFormError(t('source.form.error_heartbeat_range'));
-        return;
-      }
-
-      let vnConfig: { enabled: boolean; port: number; allowAdminCommands: boolean } | undefined;
-      if (formVnEnabled) {
-        const vnPort = parseInt(formVnPort, 10);
-        if (isNaN(vnPort) || vnPort < 1 || vnPort > 65535) {
-          setFormError(t('source.form.error_vn_port_range'));
-          return;
-        }
-        vnConfig = { enabled: true, port: vnPort, allowAdminCommands: formVnAllowAdmin };
-      }
-
-      cfg = { host: formHost.trim(), port };
-      if (heartbeatSeconds > 0) cfg.heartbeatIntervalSeconds = heartbeatSeconds;
-      if (vnConfig) cfg.virtualNode = vnConfig;
-      // Persist autoConnect explicitly so the server can distinguish legacy
-      // sources (undefined → treat as true) from ones the user opted out of.
-      cfg.autoConnect = formAutoConnect;
-      // Passive Mode (#3122): disables outbound config bursts and preserves
-      // cached state across reconnects. Only persist when true so legacy
-      // sources continue to send the standard handshake.
-      if (formPassiveMode) {
-        cfg.passiveMode = true;
-        // Optional per-source override of the 4h default resync staleness
-        // (#3122 follow-up). Stored as ms. Server clamps to [1m, 7d];
-        // anything blank/invalid falls back to the default.
-        const hours = parseFloat(formPassiveResyncStaleHours);
-        if (Number.isFinite(hours) && hours > 0) {
-          cfg.passiveResyncStaleMs = Math.round(hours * 60 * 60 * 1000);
-        }
-      }
-      // MQTT proxy bridge — if set, MeshMonitor relays
-      // FromRadio.mqttClientProxyMessage to/from the selected embedded
-      // broker. Empty selection clears the link.
-      if (formMtMqttLinkBrokerId) {
-        cfg.mqttLink = { enabled: true, mqttBrokerSourceId: formMtMqttLinkBrokerId };
-      } else {
-        cfg.mqttLink = { enabled: false };
-      }
-    }
-
-    setFormSaving(true);
-    setFormError('');
-    try {
-      const body = {
-        name: formName.trim(),
-        type: formType,
-        config: cfg,
-        enabled: true,
-      };
-
-      try {
-        if (editingSourceId) {
-          await api.put(`/api/sources/${editingSourceId}`, body);
-        } else {
-          await api.post('/api/sources', body);
-        }
-      } catch (err) {
-        if (err instanceof ApiError) {
-          const body = err.body as any;
-          const observerKey = observerErrorMessageKey(err.code ?? body?.code);
-          setFormError(observerKey ? t(observerKey, body?.error ?? '') : (body?.error ?? t('source.form.error_save_failed')));
-          return;
-        }
-        throw err;
-      }
-
-      // Broker save succeeded — now push per-bridge topic-rewrite
-      // changes for any bridges whose rewrite config differs from the
-      // snapshot taken at modal-open. Each bridge gets its own PUT so a
-      // failure on one doesn't roll back the others; we collect errors
-      // and surface them at the end instead of aborting.
-      if (formType === 'mqtt_broker' && editingSourceId) {
-        const bridgeErrors: string[] = [];
-        for (const [bridgeId, rewrites] of Object.entries(formBrokerBridgeRewrites)) {
-          const before = originalBrokerBridgeRewrites[bridgeId];
-          const unchanged =
-            before &&
-            before.downlinkFrom === rewrites.downlinkFrom &&
-            before.downlinkTo === rewrites.downlinkTo &&
-            before.uplinkFrom === rewrites.uplinkFrom &&
-            before.uplinkTo === rewrites.uplinkTo;
-          if (unchanged) continue;
-
-          // Client-side mirror of the server's `error_rewrite_incomplete`
-          // rule — both From and To are required for a direction, or
-          // both must be empty.
-          const dlPartial =
-            (rewrites.downlinkFrom && !rewrites.downlinkTo) ||
-            (!rewrites.downlinkFrom && rewrites.downlinkTo);
-          const ulPartial =
-            (rewrites.uplinkFrom && !rewrites.uplinkTo) ||
-            (!rewrites.uplinkFrom && rewrites.uplinkTo);
-          if (dlPartial || ulPartial) {
-            const bridge = sources.find((s) => s.id === bridgeId);
-            bridgeErrors.push(
-              `${bridge?.name ?? bridgeId}: ${t(
-                'source.form.error_rewrite_incomplete',
-                'Both from and to are required when a topic rewrite is set',
-              )}`,
-            );
-            continue;
-          }
-
-          const bridge = sources.find((s) => s.id === bridgeId);
-          if (!bridge) continue;
-          const bridgeConfig: Record<string, any> = { ...(bridge.config as any) };
-          if (rewrites.downlinkFrom && rewrites.downlinkTo) {
-            bridgeConfig.downlinkTopicRewrite = {
-              from: rewrites.downlinkFrom,
-              to: rewrites.downlinkTo,
-            };
-          } else {
-            delete bridgeConfig.downlinkTopicRewrite;
-          }
-          if (rewrites.uplinkFrom && rewrites.uplinkTo) {
-            bridgeConfig.uplinkTopicRewrite = {
-              from: rewrites.uplinkFrom,
-              to: rewrites.uplinkTo,
-            };
-          } else {
-            delete bridgeConfig.uplinkTopicRewrite;
-          }
-          try {
-            await api.put(`/api/sources/${bridgeId}`, {
-              name: bridge.name,
-              type: 'mqtt_bridge',
-              config: bridgeConfig,
-              enabled: bridge.enabled,
-            });
-          } catch (e) {
-            if (e instanceof ApiError) {
-              bridgeErrors.push(`${bridge.name}: ${(e.body as any)?.error ?? 'save failed'}`);
-            } else {
-              bridgeErrors.push(`${bridge.name}: ${(e as Error).message}`);
-            }
-          }
-        }
-        if (bridgeErrors.length > 0) {
-          // Broker is saved; only the bridge updates partially failed.
-          // Keep the modal open so the user can correct the issues
-          // (probably partial-row validation problems above).
-          setFormError(
-            t(
-              'source.form.bridge_rewrite_partial_error',
-              'Broker saved but some bridge rewrites failed: ',
-            ) + bridgeErrors.join('; '),
-          );
-          refreshSources();
-          return;
-        }
-      }
-
-      setShowSourceModal(false);
-      refreshSources();
-    } catch {
-      setFormError(t('source.form.error_network'));
-    } finally {
-      setFormSaving(false);
-    }
+    if ((await sourceForm.submit()) !== null) setShowSourceModal(false);
   };
 
   // Manually start the manager for a source whose autoConnect is disabled
@@ -974,27 +330,7 @@ function DashboardInner() {
       return next;
     });
     try {
-      try {
-        await api.post(`/api/sources/${id}/connect`);
-      } catch (err) {
-        if (err instanceof ApiError) return;
-        throw err;
-      }
-
-      refreshSources();
-
-      // Poll the per-source status endpoint up to 20s, bailing early on
-      // connect success. Uses refetchQueries (not invalidate) so the loop
-      // doesn't have to re-check cache state each tick — the refetched value
-      // lands in the cache and fuels the next iteration's check.
-      const deadlineMs = Date.now() + 20_000;
-      while (Date.now() < deadlineMs) {
-        await queryClient.refetchQueries({ queryKey: ['dashboard', 'status', id], type: 'active' });
-        const cached = queryClient.getQueriesData<{ connected?: boolean } | null>({ queryKey: ['dashboard', 'status', id] });
-        const connected = cached.some(([, data]) => data?.connected === true);
-        if (connected) break;
-        await new Promise((r) => setTimeout(r, 1500));
-      }
+      await connectSourceAndWait(queryClient, id);
     } finally {
       setConnectingIds((prev) => {
         const next = new Set(prev);

@@ -10,7 +10,7 @@
     "Companion",
     "Repeater",
     "Repeaters have no chat.",
-    "Advanced · baud rate, heartbeat"
+    "Advanced · heartbeat, virtual node"
   ],
   "absent": [
     "Add source"

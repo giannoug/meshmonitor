@@ -13,8 +13,7 @@
  *   Virtual Node replay; the pages show such a user only those rows.
  * - Everything else: admins only.
  *
- * The list shows only what the user can open. Devices is today's source list
- * until Task 6.6 draws its page.
+ * The list shows only what the user can open.
  */
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';

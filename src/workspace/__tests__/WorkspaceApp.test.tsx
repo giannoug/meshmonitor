@@ -49,6 +49,7 @@ vi.mock('../overview/OverviewHome', async () => ({ default: (await import('./pag
 vi.mock('../overview/OverviewMessages', async () => ({ default: (await import('./pageStub')).pageStub('overview-messages') }));
 vi.mock('../overview/ExportMessagesPage', async () => ({ default: (await import('./pageStub')).pageStub('export-messages') }));
 // Device settings are the Workspace's own frame (Task 5.2); their tests live in settings/__tests__.
+vi.mock('../devices/DevicesPage', async () => ({ default: (await import('./pageStub')).pageStub('devices') }));
 vi.mock('../settings/SettingsFrame', async () => ({ default: (await import('./pageStub')).pageStub('settings-frame') }));
 
 /** Shows the real URL, and navigates client-side when its input changes. */
@@ -100,9 +101,6 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     ['/automations/12', 'automations'],
     ['/automations/12/runs', 'automations'],
     ['/automations/12/trace', 'automations'],
-    // Server › Devices is today's source list until Task 6.6; no Server URL re-hosts the global Settings page (Task 6.5).
-    ['/server/devices', 'dashboard'],
-    ['/server/devices?add=1', 'dashboard'],
     // Nodes is the Workspace's own table and list, with App not mounted (Task 3.3, Ruling AD).
     [`${g2}/nodes`, 'nodes'],
     // Device settings are the Workspace's own frame, with App not mounted (Task 5.2, Ruling AD), the remote target too (Task 5.9).
@@ -139,6 +137,13 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
   ])('%s re-hosts %s', async (route, page) => {
     renderAt(route);
     await expectPage(page);
+  });
+
+  // Server › Devices is the Workspace's own page (Task 6.6); no Server URL re-hosts a Classic page.
+  it.each(['/server/devices', '/server/devices?add=1'])('%s is the Workspace\'s Devices page, with nothing re-hosted', async (route) => {
+    renderAt(route);
+    expect(await screen.findByTestId('page-devices')).toHaveAttribute('data-embedded', 'false');
+    expect(screen.queryByTestId('page-dashboard')).toBeNull();
   });
 
   it('a node URL with an unknown tab shows the node page and moves to its Overview', async () => {

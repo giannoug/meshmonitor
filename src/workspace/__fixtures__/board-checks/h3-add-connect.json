@@ -2,9 +2,9 @@
   "must": [
     "Add device",
     "Name & connect",
-    "Connect automatically when MeshMonitor starts",
+    "Automatically connect on startup",
     "Advanced · virtual node, MQTT link, passive mode",
-    "CONNECTING",
+    "Connecting",
     "Read node info",
     "Loaded channels",
     "Syncing node database",

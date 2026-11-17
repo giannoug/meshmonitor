@@ -17,7 +17,8 @@ import { NODE, remoteFixtures } from '../../src/workspace/settings/__tests__/rem
 import { accountFixtures, PASSKEYS, RECOVERY_CODES } from '../../src/workspace/__fixtures__/account';
 import { signInFixtures, TYPED_RECOVERY } from '../../src/workspace/__fixtures__/signIn';
 import { prefsFixtures } from '../../src/workspace/__fixtures__/preferences';
-import { serverFixtures } from '../../src/workspace/__fixtures__/server';
+import { newServerLog, serverFixtures } from '../../src/workspace/__fixtures__/server';
+import { devicesFixtures, type DevicesFixtureOptions } from '../../src/workspace/__fixtures__/devices';
 
 export interface Board {
   id: string;
@@ -225,6 +226,29 @@ async function testTranslation(page: Page) {
 async function testApprise(page: Page) {
   await page.getByRole('button', { name: 'Test Connection' }).click();
   await page.getByText('Connected successfully (42ms)').waitFor();
+}
+
+/** Task 6.6: Server › Devices as h4 draws it, and the source routes Add device calls (one install per board). */
+function DEVICES(opts: DevicesFixtureOptions = {}): Board['fixtures'] {
+  return { ...serverFixtures(), ...devicesFixtures(newServerLog(), opts) };
+}
+
+/** Add device: pick `type` (phone: the row goes on; desktop: Next). */
+async function addType(page: Page, type: string, phone = false) {
+  const dialog = page.getByRole('dialog', { name: 'Add device' });
+  await dialog.getByRole('radio', { name: type, exact: true }).click();
+  if (!phone) await dialog.getByRole('button', { name: 'Next' }).click();
+}
+
+/** Add device: a Meshtastic node at `host`, named `name`, saved; waits for the result. */
+async function addMeshtastic(page: Page, host: string, name: string, phone: boolean, result: string) {
+  await addType(page, 'Meshtastic node', phone);
+  const dialog = page.getByRole('dialog', { name: 'Add device' });
+  await dialog.getByLabel('Host / IP').fill(host);
+  await dialog.getByRole('button', { name: 'Next' }).click();
+  await dialog.getByLabel('Name', { exact: true }).fill(name);
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await dialog.getByText(result).waitFor();
 }
 
 export const BOARDS: Board[] = [
@@ -1706,6 +1730,65 @@ export const BOARDS: Board[] = [
   { id: '13-27-integrations', size: 'phone', path: '/server/integrations', fixtures: SERVER(), setup: testTranslation },
   { id: '13-12-security-privacy', size: 'desktop', path: '/server/security', fixtures: SERVER() },
   { id: '13-28-security-privacy', size: 'phone', path: '/server/security', fixtures: SERVER() },
+  // Task 6.6: Add device and Server › Devices.
+  { id: 'h4-server-devices', size: 'desktop', path: '/server/devices', fixtures: DEVICES() },
+  { id: 'h1-add-type', size: 'desktop', path: '/server/devices?add=1', fixtures: DEVICES() },
+  { id: 'i1-add-type', size: 'phone', path: '/server/devices?add=1', fixtures: DEVICES() },
+  {
+    id: 'h2-add-connection',
+    size: 'desktop',
+    path: '/server/devices?add=1',
+    fixtures: DEVICES(),
+    setup: async (page) => {
+      await addType(page, 'Meshtastic node');
+      await page.getByLabel('Host / IP').fill('192.168.1.40');
+    },
+  },
+  {
+    id: 'i2-meshcore',
+    size: 'phone',
+    path: '/server/devices?add=1',
+    fixtures: DEVICES(),
+    setup: async (page) => {
+      await addType(page, 'MeshCore', true);
+      await page.getByLabel('Serial port').fill('/dev/ttyACM0');
+    },
+  },
+  {
+    id: '18-09-add-reticulum',
+    size: 'desktop',
+    path: '/server/devices?add=1',
+    fixtures: DEVICES(),
+    setup: async (page) => {
+      await addType(page, 'Reticulum');
+      await page.getByLabel('Config directory').fill('/rns');
+    },
+  },
+  {
+    id: '18-10-add-reticulum',
+    size: 'phone',
+    path: '/server/devices?add=1',
+    fixtures: DEVICES(),
+    setup: async (page) => {
+      await addType(page, 'Reticulum', true);
+      await page.getByRole('radio', { name: 'TCP peer' }).click();
+      await page.getByLabel('Host / IP').fill('amsterdam.connect.reticulum.network');
+    },
+  },
+  {
+    id: 'h3-add-connect',
+    size: 'desktop',
+    path: '/server/devices?add=1',
+    fixtures: DEVICES(),
+    setup: (page) => addMeshtastic(page, '192.168.1.40', 'Station G2', false, 'Loaded channels'),
+  },
+  {
+    id: 'i3-failed',
+    size: 'phone',
+    path: '/server/devices?add=1',
+    fixtures: DEVICES({ outcome: 'failed' }),
+    setup: (page) => addMeshtastic(page, '192.168.1.52', 'Rooftop RAK', true, 'Couldn’t connect.'),
+  },
 ];
 
 /** Identity: the short name G2 → SG2. */

@@ -1,17 +1,15 @@
 /**
- * `/server/*` (Tasks 6.4, 6.5). The Workspace's own page for every category
- * but Devices; today's section ids redirect to the page that holds them now,
- * so settings search and old links keep working. Devices is today's source
- * list (the re-hosted Overview page, where devices are added, edited,
- * reordered and removed today) until Task 6.6 draws its page; nothing under
- * `/server` re-hosts the global Settings page any more.
+ * `/server/*` (Tasks 6.4–6.6). The Workspace's own page for every category;
+ * today's section ids redirect to the page that holds them now, so settings
+ * search and old links keep working. Devices (6.6) opens Add device from
+ * `?add=1` (the rail's and the switcher's "+"). Nothing under `/server`
+ * re-hosts a Classic page.
  *
  * `/server` itself is the Server list on phone (13-16); on desktop it opens
  * General, else the first category the user can open.
  */
 import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { OverviewRehost } from '../rehost/pages';
 import StateView from '../patterns/StateView';
 import { useIsPhone } from '../shell/useIsPhone';
 import { ServerList } from './ServerSidebar';
@@ -31,6 +29,7 @@ const IntegrationsPage = lazy(() => import('./IntegrationsPage.tsx'));
 const IntegrationPage = lazy(() => import('./IntegrationPage.tsx'));
 const SecurityPrivacyPage = lazy(() => import('./SecurityPrivacyPage.tsx'));
 const AnalyticsPage = lazy(() => import('./AnalyticsPage.tsx'));
+const DevicesPage = lazy(() => import('../devices/DevicesPage.tsx'));
 
 
 function ServerIndex() {
@@ -65,8 +64,7 @@ export function ServerRoutes() {
       <Route path="integrations/:service" element={<IntegrationPage />} />
       <Route path="security" element={<SecurityPrivacyPage />} />
       <Route path="analytics" element={<AnalyticsPage />} />
-      {/* Task 6.6 draws Devices; until then, today's source list. */}
-      <Route path="devices/*" element={<OverviewRehost />} />
+      <Route path="devices" element={<DevicesPage />} />
       {Object.entries(SERVER_ALIASES).map(([from, to]) => (
         <Route key={from} path={from} element={<Navigate replace to={`/server/${to}`} />} />
       ))}
