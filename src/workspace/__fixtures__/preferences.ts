@@ -106,8 +106,10 @@ export function prefsFixtures(log: PrefsLog = newPrefsLog(), settings: Record<st
   const body = (init?: RequestInit) => (init?.body ? JSON.parse(String(init.body)) : undefined);
   const read = (path: string, reply: unknown): FixtureHandler => () => {
     log.reads.push(path);
-    return reply;
+    return typeof reply === 'function' ? reply() : reply;
   };
+  // A deleted theme leaves the list, as on the server.
+  let themes = [...CUSTOM_THEMES];
   return {
     'GET /api/settings': read('/api/settings', settings),
     'POST /api/settings': (_u, init) => {
@@ -118,7 +120,7 @@ export function prefsFixtures(log: PrefsLog = newPrefsLog(), settings: Record<st
       log.mapPrefs.push(body(init));
       return { success: true };
     },
-    'GET /api/themes': read('/api/themes', { themes: CUSTOM_THEMES }),
+    'GET /api/themes': read('/api/themes', () => ({ themes })),
     'POST /api/themes': (u, init) => {
       log.themes.push({ method: 'POST', path: u.pathname, body: body(init) });
       return { success: true };
@@ -129,6 +131,7 @@ export function prefsFixtures(log: PrefsLog = newPrefsLog(), settings: Record<st
     },
     'DELETE /api/themes/:slug': (u) => {
       log.themes.push({ method: 'DELETE', path: u.pathname });
+      themes = themes.filter((th) => u.pathname !== `/api/themes/${th.slug}`);
       return { success: true };
     },
     'GET /api/news': read('/api/news', NEWS_FEED),

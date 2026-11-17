@@ -24,4 +24,10 @@ describe('MeshCore Messaging', () => {
     fireEvent.click(screen.getByRole('switch', { name: 'Use other sources to resolve unknown hops' }));
     await waitFor(() => expect(log.settings).toContainEqual({ meshcoreCrossSourceHopResolution: '1' }));
   });
+
+  it('reads only \'1\' / \'true\' as on, as today', async () => {
+    renderPrefs('/preferences/meshcore-messaging', { settings: { meshcoreChannelRetryEnabled: 'yes', meshcoreCrossSourceHopResolution: 'true' } });
+    expect(await screen.findByRole('switch', { name: 'Auto-retry automated MeshCore channel sends' })).not.toBeChecked();
+    expect(screen.getByRole('switch', { name: 'Use other sources to resolve unknown hops' })).toBeChecked();
+  });
 });

@@ -64,6 +64,15 @@ describe('13-14-help-about', () => {
     expect(await screen.findByText(/Embed profiles moved to/)).toBeInTheDocument();
   });
 
+  it('closing the popup reads the seen state again, once', async () => {
+    const { log } = help();
+    fireEvent.click(await screen.findByRole('button', { name: 'Show all news' }));
+    await screen.findByText(/Embed profiles moved to/);
+    const before = log.reads.filter((r) => r === '/api/news/user/status').length;
+    fireEvent.click(document.querySelector('.news-modal-overlay')!);
+    await waitFor(() => expect(log.reads.filter((r) => r === '/api/news/user/status').length).toBe(before + 1));
+  });
+
   it('opens today\'s links in a new tab', async () => {
     help();
     for (const [name, href] of [[/View Settings Documentation/, DOCS_URL], [/GitHub/, MESHMONITOR_GITHUB_URL], [/Support on Ko-fi/, MESHMONITOR_KOFI_URL]] as const) {

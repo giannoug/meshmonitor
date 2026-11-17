@@ -111,6 +111,12 @@
   cursor: pointer;
 }
 
+.chipRemove[data-phone] {
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+}
+
 .chipRemove:hover,
 .chipRemove:focus-visible {
   background: var(--color-surface-hover);
@@ -267,11 +273,6 @@
   color: var(--color-text-subtle);
 }
 
-.applied {
-  font-size: 14px;
-  color: var(--color-success);
-}
-
 .themeActions {
   display: inline-flex;
   flex-wrap: wrap;
@@ -309,6 +310,10 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.menuItem[data-phone] {
+  min-height: 44px;
 }
 
 .menuItem:hover,

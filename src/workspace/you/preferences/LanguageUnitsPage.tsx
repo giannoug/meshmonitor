@@ -24,7 +24,7 @@ import { AutoSelect, AutoToggle, SavedLine } from '../../settings/categories/aut
 import { useAutosaveValue } from '../../settings/useAutosaveSetting';
 import { useIsPhone } from '../../shell/useIsPhone';
 import PrefsFrame from './PrefsFrame';
-import { on01, text } from './prefValues';
+import { notOff01, text } from './prefValues';
 import styles from './Preferences.module.css';
 
 export const WEBLATE_URL = 'https://hosted.weblate.org/projects/meshmonitor/meshmonitor/';
@@ -50,7 +50,7 @@ export default function LanguageUnitsPage() {
               id="link-previews.linkPreviewsEnabled"
               label={t('settings.link_previews_enabled', 'Show link previews')}
               help={t('settings.link_previews_description')}
-              {...on01(s.linkPreviewsEnabled)}
+              {...notOff01(s.linkPreviewsEnabled)}
               onSaved={s.setLinkPreviewsEnabled}
             />
           </SettingGroup>

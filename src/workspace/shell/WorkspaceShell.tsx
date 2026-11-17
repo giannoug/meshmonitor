@@ -41,6 +41,7 @@ import YouSidebar from '../you/YouSidebar';
 import { ChangePasswordForm } from '../you/ChangePasswordPage';
 import Sheet from '../patterns/Sheet';
 import accountStyles from '../you/YouAccount.module.css';
+import NewsAutoOpen from './NewsAutoOpen';
 import PhoneShell from './PhoneShell';
 import OverviewSidebar from '../overview/OverviewSidebar';
 import { useIsNarrowDesktop, useIsPhone } from './useIsPhone';
@@ -217,6 +218,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
         {search}
         {settingsSearch}
         {forcedPasswordChange}
+        <NewsAutoOpen />
       </ShellDevicesContext.Provider>
     );
   }
@@ -264,6 +266,8 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
       {search}
       {settingsSearch}
       {forcedPasswordChange}
+      {/* Same place in both layouts, so a resize across 768 px does not read news again. */}
+      <NewsAutoOpen />
     </ShellDevicesContext.Provider>
   );
 }

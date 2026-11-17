@@ -9,6 +9,8 @@
  *   (useFieldRegistry); it opens the category at `#setting-<id>`, where the
  *   row scrolls into view and pulses. Fields of categories that are not
  *   mounted are not known, so other categories are found by section.
+ * - Preferences rows: every row of the You › Preferences pages
+ *   (`PREF_FIELDS`, Task 6.3), mounted or not, opening at the row's anchor.
  * - Section: today's section catalogue (`buildConfigSurfaces`), matched with
  *   today's rule (configSearchMatch); a device's sections lead to the category
  *   they live in (SECTION_TO_CATEGORY), and only to categories the viewer may
@@ -36,6 +38,7 @@ import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { useHealth } from '../../hooks/useHealth';
 import { appBasename } from '../../init';
 import { PREFERENCE_CATEGORIES } from '../routes';
+import { PREF_FIELDS, PREF_PAGE_LABELS } from '../you/preferences/prefFields';
 import type { WorkspaceSource } from '../shell/useWorkspaceSources';
 import { SECTION_TO_CATEGORY, visibleCategories, type CategoryDef } from './categories';
 import { isMac, settingAnchor, useFieldRegistry } from './kit/useFieldRegistry';
@@ -153,8 +156,22 @@ export default function SettingsSearch({ sources, openId, phone, initialQuery, o
       databaseType: health?.databaseType ?? null,
       firmwareOtaEnabled: health?.firmwareOtaEnabled === true,
     }).flatMap((s) => s.items);
+    // Every Preferences row is known, mounted or not (s13n0), and opens at its anchor.
+    const prefFields: Hit[] = PREF_FIELDS.filter((f) => !f.adminOnly || isAdmin).flatMap((f) => {
+      const label = t(f.labelKey, f.fallback ?? f.labelKey);
+      const [pageKey, pageFallback] = PREF_PAGE_LABELS[f.page];
+      const page = t(pageKey, pageFallback ?? pageKey);
+      if (!matchesQuery(`${label} ${page}`, tokens)) return [];
+      return [{
+        to: `/preferences/${f.page}#${settingAnchor(f.id)}`,
+        label,
+        where: t('workspace.settings.search.where', { scope: t('workspace.shell.preferences'), category: page }),
+        kind: 'setting' as const,
+        rank: matchRank(label, tokens),
+      }];
+    });
     for (const prefs of [true, false]) {
-      const hits: Hit[] = global
+      const hits: Hit[] = (prefs ? prefFields : []).concat(global
         .map((item) => ({ item, cat: item.id.slice('settings-'.length) }))
         .filter(({ cat }) => PREFERENCE_CATEGORIES.includes(cat) === prefs)
         .filter(({ item }) => matchesQuery(`${item.label} ${(item.keywords ?? []).join(' ')}`, tokens))
@@ -163,7 +180,7 @@ export default function SettingsSearch({ sources, openId, phone, initialQuery, o
           label: item.label,
           kind: 'section' as const,
           rank: matchRank(item.label, tokens),
-        }));
+        })));
       if (hits.length) {
         out.push({ key: prefs ? 'preferences' : 'server', title: prefs ? t('workspace.shell.preferences') : globalSettingsNav(t).label, hits: hits.sort(byRank) });
       }

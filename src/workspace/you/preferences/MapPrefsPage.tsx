@@ -12,9 +12,10 @@
  * - Lines and zoom, clicks and clusters: today's keys to `POST
  *   /api/settings`, fanned out to SettingsContext (settings:write).
  * - Desktop preview: BaseMap with the current tileset, at the click zoom gate.
- * - Admins: one row to Server › Map & tiles, today's re-hosted Map section
- *   (custom tilesets, GeoJSON layers, map styles, Carto key, default map
- *   centre, embed maps) until Task 6.4 redraws it (s13n0).
+ * - Settings writers and admins: one row to Server › Map & tiles, today's
+ *   re-hosted Map section, until Task 6.4 redraws it (s13n0). There, as
+ *   today, custom tilesets, GeoJSON layers and map styles need settings:write
+ *   and the Carto key, default map centre and embed maps need an admin.
  *
  * Nothing here transmits.
  */
@@ -22,26 +23,24 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../../components/icons';
 import { BaseMap } from '../../../components/map/BaseMap';
-import { useAuth } from '../../../contexts/AuthContext';
 import { useSettings, type PositionHistoryLineStyle } from '../../../contexts/SettingsContext';
 import { getAllTilesets, type TilesetId } from '../../../config/tilesets';
-import apiService from '../../../services/api';
 import SettingGroup from '../../settings/kit/SettingGroup';
 import SettingRow from '../../settings/kit/SettingRow';
 import SettingSelect from '../../settings/kit/SettingSelect';
 import { AutoNumber, AutoSelect, AutoToggle, SavedLine } from '../../settings/categories/autosave';
-import { useAutosaveValue } from '../../settings/useAutosaveSetting';
+import { useAutosaveSetting, useAutosaveValue } from '../../settings/useAutosaveSetting';
 import { useIsPhone } from '../../shell/useIsPhone';
 import PrefsFrame from './PrefsFrame';
-import { int, on01, onText, text, useCanWriteSettings } from './prefValues';
+import { int, notOff01, onText, text, useCanWriteSettings } from './prefValues';
 import styles from './Preferences.module.css';
 
 export default function MapPrefsPage() {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const s = useSettings();
-  const { authStatus } = useAuth();
-  const isAdmin = authStatus?.authenticated === true && authStatus.user?.isAdmin === true;
+  // Today's Map section shows custom tilesets, GeoJSON layers and map styles to settings writers; the rest of it to admins.
+  const canWrite = useCanWriteSettings();
 
   return (
     <PrefsFrame categoryId="map" title={t('settings.map')} icon="map" scope={t('workspace.prefs.scope_map')}>
@@ -116,12 +115,12 @@ export default function MapPrefsPage() {
                 'settings.discard_invalid_positions_description',
                 'When enabled (default), GPS fixes at Null Island (0,0) — including precision-obscured ones — are discarded on ingest across all sources. Disable to store (0,0) reports as received so you can see which nodes transmit them. Out-of-range / garbage coordinates are always discarded.',
               )}
-              {...on01(s.discardInvalidPositions)}
+              {...notOff01(s.discardInvalidPositions)}
               onSaved={s.setDiscardInvalidPositions}
             />
           </SettingGroup>
           {!isPhone && <Preview />}
-          {isAdmin && (
+          {canWrite && (
             <SettingGroup>
               <Link to="/server/map" className={styles.rowLink}>
                 <span className={styles.rowIcon}>
@@ -145,21 +144,25 @@ export default function MapPrefsPage() {
   );
 }
 
-/** One appearance's tileset: today's per-user save, plus the install key for settings writers. */
+/**
+ * One appearance's tileset: today's per-user save (`setMapTilesets`) for
+ * everyone; a settings writer also saves the install key through the one
+ * autosave path, as global Settings' Save wrote both. The row shows the
+ * viewer's own choice (context), which is what their map draws.
+ */
 function TilesetRow({ mode }: { mode: 'dark' | 'light' }) {
   const { t } = useTranslation();
   const s = useSettings();
   const canWrite = useCanWriteSettings();
   const current = mode === 'dark' ? s.mapTilesetDark : s.mapTilesetLight;
-  const [value, set, status] = useAutosaveValue<string>(current, {
+  const saveMine = (v: string) => (mode === 'dark' ? s.setMapTilesets(s.mapTilesetLight, v as TilesetId) : s.setMapTilesets(v as TilesetId, s.mapTilesetDark));
+  const install = useAutosaveSetting<string>(mode === 'dark' ? 'mapTilesetDark' : 'mapTilesetLight', {
     commit: 'change',
-    same: (v) => v === current,
-    write: async (v) => {
-      const id = v as TilesetId;
-      if (canWrite) await apiService.post('/api/settings', { [mode === 'dark' ? 'mapTilesetDark' : 'mapTilesetLight']: id });
-      await (mode === 'dark' ? s.setMapTilesets(s.mapTilesetLight, id) : s.setMapTilesets(id, s.mapTilesetDark));
-    },
+    parse: () => current,
+    onSaved: (v) => void saveMine(v),
   });
+  const mine = useAutosaveValue<string>(current, { commit: 'change', same: (v) => v === current, write: async (v) => saveMine(v) });
+  const [value, set, status] = canWrite ? install : mine;
   const key = mode === 'dark' ? 'map_tileset_dark' : 'map_tileset_light';
   return (
     <SettingRow stacked id={`map.${mode === 'dark' ? 'mapTilesetDark' : 'mapTilesetLight'}`} label={t(`settings.${key}_label`)} help={t(`settings.${key}_description`)}>

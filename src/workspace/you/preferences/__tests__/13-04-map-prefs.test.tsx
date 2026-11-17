@@ -9,6 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { expectBoard } from '../../../test/boardChecks';
+import { SOURCE_IDS } from '../../../__fixtures__/athens';
 import { renderPrefs } from './prefsHarness';
 
 describe('13-04-map-prefs', () => {
@@ -55,8 +56,26 @@ describe('13-04-map-prefs', () => {
     await waitFor(() => expect(log.settings).toContainEqual({ mapZoomGateThreshold: '0' }));
   });
 
-  it('an admin gets the way to Server › Map & tiles; others do not', async () => {
-    renderPrefs('/preferences/map');
+  it.each([
+    ['an admin', {}],
+    ['a non-admin settings writer (today: custom tilesets, GeoJSON, map styles)', { permissions: { global: {}, bySource: { [SOURCE_IDS.g2]: { settings: { read: true, write: true } } } } }],
+  ])('%s gets the way to Server › Map & tiles', async (_who, opts) => {
+    renderPrefs('/preferences/map', opts);
     expect(await screen.findByRole('link', { name: /Map & tiles/ })).toHaveAttribute('href', '/server/map');
+  });
+
+  it('a viewer without settings:write does not', async () => {
+    renderPrefs('/preferences/map', { permissions: { global: {}, bySource: { [SOURCE_IDS.g2]: { settings: { read: true, write: false } } } } });
+    await screen.findByText('Map Click Zoom Gate');
+    expect(screen.queryByRole('link', { name: /Map & tiles/ })).toBeNull();
+  });
+
+  it('a settings writer\'s tileset goes through the shared settings cache (one save path)', async () => {
+    const { log } = renderPrefs('/preferences/map');
+    fireEvent.change(await screen.findByLabelText('Light Mode Tileset'), { target: { value: 'openTopo' } });
+    await waitFor(() => expect(log.settings).toContainEqual({ mapTilesetLight: 'openTopo' }));
+    await waitFor(() => expect(log.mapPrefs).toHaveLength(1));
+    // useAutosaveSetting reads the settings again after its write (Ruling DM).
+    await waitFor(() => expect(log.reads.filter((r) => r === '/api/settings').length).toBeGreaterThanOrEqual(2));
   });
 });

@@ -67,4 +67,9 @@ describe('13-02-theme-editor', () => {
     await screen.findByDisplayValue('Athens Night');
     expect(screen.getByRole('button', { name: 'Update Theme' })).toBeDisabled();
   });
+
+  it('an unknown theme ends in Not found, not endless loading', async () => {
+    renderPrefs('/preferences/appearance/themes/custom-nope');
+    expect(await screen.findByText('Not found', {}, { timeout: 3000 })).toBeInTheDocument();
+  });
 });

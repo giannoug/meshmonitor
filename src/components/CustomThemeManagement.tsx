@@ -9,7 +9,7 @@ import './CustomThemeManagement.css';
 export const CustomThemeManagement: React.FC = () => {
   const { t } = useTranslation();
   const { theme, darkTheme, lightTheme, setDarkTheme, setLightTheme } = useSettings();
-  const { customThemes, canWrite, saveTheme, deleteTheme } = useCustomThemes();
+  const { customThemes, canWrite, saveTheme, deleteTheme, forgetTheme } = useCustomThemes();
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingTheme, setEditingTheme] = useState<CustomTheme | null>(null);
@@ -48,7 +48,10 @@ export const CustomThemeManagement: React.FC = () => {
       await deleteTheme(themeSlug);
     } catch (error) {
       alert(t('theme_management.delete_failed', { error: error instanceof Error ? error.message : String(error) }));
+      return;
     }
+
+    await forgetTheme(themeSlug);
   };
 
   if (isEditorOpen) {

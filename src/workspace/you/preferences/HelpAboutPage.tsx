@@ -168,7 +168,16 @@ function NewsCard() {
           {t('workspace.help.show_all_news')}
         </button>
       </div>
-      <NewsPopup isOpen={open} onClose={() => setOpen(false)} forceShowAll isAuthenticated={signedIn} />
+      <NewsPopup
+        isOpen={open}
+        onClose={() => {
+          setOpen(false);
+          // The popup may have changed what is seen: read the status again, once.
+          if (signedIn) void status.refetch();
+        }}
+        forceShowAll
+        isAuthenticated={signedIn}
+      />
     </SettingGroup>
   );
 }

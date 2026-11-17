@@ -466,9 +466,10 @@ function App() {
   }, [authStatus]);
 
   // Show news popup when authenticated user has unread news
+  // (inside the Workspace shell, #6365, the shell does this once per load)
   useEffect(() => {
     const checkUnreadNews = async () => {
-      if (!authStatus?.authenticated) return;
+      if (!authStatus?.authenticated || shellEmbedded) return;
       try {
         const response = await api.getUnreadNews();
         if (response.items && response.items.length > 0) {
@@ -481,7 +482,7 @@ function App() {
       }
     };
     void checkUnreadNews();
-  }, [authStatus?.authenticated]);
+  }, [authStatus?.authenticated, shellEmbedded]);
 
   // Check if packet logging is enabled on the server
   // Re-check when auth status changes (permissions may have changed)

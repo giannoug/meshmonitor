@@ -36,7 +36,6 @@ import ConfirmSheet from '../../patterns/ConfirmSheet';
 import SettingGroup from '../../settings/kit/SettingGroup';
 import { useReadOnly } from '../../settings/kit/useFieldRegistry';
 import { AutoSelect } from '../../settings/categories/autosave';
-import { useAutosaveSetting } from '../../settings/useAutosaveSetting';
 import { useShellDevices } from '../../shell/shellDevices';
 import { useIsPhone } from '../../shell/useIsPhone';
 import PrefsFrame from './PrefsFrame';
@@ -70,6 +69,8 @@ function LookRows() {
   const { sources } = useShellDevices();
   const isAdmin = authStatus?.authenticated === true && authStatus.user?.isAdmin === true;
   const themes = themeOptions(t, s.customThemes);
+  // A slot on a theme that is gone (deleted here or elsewhere) shows context's value, as today's page did.
+  const theme = (fallback: string) => (raw?: string) => (raw && themes.some((o) => o.value === raw) ? raw : fallback);
 
   return (
     <>
@@ -96,7 +97,7 @@ function LookRows() {
           label={t('settings.dark_theme_label')}
           help={t('settings.dark_theme_description')}
           options={themes}
-          parse={text(s.darkTheme)}
+          parse={theme(s.darkTheme)}
           onSaved={(v) => s.setDarkTheme(v as Theme)}
         />
         <AutoSelect
@@ -106,7 +107,7 @@ function LookRows() {
           label={t('settings.light_theme_label')}
           help={t('settings.light_theme_description')}
           options={themes}
-          parse={text(s.lightTheme)}
+          parse={theme(s.lightTheme)}
           onSaved={(v) => s.setLightTheme(v as Theme)}
         />
         {isAdmin && (
@@ -218,6 +219,7 @@ function TapbackCard() {
               <button
                 type="button"
                 className={styles.chipRemove}
+                data-phone={isPhone || undefined}
                 aria-label={`${t('settings.tapback_remove_emoji', 'Remove emoji')} ${title}`}
                 disabled={off}
                 onClick={() => void e.handleRemoveEmoji(emoji)}
@@ -311,21 +313,12 @@ export function CustomThemeList() {
   const isPhone = useIsPhone();
   const navigate = useNavigate();
   const s = useSettings();
-  const readOnly = useReadOnly();
-  const { customThemes, canWrite, deleteTheme } = useCustomThemes();
+  const { customThemes, canWrite, deleteTheme, forgetTheme } = useCustomThemes();
   const [deleting, setDeleting] = useState<CustomTheme | null>(null);
   const [busy, setBusy] = useState(false);
-  const [dark, setDark, darkStatus] = useAutosaveSetting<string>('darkTheme', {
-    commit: 'change',
-    parse: text(s.darkTheme),
-    onSaved: (v) => s.setDarkTheme(v as Theme),
-  });
-  const [light, setLight, lightStatus] = useAutosaveSetting<string>('lightTheme', {
-    commit: 'change',
-    parse: text(s.lightTheme),
-    onSaved: (v) => s.setLightTheme(v as Theme),
-  });
-  const error = darkStatus.error ?? lightStatus.error;
+  // Apply is today's local set (CustomThemeManagement): context and this browser only, nothing saved.
+  const dark = s.darkTheme;
+  const light = s.lightTheme;
 
   return (
     <>
@@ -354,10 +347,10 @@ export function CustomThemeList() {
                 </span>
               </span>
               <span className={styles.themeActions}>
-                <button type="button" className={styles.button} data-phone={isPhone || undefined} disabled={isDark || readOnly} onClick={() => setDark(theme.slug)}>
+                <button type="button" className={styles.button} data-phone={isPhone || undefined} disabled={isDark} onClick={() => s.setDarkTheme(theme.slug)}>
                   {isDark ? t('theme_management.dark_active') : t('theme_management.apply_dark')}
                 </button>
-                <button type="button" className={styles.button} data-phone={isPhone || undefined} disabled={isLight || readOnly} onClick={() => setLight(theme.slug)}>
+                <button type="button" className={styles.button} data-phone={isPhone || undefined} disabled={isLight} onClick={() => s.setLightTheme(theme.slug)}>
                   {isLight ? t('theme_management.light_active') : t('theme_management.apply_light')}
                 </button>
                 {own && (
@@ -390,7 +383,6 @@ export function CustomThemeList() {
           )}
         </div>
       </SettingGroup>
-      {error && <p className={styles.note} role="alert">{error}</p>}
       <p className={styles.note}>
         <UiIcon name="info" size={16} />
         <span>{t('workspace.prefs.themes_note')}</span>
@@ -406,41 +398,63 @@ export function CustomThemeList() {
         onCancel={() => setDeleting(null)}
         onConfirm={async () => {
           setBusy(true);
+          const slug = deleting!.slug;
           try {
-            await deleteTheme(deleting!.slug);
-            setDeleting(null);
+            await deleteTheme(slug);
           } catch (err) {
             throw new Error(t('theme_management.delete_failed', { error: err instanceof Error ? err.message : String(err) }), { cause: err });
           } finally {
             setBusy(false);
           }
+          // As today: a slot that used it goes back to the default, in context only.
+          setDeleting(null);
+          await forgetTheme(slug);
         }}
       />
     </>
   );
 }
 
-/** A theme's ⋯: Clone, and Delete where the viewer may (s13n5). */
+/**
+ * A theme's ⋯: Clone, and Delete where the viewer may (s13n5). Opening moves
+ * focus to the first item; arrows, Home and End move between items; Escape
+ * closes the menu only (it stops there, CR) and gives focus back to ⋯.
+ */
 function ThemeMenu({ name, onClone, onDelete }: { name: string; onClone(): void; onDelete?: () => void }) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLSpanElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLSpanElement>(null);
   const label = t('workspace.prefs.theme_actions', { name });
+  const items = () => Array.from(menu.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    menu.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
     const onDown = (e: MouseEvent) => {
       if (!wrap.current?.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener('keydown', onKey);
     document.addEventListener('mousedown', onDown);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('mousedown', onDown);
-    };
+    return () => document.removeEventListener('mousedown', onDown);
   }, [open]);
+
+  const onKeyDown = (e: ReactKeyboardEvent) => {
+    if (!open) return;
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      setOpen(false);
+      trigger.current?.focus();
+      return;
+    }
+    const list = items();
+    const at = list.indexOf(document.activeElement as HTMLButtonElement);
+    const to = { ArrowDown: at + 1, ArrowUp: at - 1, Home: 0, End: list.length - 1 }[e.key];
+    if (to === undefined || list.length === 0) return;
+    e.preventDefault();
+    list[(to + list.length) % list.length].focus();
+  };
 
   const then = (fn: () => void) => () => {
     setOpen(false);
@@ -448,8 +462,9 @@ function ThemeMenu({ name, onClone, onDelete }: { name: string; onClone(): void;
   };
 
   return (
-    <span className={styles.menuWrap} ref={wrap}>
+    <span className={styles.menuWrap} ref={wrap} onKeyDown={onKeyDown}>
       <button
+        ref={trigger}
         type="button"
         className={styles.iconButton}
         data-phone={isPhone || undefined}
@@ -462,13 +477,13 @@ function ThemeMenu({ name, onClone, onDelete }: { name: string; onClone(): void;
         <UiIcon name="more" size={18} />
       </button>
       {open && (
-        <span className={styles.menu} role="menu" aria-label={label}>
-          <button type="button" role="menuitem" className={styles.menuItem} onClick={then(onClone)}>
+        <span className={styles.menu} role="menu" aria-label={label} ref={menu}>
+          <button type="button" role="menuitem" className={styles.menuItem} data-phone={isPhone || undefined} onClick={then(onClone)}>
             <UiIcon name="copy" size={16} />
             {t('theme_management.clone')}
           </button>
           {onDelete && (
-            <button type="button" role="menuitem" className={styles.menuItem} data-danger="" onClick={then(onDelete)}>
+            <button type="button" role="menuitem" className={styles.menuItem} data-phone={isPhone || undefined} data-danger="" onClick={then(onDelete)}>
               <UiIcon name="delete" size={16} />
               {t('common.delete')}
             </button>

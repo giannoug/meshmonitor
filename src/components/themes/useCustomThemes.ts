@@ -28,10 +28,13 @@ export function useCustomThemes() {
     await loadCustomThemes();
   };
 
-  /** Deletes the theme (a failure throws before anything else changes), moves its slots back to the defaults, reloads. */
+  /** Deletes the theme on the server; a failure throws before anything else changes. */
   const deleteTheme = async (themeSlug: string) => {
     await api.delete(`/api/themes/${themeSlug}`);
+  };
 
+  /** After a delete: moves the theme's slots back to the defaults (context only, as before), reloads the list. */
+  const forgetTheme = async (themeSlug: string) => {
     if (darkTheme === themeSlug) {
       setDarkTheme('mocha');
     }
@@ -43,5 +46,5 @@ export function useCustomThemes() {
     await loadCustomThemes();
   };
 
-  return { customThemes, canWrite, saveTheme, deleteTheme };
+  return { customThemes, canWrite, saveTheme, deleteTheme, forgetTheme };
 }

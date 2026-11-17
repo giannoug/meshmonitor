@@ -130,7 +130,9 @@ describe('b-set-d4-search', () => {
     await screen.findByRole('heading', { level: 1, name: 'Node Display' }, { timeout: 5000 });
     const d = await search('theme');
     const prefs = d.getByRole('group', { name: 'Preferences' });
-    expect(within(prefs).getByRole('option', { name: /Appearance/ })).toHaveAttribute('href', '/preferences/appearance');
+    expect(within(prefs).getByRole('option', { name: /^Appearance/ })).toHaveAttribute('href', '/preferences/appearance');
+    // Task 6.3: every Preferences row is found too, and opens at that row.
+    expect(within(prefs).getByRole('option', { name: /^Dark Theme/ })).toHaveAttribute('href', '/preferences/appearance#setting-appearance.darkTheme');
     fireEvent.change(d.getByRole('combobox', { name: 'Search settings' }), { target: { value: 'vacuum' } });
     expect(within(d.getByRole('group', { name: 'Global Settings' })).getByRole('option', { name: /Database Maintenance/ })).toHaveAttribute(
       'href',

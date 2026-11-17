@@ -20,15 +20,21 @@ export const int = (fallback: number) => (raw?: string) => {
   return Number.isNaN(n) ? fallback : n;
 };
 
-/** '0' / 'false' is off, anything else on; written as '1' / '0' (SettingsTab). */
+/** Only '1' / 'true' is on, as SettingsTab reads the MeshCore keys; written as '1' / '0'. */
 export const on01 = (fallback: boolean) => ({
+  parse: (raw?: string) => (raw === undefined ? fallback : raw === '1' || raw === 'true'),
+  serialize: (v: boolean) => (v ? '1' : '0'),
+});
+
+/** Anything but '0' / 'false' is on (on by default), as SettingsTab reads link previews and discard-invalid; written as '1' / '0'. */
+export const notOff01 = (fallback: boolean) => ({
   parse: (raw?: string) => (raw === undefined ? fallback : !(raw === '0' || raw === 'false')),
   serialize: (v: boolean) => (v ? '1' : '0'),
 });
 
-/** As `on01`, written as 'true' / 'false' (mapClusteringEnabled). */
+/** As `notOff01`, written as 'true' / 'false' (mapClusteringEnabled, as SettingsContext reads it). */
 export const onText = (fallback: boolean) => ({
-  parse: on01(fallback).parse,
+  parse: notOff01(fallback).parse,
   serialize: (v: boolean) => (v ? 'true' : 'false'),
 });
 

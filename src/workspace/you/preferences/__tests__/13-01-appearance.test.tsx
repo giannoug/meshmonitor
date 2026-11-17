@@ -45,13 +45,45 @@ describe('13-01-appearance', () => {
     expect(screen.queryByText('Official Pin Color')).toBeNull();
   });
 
-  it('Apply as Light sets the Light Theme row', async () => {
-    const { log } = appearance();
+  it('Apply as Light is today\'s local set: no settings request, for any viewer (Ruling GM)', async () => {
+    const { log } = appearance({ permissions: { global: {}, bySource: {} } });
     const row = (await screen.findByText('Mesh green', { selector: 'span' })).closest('div')!;
     fireEvent.click(within(row).getByRole('button', { name: 'Apply as Light' }));
-    await waitFor(() => expect(log.settings).toContainEqual({ lightTheme: 'custom-mesh-green' }));
-    // The applied theme was already the dark one.
+    await waitFor(() => expect(within(row).getByRole('button', { name: 'Light Active' })).toBeDisabled());
+    expect(localStorage.getItem('lightTheme')).toBe('custom-mesh-green');
+    expect(log.settings).toEqual([]);
+    // The applied dark theme came from the install's settings.
     expect(within(screen.getByText('Athens Night', { selector: 'span' }).closest('div')!).getByRole('button', { name: 'Dark Active' })).toBeDisabled();
+  });
+
+  it('phone: a select opens the bottom sheet of its options (b-set-p3), and tap targets carry data-phone', async () => {
+    appearance({ phone: true });
+    await screen.findByText('Official Pin Color');
+    fireEvent.click(screen.getByRole('button', { name: /Node List Style/ }));
+    const sheet = await screen.findByRole('dialog', { name: 'Node List Style' });
+    expect(within(sheet).getByRole('radio', { name: 'Importance' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^Remove emoji/ })[0]).toHaveAttribute('data-phone', 'true');
+  });
+
+  it('the ⋯ menu works from the keyboard; Escape closes only the menu', async () => {
+    appearance();
+    const more = await screen.findByRole('button', { name: 'More for Mesh green' });
+    fireEvent.click(more);
+    const menu = screen.getByRole('menu', { name: 'More for Mesh green' });
+    const [clone, del] = within(menu).getAllByRole('menuitem');
+    expect(clone).toHaveFocus();
+    fireEvent.keyDown(clone, { key: 'ArrowDown' });
+    expect(del).toHaveFocus();
+    fireEvent.keyDown(del, { key: 'ArrowDown' });
+    expect(clone).toHaveFocus();
+    let reached = false;
+    const outer = () => (reached = true);
+    document.addEventListener('keydown', outer);
+    fireEvent.keyDown(clone, { key: 'Escape' });
+    document.removeEventListener('keydown', outer);
+    expect(reached).toBe(false);
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(more).toHaveFocus();
   });
 
   it('Delete asks with today\'s words, then deletes', async () => {
@@ -62,6 +94,17 @@ describe('13-01-appearance', () => {
     expect(sheet).toHaveTextContent('Are you sure you want to delete this theme?');
     fireEvent.click(within(sheet).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(log.themes).toEqual([{ method: 'DELETE', path: '/api/themes/custom-mesh-green' }]));
+  });
+
+  it('deleting the dark theme in use does what today does: the slot goes back to Mocha in context, nothing is saved', async () => {
+    const { log } = appearance();
+    fireEvent.click(await screen.findByRole('button', { name: 'More for Athens Night' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Athens Night' })).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(localStorage.getItem('darkTheme')).toBe('mocha'));
+    // The install key still names the deleted theme, as today; the row shows context's Mocha.
+    await waitFor(() => expect(screen.getByLabelText('Dark Theme')).toHaveDisplayValue('Mocha (Dark)'));
+    expect(log.settings).toEqual([]);
   });
 
   it('Reset to Defaults asks with today\'s words before saving the tapbacks', async () => {

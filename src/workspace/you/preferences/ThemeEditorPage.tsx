@@ -46,7 +46,7 @@ export default function ThemeEditorPage() {
   if (missing) {
     return (
       <PrefsFrame categoryId="theme-editor" title={title} icon="sun" readOnly={false} needsSettings={false} back={{ label: t('settings.appearance'), to: APPEARANCE }}>
-        <StateView kind={s.isLoadingThemes || customThemes.length === 0 ? 'loading' : 'notFound'} />
+        <StateView kind={s.isLoadingThemes ? 'loading' : 'notFound'} />
       </PrefsFrame>
     );
   }

@@ -355,8 +355,9 @@ function DashboardInner() {
   }, [isSuccess, sources, selectedSourceId, showUnified]);
 
   // Auto-show news popup when authenticated user has unread news.
+  // Inside the Workspace shell (#6365) the shell does this once per load.
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || embedded) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -373,7 +374,7 @@ function DashboardInner() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, embedded]);
 
   // Build node-count map. Each source's count comes from its /status response
   // (added in sourceRoutes.ts), polled in parallel by useSourceStatuses. The
