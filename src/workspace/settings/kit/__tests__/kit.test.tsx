@@ -9,6 +9,7 @@
 import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { renderWorkspace, type RenderWorkspaceOptions } from '../../../test/renderWorkspace';
 import { prefsFixture } from '../../../__fixtures__/prefsFixture';
 import { NumberInputScope } from '../../../../components/common/NumberInputScope';
@@ -119,6 +120,14 @@ describe('controls', () => {
     render(inCategory(<Form />));
     const sw = screen.getByRole('switch', { name: 'Transmit' });
     fireEvent.click(sw);
+    expect(sw).toBeChecked();
+  });
+
+  it('a toggle flips on Space', async () => {
+    render(inCategory(<Form />));
+    const sw = screen.getByRole('switch', { name: 'Transmit' });
+    sw.focus();
+    await userEvent.keyboard(' ');
     expect(sw).toBeChecked();
   });
 

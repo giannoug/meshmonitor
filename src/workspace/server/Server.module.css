@@ -319,10 +319,12 @@
   flex: none;
 }
 
-.keyRow[data-phone] .rowSwitch,
-.layerRow[data-phone] .rowSwitch {
-  width: 44px;
-  height: 44px;
+/* Phone: the track stays 26 px tall; a pseudo-element grows the hit target to 44 px. */
+.keyRow[data-phone] .rowSwitch::before,
+.layerRow[data-phone] .rowSwitch::before {
+  content: '';
+  position: absolute;
+  inset: -9px 0;
 }
 
 .progress {
