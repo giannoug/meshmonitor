@@ -1,6 +1,6 @@
 {
   "must": [
-    "Two-factor",
+    "Two-Factor",
     "6-digit",
     "Use a backup code",
     "Verify",

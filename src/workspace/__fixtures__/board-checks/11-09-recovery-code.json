@@ -5,10 +5,10 @@
     "Username",
     "Choose a new password",
     "signed in with a recovery code",
-    "New password",
-    "Confirm new password",
+    "New Password",
+    "Confirm New Password",
     "Minimum 8 characters",
-    "Change password"
+    "Change Password"
   ],
   "absent": [],
   "source": "checks/s11.json"

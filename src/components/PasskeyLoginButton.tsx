@@ -2,11 +2,10 @@
  * "Sign in with a passkey" button for LoginPage and LoginModal (#5841).
  * Renders nothing without a secure context and WebAuthn (spec §5).
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../contexts/AuthContext';
 import { passkeysSupported } from '../services/passkeyClient';
-import { passkeyLoginErrorMessage } from '../hooks/usePasskeyLogin';
+import { usePasskeySignIn } from './account/useSignIn';
 import { UiIcon } from './icons';
 import styles from './PasskeyLoginButton.module.css';
 
@@ -20,23 +19,9 @@ interface PasskeyLoginButtonProps {
 
 const PasskeyLoginButton: React.FC<PasskeyLoginButtonProps> = ({ disabled, className, onError }) => {
   const { t } = useTranslation();
-  const { loginWithPasskey } = useAuth();
-  const [busy, setBusy] = useState(false);
+  const { busy, signIn: handleClick } = usePasskeySignIn(onError);
 
   if (!passkeysSupported()) return null;
-
-  const handleClick = async () => {
-    onError(null);
-    setBusy(true);
-    try {
-      await loginWithPasskey();
-      // On success the page reloads.
-    } catch (err) {
-      onError(passkeyLoginErrorMessage(err, t));
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
     <button

@@ -1,10 +1,10 @@
 {
   "must": [
-    "Two-factor",
+    "Two-Factor",
     "6-digit",
     "Invalid code",
     "Use a backup code",
-    "Backup code",
+    "Backup Code",
     "8 characters",
     "Use authenticator code",
     "Verify",

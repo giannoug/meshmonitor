@@ -9,10 +9,9 @@
  * - `guest`: not signed in; channels only, with today's Login.
  */
 import { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import LoginModal from '../../components/LoginModal';
+import { SignInDialog } from '../auth/SignInCard';
 import { UiIcon } from '../../components/icons';
 import styles from './ReadOnlyNote.module.css';
 
@@ -51,7 +50,7 @@ export default function ReadOnlyNote(props: ReadOnlyNoteProps) {
           <UiIcon name="user" size={16} /> {t('auth.login')}
         </button>
       </div>
-      {createPortal(<LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />, document.body)}
+      <SignInDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
     </div>
   );
 }

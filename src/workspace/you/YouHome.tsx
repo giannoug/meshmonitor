@@ -6,10 +6,9 @@
  * everyone. A guest gets Login instead of the account rows.
  */
 import { useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { version } from '../../../package.json';
-import LoginModal from '../../components/LoginModal';
+import { SignInDialog } from '../auth/SignInCard';
 import { UiIcon } from '../../components/icons';
 import TwoLineRow from '../patterns/TwoLineRow';
 import { abbrevOf } from '../shell/useWorkspaceSources';
@@ -64,7 +63,7 @@ export default function YouHome() {
       <>
         {group([{ key: 'login', icon: 'user', tone: 'account', label: t('auth.login'), onClick: () => setLoginOpen(true) }])}
         {group([helpRow])}
-        {createPortal(<LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />, document.body)}
+        <SignInDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
       </>
     );
   } else {

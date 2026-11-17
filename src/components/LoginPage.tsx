@@ -6,32 +6,29 @@
  * Supports two-step login when MFA is enabled
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { logger } from '../utils/logger';
-import { ApiError } from '../services/api';
+import { useSignIn } from './account/useSignIn';
 import { passkeysSupported } from '../services/passkeyClient';
 import { usePasskeyAutofill, passkeyLoginErrorMessage } from '../hooks/usePasskeyLogin';
 import PasskeyLoginButton from './PasskeyLoginButton';
 import PasskeyRecoveryLink from './PasskeyRecoveryLink';
 import { version } from '../../package.json';
 import PrivacyLinks from './PrivacyLinks';
+import MeshMonitorLogo from './MeshMonitorLogo';
 import { appBasename } from '../init';
 import './LoginPage.css';
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
-  const { login, verifyMfa, loginWithOIDC, loginWithPasskey, authStatus } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  // MFA state
-  const [mfaRequired, setMfaRequired] = useState(false);
-  const [mfaCode, setMfaCode] = useState('');
-  const [useBackupCode, setUseBackupCode] = useState(false);
+  const { loginWithPasskey, authStatus } = useAuth();
+  const {
+    username, setUsername, password, setPassword, error, setError, loading,
+    mfaRequired, mfaCode, setMfaCode, useBackupCode,
+    submitPassword: handleLocalLogin, submitMfa: handleMfaSubmit, toggleBackupCode,
+    backToLogin: handleBackToLogin, signInWithOidc: handleOIDCLogin,
+  } = useSignIn();
 
   const localAuthDisabled = authStatus?.localAuthDisabled ?? false;
   const oidcEnabled = authStatus?.oidcEnabled ?? false;
@@ -49,87 +46,6 @@ const LoginPage: React.FC = () => {
   const customTitle = authStatus?.customTitle || 'MeshMonitor';
   const customLogoUrl = authStatus?.customLogoUrl || null;
 
-  const handleLocalLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      const result = await login(username, password);
-      if (result.requireMfa) {
-        // Show MFA input
-        setMfaRequired(true);
-        setLoading(false);
-        return;
-      }
-      // After successful login, the auth status will update and the page will re-render
-      setUsername('');
-      setPassword('');
-    } catch (err) {
-      logger.error('Login error:', err);
-      // Rate limit: surface as a distinct, non-credential-specific message so the
-      // user knows to wait rather than keep trying passwords (#2784).
-      if (err instanceof ApiError && err.status === 429) {
-        const minutes = err.retryAfterSeconds
-          ? Math.max(1, Math.ceil(err.retryAfterSeconds / 60))
-          : null;
-        setError(minutes !== null
-          ? t('auth.rate_limited', { minutes })
-          : t('auth.rate_limited_generic'));
-      } else if (err instanceof ApiError && err.status === 403 && err.code?.startsWith('CSRF_')) {
-        // CSRF token is stale (e.g. server restarted, session rotated). The
-        // old "Session cookie" message pointed users at the wrong causes
-        // (#2783). Direct them at the real fix: reload the page.
-        setError(t('auth.session_expired'));
-      } else if (err instanceof Error && err.message.includes('Session cookie')) {
-        setError(err.message);
-      } else {
-        setError(t('auth.invalid_credentials'));
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleMfaSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      await verifyMfa(mfaCode, useBackupCode);
-      // On success, page will reload via AuthContext
-    } catch (err) {
-      logger.error('MFA verification error:', err);
-      setError(t('mfa.invalid_code'));
-      setMfaCode('');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBackToLogin = () => {
-    setMfaRequired(false);
-    setMfaCode('');
-    setUseBackupCode(false);
-    setError(null);
-    setPassword('');
-  };
-
-  const handleOIDCLogin = async () => {
-    setError(null);
-    setLoading(true);
-
-    try {
-      await loginWithOIDC();
-      // User will be redirected to OIDC provider
-    } catch (err) {
-      logger.error('OIDC login error:', err);
-      setError(t('auth.oidc_failed'));
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="login-page">
       <div className="login-container">
@@ -144,27 +60,7 @@ const LoginPage: React.FC = () => {
               className="login-logo-image"
             />
           ) : (
-            <svg
-              width="120"
-              height="120"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
-                fill="currentColor"
-              />
-              <circle cx="7" cy="12" r="1.5" fill="currentColor" />
-              <circle cx="12" cy="7" r="1.5" fill="currentColor" />
-              <circle cx="17" cy="12" r="1.5" fill="currentColor" />
-              <circle cx="12" cy="17" r="1.5" fill="currentColor" />
-              <path
-                d="M7 12L12 7M12 7L17 12M17 12L12 17M12 17L7 12"
-                stroke="currentColor"
-                strokeWidth="1"
-              />
-            </svg>
+            <MeshMonitorLogo size={120} />
           )}
           <h1>{customTitle}</h1>
         </div>
@@ -216,11 +112,7 @@ const LoginPage: React.FC = () => {
                 <button
                   type="button"
                   className="button-link"
-                  onClick={() => {
-                    setUseBackupCode(!useBackupCode);
-                    setMfaCode('');
-                    setError(null);
-                  }}
+                  onClick={toggleBackupCode}
                 >
                   {useBackupCode ? t('mfa.use_totp_code') : t('mfa.use_backup_code')}
                 </button>

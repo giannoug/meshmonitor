@@ -17,6 +17,7 @@ for (const board of BOARDS) {
 
     test(board.id, async ({ page }) => {
       await routeFixtures(page, board.fixtures);
+      await board.init?.(page);
       await page.goto(board.path);
       await page.waitForLoadState('networkidle');
       await board.setup?.(page);

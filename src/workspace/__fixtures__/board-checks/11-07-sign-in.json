@@ -1,12 +1,12 @@
 {
   "must": [
     "Athens Mesh Watch",
-    "Too many sign-in attempts",
-    "Wait 14 minutes",
+    "Too many login attempts",
+    "try again in 14 minute(s)",
     "Sign in with a passkey",
     "Username",
     "Password",
-    "Sign in with OIDC",
+    "Login with OIDC",
     "Use a recovery code",
     "GitHub"
   ],

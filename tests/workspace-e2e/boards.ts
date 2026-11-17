@@ -15,6 +15,7 @@ import { flashFailed, maintenanceFixtures, reloadFixtures } from '../../src/work
 import { bridgeFixtures, meshmonitorFixtures } from '../../src/workspace/settings/__tests__/meshmonitorFixtures';
 import { NODE, remoteFixtures } from '../../src/workspace/settings/__tests__/remoteBoardFixtures';
 import { accountFixtures, PASSKEYS, RECOVERY_CODES } from '../../src/workspace/__fixtures__/account';
+import { signInFixtures, TYPED_RECOVERY } from '../../src/workspace/__fixtures__/signIn';
 
 export interface Board {
   id: string;
@@ -22,6 +23,8 @@ export interface Board {
   path: string;
   /** Opens the sheet or menu the board shows, after the page has loaded. */
   setup?: (page: Page) => Promise<void>;
+  /** Runs before the page loads (`page.addInitScript`). */
+  init?: (page: Page) => Promise<void>;
   /** Fixture overrides for this board (`routeFixtures`). */
   fixtures?: Partial<Record<string, FixtureHandler>>;
 }
@@ -166,6 +169,29 @@ async function turnOffPasswordSignIn(page: Page, until: 'confirm' | 'codes'): Pr
   }
   await page.getByRole('dialog', { name: 'Your recovery codes' }).waitFor();
   await page.getByLabel('I saved these codes').check();
+}
+
+/**
+ * Task 6.2: no passkey autofill wait. Headless Chromium has no authenticator, so the wait would fail
+ * and show today's passkey error over the board.
+ */
+async function noPasskeyAutofill(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    if (window.PublicKeyCredential) Object.defineProperty(PublicKeyCredential, 'isConditionalMediationAvailable', { value: async () => false });
+  });
+}
+
+/** Task 6.2: the sign-in form filled as the boards draw it. */
+async function fillSignIn(page: Page): Promise<void> {
+  await page.getByLabel('Username').fill('giannoug');
+  await page.getByLabel('Password', { exact: true }).fill('correct-horse');
+}
+
+/** Task 6.2: a password the server accepts with two-factor on. */
+async function toTwoFactor(page: Page): Promise<void> {
+  await fillSignIn(page);
+  await page.getByRole('button', { name: 'Login', exact: true }).click();
+  await page.getByLabel('Authenticator Code').waitFor();
 }
 
 export const BOARDS: Board[] = [
@@ -1426,6 +1452,58 @@ export const BOARDS: Board[] = [
       await page.getByRole('dialog', { name: 'Delete this passkey?' }).getByRole('button', { name: 'Delete' }).click();
       await page.getByText(/This is your only passkey/).waitFor();
       await page.waitForTimeout(400); // the toast's 0.3 s slide-in
+    },
+  },
+  // Task 6.2: the sign-in page (anonymous viewing off), its two-factor step and the recovery-code step.
+  { id: '11-01-sign-in', size: 'desktop', path: '/', init: noPasskeyAutofill, fixtures: signInFixtures(), setup: (page) => fillSignIn(page) },
+  {
+    id: '11-07-sign-in',
+    size: 'phone',
+    path: '/',
+    init: noPasskeyAutofill,
+    fixtures: signInFixtures({ login: 'rate-limited' }),
+    setup: async (page) => {
+      await fillSignIn(page);
+      await page.getByRole('button', { name: 'Login', exact: true }).click();
+      await page.getByRole('alert').waitFor();
+    },
+  },
+  {
+    // After an invalid code (left); the backup-code card is one tap away (D9c).
+    id: '11-02-two-factor-step',
+    size: 'desktop',
+    path: '/',
+    init: noPasskeyAutofill,
+    fixtures: signInFixtures({ login: 'mfa' }),
+    setup: async (page) => {
+      await toTwoFactor(page);
+      await page.getByLabel('Authenticator Code').fill('482913');
+      await page.getByRole('button', { name: 'Verify' }).click();
+      await page.getByRole('alert').waitFor();
+    },
+  },
+  {
+    id: '11-08-two-factor-step',
+    size: 'phone',
+    path: '/',
+    init: noPasskeyAutofill,
+    fixtures: signInFixtures({ login: 'mfa' }),
+    setup: async (page) => {
+      await toTwoFactor(page);
+      await page.getByLabel('Authenticator Code').fill('482');
+    },
+  },
+  {
+    // The recovery step; after its reload the forced "Choose a new password" is 11-06's sheet (D9c).
+    id: '11-09-recovery-code',
+    size: 'phone',
+    path: '/',
+    init: noPasskeyAutofill,
+    fixtures: signInFixtures(),
+    setup: async (page) => {
+      await page.getByRole('button', { name: 'Lost your passkey? Use a recovery code' }).click();
+      await page.getByLabel('Username').fill('giannoug');
+      await page.getByRole('textbox', { name: 'Recovery code' }).fill(TYPED_RECOVERY);
     },
   },
   { id: 's2-notifications', size: 'phone', path: '/you/notifications', fixtures: { ...MESHMONITOR(), ...PUSH_HERE }, setup: pushInThisBrowser },

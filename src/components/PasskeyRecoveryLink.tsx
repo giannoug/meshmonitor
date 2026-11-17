@@ -5,9 +5,7 @@
  */
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../contexts/AuthContext';
-import { ApiError } from '../services/api';
-import { logger } from '../utils/logger';
+import { useRecoveryCodeSignIn } from './account/useSignIn';
 import styles from './PasskeyRecoveryLink.module.css';
 
 interface PasskeyRecoveryLinkProps {
@@ -16,12 +14,8 @@ interface PasskeyRecoveryLinkProps {
 
 const PasskeyRecoveryLink: React.FC<PasskeyRecoveryLinkProps> = ({ disabled }) => {
   const { t } = useTranslation();
-  const { recoverWithCode } = useAuth();
   const [open, setOpen] = useState(false);
-  const [username, setUsername] = useState('');
-  const [code, setCode] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { username, setUsername, code, setCode, busy, error, submit: handleSubmit, cancel } = useRecoveryCodeSignIn();
 
   if (!open) {
     return (
@@ -30,27 +24,6 @@ const PasskeyRecoveryLink: React.FC<PasskeyRecoveryLinkProps> = ({ disabled }) =
       </button>
     );
   }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setBusy(true);
-    try {
-      await recoverWithCode(username.trim(), code.trim());
-      // On success the page reloads.
-    } catch (err) {
-      logger.debug('Recovery-code sign-in failed:', err);
-      if (err instanceof ApiError && err.status === 429) {
-        const minutes = err.retryAfterSeconds ? Math.max(1, Math.ceil(err.retryAfterSeconds / 60)) : null;
-        setError(minutes !== null ? t('auth.rate_limited', { minutes }) : t('auth.rate_limited_generic'));
-      } else {
-        setError(t('passkey_only.recover_failed'));
-      }
-      setCode('');
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
     <form className={styles.form} onSubmit={handleSubmit} aria-label={t('passkey_only.recover_title')}>
@@ -96,8 +69,7 @@ const PasskeyRecoveryLink: React.FC<PasskeyRecoveryLinkProps> = ({ disabled }) =
           className="button button-secondary"
           onClick={() => {
             setOpen(false);
-            setError(null);
-            setCode('');
+            cancel();
           }}
           disabled={busy}
         >

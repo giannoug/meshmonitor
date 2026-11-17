@@ -23,6 +23,7 @@ import WorkspaceShell from './shell/WorkspaceShell';
 import { useIsPhone } from './shell/useIsPhone';
 import WorkspaceSource from './source/WorkspaceSource';
 import YouHome from './you/YouHome';
+import SignInPage from './auth/SignInPage';
 import LayoutPage from './you/LayoutPage';
 import GeneralLayoutCard from './server/GeneralLayoutCard';
 import { workspaceRedirect } from './routes';
@@ -123,15 +124,29 @@ function WorkspaceRoutes() {
   );
 }
 
+/**
+ * Anonymous viewing off and no session: today's LoginPage case (App.tsx),
+ * the Workspace sign-in page outside the shell (Task 6.2, s11n0). The shell
+ * waits for the auth answer, so it fires none of its data requests first.
+ */
+function SignInGate() {
+  const { authStatus } = useAuth();
+  if (!authStatus) return <RouteLoading />;
+  if (authStatus.anonymousDisabled && !authStatus.authenticated) return <SignInPage />;
+  return (
+    <WorkspaceShell>
+      <WorkspaceRoutes />
+    </WorkspaceShell>
+  );
+}
+
 export default function WorkspaceApp() {
   return (
     <CsrfProvider>
       <AuthProvider>
         <SettingsProvider>
           <ToastProvider>
-            <WorkspaceShell>
-              <WorkspaceRoutes />
-            </WorkspaceShell>
+            <SignInGate />
           </ToastProvider>
         </SettingsProvider>
       </AuthProvider>

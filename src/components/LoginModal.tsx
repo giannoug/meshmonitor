@@ -5,11 +5,10 @@
  * with two-step MFA verification support.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { logger } from '../utils/logger';
-import { ApiError } from '../services/api';
+import { useSignIn } from './account/useSignIn';
 import { passkeysSupported } from '../services/passkeyClient';
 import { usePasskeyAutofill, passkeyLoginErrorMessage } from '../hooks/usePasskeyLogin';
 import PasskeyLoginButton from './PasskeyLoginButton';
@@ -23,18 +22,15 @@ interface LoginModalProps {
 
 const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
-  const { login, verifyMfa, loginWithOIDC, loginWithPasskey, authStatus } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { loginWithPasskey, authStatus } = useAuth();
+  const {
+    username, setUsername, password, setPassword, error, setError, loading,
+    mfaRequired, mfaCode, setMfaCode, useBackupCode,
+    submitPassword: handleLocalLogin, submitMfa: handleMfaSubmit, toggleBackupCode, resetMfa,
+    backToLogin: handleBackToLogin, signInWithOidc: handleOIDCLogin,
+  } = useSignIn(onClose);
   const usernameInputRef = useRef<HTMLInputElement>(null);
   const mfaInputRef = useRef<HTMLInputElement>(null);
-
-  // MFA state
-  const [mfaRequired, setMfaRequired] = useState(false);
-  const [mfaCode, setMfaCode] = useState('');
-  const [useBackupCode, setUseBackupCode] = useState(false);
 
   const localAuthDisabled = authStatus?.localAuthDisabled ?? false;
   const oidcEnabled = authStatus?.oidcEnabled ?? false;
@@ -58,94 +54,9 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setMfaRequired(false);
-      setMfaCode('');
-      setUseBackupCode(false);
-      setError(null);
+      resetMfa();
     }
-  }, [isOpen]);
-
-  const handleLocalLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      const result = await login(username, password);
-      if (result.requireMfa) {
-        // Show MFA input step
-        setMfaRequired(true);
-        setLoading(false);
-        return;
-      }
-      onClose();
-      setUsername('');
-      setPassword('');
-    } catch (err) {
-      logger.error('Login error:', err);
-      // Rate limit: surface as a distinct, non-credential-specific message so the
-      // user knows to wait rather than keep trying passwords (#2784).
-      if (err instanceof ApiError && err.status === 429) {
-        const minutes = err.retryAfterSeconds
-          ? Math.max(1, Math.ceil(err.retryAfterSeconds / 60))
-          : null;
-        setError(minutes !== null
-          ? t('auth.rate_limited', { minutes })
-          : t('auth.rate_limited_generic'));
-      } else if (err instanceof ApiError && err.status === 403 && err.code?.startsWith('CSRF_')) {
-        // CSRF token is stale (e.g. server restarted, session rotated). The
-        // old "Session cookie" message pointed users at the wrong causes
-        // (#2783). Direct them at the real fix: reload the page.
-        setError(t('auth.session_expired'));
-      } else if (err instanceof Error && err.message.includes('Session cookie')) {
-        setError(err.message);
-      } else {
-        setError(t('auth.invalid_credentials'));
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleMfaSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      await verifyMfa(mfaCode, useBackupCode);
-      // On success, page will reload via AuthContext
-      onClose();
-    } catch (err) {
-      logger.error('MFA verification error:', err);
-      setError(t('mfa.invalid_code'));
-      setMfaCode('');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBackToLogin = () => {
-    setMfaRequired(false);
-    setMfaCode('');
-    setUseBackupCode(false);
-    setError(null);
-    setPassword('');
-  };
-
-  const handleOIDCLogin = async () => {
-    setError(null);
-    setLoading(true);
-
-    try {
-      await loginWithOIDC();
-      // User will be redirected to OIDC provider
-    } catch (err) {
-      logger.error('OIDC login error:', err);
-      setError(t('auth.oidc_failed'));
-      setLoading(false);
-    }
-  };
+  }, [isOpen, resetMfa]);
 
   return (
     <Modal
@@ -201,11 +112,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
               type="button"
               className="button-link"
               style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', fontSize: '13px', textDecoration: 'underline', padding: '4px' }}
-              onClick={() => {
-                setUseBackupCode(!useBackupCode);
-                setMfaCode('');
-                setError(null);
-              }}
+              onClick={toggleBackupCode}
             >
               {useBackupCode ? t('mfa.use_totp_code') : t('mfa.use_backup_code')}
             </button>
