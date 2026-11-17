@@ -11,10 +11,11 @@ import { describe, it, expect } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { AUTO_ENRICHMENT_STATUS } from '../../__fixtures__/server';
+import { ADMIN_ONLY_SETTINGS_KEYS, GLOBAL_ONLY_SETTINGS_KEYS, VALID_SETTINGS_KEYS, isSecretSettingKey } from '../../../server/constants/settings';
 import { grants, renderServer } from './serverHarness';
 
 const PATH = '/server/background-jobs';
-const SENDS = 'Sends 1 NodeInfo request over the mesh per enriched node · at most 25 per run, 30 s apart; the rest wait for the next run';
+const SENDS = "Sends 1 NodeInfo request over the mesh per enriched node · at most 25 per run, 30 s apart; the rest wait for the next run. Leave off unless you need the radio's own NodeDB kept in sync.";
 const settingsWrites = (log: { writes: Array<{ path: string; body?: unknown }> }) => log.writes.filter((w) => w.path === '/api/settings').map((w) => w.body);
 
 describe('13-10 / 13-26 background jobs', () => {
@@ -124,6 +125,32 @@ describe('13-10 / 13-26 background jobs', () => {
     expect(screen.getByRole('button', { name: 'Run now' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Run analysis now' }));
     await waitFor(() => expect(log.writes.filter((w) => w.path === '/api/analysis/mesh-issues/run-now')).toHaveLength(1));
+  });
+
+  it('a writer can change exactly the keys today\'s server saves for a non-admin (held to the server\'s key lists)', async () => {
+    const { log } = renderServer(PATH, { permissions: grants({ write: true }) });
+    await screen.findByText(SENDS);
+    await screen.findByLabelText('Airtime TX ceiling (%)');
+    const savedForWriter = (key: string) => !GLOBAL_ONLY_SETTINGS_KEYS.has(key) && !ADMIN_ONLY_SETTINGS_KEYS.has(key) && !isSecretSettingKey(key);
+    const rows = Array.from(document.querySelectorAll('[data-setting-id^="background-jobs."]'));
+    expect(rows.length).toBeGreaterThan(25);
+    const editable: string[] = [];
+    for (const row of rows) {
+      const key = row.getAttribute('data-setting-id')!.slice('background-jobs.'.length);
+      expect((VALID_SETTINGS_KEYS as readonly string[]).includes(key)).toBe(true);
+      const controls = Array.from(row.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>('input, select, [role="radio"]'));
+      expect(controls.length).toBeGreaterThan(0);
+      for (const c of controls) expect(c.disabled).toBe(!savedForWriter(key));
+      if (savedForWriter(key)) editable.push(key);
+    }
+    // The rule mutes are one more key the page writes.
+    expect(savedForWriter('mesh_issues_disabled_rules')).toBe(false);
+    expect(screen.getByRole('checkbox', { name: /^A1 / })).toBeDisabled();
+    expect(editable).toEqual(['mesh_issues_router_cluster_max_link_km']);
+    const km = screen.getByLabelText('Router cluster max link (km)');
+    fireEvent.change(km, { target: { value: '40' } });
+    fireEvent.blur(km);
+    await waitFor(() => expect(settingsWrites(log)).toContainEqual({ mesh_issues_router_cluster_max_link_km: '40' }));
   });
 
   it('on phone Solar is a page of its own with the 13-10 fields', async () => {

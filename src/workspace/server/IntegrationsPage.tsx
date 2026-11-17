@@ -22,7 +22,7 @@
  * Saving the CoT feed's switch or port restarts the feed, as today's Save did.
  */
 import { useState, type ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { UiIcon, type UiIconName } from '../../components/icons';
 import { useTranslationTest } from '../../components/configuration/useTranslationTest';
@@ -49,6 +49,7 @@ import { useIsPhone } from '../shell/useIsPhone';
 import KeyForm, { type TestResult } from './KeyForm';
 import { useRefreshSettings, useSaveSettings } from './settingsWrites';
 import ServerFrame from './ServerFrame';
+import { useServerAccess } from './serverEntries';
 import { StatusSelect, StatusToggle } from './statusRows';
 import pages from '../settings/categories/SettingsPages.module.css';
 import prefs from '../you/preferences/Preferences.module.css';
@@ -63,9 +64,12 @@ const oneZero = { parse: (raw?: string) => raw === '1' || raw === 'true', serial
 
 export default function IntegrationsPage() {
   const isPhone = useIsPhone();
+  const { isAdmin } = useServerAccess();
   return (
-    <IntegrationsFrame>
-      {isPhone ? (
+    <IntegrationsFrame gate="write">
+      {!isAdmin ? (
+        <WriterView />
+      ) : isPhone ? (
         <>
           <TranslationGroup />
           <ServiceLinks />
@@ -90,6 +94,26 @@ export default function IntegrationsPage() {
   );
 }
 
+/**
+ * A settings writer who is not an admin: today's page showed them Virtual Node
+ * replay (no admin gate) but the server keeps its keys for admins, so it is
+ * view only here; nothing admin-only is read.
+ */
+function WriterView() {
+  const { t } = useTranslation();
+  return (
+    <>
+      <p className={styles.pageNote}>
+        <UiIcon name="info" size={16} />
+        <span>{t('workspace.server.integrations_writer_note')}</span>
+      </p>
+      <SettingGroup title={t('workspace.server.feeds')}>
+        <VnReplayRows />
+      </SettingGroup>
+    </>
+  );
+}
+
 function KeysNote() {
   const { t } = useTranslation();
   return (
@@ -100,15 +124,17 @@ function KeysNote() {
   );
 }
 
-export function IntegrationsFrame({ title, children, back }: { title?: string; children: ReactNode; back?: { label: string; to: string } }) {
+export function IntegrationsFrame({ title, children, back, gate = 'admin' }: { title?: string; children: ReactNode; back?: { label: string; to: string }; gate?: 'write' | 'admin' }) {
   const { t } = useTranslation();
+  const { isAdmin } = useServerAccess();
   return (
     <ServerFrame
       categoryId="integrations"
       title={title ?? t('workspace.server.nav.integrations')}
       scope={t('workspace.server.integrations_scope')}
       icon="package"
-      gate="admin"
+      gate={gate}
+      readOnly={!isAdmin}
       back={back}
     >
       {children}
@@ -428,6 +454,7 @@ export function MeshWarsGroup() {
 /** Today's key and URL: the key is never read back; Save sends the URL, and the key only when one is typed. */
 function MeshWarsKey({ status }: { status: MeshWarsStatus }) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const save = useSaveSettings();
   const [key, setKey] = useState('');
   const [url, setUrl] = useState<string | null>(null);
@@ -440,6 +467,8 @@ function MeshWarsKey({ status }: { status: MeshWarsStatus }) {
     setBusy(true);
     try {
       await save({ meshwarsBaseUrl: typedUrl.trim(), ...(key.trim() ? { meshwars_api_token: key.trim() } : {}) });
+      // Today's Save re-seeds the form from the status route (fetchStatus(true)).
+      await queryClient.invalidateQueries({ queryKey: MW_KEY });
       setKey('');
       setUrl(null);
       setState({ saved: true });
@@ -517,31 +546,7 @@ function FeedsGroup() {
           />
         )}
       />
-      <h3 className={styles.subTitle}>{t('settings.vn_replay_section', 'Virtual Node message replay')}</h3>
-      <AutoToggle
-        k="virtualNodeReplayEnabled"
-        id="integrations.virtualNodeReplayEnabled"
-        label={t('settings.vn_replay_enabled_label', 'Replay missed messages on reconnect')}
-        help={
-          <>
-            {t('settings.vn_replay_section_description', 'When a phone app reconnects to a Virtual Node, re-send the text messages stored while it was asleep (since its last sign of life, minus a 10-minute overlap). The app drops duplicates by packet id, so no gaps and no duplicates. No LoRa airtime — this only travels the local link to the app. Paced 50 ms apart, up to 2000 newest messages; the first connection sends the last 24 hours.')}{' '}
-            {t('settings.vn_replay_enabled_description', 'Opt-in; off by default. Applies to every Virtual Node source.')}
-          </>
-        }
-        {...oneZero}
-        render={(on) => (
-          <AutoText
-            k="virtualNodeReplayExcludeIps"
-            id="integrations.virtualNodeReplayExcludeIps"
-            label={t('settings.vn_replay_exclude_ips_label', 'Never replay to these IPs')}
-            help={t('settings.vn_replay_exclude_ips_description', 'Comma-separated client IPs that never receive a replay (scripts, loggers). Localhost is always excluded. Overrides the VN_REPLAY_EXCLUDE_IPS environment variable when set.')}
-            placeholder="192.168.1.50, 10.0.0.9"
-            parse={(raw) => raw ?? ''}
-            serialize={(v) => v.trim()}
-            disabled={!on}
-          />
-        )}
-      />
+      <VnReplayRows />
       <h3 className={styles.subTitle}>{t('settings.ducting_section', 'Tropospheric ducting overlay')}</h3>
       <AutoToggle
         k="ductingOverlayEnabled"
@@ -570,5 +575,39 @@ function FeedsGroup() {
         {...trueFalse}
       />
     </SettingGroup>
+  );
+}
+
+/** Today's Virtual Node message replay rows: admins change them; a settings writer sees them view only, as today. */
+function VnReplayRows() {
+  const { t } = useTranslation();
+  return (
+    <>
+      <h3 className={styles.subTitle}>{t('settings.vn_replay_section', 'Virtual Node message replay')}</h3>
+      <AutoToggle
+        k="virtualNodeReplayEnabled"
+        id="integrations.virtualNodeReplayEnabled"
+        label={t('settings.vn_replay_enabled_label', 'Replay missed messages on reconnect')}
+        help={
+          <>
+            {t('settings.vn_replay_section_description', 'When a phone app reconnects to a Virtual Node, re-send the text messages stored while it was asleep (since its last sign of life, minus a 10-minute overlap). The app drops duplicates by packet id, so no gaps and no duplicates. No LoRa airtime — this only travels the local link to the app. Paced 50 ms apart, up to 2000 newest messages; the first connection sends the last 24 hours.')}{' '}
+            {t('settings.vn_replay_enabled_description', 'Opt-in; off by default. Applies to every Virtual Node source.')}
+          </>
+        }
+        {...oneZero}
+        render={(on) => (
+          <AutoText
+            k="virtualNodeReplayExcludeIps"
+            id="integrations.virtualNodeReplayExcludeIps"
+            label={t('settings.vn_replay_exclude_ips_label', 'Never replay to these IPs')}
+            help={t('settings.vn_replay_exclude_ips_description', 'Comma-separated client IPs that never receive a replay (scripts, loggers). Localhost is always excluded. Overrides the VN_REPLAY_EXCLUDE_IPS environment variable when set.')}
+            placeholder="192.168.1.50, 10.0.0.9"
+            parse={(raw) => raw ?? ''}
+            serialize={(v) => v.trim()}
+            disabled={!on}
+          />
+        )}
+      />
+    </>
   );
 }

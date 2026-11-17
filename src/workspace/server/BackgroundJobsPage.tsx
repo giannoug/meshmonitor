@@ -1,9 +1,12 @@
 /**
  * Server › Background jobs (boards 13-10 desktop, 13-26 phone). settings:write
- * opens it (s13n2). The settings here are install-wide keys the server keeps
- * for admins (GLOBAL_ONLY_SETTINGS_KEYS drop them from anyone else's save), so
- * the rows are view only for a non-admin and say why; today's page let such a
- * user type and silently dropped the save. Server gates are unchanged.
+ * opens it (s13n2). All but one of the settings here are install-wide keys
+ * the server keeps for admins (GLOBAL_ONLY_SETTINGS_KEYS drop them from anyone
+ * else's save), so those rows are view only for a non-admin and say why;
+ * today's page let such a user type and silently dropped the save. The one
+ * exception, Router cluster max link (`WRITER_KEYS`), is saved for a
+ * settings writer today, so it stays editable for them (a test holds this
+ * split to the server's key lists). Server gates are unchanged.
  *
  * - Position estimation, Auto-enrichment, Mesh issues: today's sections. Each
  *   field saves as you go as today's key (`POST /api/settings`) and the status
@@ -62,6 +65,12 @@ const AE_INTERVAL_HOURS = [1, 2, 3, 6, 12, 24, 48, 168];
 const AE_DEFAULT_CRON = '0 */6 * * *';
 const MI_FREQUENCY = [6, 12, 24, 48, 168];
 const MI_PAIR_BUCKET = [1, 3, 6, 12, 24];
+/**
+ * Keys on this page a non-admin settings writer's save reaches today: in
+ * neither GLOBAL_ONLY_SETTINGS_KEYS nor ADMIN_ONLY_SETTINGS_KEYS (the frontend
+ * does not import that server-only file; 13-10's writer test holds this list to it).
+ */
+const WRITER_KEYS = new Set(['mesh_issues_router_cluster_max_link_km']);
 /** How often today's section reads the status while a run is in progress. */
 const STATUS_POLL_MS = 10_000;
 
@@ -516,6 +525,7 @@ function MeshIssuesGroup() {
             body={num(f.key)}
             queryKey={MI_KEY}
             disabled={off}
+            editable={WRITER_KEYS.has(f.key)}
           />
         ))}
         <p className={styles.cardPara}>

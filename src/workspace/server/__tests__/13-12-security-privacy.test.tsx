@@ -84,9 +84,26 @@ describe('13-12 / 13-28 security & privacy', () => {
     expect(screen.getByRole('button', { name: 'Edit Privacy Policy' })).toBeEnabled();
   });
 
-  it('settings viewers without write cannot open it', async () => {
-    renderServer(PATH, { permissions: grants({ read: true }) });
-    expect(await screen.findByText("You don't have permission to do this")).toBeInTheDocument();
+  it('a settings viewer sees today\'s hosted documents, view only: no Publish, Upload or Unpublish', async () => {
+    const { log } = renderServer(PATH, { permissions: grants({ read: true }) });
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit Privacy Policy' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Privacy Policy' });
+    expect(within(sheet).getByLabelText('Document (Markdown)')).toBeDisabled();
+    expect(within(sheet).queryByRole('button', { name: 'Publish' })).toBeNull();
+    expect(within(sheet).queryByRole('button', { name: /Upload file/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'More for Privacy Policy' })).toBeNull();
+    expect(screen.queryByText('Reliable PKI (default for every source)')).toBeNull();
+    expect(log.writes).toHaveLength(0);
+  });
+
+  it('on phone a disclosure URL opens a field; Save writes it trimmed', async () => {
+    const { log } = renderServer(PATH, { phone: true });
+    fireEvent.click((await screen.findAllByRole('button', { name: /Hidden/ }))[0]);
+    const sheet = await screen.findByRole('dialog', { name: 'Privacy policy URL' });
+    fireEvent.change(within(sheet).getByLabelText('Privacy policy URL'), { target: { value: ' https://athensmesh.gr/privacy ' } });
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(settingsWrites(log)).toContainEqual({ privacyPolicyUrl: 'https://athensmesh.gr/privacy' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Privacy policy URL' })).toBeNull());
   });
 });
 

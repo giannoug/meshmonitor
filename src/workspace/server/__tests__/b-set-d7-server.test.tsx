@@ -34,14 +34,14 @@ describe('b-set-d7-server', () => {
     expect(within(sidebar()).getByRole('link', { name: 'Background jobs' })).toHaveAttribute('href', '/server/background-jobs');
   });
 
-  it('a settings viewer sees only Backup & maintenance', async () => {
+  it('a settings viewer sees Backup & maintenance and Security & privacy (its hosted documents, view only)', async () => {
     renderServer('/server/backup', { permissions: grants({ read: true }) });
-    await waitFor(() => expect(entries()).toEqual(['Backup & maintenance']));
+    await waitFor(() => expect(entries()).toEqual(['Security & privacy', 'Backup & maintenance']));
   });
 
-  it('settings:write adds General, Security & privacy (its hosted documents), Map & tiles and Background jobs (today\'s writer rows)', async () => {
+  it('settings:write adds General, Map & tiles, Background jobs and Integrations (today\'s writer rows)', async () => {
     renderServer('/server/backup', { permissions: grants({ write: true }) });
-    await waitFor(() => expect(entries()).toEqual(['General', 'Security & privacy', 'Backup & maintenance', 'Map & tiles', 'Background jobs']));
+    await waitFor(() => expect(entries()).toEqual(['General', 'Security & privacy', 'Backup & maintenance', 'Map & tiles', 'Background jobs', 'Integrations']));
   });
 
   it('a direct link to an admin page shows today\'s no-permission state and reads nothing', async () => {
@@ -55,7 +55,7 @@ describe('b-set-d7-server', () => {
     renderServer('/server');
     await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/server/general'));
     renderServer('/server', { permissions: grants({ read: true }) });
-    await waitFor(() => expect(screen.getAllByTestId('where').at(-1)).toHaveTextContent('/server/backup'));
+    await waitFor(() => expect(screen.getAllByTestId('where').at(-1)).toHaveTextContent('/server/security'));
   });
 
   it.each([

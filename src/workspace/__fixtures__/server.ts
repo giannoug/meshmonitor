@@ -65,6 +65,8 @@ export const SERVER_SETTINGS: Record<string, string> = {
   contactUrl: 'https://athensmesh.gr/contact',
   meshwarsEnabled: 'true',
   meshwarsSourceId: SOURCE_IDS.heltec,
+  meshwarsBaseUrl: 'https://meshwars.gr/api',
+  meshwars_api_token: 'mw-stored-key',
   analyticsProvider: 'plausible',
   analyticsConfig: JSON.stringify({ domain: 'mesh.athensmesh.gr' }),
 };
@@ -289,7 +291,17 @@ export function serverFixtures(log: ServerLog = newServerLog(), settings: Record
     'GET /api/analysis/mesh-issues/status': read({ success: true, data: MESH_ISSUES_STATUS }),
     'POST /api/analysis/mesh-issues/run-now': write({ success: true, data: { findingCount: 7, durationMs: 900 } }),
     'POST /api/solar/trigger': write({ success: true, message: 'Solar estimate fetch triggered' }),
-    'GET /api/settings/meshwars/status': read({ success: true, data: MESHWARS_STATUS }),
+    // The status follows the stored settings, as the server's does; the key itself never comes back.
+    'GET /api/settings/meshwars/status': read(() => ({
+      success: true,
+      data: {
+        ...MESHWARS_STATUS,
+        enabled: stored.meshwarsEnabled === 'true',
+        sourceId: stored.meshwarsSourceId ?? '',
+        baseUrl: stored.meshwarsBaseUrl || MESHWARS_STATUS.baseUrl,
+        apiKeySet: !!stored.meshwars_api_token,
+      },
+    })),
     'POST /api/translate/test': write({ success: true, data: { translatedText: 'Καλημέρα', sampleSourceText: 'Good morning' } }),
     'POST /api/elevation/test': write({ success: true, data: { success: true, detectedType: 'open-elevation', sampleElevation: 112, latencyMs: 80 } }),
     'GET /api/privacy/admin/documents': read({ success: true, data: PRIVACY_DOCS }),

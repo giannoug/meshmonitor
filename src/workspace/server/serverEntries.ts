@@ -3,11 +3,14 @@
  * the phone list (13-16), and the gates of s13n2:
  *
  * - Backup & maintenance: every viewer with settings access (settings:read).
+ * - Security & privacy: settings:read too, because today every settings viewer
+ *   sees the hosted privacy documents (writers edit them); the page shows a
+ *   non-admin only those.
  * - Background jobs: settings:write (s13n2).
- * - General, Map & tiles and Security & privacy: admins, and settings writers
- *   too, because today a non-admin writer can change MeshCore messaging, the
- *   Reticulum cap, custom tilesets, GeoJSON layers, map styles and the hosted
- *   privacy documents; the pages show such a user only those rows.
+ * - General, Map & tiles and Integrations: admins, and settings writers too,
+ *   because today a non-admin writer can change MeshCore messaging, the
+ *   Reticulum cap, custom tilesets, GeoJSON layers and map styles, and sees
+ *   Virtual Node replay; the pages show such a user only those rows.
  * - Everything else: admins only.
  *
  * The list shows only what the user can open. Devices is today's source list
@@ -32,14 +35,14 @@ const ENTRIES: Array<Omit<ServerEntry, 'label'> & { labelKey: string }> = [
   { key: 'devices', labelKey: 'workspace.server.nav.devices', path: 'devices', icon: 'radioSignal', gate: 'admin' },
   { key: 'general', labelKey: 'workspace.server.general', path: 'general', icon: 'settings', gate: 'write' },
   { key: 'notification-services', labelKey: 'workspace.server.nav.notification_services', path: 'notification-services', icon: 'notifications', gate: 'admin' },
-  { key: 'security', labelKey: 'workspace.server.nav.security', path: 'security', icon: 'security', gate: 'write' },
+  { key: 'security', labelKey: 'workspace.server.nav.security', path: 'security', icon: 'security', gate: 'read' },
   { key: 'backup', labelKey: 'workspace.server.nav.backup', path: 'backup', icon: 'server', gate: 'read' },
   { key: 'channel-database', labelKey: 'workspace.server.nav.channel_database', path: 'channel-database', icon: 'key', gate: 'admin' },
   { key: 'scripts', labelKey: 'workspace.server.nav.scripts', path: 'scripts', icon: 'terminal', gate: 'admin' },
   { key: 'map', labelKey: 'workspace.server.nav.map', path: 'map', icon: 'map', gate: 'write' },
   { key: 'embed', labelKey: 'workspace.server.nav.embed', path: 'embed', icon: 'code', gate: 'admin' },
   { key: 'background-jobs', labelKey: 'workspace.server.nav.background_jobs', path: 'background-jobs', icon: 'time', gate: 'write' },
-  { key: 'integrations', labelKey: 'workspace.server.nav.integrations', path: 'integrations', icon: 'package', gate: 'admin' },
+  { key: 'integrations', labelKey: 'workspace.server.nav.integrations', path: 'integrations', icon: 'package', gate: 'write' },
   { key: 'analytics', labelKey: 'workspace.server.nav.analytics', path: 'analytics', icon: 'reports', gate: 'admin' },
 ];
 

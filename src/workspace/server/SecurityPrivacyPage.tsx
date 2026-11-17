@@ -1,8 +1,9 @@
 /**
  * Server › Security & privacy (boards 13-12 desktop, 13-28 phone). Admins see
- * every row; a settings writer who is not an admin sees today's writer part
- * only, the hosted documents (`PUT/DELETE /api/privacy/admin/documents`,
- * settings:write). Every other key here is one the server keeps for admins
+ * every row. Anyone else with settings access sees the hosted documents, as
+ * today: a settings writer edits them (`PUT/DELETE /api/privacy/admin/documents`,
+ * settings:write); a settings reader views them (settings:read), with no
+ * Upload, Publish or Unpublish. Every other key here is one the server keeps for admins
  * (GLOBAL_ONLY_SETTINGS_KEYS): today's page showed them to writers and dropped
  * their save. Server gates are unchanged.
  *
@@ -54,7 +55,7 @@ export default function SecurityPrivacyPage() {
   const isPhone = useIsPhone();
   const { isAdmin } = useServerAccess();
   return (
-    <ServerFrame categoryId="security" title={t('workspace.server.nav.security')} scope={t('workspace.server.security_scope')} icon="security" gate="write">
+    <ServerFrame categoryId="security" title={t('workspace.server.nav.security')} scope={t('workspace.server.security_scope')} icon="security" gate="read">
       {isAdmin ? (
         <div className={prefs.columns} data-phone={isPhone || undefined}>
           <div className={prefs.column}>

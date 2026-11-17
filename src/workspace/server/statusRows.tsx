@@ -32,16 +32,18 @@ export interface StatusRowProps<T> {
   disabled?: boolean;
   /** Text in the row's name, after the label (a source badge). */
   tag?: ReactNode;
+  /** Editable even on a View only page: a key today's server saves for this user too. */
+  editable?: boolean;
 }
 
-const off = (disabled?: boolean) => (disabled ? true : undefined);
+const off = (disabled?: boolean, editable?: boolean) => (disabled ? true : editable ? false : undefined);
 
 export function StatusToggle(props: StatusRowProps<boolean>) {
   const [value, set, status] = useStatusSetting(props, 'change');
   return (
     <SettingRow id={props.id} label={props.label} help={props.help}>
       <SavedLine status={status} />
-      <SettingToggle checked={value} onChange={set} readOnly={off(props.disabled)} />
+      <SettingToggle checked={value} onChange={set} readOnly={off(props.disabled, props.editable)} />
     </SettingRow>
   );
 }
@@ -52,9 +54,9 @@ export function StatusSelect(props: StatusRowProps<string> & { options: SettingS
     <SettingRow id={props.id} label={props.label} help={props.help}>
       <SavedLine status={status} />
       {props.segmented ? (
-        <SettingSegmented value={value} options={props.options} onChange={set} readOnly={off(props.disabled)} />
+        <SettingSegmented value={value} options={props.options} onChange={set} readOnly={off(props.disabled, props.editable)} />
       ) : (
-        <SettingSelect value={value} options={props.options} onChange={set} readOnly={off(props.disabled)} />
+        <SettingSelect value={value} options={props.options} onChange={set} readOnly={off(props.disabled, props.editable)} />
       )}
     </SettingRow>
   );
@@ -67,7 +69,7 @@ export function StatusNumber(props: StatusRowProps<number> & { min?: number; max
       {props.tag}
       <SavedLine status={status} />
       <CommitOnBlur status={status}>
-        <SettingNumber value={value} onChange={set} min={props.min} max={props.max} step={props.step} readOnly={off(props.disabled)} />
+        <SettingNumber value={value} onChange={set} min={props.min} max={props.max} step={props.step} readOnly={off(props.disabled, props.editable)} />
       </CommitOnBlur>
     </SettingRow>
   );
@@ -79,7 +81,7 @@ export function StatusText(props: StatusRowProps<string> & { placeholder?: strin
     <SettingRow id={props.id} label={props.label} help={props.help}>
       <SavedLine status={status} />
       <CommitOnBlur status={status}>
-        <SettingText value={value} onChange={set} placeholder={props.placeholder} mono readOnly={off(props.disabled)} />
+        <SettingText value={value} onChange={set} placeholder={props.placeholder} mono readOnly={off(props.disabled, props.editable)} />
       </CommitOnBlur>
     </SettingRow>
   );

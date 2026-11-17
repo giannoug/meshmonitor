@@ -106,10 +106,49 @@ describe('13-11 / 13-27 integrations', () => {
     expect(await screen.findByLabelText('OpenSky client ID')).toBeInTheDocument();
   });
 
-  it('a settings writer who is not an admin: no permission, nothing read', async () => {
+  it('MeshWars: after Save the form shows the saved URL from a fresh status read, as today', async () => {
+    const { log } = renderServer(PATH);
+    await screen.findByLabelText('MeshWars API key');
+    const group = within(screen.getByRole('group', { name: 'MeshWars' }));
+    const url = group.getByLabelText(/MeshWars URL/);
+    fireEvent.change(url, { target: { value: 'https://meshwars.com' } });
+    fireEvent.click(group.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(log.reads.filter((r) => r === '/api/settings/meshwars/status')).toHaveLength(2));
+    await waitFor(() => expect(group.getByLabelText(/MeshWars URL/)).toHaveValue('https://meshwars.com'));
+    expect(group.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  it('MeshWars: after a first key is saved the field says a key is saved', async () => {
+    const { SERVER_SETTINGS } = await import('../../__fixtures__/server');
+    const { log } = renderServer(PATH, { settings: { ...SERVER_SETTINGS, meshwars_api_token: '' } });
+    const key = await screen.findByLabelText('MeshWars API key');
+    expect(key).toHaveAttribute('placeholder', '');
+    fireEvent.change(key, { target: { value: 'first-key' } });
+    fireEvent.click(within(screen.getByRole('group', { name: 'MeshWars' })).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(screen.getByLabelText('MeshWars API key')).toHaveAttribute('placeholder', 'Saved. Enter a new key to replace it.'));
+    expect(screen.getByLabelText('MeshWars API key')).toHaveValue('');
+    expect(log.reads.filter((r) => r === '/api/settings/meshwars/status')).toHaveLength(2);
+  });
+
+  it('a settings writer who is not an admin sees today\'s Virtual Node replay, view only, and nothing admin-only is read', async () => {
     renderServer(PATH, { permissions: grants({ write: true }) });
-    expect(await screen.findByText("You don't have permission to do this")).toBeInTheDocument();
+    const replay = await screen.findByRole('switch', { name: 'Replay missed messages on reconnect' });
+    expect(replay).toBeDisabled();
+    expect(screen.getByLabelText('Never replay to these IPs')).toBeDisabled();
+    expect(screen.getByText(/Only an administrator can change integrations/)).toBeInTheDocument();
+    expect(screen.queryByText('Message Translation')).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'Enable CoT feed' })).toBeNull();
     await new Promise((r) => setTimeout(r, 30));
     expect(urls().some((u) => u.includes('/meshwars/status'))).toBe(false);
+  });
+
+  it('a writer cannot open the admin services\' own pages', async () => {
+    renderServer('/server/integrations/meshwars', { permissions: grants({ write: true }) });
+    expect(await screen.findByText("You don't have permission to do this")).toBeInTheDocument();
+  });
+
+  it('a settings viewer cannot open Integrations', async () => {
+    renderServer(PATH, { permissions: grants({ read: true }) });
+    expect(await screen.findByText("You don't have permission to do this")).toBeInTheDocument();
   });
 });
