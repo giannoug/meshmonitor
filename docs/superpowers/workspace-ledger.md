@@ -1092,3 +1092,8 @@ FINAL REPORT ITEMs from 6.5:
 - PRE-EXISTING SECURITY: /api/solar/trigger is mounted with optionalAuth only, so it has no permission gate.
 - No cooldown on "Run analysis now" (mesh issues) or "Fetch Estimates Now" (solar).
 - Ruling CM stands: the manual Fix All enrichment path sends unpaced.
+
+## Task K1 — settings kit switch (controller task, Ruling GW)
+
+Ruling: K1 GX — promote two minors: NotificationsPage.module.css:38's own native-checkbox switch moves onto the kit or the same style (same defect, GW), and the Space test also covers toggle-off. The phone hit-area overlap and the reduced-motion guard are deferred minors.
+Ruling: K1 — reused the GeneralLayoutCard switch and applied the 0.15s transition without a reduced-motion guard — why: house pattern already does so — cost if wrong: motion-sensitive users see a 150 ms slide.
