@@ -78,3 +78,13 @@
 .menuItem[data-danger] {
   color: var(--color-error);
 }
+
+.heading {
+  display: block;
+  padding: 8px 10px 6px;
+  color: var(--color-text-subtle);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

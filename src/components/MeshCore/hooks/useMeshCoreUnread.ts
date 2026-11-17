@@ -54,9 +54,15 @@ export interface MeshCoreUnread {
   unreadRooms: ReadonlySet<string>;
   /** Newest receipt time (ms) per room public key. */
   roomLatest: ReadonlyMap<string, number>;
+  /** Newest message time (ms) per channel index, polled and live (the Workspace sidebar's rows, #6365). */
+  channelLatest: Readonly<Record<number, number>>;
+  /** Persisted message count per channel index, as polled (the Workspace sidebar's sort, #6365). */
+  channelCounts: Readonly<Record<number, number>>;
+  /** Per-room post stats as polled (count and latest), for the Workspace sidebar's sort (#6365). */
+  roomStats: ReadonlyArray<RoomStat>;
 }
 
-interface RoomStat { roomPublicKey: string; count?: number; latest?: number; latestReceivedAt?: number }
+export interface RoomStat { roomPublicKey: string; count?: number; latest?: number; latestReceivedAt?: number }
 
 const CHANNEL_POLL_MS = 15000;
 
@@ -73,6 +79,7 @@ export function useMeshCoreUnread({
   const csrfFetch = useCsrfFetch();
   const [channelIndices, setChannelIndices] = useState<number[]>([]);
   const [channelLatest, setChannelLatest] = useState<Record<number, number>>({});
+  const [channelCounts, setChannelCounts] = useState<Record<number, number>>({});
   const [roomStats, setRoomStats] = useState<RoomStat[]>([]);
   // Bumped whenever a last-read marker changes so the memoized unread booleans
   // re-read localStorage (which isn't reactive on its own).
@@ -121,6 +128,7 @@ export function useMeshCoreUnread({
         const data = await res.json();
         if (cancelled) return;
         if (data.latestTimestamps) setChannelLatest(data.latestTimestamps as Record<number, number>);
+        if (data.counts) setChannelCounts(data.counts as Record<number, number>);
       } catch {
         /* ignore */
       }
@@ -214,5 +222,5 @@ export function useMeshCoreUnread({
     [messages, roomStats, roomServers, selfKey],
   );
 
-  return { channels, dms, rooms: unreadRooms.size > 0, unreadRooms, roomLatest };
+  return { channels, dms, rooms: unreadRooms.size > 0, unreadRooms, roomLatest, channelLatest: channelLatestEffective, channelCounts, roomStats };
 }

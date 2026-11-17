@@ -1,0 +1,52 @@
+/* The native MeshCore screens' frame pieces: the permission note and today's error bar. */
+.page {
+  position: fixed;
+  top: var(--app-header-height);
+  right: 0;
+  bottom: var(--app-nav-bar-height);
+  left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.note {
+  margin: 24px;
+  color: var(--color-text-subtle);
+}
+
+.error {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 24px;
+  background: var(--color-surface);
+  color: var(--color-error);
+  font-size: 14px;
+}
+
+.error[data-phone] {
+  padding: 8px 16px;
+}
+
+.errorText {
+  flex: 1;
+  min-width: 0;
+}
+
+.dismiss {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.error[data-phone] .dismiss {
+  min-height: 44px;
+}

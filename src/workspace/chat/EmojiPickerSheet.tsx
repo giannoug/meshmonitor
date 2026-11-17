@@ -10,6 +10,7 @@ import { UiIcon } from '../../components/icons';
 import { useSettings } from '../../contexts/SettingsContext';
 import SendsLine from '../patterns/SendsLine';
 import Sheet from '../patterns/Sheet';
+import type { TapbackEmoji } from '../../components/EmojiPickerModal';
 import { CUSTOM_EMOJI_MAX_LENGTH, tapbackSet } from './messageActions';
 import styles from './EmojiPickerSheet.module.css';
 
@@ -18,15 +19,19 @@ export interface EmojiPickerSheetProps {
   sends: string;
   onPick(emoji: string): void;
   onClose(): void;
+  /** MeshCore (Task 7.1): today's reaction set, and the test a custom emoji must pass to send. */
+  emojis?: TapbackEmoji[];
+  isAllowed?(emoji: string): boolean;
 }
 
-export default function EmojiPickerSheet({ sends, onPick, onClose }: EmojiPickerSheetProps) {
+export default function EmojiPickerSheet({ sends, onPick, onClose, emojis, isAllowed }: EmojiPickerSheetProps) {
   const { t } = useTranslation();
   const { tapbackEmojis } = useSettings();
   const [showCustom, setShowCustom] = useState(false);
   const [custom, setCustom] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const trimmed = custom.trim();
+  const customOk = !!trimmed && (isAllowed ? isAllowed(trimmed) : true);
 
   useEffect(() => {
     if (showCustom) inputRef.current?.focus();
@@ -40,7 +45,7 @@ export default function EmojiPickerSheet({ sends, onPick, onClose }: EmojiPicker
   return (
     <Sheet open onClose={onClose} title={t('emoji_picker.title', 'React with an emoji')}>
       <div className={styles.grid}>
-        {tapbackSet(tapbackEmojis).map(({ emoji, title }) => (
+        {(emojis ?? tapbackSet(tapbackEmojis)).map(({ emoji, title }) => (
           <button key={emoji} type="button" className={styles.emoji} title={title} onClick={() => pick(emoji)}>
             {emoji}
           </button>
@@ -59,7 +64,7 @@ export default function EmojiPickerSheet({ sends, onPick, onClose }: EmojiPicker
           className={styles.customRow}
           onSubmit={(e) => {
             e.preventDefault();
-            if (trimmed) pick(trimmed);
+            if (customOk) pick(trimmed);
           }}
         >
           <input
@@ -80,7 +85,7 @@ export default function EmojiPickerSheet({ sends, onPick, onClose }: EmojiPicker
             aria-label={t('emoji_picker.custom', 'Custom emoji')}
             maxLength={CUSTOM_EMOJI_MAX_LENGTH}
           />
-          <button type="submit" className={styles.send} disabled={!trimmed}>
+          <button type="submit" className={styles.send} disabled={!customOk}>
             <UiIcon name="send" size={16} /> {t('common.send', 'Send')}
           </button>
         </form>

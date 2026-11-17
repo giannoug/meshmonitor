@@ -288,3 +288,10 @@ export const useUnreadDividerAnchors = (): { channel: number | null; dm: number 
     dm: context?.pinnedFirstUnreadDM ?? null,
   };
 };
+
+/** The reply state outside a MessagingProvider: none (a MeshCore conversation in the Workspace composer, #6365). */
+// eslint-disable-next-line react-refresh/only-export-components -- #6365 same shape as useUnreadDividerAnchors above
+export const useOptionalReply = (): Pick<MessagingContextType, 'replyingTo' | 'setReplyingTo'> | null => {
+  const context = useContext(MessagingContext);
+  return context ? { replyingTo: context.replyingTo, setReplyingTo: context.setReplyingTo } : null;
+};

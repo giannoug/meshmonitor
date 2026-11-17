@@ -9,6 +9,8 @@
  * - `receive-only`: the same, as one line in a channel (i5, Task 6.7): today's
  *   reason, and Switch to the channel on a device with a radio.
  * - `guest`: not signed in; channels only, with today's Login.
+ * - `reason`: one line with the conversation's own reason (MeshCore, Task 7.1:
+ *   a virtual channel, a keyed one, receive-only, no write grant).
  */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -20,11 +22,21 @@ import styles from './ReadOnlyNote.module.css';
 export type ReadOnlyNoteProps =
   | { kind: 'mqtt'; deviceName: string; openOn?: { name: string; to: string } }
   | { kind: 'receive-only'; switchTo?: string }
-  | { kind: 'guest' };
+  | { kind: 'guest' }
+  | { kind: 'reason'; text: string };
 
 export default function ReadOnlyNote(props: ReadOnlyNoteProps) {
   const { t } = useTranslation();
   const [loginOpen, setLoginOpen] = useState(false);
+
+  if (props.kind === 'reason') {
+    return (
+      <div className={`${styles.note} ${styles.line}`} role="note">
+        <UiIcon name="blocked" size={20} />
+        <p className={styles.text}>{props.text}</p>
+      </div>
+    );
+  }
 
   if (props.kind === 'receive-only') {
     return (

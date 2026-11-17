@@ -34,6 +34,8 @@ vi.mock('../../pages/UsersPage', async () => ({ default: (await import('./pageSt
 vi.mock('../../pages/MeshCoreSourcePage', async () => ({ default: (await import('./pageStub')).pageStub('meshcore') }));
 vi.mock('../../pages/MeshCoreIngestSourcePage', async () => ({ default: (await import('./pageStub')).pageStub('meshcore-ingest') }));
 vi.mock('../../pages/ReticulumSourcePage', async () => ({ default: (await import('./pageStub')).pageStub('reticulum') }));
+// A MeshCore channel, room and phone Home are the Workspace's own (Task 7.1); their tests live in meshcore/__tests__.
+vi.mock('../meshcore/MeshCoreScreen', async () => ({ default: (await import('./pageStub')).pageStub('meshcore-screen') }));
 vi.mock('../chat/ChannelThread', async () => ({ default: (await import('./pageStub')).pageStub('channel-thread') }));
 vi.mock('../chat/DmConversation', async () => ({ default: (await import('./pageStub')).pageStub('dm-conversation') }));
 vi.mock('../chat/DmInbox', async () => ({ default: (await import('./pageStub')).pageStub('dm-inbox') }));
@@ -132,7 +134,9 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     [`/source/${SOURCE_IDS.mqtt}/dms`, 'dm-inbox'],
     [g2, 'app'],
     [`${heltec}/dms`, 'meshcore'],
-    [`${heltec}/room/r1`, 'meshcore'],
+    // A MeshCore channel and room are the Workspace's own screens (Task 7.1); every other view stays re-hosted.
+    [`${heltec}/room/r1`, 'meshcore-screen'],
+    [`${heltec}/channel/1`, 'meshcore-screen'],
     [`${rns}/interfaces`, 'reticulum'],
   ])('%s re-hosts %s', async (route, page) => {
     renderAt(route);
@@ -175,10 +179,20 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     expect(screen.queryByTestId('page-app')).toBeNull();
   });
 
-  it('a MeshCore device keeps its own page on the phone Home URL', async () => {
+  it('a MeshCore device\'s phone Home is the Workspace\'s own MeshCore screen, with today\'s page not mounted (Task 7.1)', async () => {
     renderAt(heltec, { phone: true });
-    await expectPage('meshcore');
+    await expectPage('meshcore-screen');
     expect(screen.queryByTestId('page-phone-home')).toBeNull();
+    expect(screen.queryByTestId('page-meshcore')).toBeNull();
+  });
+
+  it('a MeshCore channel the viewer may not open falls back to today\'s page, and the URL follows', async () => {
+    renderAt(`${heltec}/channel/1`, {
+      permissions: { bySource: { [SOURCE_IDS.heltec]: { connection: { read: true, write: false }, nodes: { read: true, write: false } } } },
+    });
+    await expectPage('meshcore');
+    await waitFor(() => expect(realUrl()).toBe(`${heltec}/nodes`));
+    expect(screen.queryByTestId('page-meshcore-screen')).toBeNull();
   });
 
   // The landing jump itself is OverviewMap's (overview/__tests__/OverviewMap.test.tsx).
@@ -346,7 +360,6 @@ describe('MeshCore and Reticulum views come from the URL', () => {
     [`${heltec}/channels`, 'channels'],
     [`${heltec}/configuration`, 'configuration'],
     [`${heltec}/settings`, 'settings'],
-    [`${heltec}/channel/0`, 'channels'],
     [`${heltec}/dm/abcd`, 'dms'],
     [`${heltec}/`, 'nodes'],
   ])('%s → %s', async (route, view) => {
@@ -354,6 +367,12 @@ describe('MeshCore and Reticulum views come from the URL', () => {
     await expectPage('meshcore');
     expect(screen.getByTestId('view')).toHaveTextContent(view);
     expect(realUrl()).toBe(route);
+  });
+
+  it('a MeshCore DM URL opens today\'s DM view on that contact (Task 7.1)', async () => {
+    renderAt(`${heltec}/dm/abcd`);
+    await expectPage('meshcore');
+    expect(screen.getByTestId('dm-contact')).toHaveTextContent('abcd');
   });
 
   it('opens Configuration from the #configuration deep link and puts it in the URL', async () => {

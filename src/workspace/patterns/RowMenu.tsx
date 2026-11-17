@@ -7,8 +7,9 @@
  * moves it with ⋯. Opening focuses the first item; ArrowUp / ArrowDown / Home /
  * End move between items, wrapping; Escape closes only the menu (CR) and
  * returns focus to ⋯; a click outside closes it. An item with `checked` is a menuitemcheckbox.
+ * `heading` titles the open menu; `trigger` replaces the ⋯ icon (a sidebar row, Task 7.1).
  */
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { UiIcon, type UiIconName } from '../../components/icons';
 import { useIsPhone } from '../shell/useIsPhone';
@@ -27,7 +28,16 @@ export interface RowMenuItem {
 
 const GAP = 4;
 
-export default function RowMenu({ label, items }: { label: string; items: RowMenuItem[] }) {
+export interface RowMenuProps {
+  label: string;
+  items: RowMenuItem[];
+  heading?: string;
+  /** Visible trigger content in place of ⋯, with its own class. */
+  trigger?: ReactNode;
+  triggerClassName?: string;
+}
+
+export default function RowMenu({ label, items, heading, trigger: triggerContent, triggerClassName }: RowMenuProps) {
   const isPhone = useIsPhone();
   const [open, setOpen] = useState(false);
   const [place, setPlace] = useState<CSSProperties>({});
@@ -95,19 +105,20 @@ export default function RowMenu({ label, items }: { label: string; items: RowMen
       <button
         ref={trigger}
         type="button"
-        className={styles.trigger}
+        className={triggerClassName ?? styles.trigger}
         data-phone={isPhone || undefined}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={label}
-        title={label}
+        aria-label={triggerContent ? undefined : label}
+        title={triggerContent ? undefined : label}
         onClick={() => setOpen((o) => !o)}
       >
-        <UiIcon name="more" size={18} />
+        {triggerContent ?? <UiIcon name="more" size={18} />}
       </button>
       {open &&
         createPortal(
           <span className={styles.menu} role="menu" aria-label={label} ref={menu} style={place} data-phone={isPhone || undefined}>
+            {heading && <span className={styles.heading} role="presentation">{heading}</span>}
             {items.map((item) => (
               <button
                 key={item.key}

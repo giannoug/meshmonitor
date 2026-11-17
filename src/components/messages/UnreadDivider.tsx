@@ -16,22 +16,24 @@ import styles from './UnreadDivider.module.css';
 /** DOM id of the divider. Views scroll to this element on conversation entry. */
 export const UNREAD_DIVIDER_ID = 'unread-divider';
 
-const UnreadDivider: React.FC = () => {
+/** `label`: the line's words; default "New messages" (a MeshCore room says "Unread posts", #6365). */
+const UnreadDivider: React.FC<{ label?: string }> = ({ label }) => {
   const { t } = useTranslation();
+  const text = label ?? t('messages.unread_divider', 'New messages');
   return (
     <div
       id={UNREAD_DIVIDER_ID}
       data-unread-divider="true"
       className={styles.divider}
       role="separator"
-      aria-label={t('messages.unread_divider', 'New messages')}
+      aria-label={text}
     >
       {/* The separator already carries the accessible name via aria-label;
           the visible copy is decorative, so hide it from AT rather than
           announcing "New messages" twice. */}
       <span className={styles.rule} aria-hidden="true" />
       <span className={styles.label} aria-hidden="true">
-        {t('messages.unread_divider', 'New messages')}
+        {text}
       </span>
       <span className={styles.rule} aria-hidden="true" />
     </div>

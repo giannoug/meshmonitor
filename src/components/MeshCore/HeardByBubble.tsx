@@ -91,8 +91,9 @@ const MetaSpans: React.FC<{ entry: HeardByBubbleEntry }> = ({ entry }) => {
   );
 };
 
-/** Required rows (pinned, ✓/✗), other hearings (✓) and the green count. */
-function heardByModel(
+/** Required rows (pinned, ✓/✗), other hearings (✓) and the green count. Exported for the Workspace's heard-by chips (#6365). */
+// eslint-disable-next-line react-refresh/only-export-components -- #6365 a pure helper beside the components that use it
+export function heardByModel(
   heardBy: HeardByBubbleProps['heardBy'],
   requiredKeys: HeardByBubbleProps['requiredKeys'],
   repeaters: HeardByBubbleProps['repeaters'],

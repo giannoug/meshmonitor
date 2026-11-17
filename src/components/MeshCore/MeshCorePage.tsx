@@ -77,9 +77,11 @@ interface MeshCorePageProps {
   view?: MeshCoreView;
   /** Called with every view the page asks for, controlled or not. */
   onViewChange?: (view: MeshCoreView) => void;
+  /** Opens this contact's DM (the Workspace's `dm/<key>` URL, #6365); through the same hand-off as Node Details. */
+  dmContact?: string | null;
 }
 
-export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, enabled, onStatusChange, view: viewProp, onViewChange }) => {
+export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, enabled, onStatusChange, view: viewProp, onViewChange, dmContact }) => {
   const { t } = useTranslation();
   const { authStatus } = useAuth();
   const isAdmin = authStatus?.user?.isAdmin ?? false;
@@ -212,6 +214,11 @@ export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, e
     if (view !== 'channels') setPendingChannelIdx(null);
     if (view !== 'rooms') setPendingRoom(null);
   }, [view]);
+
+  // The Workspace's `dm/<key>` URL (#6365): the same hand-off a Node Details jump uses.
+  useEffect(() => {
+    if (dmContact) setPendingDmContact(dmContact);
+  }, [dmContact]);
 
   // Deep link from outside the page (Mesh Issues, #6263): select the contact
   // through the same hand-off Show on Map uses. Declared after the view

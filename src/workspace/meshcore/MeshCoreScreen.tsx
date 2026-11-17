@@ -1,0 +1,96 @@
+/**
+ * The Workspace-native MeshCore screens (Task 7.1): a channel
+ * (`/source/:id/channel/:idx`), a room (`room/:key`) and the phone Home (the
+ * bare device URL below 768 px). Every other MeshCore view stays re-hosted
+ * (WorkspaceSource).
+ *
+ * One owner per screen (Ruling AD): today's MeshCoreSourcePage is not mounted
+ * here. This runs today's `useMeshCore` once for the device, inside the
+ * providers that page mounts for itself (Source, socket, Settings, Map), with
+ * today's receive-only flag (tx-status) and read-state sync. Moving between
+ * native screens keeps the one runtime. As today: without `connection:read`
+ * the body is a permission note, and an error shows in a bar under the
+ * status line with Dismiss.
+ */
+import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../contexts/AuthContext';
+import { MapProvider } from '../../contexts/MapContext';
+import { SettingsProvider } from '../../contexts/SettingsContext';
+import { SourceProvider } from '../../contexts/SourceContext';
+import { WebSocketProvider } from '../../contexts/WebSocketContext';
+import type { DashboardSource } from '../../hooks/useDashboardData';
+import { useTxStatus } from '../../hooks/useTxStatus';
+import { appBasename } from '../../init';
+import { useMeshCore } from '../../components/MeshCore/hooks/useMeshCore';
+import { useReadStateSync } from '../../components/MeshCore/hooks/useReadStateSync';
+import RouteLoading from '../../components/RouteLoading/RouteLoading';
+import MeshCoreChannelThread from './MeshCoreChannelThread';
+import MeshCoreHome from './MeshCoreHome';
+import MeshCoreRoom from './MeshCoreRoom';
+import { mcKeys } from './useMeshCoreLists';
+import { RuntimeContext } from './runtime';
+import styles from './MeshCoreScreen.module.css';
+
+export type MeshCoreScreenKind = { kind: 'home' } | { kind: 'channel'; idx: number } | { kind: 'room'; key: string };
+
+export interface MeshCoreScreenProps {
+  sourceId: string;
+  source: DashboardSource;
+  screen: MeshCoreScreenKind;
+}
+
+export default function MeshCoreScreen({ sourceId, source, screen }: MeshCoreScreenProps) {
+  return (
+    <SourceProvider sourceId={sourceId} sourceName={source.name} sourceType={source.type}>
+      <WebSocketProvider>
+        <SettingsProvider baseUrl={appBasename}>
+          <MapProvider>
+            <Gate sourceId={sourceId} deviceName={source.name} screen={screen} />
+          </MapProvider>
+        </SettingsProvider>
+      </WebSocketProvider>
+    </SourceProvider>
+  );
+}
+
+function Gate({ sourceId, deviceName, screen }: { sourceId: string; deviceName: string; screen: MeshCoreScreenKind }) {
+  const { t } = useTranslation();
+  const { hasPermission } = useAuth();
+  if (!hasPermission('connection', 'read', { sourceId })) {
+    return (
+      <section className={styles.page}>
+        <p className={styles.note} role="note">{t('meshcore.no_permission', 'You do not have permission to view this MeshCore source.')}</p>
+      </section>
+    );
+  }
+  return <Runtime sourceId={sourceId} deviceName={deviceName} screen={screen} />;
+}
+
+function Runtime({ sourceId, deviceName, screen }: { sourceId: string; deviceName: string; screen: MeshCoreScreenKind }) {
+  const meshCore = useMeshCore({ baseUrl: appBasename, sourceId });
+  const { isTxDisabled: receiveOnly } = useTxStatus({ baseUrl: appBasename, sourceId });
+  // The unread line is pinned on entry: wait for this user's read state first.
+  const readReady = useReadStateSync({ sourceId });
+  // The sidebar reads the same contacts; hand it the live list rather than fetch it again.
+  const queryClient = useQueryClient();
+  const { contacts, hasLoadedOnce } = meshCore;
+  useEffect(() => {
+    if (hasLoadedOnce && contacts.length > 0) queryClient.setQueryData(mcKeys.contacts(sourceId), contacts);
+  }, [contacts, hasLoadedOnce, queryClient, sourceId]);
+
+  return (
+    <RuntimeContext.Provider value={{ sourceId, deviceName, meshCore, receiveOnly }}>
+      {!readReady ? (
+        <RouteLoading />
+      ) : screen.kind === 'channel' ? (
+        <MeshCoreChannelThread idx={screen.idx} />
+      ) : screen.kind === 'room' ? (
+        <MeshCoreRoom key={screen.key} roomKey={screen.key} />
+      ) : (
+        <MeshCoreHome />
+      )}
+    </RuntimeContext.Provider>
+  );
+}

@@ -98,7 +98,8 @@ const channelKey = (idx: number) => `channel-${idx}`;
  *    recipient AND no synthesised `channel-N` sender as channel 0 so old
  *    rows still appear in the right tab.
  */
-function buildChannelFilter(channelIdx: number): (m: MeshCoreMessage) => boolean {
+// eslint-disable-next-line react-refresh/only-export-components -- #6365 shared with the Workspace's MeshCore views
+export function buildChannelFilter(channelIdx: number): (m: MeshCoreMessage) => boolean {
   const key = channelKey(channelIdx);
   return (m) => {
     if (m.fromPublicKey === key) return true;

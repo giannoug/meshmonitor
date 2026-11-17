@@ -27,6 +27,11 @@ export interface MessageActionContext {
   /** The Sends lines: 1 tapback, 1 new copy. */
   sendsTapback: string;
   sendsResend: string;
+  /**
+   * Per message (MeshCore, Task 7.1): drop an item (null) or change it, e.g. Resend only while
+   * today's resend window is open, Reply only on a channel message from someone else.
+   */
+  filter?(item: MessageActionItem, msg: MeshMessage, mine: boolean): MessageActionItem | null;
 }
 
 export interface MessageActionItem {
@@ -81,7 +86,11 @@ export function messageActionItems(ctx: MessageActionContext, msg: MeshMessage, 
   items.push({ kind: 'details' });
   if (msg.text) items.push({ kind: 'copy' });
   items.push({ kind: 'delete', reason: ctx.deleteReason });
-  return items;
+  if (!ctx.filter) return items;
+  return items.flatMap((i) => {
+    const kept = ctx.filter!(i, msg, mine);
+    return kept ? [kept] : [];
+  });
 }
 
 /** EmojiPickerModal's set: the one saved in Appearance replaces the defaults. */

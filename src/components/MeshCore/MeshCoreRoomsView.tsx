@@ -70,7 +70,8 @@ interface MeshCoreRoomsViewProps {
   initialRoom?: string | null;
 }
 
-function buildRoomFilter(roomPubkey: string): (m: MeshCoreMessage) => boolean {
+// eslint-disable-next-line react-refresh/only-export-components -- #6365 shared with the Workspace's MeshCore views
+export function buildRoomFilter(roomPubkey: string): (m: MeshCoreMessage) => boolean {
   return (m) => {
     if (m.messageType !== 'room_post') return false;
     if (!m.toPublicKey) return false;
@@ -86,7 +87,8 @@ function formatTimestamp(ts: number): string {
 
 /** The name a room row shows: advertised name, then stored name, then a short
  *  public-key prefix. Also the key the Room-name sort collates on (#6148). */
-function roomLabel(room: MeshCoreContact): string {
+// eslint-disable-next-line react-refresh/only-export-components -- #6365 shared with the Workspace's MeshCore views
+export function roomLabel(room: MeshCoreContact): string {
   return room.advName || room.name || room.publicKey.substring(0, 12) + '…';
 }
 

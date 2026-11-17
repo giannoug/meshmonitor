@@ -24,10 +24,9 @@ import { parsePathHops } from '../../utils/meshcorePath';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { RouteFlowMap, type RouteFlowPoint } from '../map/RouteFlowMap';
 import { darkOverlayColors } from '../../config/overlayColors';
-import { useResolvedRouteHops, contactPosition } from './useResolvedRouteHops';
+import { useResolvedRouteHops, routeFlowPoints } from './useResolvedRouteHops';
 import { RouteHopRows } from './MeshCoreRouteHops';
 import './MeshCorePacketMonitor.css';
-import { uniquePrefixMatch } from '../../utils/meshcoreKeyMatch';
 import { meshcoreDisplayTimeMs } from '../../utils/meshcoreMessageTime';
 
 interface Props {
@@ -57,42 +56,11 @@ const MeshCoreMessageRouteModal: React.FC<Props> = ({ message, fromLabel, contac
   const hops = useMemo(() => parsePathHops(message.routePath), [message.routePath]);
   const { rows, width } = useResolvedRouteHops(hops, sourceId, contacts);
 
-  // Geospatial flow line: shown only when EVERY relay hop resolved to a
-  // positioned contact (a partial line would misrepresent the path). The
-  // sender (matched by pubkey prefix — channel senders have synthetic
-  // 'channel-*' keys and never match) and the local node (matched via
-  // `isLocal`, #4438) are prepended/appended opportunistically when
-  // positioned.
-  const flowPoints = useMemo((): RouteFlowPoint[] | null => {
-    if (rows.length === 0) return null;
-    const hopPoints: RouteFlowPoint[] = [];
-    for (let i = 0; i < rows.length; i++) {
-      const r = rows[i];
-      if (!r.position || !r.name) return null;
-      const viaLabel = r.via ? ` (${r.via.sourceName})` : '';
-      hopPoints.push({ key: `hop-${i}`, label: `#${i + 1} ${r.name}${viaLabel}`, lat: r.position.lat, lon: r.position.lon, kind: 'hop' });
-    }
-    const points: RouteFlowPoint[] = [];
-    // Guard the prefix match: startsWith('') is true for EVERY key, so an
-    // empty fromPublicKey must not adopt an arbitrary contact as the sender.
-    // uniquePrefixMatch also refuses an ambiguous prefix (#5349).
-    const senderContact = uniquePrefixMatch(contacts, message.fromPublicKey);
-    const senderPos = contactPosition(senderContact);
-    if (senderPos) points.push({ key: 'sender', label: fromLabel, lat: senderPos.lat, lon: senderPos.lon, kind: 'endpoint' });
-    points.push(...hopPoints);
-    const localContact = contacts.find((c) => c.isLocal === true);
-    const localPos = contactPosition(localContact);
-    if (localPos) {
-      points.push({
-        key: 'local',
-        label: t('meshcore.route_detail_you', 'You'),
-        lat: localPos.lat,
-        lon: localPos.lon,
-        kind: 'endpoint',
-      });
-    }
-    return points;
-  }, [rows, contacts, message.fromPublicKey, fromLabel, t]);
+  // The flow line (sender → relays → local node); see routeFlowPoints.
+  const flowPoints = useMemo(
+    (): RouteFlowPoint[] | null => routeFlowPoints(rows, contacts, message.fromPublicKey, fromLabel, t('meshcore.route_detail_you', 'You')),
+    [rows, contacts, message.fromPublicKey, fromLabel, t],
+  );
 
   const scopeStr = message.scopeName
     ? message.scopeName

@@ -10,6 +10,8 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import type { MeshCoreContact } from '../../utils/meshcoreHelpers';
+import type { RouteFlowPoint } from '../map/RouteFlowMap';
+import { uniquePrefixMatch } from '../../utils/meshcoreKeyMatch';
 import {
   pathHashBytesOf,
   resolveRoute,
@@ -104,4 +106,39 @@ export function hopText(r: ResolvedRouteHopWithFallback): string {
 export function candidatesTitle(r: ResolvedRouteHopWithFallback): string | undefined {
   if (r.origin !== 'other' || r.candidates.length < 2) return undefined;
   return r.candidates.map((c) => `${c.name} (${c.sourceName})`).join('\n');
+}
+
+/**
+ * The geospatial flow line of a received message's route (the Message Route
+ * modal, and the Workspace's route details, #6365): shown only when EVERY
+ * relay hop resolved to a positioned contact (a partial line would
+ * misrepresent the path). The sender (matched by a unique pubkey prefix;
+ * channel senders have synthetic 'channel-*' keys and never match) and the
+ * local node (`isLocal`, #4438) are prepended/appended when positioned.
+ */
+export function routeFlowPoints(
+  rows: ResolvedRouteHopWithFallback[],
+  contacts: MeshCoreContact[],
+  fromPublicKey: string,
+  fromLabel: string,
+  youLabel: string,
+): RouteFlowPoint[] | null {
+  if (rows.length === 0) return null;
+  const hopPoints: RouteFlowPoint[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r.position || !r.name) return null;
+    const viaLabel = r.via ? ` (${r.via.sourceName})` : '';
+    hopPoints.push({ key: `hop-${i}`, label: `#${i + 1} ${r.name}${viaLabel}`, lat: r.position.lat, lon: r.position.lon, kind: 'hop' });
+  }
+  const points: RouteFlowPoint[] = [];
+  // Guard the prefix match: startsWith('') is true for EVERY key, so an
+  // empty fromPublicKey must not adopt an arbitrary contact as the sender.
+  // uniquePrefixMatch also refuses an ambiguous prefix (#5349).
+  const senderPos = contactPosition(uniquePrefixMatch(contacts, fromPublicKey));
+  if (senderPos) points.push({ key: 'sender', label: fromLabel, lat: senderPos.lat, lon: senderPos.lon, kind: 'endpoint' });
+  points.push(...hopPoints);
+  const localPos = contactPosition(contacts.find((c) => c.isLocal === true));
+  if (localPos) points.push({ key: 'local', label: youLabel, lat: localPos.lat, lon: localPos.lon, kind: 'endpoint' });
+  return points;
 }

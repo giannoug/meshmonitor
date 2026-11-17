@@ -38,9 +38,11 @@ import pageStyles from './SourcePageTopbar.module.css';
 interface MeshCoreSourcePageProps {
   view?: MeshCoreView;
   onViewChange?: (view: MeshCoreView) => void;
+  /** The Workspace's `dm/<key>`: open this contact's DM (#6365). */
+  dmContact?: string | null;
 }
 
-function MeshCoreSourceInner({ view, onViewChange }: MeshCoreSourcePageProps) {
+function MeshCoreSourceInner({ view, onViewChange, dmContact }: MeshCoreSourcePageProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { sourceId, sourceName } = useSource();
@@ -135,7 +137,7 @@ function MeshCoreSourceInner({ view, onViewChange }: MeshCoreSourcePageProps) {
       )}
 
       {canReadConnection ? (
-        <MeshCorePage baseUrl={appBasename} sourceId={sourceId} onStatusChange={handleStatusChange} view={view} onViewChange={onViewChange} />
+        <MeshCorePage baseUrl={appBasename} sourceId={sourceId} onStatusChange={handleStatusChange} view={view} onViewChange={onViewChange} dmContact={dmContact} />
       ) : (
         <div className="meshcore-tab">
           <h2>{t('meshcore.title')}</h2>

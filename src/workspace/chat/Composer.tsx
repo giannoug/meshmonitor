@@ -8,13 +8,15 @@
  * - `disabledReason` (TX disabled): every control stays visible but off, with
  *   the reason as its tooltip and as a note under the box.
  * - Translate opens the translate sheet (today's TranslateModal content, board 10-09).
+ * - A MeshCore conversation (Task 7.1) brings its own Sends line, byte budget,
+ *   placeholder and mention form, and has no MessagingProvider (no reply preview).
  */
 import { useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import MessageComposeInput from '../../components/MessageComposeInput';
 import { UiIcon } from '../../components/icons';
 import { useComposeDraftStore } from '../../contexts/composeDraftStore';
-import { useMessaging } from '../../contexts/MessagingContext';
+import { useOptionalReply } from '../../contexts/MessagingContext';
 import type { MeshMessage } from '../../types/message';
 import type { MentionCandidate } from '../../utils/mentions';
 import { scrollInputIntoView } from '../../utils/scrollInputIntoView';
@@ -44,6 +46,13 @@ export interface ComposerProps {
   mentionCandidates: readonly MentionCandidate[];
   homoglyphEnabled: boolean;
   inputRef?: RefObject<HTMLTextAreaElement | null>;
+  /** MeshCore (Task 7.1): the Sends line, byte budget (Send blocked over it), placeholder, `@[Name]` mentions, one line. */
+  sends?: string;
+  maxBytes?: number;
+  placeholder?: string;
+  sending?: boolean;
+  buildMentionInsertion?: (candidate: MentionCandidate) => string;
+  allowNewlines?: boolean;
 }
 
 export default function Composer(props: ComposerProps) {
@@ -51,7 +60,8 @@ export default function Composer(props: ComposerProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const draft = useComposeDraftStore();
-  const { replyingTo, setReplyingTo } = useMessaging();
+  const reply = useOptionalReply();
+  const replyingTo = reply?.replyingTo ?? null;
   const ownRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = props.inputRef ?? ownRef;
   const [translateOpen, setTranslateOpen] = useState(false);
@@ -59,10 +69,11 @@ export default function Composer(props: ComposerProps) {
 
   const name = target.kind === 'channel' ? `# ${target.name}` : target.name;
   const sends =
-    target.kind === 'channel'
+    props.sends ??
+    (target.kind === 'channel'
       ? [t('workspace.chat.sends_channel', { channel: target.name }),
           ...(props.hopLimit ? [t('workspace.chat.hop_limit', { count: props.hopLimit })] : [])].join(' · ')
-      : t('workspace.chat.sends_dm', { name: target.name });
+      : t('workspace.chat.sends_dm', { name: target.name }));
   const chipTitle = (title: string) => disabledReason ?? title;
 
   return (
@@ -73,7 +84,7 @@ export default function Composer(props: ComposerProps) {
             <span className={styles.replyLabel}>{t('channels.replying_to', { name: props.replyName ?? replyingTo.from })}</span>
             <span className={styles.replyQuote}>{replyingTo.text}</span>
           </div>
-          <button type="button" className={styles.icon} onClick={() => setReplyingTo(null)} title={t('channels.cancel_reply_title')}>
+          <button type="button" className={styles.icon} onClick={() => reply?.setReplyingTo(null)} title={t('channels.cancel_reply_title')}>
             <UiIcon name="close" size={16} />
             <span className={styles.srOnly}>{t('channels.cancel_reply_title')}</span>
           </button>
@@ -124,10 +135,14 @@ export default function Composer(props: ComposerProps) {
           mentionCandidates={props.mentionCandidates}
           homoglyphEnabled={props.homoglyphEnabled}
           placeholder={
-            isPhone
-              ? t('channels.send_placeholder_short', { name })
-              : t('channels.send_placeholder', { name })
+            props.placeholder ??
+            (isPhone ? t('channels.send_placeholder_short', { name }) : t('channels.send_placeholder', { name }))
           }
+          maxBytes={props.maxBytes}
+          blockSendOverLimit={props.maxBytes !== undefined}
+          sending={props.sending}
+          buildMentionInsertion={props.buildMentionInsertion}
+          allowNewlines={props.allowNewlines}
           disabled={off}
           disabledTitle={disabledReason}
           onFocus={scrollInputIntoView}

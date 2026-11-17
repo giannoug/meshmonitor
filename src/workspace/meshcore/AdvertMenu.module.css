@@ -1,0 +1,179 @@
+/* A MeshCore device's own sends: the desktop status line (8-01) and the phone header's ⋯ (8-16). */
+.bar {
+  flex: none;
+  padding: 8px 24px 6px;
+  border-bottom: 1px solid var(--color-surface);
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-text-faint);
+}
+
+.dot[data-on] {
+  background: var(--color-success);
+}
+
+.status {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  color: var(--color-text-subtle);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  font-size: 12px;
+}
+
+.actions {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.button,
+.plain {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.plain {
+  border-color: transparent;
+}
+
+.button:hover,
+.plain:hover {
+  background: var(--color-surface-hover);
+}
+
+.button:disabled,
+.plain:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.button:focus-visible,
+.plain:focus-visible,
+.trigger:focus-visible,
+.item:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.sends {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  column-gap: 20px;
+}
+
+.menuWrap {
+  position: relative;
+}
+
+.trigger {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 9000;
+  width: min(330px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 4px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 14px;
+  background: var(--color-bg-raised);
+}
+
+.item {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item + .item {
+  border-top: 1px solid var(--color-surface);
+}
+
+.item:hover {
+  background: var(--color-surface-hover);
+}
+
+.item:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.itemText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.itemTitle {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.hint {
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}

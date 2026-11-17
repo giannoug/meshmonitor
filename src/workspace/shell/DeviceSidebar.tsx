@@ -14,9 +14,11 @@
  * - `overview` is OverviewSidebar's (Task 4.1).
  *
  * Rows follow today's permission gates, read with the same rules as MeshCore's
- * tabs (`visibleMeshCoreViews`), for the device in the URL.
+ * tabs (`visibleMeshCoreViews`), for the device in the URL. A MeshCore device
+ * lists its own tools, channels, rooms and DMs (MeshCoreSidebar, Task 7.1),
+ * with a gear to today's Settings.
  */
-import { useState, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
@@ -29,8 +31,12 @@ import ActivityPanel from '../activity/ActivityPanel';
 import ChannelList from '../chat/ChannelList';
 import DmList from '../chat/DmList';
 import ConnectionCard from '../devices/ConnectionCard';
+import { visibleMeshCoreViews } from '../../components/MeshCore/meshCoreViewAccess';
 import type { WorkspaceSource } from './useWorkspaceSources';
 import styles from './DeviceSidebar.module.css';
+
+// Its own chunk: today's MeshCore list helpers stay out of the shell.
+const MeshCoreSidebar = lazy(() => import('../meshcore/MeshCoreSidebar.tsx'));
 
 export type SidebarMode = 'device' | 'overview' | 'settings' | 'server' | 'you';
 
@@ -77,6 +83,16 @@ export default function DeviceSidebar({ mode, source, onNavigate, onSearch }: De
       <aside className={styles.sidebar} aria-label={source.name}>
         <SettingsList sourceId={source.id} sourceName={source.name} sourceType={source.type} variant="sidebar" onNavigate={onNavigate} />
       </aside>
+    );
+  }
+
+  if (source.type === 'meshcore') {
+    return (
+      <Frame title={source.name} header={header}>
+        <Suspense fallback={null}>
+          <MeshCoreSidebar key={source.id} source={source} onNavigate={onNavigate} />
+        </Suspense>
+      </Frame>
     );
   }
 
@@ -143,8 +159,15 @@ function Frame({ title, header, children }: { title: string; header?: ReactNode;
  */
 function DeviceHeader({ source }: { source: WorkspaceSource }) {
   const { t } = useTranslation();
-  const { hasPermission } = useAuth();
+  const { authStatus, hasPermission } = useAuth();
   const bell = isMeshtasticFamily(source.type) && canReadMessages(hasPermission, source.id);
+  // A MeshCore device's gear: today's Settings tab (board 8-01).
+  const gear =
+    source.type === 'meshcore' &&
+    visibleMeshCoreViews({
+      canRead: (resource) => hasPermission(resource, 'read', { sourceId: source.id }),
+      isAuthenticated: authStatus?.authenticated ?? false,
+    }).includes('settings');
   const label = statusLabel(t, source.status);
   const nodeNum = source.live?.nodeNum;
   const line = nodeNum !== undefined && source.status === 'connected' ? `${label} · !${nodeNum.toString(16).padStart(8, '0')}` : label;
@@ -160,6 +183,11 @@ function DeviceHeader({ source }: { source: WorkspaceSource }) {
       </div>
       <ConnectionCard source={source} open={cardOpen} onClose={() => setCardOpen(false)} />
       {bell && <ActivityPanel key={source.id} sourceId={source.id} deviceName={source.name} />}
+      {gear && (
+        <NavLink className={styles.gear} to={`/source/${encodeURIComponent(source.id)}/settings`} aria-label={t('nav.settings', 'Settings')} title={t('nav.settings', 'Settings')}>
+          <UiIcon name="settings" size={18} />
+        </NavLink>
+      )}
     </div>
   );
 }

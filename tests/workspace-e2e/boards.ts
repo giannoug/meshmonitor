@@ -19,6 +19,7 @@ import { signInFixtures, TYPED_RECOVERY } from '../../src/workspace/__fixtures__
 import { prefsFixtures } from '../../src/workspace/__fixtures__/preferences';
 import { newServerLog, serverFixtures } from '../../src/workspace/__fixtures__/server';
 import { devicesFixtures, type DevicesFixtureOptions } from '../../src/workspace/__fixtures__/devices';
+import { MC, meshcoreFixtures, type MeshCoreFixtureOptions } from '../../src/workspace/__fixtures__/meshcore';
 
 export interface Board {
   id: string;
@@ -1827,7 +1828,86 @@ export const BOARDS: Board[] = [
   },
   { id: 'i5-receive-only', size: 'phone', path: '/source/src-mqtt/channel/0' },
   { id: 'i6-guest', size: 'phone', path: '/source/src-g2', fixtures: GUEST },
+  // Task 7.1: Heltec MeshCore's shell, #athens and the rooms (section 8).
+  {
+    // The board also draws a message's actions; built one at a time (D9c), the shot shows the Scope menu.
+    id: '8-01-heltec-shell',
+    size: 'desktop',
+    path: '/source/src-heltec/channel/1',
+    fixtures: MESHCORE(),
+    setup: async (page) => {
+      await page.getByText(MC_OWN).waitFor();
+      await page.getByRole('button', { name: /^Scope: gr-att/ }).click();
+      await page.getByRole('menu', { name: /Send scope for # athens/ }).waitFor();
+    },
+  },
+  { id: '8-02-route-details', size: 'desktop', path: '/source/src-heltec/channel/1', fixtures: MESHCORE(), setup: openMcRoute },
+  { id: '8-03-room-login', size: 'desktop', path: `/source/src-heltec/room/${MC.kifisia}`, fixtures: MESHCORE({ login: 'hang' }), setup: waitMcLogin },
+  {
+    id: '8-04-room-posts',
+    size: 'desktop',
+    path: `/source/src-heltec/room/${MC.athensRoom}`,
+    fixtures: MESHCORE(),
+    setup: async (page) => {
+      await logInMcRoom(page);
+      await page.getByRole('button', { name: 'Sort rooms by' }).click();
+      await page.getByRole('menu', { name: 'Sort rooms by' }).waitFor();
+    },
+  },
+  {
+    id: '8-16-meshcore-home',
+    size: 'phone',
+    path: '/source/src-heltec',
+    fixtures: MESHCORE(),
+    setup: async (page) => {
+      await page.getByText('Kifisia BBS').waitFor();
+      await page.getByRole('button', { name: 'Device actions' }).click();
+      await page.getByRole('menu', { name: 'Device actions' }).waitFor();
+    },
+  },
+  { id: '8-17-room-login', size: 'phone', path: `/source/src-heltec/room/${MC.kifisia}`, fixtures: MESHCORE({ login: 'hang' }), setup: waitMcLogin },
+  { id: '8-18-room-posts', size: 'phone', path: `/source/src-heltec/room/${MC.athensRoom}`, fixtures: MESHCORE(), setup: logInMcRoom },
+  {
+    id: '8-19-channel-thread',
+    size: 'phone',
+    path: '/source/src-heltec/channel/1',
+    fixtures: MESHCORE(),
+    setup: async (page) => {
+      const own = page.locator('[data-message-id]', { hasText: MC_OWN });
+      await own.getByRole('button', { name: /^Heard by 1/ }).click();
+      await page.getByRole('dialog', { name: /Heard by 1 of 2 repeaters/ }).waitFor();
+    },
+  },
+  { id: '8-24-route-details', size: 'phone', path: '/source/src-heltec/channel/1', fixtures: MESHCORE(), setup: openMcRoute },
 ];
+
+/** Heltec MeshCore's section 8 data, a fresh log per board. */
+function MESHCORE(opts?: MeshCoreFixtureOptions): Board['fixtures'] {
+  return meshcoreFixtures({ writes: [] }, opts);
+}
+
+const MC_OWN = 'Heading to Glyfada, will report back on the coast road';
+
+/** Route details on Glyfada Beach's message: the panel (desktop) or sheet (phone). */
+async function openMcRoute(page: Page): Promise<void> {
+  const row = page.locator('[data-message-id]', { hasText: 'Morning, anyone on the coast road?' });
+  await row.getByRole('button', { name: 'Route details' }).click();
+  await page.getByRole('heading', { name: 'Message Route' }).waitFor();
+}
+
+/** Kifisia BBS: Log in with saved password, held on attempt 2 of 3 (the login never answers). */
+async function waitMcLogin(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Log in with saved password' }).click();
+  await page.getByText(/Attempt 2 of 3: waiting for a reply/).waitFor();
+}
+
+/** Athens Room: a guest login, then its posts. */
+async function logInMcRoom(page: Page): Promise<void> {
+  const card = page.locator('div', { has: page.getByRole('heading', { name: 'Log in to read posts' }) }).last();
+  await card.getByRole('button', { name: 'Login', exact: true }).click();
+  await page.getByRole('button', { name: 'Log out' }).waitFor();
+  await page.getByText('Meetup Saturday 11:00 at the Psychiko park, bring radios.').waitFor();
+}
 
 
 /** Identity: the short name G2 → SG2. */

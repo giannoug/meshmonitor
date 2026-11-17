@@ -20,7 +20,7 @@
  * on this source) or an unreachable server leaves the store on its
  * localStorage-only path rather than breaking the unread UI.
  */
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import apiService from '../../../services/api';
 import {
   configureReadStateTransport,
@@ -28,8 +28,12 @@ import {
   type MeshCoreReadKind,
 } from '../meshcoreUnreadStore';
 
-export function useReadStateSync({ sourceId }: { sourceId: string }): void {
+/** Returns true once this source's server snapshot has been pulled (or could not be): a view that pins
+ *  its unread line on entry waits for it (the Workspace opens straight on a conversation, #6365). */
+export function useReadStateSync({ sourceId }: { sourceId: string }): boolean {
+  const [ready, setReady] = useState(false);
   useEffect(() => {
+    setReady(false);
     if (!sourceId) return;
 
     configureReadStateTransport({
@@ -52,12 +56,17 @@ export function useReadStateSync({ sourceId }: { sourceId: string }): void {
       },
     });
 
-    void hydrateReadState(sourceId);
+    let live = true;
+    void hydrateReadState(sourceId).finally(() => {
+      if (live) setReady(true);
+    });
 
     return () => {
+      live = false;
       // Leaving the MeshCore page must not leave a transport bound to a source
       // that is no longer mounted; the next mount installs a fresh one.
       configureReadStateTransport(null);
     };
   }, [sourceId]);
+  return ready;
 }

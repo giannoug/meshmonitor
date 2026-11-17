@@ -81,6 +81,8 @@ export interface MessageRowDProps {
   readOnly?: boolean;
   headExtra?: ReactNode;
   footer?: ReactNode;
+  /** Replaces the Meshtastic ack words on ours (MeshCore, Task 7.1); null shows none. */
+  ackLabel?: ReactNode;
 }
 
 const NO_ITEMS: ReturnType<typeof messageActionItems> = [];
@@ -156,8 +158,8 @@ function MessageRowDImpl(props: MessageRowDProps) {
       }
     : {};
 
-  const ack = mine ? getMeshtasticDeliveryState(msg) : null;
-  const ackLabel = ack && (
+  const ack = mine && props.ackLabel === undefined ? getMeshtasticDeliveryState(msg) : null;
+  const ackLabel = props.ackLabel !== undefined ? (mine ? props.ackLabel : null) : ack && (
     <span className={styles.ack} data-ack={ack} title={t(`message_status.${ack}`)}>
       {ack === 'delivered' || ack === 'confirmed' ? <UiIcon name="check" size={13} /> : null}
       {t(`workspace.chat.ack.${ack}`)}
