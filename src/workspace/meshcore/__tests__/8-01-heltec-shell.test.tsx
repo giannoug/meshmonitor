@@ -125,14 +125,43 @@ describe('8-01-heltec-shell', () => {
     expect(line.nextElementSibling).toBe(nikos);
   });
 
-  it('opening the channel and re-rendering send nothing; the Scope menu asks nearby repeaters for regions once', async () => {
-    const { log, rerender } = renderMeshCore(route);
+  it('opening the channel and a re-render of the whole tree send nothing', async () => {
+    const { log, rerenderWorkspace } = renderMeshCore(route);
     await screen.findByText(OWN);
     await new Promise((r) => setTimeout(r, 300));
+    const before = vi.mocked(fetch).mock.calls.length;
     expect(log.writes).toHaveLength(0);
-    // A re-render (as a settings save or a socket push causes) arms nothing.
-    rerender(<></>);
+    // Every component re-renders with its state kept (as a settings save or a socket push causes).
+    rerenderWorkspace();
+    rerenderWorkspace();
+    await new Promise((r) => setTimeout(r, 300));
+    expect(screen.getByText(OWN)).toBeInTheDocument();
     expect(log.writes).toHaveLength(0);
+    expect(vi.mocked(fetch).mock.calls.slice(before).filter(([, i]) => (i?.method ?? 'GET') !== 'GET')).toHaveLength(0);
+  });
+
+  it('Enter in the flood confirm sends nothing; only the button does', async () => {
+    const { log } = renderMeshCore(route);
+    await screen.findByText(GLY);
+    fireEvent.click(screen.getByRole('button', { name: 'Flood advert' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Send a flood advert?' });
+    fireEvent.keyDown(sheet, { key: 'Enter' });
+    fireEvent.submit(sheet.querySelector('form')!);
+    await new Promise((r) => setTimeout(r, 100));
+    expect(log.writes.filter((w) => w.path.endsWith('/meshcore/advert'))).toHaveLength(0);
+    expect(screen.getByRole('dialog', { name: 'Send a flood advert?' })).toBeInTheDocument();
+  });
+
+  it('Enter in the resend confirm sends nothing; only the button does', async () => {
+    const { log } = renderMeshCore(route);
+    const own = (await screen.findByText(OWN)).closest('[data-message-id]') as HTMLElement;
+    fireEvent.click(within(own).getByRole('button', { name: 'More actions' }));
+    fireEvent.click(within(own).getByRole('button', { name: /^Resend/ }));
+    const sheet = await screen.findByRole('dialog', { name: 'Resend message?' });
+    fireEvent.keyDown(sheet, { key: 'Enter' });
+    fireEvent.submit(sheet.querySelector('form')!);
+    await new Promise((r) => setTimeout(r, 100));
+    expect(log.writes.filter((w) => w.path.endsWith('/resend'))).toHaveLength(0);
   });
 
   it('region discovery runs once, on the first open of the Scope menu', async () => {

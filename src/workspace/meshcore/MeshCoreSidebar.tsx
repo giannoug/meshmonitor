@@ -38,7 +38,8 @@ import {
   type ChannelSortMode,
   type RoomSortMode,
 } from '../../components/MeshCore/meshcoreChannelOrder';
-import { calculateDistance } from '../../utils/distance';
+import { calculateDistance, formatDistance } from '../../utils/distance';
+import { useSettingsOptional } from '../../contexts/SettingsContext';
 import { advertHasPosition } from '../../utils/meshcoreAdvertPosition';
 import RowMenu, { type RowMenuItem } from '../patterns/RowMenu';
 import Sheet from '../patterns/Sheet';
@@ -91,6 +92,7 @@ export default function MeshCoreSidebar({ source, onNavigate, variant = 'sidebar
   const home = variant === 'home';
   const lists = useMeshCoreLists(sourceId, source.status === 'connected');
   const sessions = useRoomSessions(sourceId);
+  const distanceUnit = useSettingsOptional()?.distanceUnit ?? 'km';
   const visible = visibleMeshCoreViews({
     canRead: (resource) => hasPermission(resource, 'read', { sourceId }),
     isAuthenticated: authStatus?.authenticated ?? false,
@@ -123,21 +125,28 @@ export default function MeshCoreSidebar({ source, onNavigate, variant = 'sidebar
 
   const self = lists.self;
   const selfHasLocation = advertHasPosition(self?.latitude, self?.longitude);
+  // Today's Rooms list: distance from this device's fix, for the Distance sort and its row meta.
+  const roomDistances = useMemo(() => {
+    const out: Record<string, number> = {};
+    if (!selfHasLocation) return out;
+    for (const room of lists.rooms) {
+      if (advertHasPosition(room.latitude, room.longitude)) {
+        out[room.publicKey] = calculateDistance(self!.latitude!, self!.longitude!, room.latitude!, room.longitude!);
+      }
+    }
+    return out;
+  }, [lists.rooms, selfHasLocation, self]);
   const rooms = useMemo(() => {
     const counts: Record<string, number> = {};
     const latest: Record<string, number> = {};
-    const distances: Record<string, number> = {};
     for (const room of lists.rooms) {
       const stat = lists.unread.roomStats.find((s) => sameRoom(s.roomPublicKey, room.publicKey));
       counts[room.publicKey] = stat?.count ?? 0;
       latest[room.publicKey] = stat?.latest ?? 0;
-      if (selfHasLocation && advertHasPosition(room.latitude, room.longitude)) {
-        distances[room.publicKey] = calculateDistance(self!.latitude!, self!.longitude!, room.latitude!, room.longitude!);
-      }
     }
     const items = lists.rooms.map((room) => ({ id: room.publicKey, name: roomLabel(room), room }));
-    return sortItems(items, roomSort, { customOrder: roomOrder, latest, counts, distances });
-  }, [lists.rooms, lists.unread.roomStats, roomSort, roomOrder, selfHasLocation, self]);
+    return sortItems(items, roomSort, { customOrder: roomOrder, latest, counts, distances: roomDistances });
+  }, [lists.rooms, lists.unread.roomStats, roomSort, roomOrder, roomDistances]);
 
   const unreadRoomKeys = lists.unread.unreadRooms;
   const nameOf = (key: string) => {
@@ -359,6 +368,9 @@ export default function MeshCoreSidebar({ source, onNavigate, variant = 'sidebar
                       <span className={styles.room} data-room={state} title={t(`workspace.meshcore.room_${state}`)} />
                     </span>
                     <span className={listStyles.name}>{name}</span>
+                    {roomSort === 'distance' && typeof roomDistances[key] === 'number' && (
+                      <span className={styles.meta}>{formatDistance(roomDistances[key], distanceUnit)}</span>
+                    )}
                     {lists.isDMMuted(key) && <span className={styles.end}><UiIcon name="muted" size={14} /></span>}
                     {unread && <span className={styles.dot} aria-label={t('meshcore.rooms.unread', 'Unread posts')} />}
                   </NavLink>

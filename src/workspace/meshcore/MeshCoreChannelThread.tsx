@@ -22,7 +22,7 @@
  * could still become resendable, as today.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { UiIcon } from '../../components/icons';
@@ -63,7 +63,7 @@ import { useMeshCoreRuntime } from './runtime';
 import MeshCoreThread, { type McRow } from './MeshCoreThread';
 import RouteDetails from './RouteDetails';
 import ScopeMenu from './ScopeMenu';
-import { channelKind, channelName } from './meshcoreLabels';
+import { channelKind, channelName, senderKeyOf } from './meshcoreLabels';
 import { mcKeys } from './useMeshCoreLists';
 import { useMeshCoreChannel } from './useMeshCoreChannel';
 import threadStyles from '../chat/ChannelThread.module.css';
@@ -75,6 +75,7 @@ const RESEND_TICK_MS = 5_000;
 export default function MeshCoreChannelThread({ idx }: { idx: number }) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const { authStatus } = useAuth();
@@ -175,10 +176,13 @@ export default function MeshCoreChannelThread({ idx }: { idx: number }) {
       translateHint: t('workspace.chat.translate_hint', { language: STANDARD_LANGUAGES.find((l) => l.code === viewerLang)?.name ?? viewerLang }),
       sendsTapback: t('workspace.meshcore.sends_reaction', { channel: name }),
       sendsResend: '',
+      nodeDetails: true,
       filter: (item: MessageActionItem, msg, mine): MessageActionItem | null => {
         const m = byId.get(msg.id);
         if (!m) return null;
         switch (item.kind) {
+          case 'node':
+            return senderKeyOf(m, contacts) ? item : null;
           case 'react':
             return isReactableRow(m, selfKey) && meshCore.status?.reactionsOutboundEnabled === true ? item : null;
           case 'translate':
@@ -192,7 +196,7 @@ export default function MeshCoreChannelThread({ idx }: { idx: number }) {
         }
       },
     }),
-    [writeReason, sendReason, translationSettings.canTranslate, viewerLang, t, name, byId, selfKey, meshCore.status?.reactionsOutboundEnabled, translatable, resendReady],
+    [writeReason, sendReason, translationSettings.canTranslate, viewerLang, t, name, byId, selfKey, meshCore.status?.reactionsOutboundEnabled, translatable, resendReady, contacts],
   );
 
   const react = (row: McRow, emoji: string) => {
@@ -223,6 +227,10 @@ export default function MeshCoreChannelThread({ idx }: { idx: number }) {
         break;
       case 'details':
         setRoute(row);
+        break;
+      case 'node':
+        // Today's sender-name link: that contact's Node Details (the DM view).
+        if (row.senderKey) void navigate(`${base}/dm/${encodeURIComponent(row.senderKey)}`);
         break;
       case 'copy':
         void navigator.clipboard
@@ -264,7 +272,7 @@ export default function MeshCoreChannelThread({ idx }: { idx: number }) {
           <p className={styles.meta}>
             {scope && <span title={t('meshcore.scope_tooltip', 'The region/scope this message was sent with')}>{t('workspace.meshcore.scope_of', { scope })}</span>}
             {hasRoute && (
-              <button type="button" className={styles.link} title={t('meshcore.route_detail_tooltip')} onClick={() => setRoute(row)}>
+              <button type="button" className={styles.link} data-phone={isPhone || undefined} title={t('meshcore.route_detail_tooltip')} onClick={() => setRoute(row)}>
                 {t('workspace.meshcore.route_details')}
               </button>
             )}
@@ -284,7 +292,7 @@ export default function MeshCoreChannelThread({ idx }: { idx: number }) {
     return (
       <div className={styles.heardWrap}>
         <div className={styles.heard}>
-          <button type="button" className={styles.heardButton} title={t('meshcore.heard_by_tooltip')} onClick={() => setHeard(row)}>
+          <button type="button" className={styles.heardButton} data-phone={isPhone || undefined} title={t('meshcore.heard_by_tooltip')} onClick={() => setHeard(row)}>
             <UiIcon name="radioSignal" size={14} /> {t('workspace.meshcore.heard_by', { count: model.greenCount })}
           </button>
           {model.required.map((r) =>

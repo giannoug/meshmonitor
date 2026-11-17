@@ -16,7 +16,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { ReactElement } from 'react';
+import { cloneElement, isValidElement, type ReactElement } from 'react';
 import { vi, onTestFinished } from 'vitest';
 import { render, type RenderResult } from '@testing-library/react';
 import { createInstance } from 'i18next';
@@ -80,7 +80,7 @@ function mediaMatches(query: string, width: number): boolean {
   );
 }
 
-export function renderWorkspace(ui: ReactElement, opts: RenderWorkspaceOptions = {}): RenderResult {
+export function renderWorkspace(ui: ReactElement, opts: RenderWorkspaceOptions = {}): RenderResult & { rerenderWorkspace(): void } {
   const route = opts.route ?? '/';
   const authStatus = authStatusFor(opts);
   const api = fixtureApi({ 'GET /api/auth/status': () => authStatus, ...opts.fixtures });
@@ -119,23 +119,38 @@ export function renderWorkspace(ui: ReactElement, opts: RenderWorkspaceOptions =
 
   const sourceId = route.match(/^\/source\/([^/?#]+)/)?.[1];
   const source = athensFixture.sources.find((s) => s.id === sourceId);
-  const content = sourceId ? (
-    <SourceProvider sourceId={sourceId} sourceName={source?.name ?? null} sourceType={source?.type ?? null}>
-      {ui}
-    </SourceProvider>
-  ) : (
-    ui
-  );
-
-  return render(
+  const tree = (body: ReactElement) => (
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[route]}>
         <I18nextProvider i18n={i18n}>
           <CsrfProvider>
-            <AuthProvider>{content}</AuthProvider>
+            <AuthProvider>
+              {sourceId ? (
+                <SourceProvider sourceId={sourceId} sourceName={source?.name ?? null} sourceType={source?.type ?? null}>
+                  {body}
+                </SourceProvider>
+              ) : (
+                body
+              )}
+            </AuthProvider>
           </CsrfProvider>
         </I18nextProvider>
       </MemoryRouter>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
+
+  const result = render(tree(ui));
+  // Re-render the same tree with fresh elements all the way down, so no component bails out on an
+  // unchanged element: a real re-render of everything mounted, with its state kept.
+  return Object.assign(result, { rerenderWorkspace: () => result.rerender(tree(fresh(ui) as ReactElement)) });
+}
+
+/** A copy of an element tree whose elements (children and element-valued props, e.g. Route's `element`) are all new objects. */
+function fresh(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(fresh);
+  if (!isValidElement(node)) return node;
+  const props = node.props as Record<string, unknown>;
+  const next: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(props)) next[k] = Array.isArray(v) || isValidElement(v) ? fresh(v) : v;
+  return cloneElement(node, next);
 }

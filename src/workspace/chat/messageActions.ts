@@ -10,7 +10,8 @@ import { DEFAULT_TAPBACK_EMOJIS, type TapbackEmoji } from '../../components/Emoj
 import type { UiIconName } from '../../components/icons';
 import type { MeshMessage } from '../../types/message';
 
-export type MessageActionKind = 'reply' | 'react' | 'translate' | 'resend' | 'details' | 'copy' | 'delete';
+/** `node`: the sender's Node Details (MeshCore, Task 7.1; offered only when `nodeDetails` is set). */
+export type MessageActionKind = 'reply' | 'react' | 'translate' | 'resend' | 'details' | 'node' | 'copy' | 'delete';
 
 /** Per conversation; the screen memoizes it so the rows keep their memo. */
 export interface MessageActionContext {
@@ -32,6 +33,8 @@ export interface MessageActionContext {
    * today's resend window is open, Reply only on a channel message from someone else.
    */
   filter?(item: MessageActionItem, msg: MeshMessage, mine: boolean): MessageActionItem | null;
+  /** Offer "Node Details" on someone else's message (MeshCore: today's sender-name link). */
+  nodeDetails?: boolean;
 }
 
 export interface MessageActionItem {
@@ -46,6 +49,7 @@ export const ACTION_ICON: Record<MessageActionKind, UiIconName> = {
   translate: 'translate',
   resend: 'resend',
   details: 'info',
+  node: 'nodes',
   copy: 'copy',
   delete: 'delete',
 };
@@ -57,6 +61,7 @@ export const ACTION_LABEL: Record<MessageActionKind, string> = {
   translate: 'messages.translate_btn',
   resend: 'workspace.chat.resend',
   details: 'common.details',
+  node: 'meshcore.nav.dms',
   copy: 'workspace.chat.copy_text',
   delete: 'workspace.chat.delete',
 };
@@ -84,6 +89,7 @@ export function messageActionItems(ctx: MessageActionContext, msg: MeshMessage, 
   if (ctx.canTranslate && msg.text) items.push({ kind: 'translate', reason: ctx.writeReason });
   if (ctx.canSend && mine) items.push({ kind: 'resend', reason: ctx.sendReason, sends: ctx.sendsResend });
   items.push({ kind: 'details' });
+  if (ctx.nodeDetails && !mine) items.push({ kind: 'node' });
   if (msg.text) items.push({ kind: 'copy' });
   items.push({ kind: 'delete', reason: ctx.deleteReason });
   if (!ctx.filter) return items;

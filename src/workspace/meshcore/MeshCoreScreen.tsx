@@ -31,6 +31,8 @@ import MeshCoreHome from './MeshCoreHome';
 import MeshCoreRoom from './MeshCoreRoom';
 import { mcKeys } from './useMeshCoreLists';
 import { RuntimeContext } from './runtime';
+import PhoneDeviceHeader from './PhoneDeviceHeader';
+import { useIsPhone } from '../shell/useIsPhone';
 import styles from './MeshCoreScreen.module.css';
 
 export type MeshCoreScreenKind = { kind: 'home' } | { kind: 'channel'; idx: number } | { kind: 'room'; key: string };
@@ -58,9 +60,12 @@ export default function MeshCoreScreen({ sourceId, source, screen }: MeshCoreScr
 function Gate({ sourceId, deviceName, screen }: { sourceId: string; deviceName: string; screen: MeshCoreScreenKind }) {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
+  const isPhone = useIsPhone();
   if (!hasPermission('connection', 'read', { sourceId })) {
+    // The phone shell hides its header on these URLs: keep the device header (and its switcher) here.
     return (
       <section className={styles.page}>
+        {isPhone && <PhoneDeviceHeader sourceId={sourceId} />}
         <p className={styles.note} role="note">{t('meshcore.no_permission', 'You do not have permission to view this MeshCore source.')}</p>
       </section>
     );

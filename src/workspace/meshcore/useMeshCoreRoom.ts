@@ -27,7 +27,7 @@ import { loadRoomLastRead, markRoomRead } from '../../components/MeshCore/meshco
 import { compareMeshCoreMessages } from '../../components/MeshCore/messageOrder';
 import { meshcoreReceiptTimeMs } from '../../utils/meshcoreMessageTime';
 import { useMeshCoreRuntime } from './runtime';
-import { setRoomLoggedIn, useRoomSessions } from './roomSessions';
+import { ownerOf, setRoomLoggedIn, useRoomSessions } from './roomSessions';
 import { mcKeys } from './useMeshCoreLists';
 
 /** Today's auto-sync choices (minutes); the server takes 60–1440. */
@@ -46,6 +46,7 @@ export function useMeshCoreRoom(roomKey: string) {
   const connected = status?.connected ?? false;
   const room = contacts.find((c) => c.publicKey === roomKey) ?? null;
   const loggedIn = useRoomSessions(sourceId).has(roomKey);
+  const who = ownerOf(authStatus?.user);
 
   const { data: creds } = useQuery({
     queryKey: mcKeys.roomCreds(sourceId),
@@ -83,7 +84,7 @@ export function useMeshCoreRoom(roomKey: string) {
       const { value, cancelledByUser } = await run((requestId) => actions.loginRoomWithSaved(roomKey, { requestId }));
       if (cancelledByUser || value.cancelled) setNotice(t('meshcore.rooms.login_cancelled', 'Login cancelled'));
       else if (value.success) {
-        setRoomLoggedIn(sourceId, roomKey, true);
+        setRoomLoggedIn(who, sourceId, roomKey, true);
         setSyncFailure(null);
       } else if (value.reason === 'no_reply' || value.code === 'ROOM_LOGIN_NO_REPLY') setNoReply(true);
       else if (value.reason === 'rejected') setError(t('meshcore.rooms.saved_password_refused_short', 'The saved password was refused by this room server.'));
@@ -93,7 +94,7 @@ export function useMeshCoreRoom(roomKey: string) {
     } finally {
       setLoading(false);
     }
-  }, [receiveOnly, run, actions, roomKey, sourceId, t]);
+  }, [receiveOnly, run, actions, roomKey, sourceId, who, t]);
   const login = useCallback(async () => {
     if (receiveOnly) return;
     begin();
@@ -104,7 +105,7 @@ export function useMeshCoreRoom(roomKey: string) {
         // A reply may have raced the cancel: re-read which rooms have a saved password.
         refreshCreds();
       } else if (value.success) {
-        setRoomLoggedIn(sourceId, roomKey, true);
+        setRoomLoggedIn(who, sourceId, roomKey, true);
         if (value.persisted) refreshCreds();
         setPassword('');
         setSyncFailure(null);
@@ -119,7 +120,7 @@ export function useMeshCoreRoom(roomKey: string) {
     }
     // refreshCreds reads only the stable query client and source.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 refreshCreds is rebuilt each render
-  }, [receiveOnly, run, actions, roomKey, password, remember, sourceId, t]);
+  }, [receiveOnly, run, actions, roomKey, password, remember, sourceId, who, t]);
   const [forgetting, setForgetting] = useState(false);
   const forget = useCallback(async () => {
     setForgetting(true);
@@ -136,7 +137,7 @@ export function useMeshCoreRoom(roomKey: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 refreshCreds is rebuilt each render
   }, [actions, roomKey]);
   /** Log out (Ruling 7.1 room-logout): forgets this browser's login; sends nothing, as leaving today's Rooms view. */
-  const logout = () => setRoomLoggedIn(sourceId, roomKey, false);
+  const logout = () => setRoomLoggedIn(who, sourceId, roomKey, false);
 
   // Auto-sync: today's setting, read when the room opens.
   const [syncEnabled, setSyncEnabled] = useState(false);

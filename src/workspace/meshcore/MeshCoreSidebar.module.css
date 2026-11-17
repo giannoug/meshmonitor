@@ -168,3 +168,15 @@
   color: var(--color-text-subtle);
   font-size: 13px;
 }
+
+/* Today's distance beside a room while sorted by Distance. */
+.meta {
+  flex: none;
+  margin-left: auto;
+  color: var(--color-text-subtle);
+  font-size: 12px;
+}
+
+.meta + .dot {
+  margin-left: 0;
+}

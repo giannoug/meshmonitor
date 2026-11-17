@@ -11,11 +11,11 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { joined } from '../../chat/__tests__/renderChat';
 import { MC } from '../../__fixtures__/meshcore';
-import { setRoomLoggedIn } from '../roomSessions';
+import { syncRoomSessionsOwner } from '../roomSessions';
 import { HELTEC, renderMeshCore } from './renderMeshCore';
 
 // Logins live for the session; each test starts logged out.
-afterEach(() => setRoomLoggedIn('src-heltec', MC.athensRoom, false));
+afterEach(() => syncRoomSessionsOwner('test-reset'));
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('./mocks')).wsMock(orig));
 
@@ -51,6 +51,44 @@ describe('8-04-room-posts', () => {
     fireEvent.keyDown(box, { key: 'Enter' });
     await waitFor(() => expect(log.writes.filter((w) => w.path.endsWith('/rooms/post'))).toHaveLength(1));
     expect(log.writes.find((w) => w.path.endsWith('/rooms/post'))!.body).toEqual({ roomPublicKey: MC.athensRoom, text: 'Count me in for Saturday' });
+  });
+
+  it('logged in with configuration:write, Auto-sync is one tap away and saves once per change', async () => {
+    const { log } = renderMeshCore(route);
+    await logIn();
+    fireEvent.click(screen.getByRole('button', { name: 'Auto-sync' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Auto-sync' });
+    fireEvent.click(within(sheet).getByRole('switch'));
+    expect(within(sheet).getByText('Sends 1 login to Athens Room every 1 h while on')).toBeInTheDocument();
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(log.writes.filter((w) => w.path.endsWith('/rooms/sync-config'))).toHaveLength(1));
+    expect(log.writes.find((w) => w.path.endsWith('/rooms/sync-config'))!.body).toEqual({ publicKey: MC.athensRoom, enabled: true, intervalMinutes: 60 });
+    // Saved: no second PATCH until another change, and no login goes out.
+    await waitFor(() => expect(within(sheet).queryByRole('button', { name: 'Save' })).toBeNull());
+    expect(log.writes.filter((w) => w.path.endsWith('/rooms/login'))).toHaveLength(1);
+  });
+
+  it('without configuration:write there is no Auto-sync while logged in', async () => {
+    renderMeshCore(route, {
+      permissions: {
+        bySource: {
+          'src-heltec': {
+            connection: { read: true, write: false },
+            nodes: { read: true, write: false },
+            messages: { read: true, write: true },
+            configuration: { read: true, write: false },
+          },
+        },
+      },
+    });
+    await logIn();
+    expect(screen.queryByRole('button', { name: 'Auto-sync' })).toBeNull();
+  });
+
+  it('says Log out only forgets the login here', async () => {
+    renderMeshCore(route);
+    await logIn();
+    expect(screen.getByText('Log out only forgets this login in MeshMonitor; nothing is sent to the room')).toBeInTheDocument();
   });
 
   it('Log out sends nothing and shows the login card again', async () => {

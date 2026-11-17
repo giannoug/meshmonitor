@@ -158,7 +158,7 @@ export default function WorkspaceSource() {
       <Redirect to={fix ? `${base}/${view}` : null}>
         <Rehost>
           {renderSourceApp(PAGES, sourceId, source, splat, {
-            meshcore: { view, onViewChange, dmContact: view === 'dms' && dm ? dm[1] : null },
+            meshcore: { view, onViewChange, dmContact: view === 'dms' && dm ? dm[1] : null, dmRequest: location.key },
           })}
         </Rehost>
       </Redirect>

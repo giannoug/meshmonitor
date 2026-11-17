@@ -8,6 +8,7 @@
  * saved posts under the login card, as today.
  */
 import { useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../../components/ToastContainer';
 import MessageDetailsModal from '../../components/diagnostics/MessageDetailsModal';
@@ -27,6 +28,7 @@ import type { MessageActionContext, MessageActionItem } from '../chat/messageAct
 import type { RowTranslationActions } from '../chat/MessageRowD';
 import { useShellDevices } from '../shell/shellDevices';
 import { useMeshCoreRuntime } from './runtime';
+import { senderKeyOf } from './meshcoreLabels';
 import MeshCoreThread, { type McRow } from './MeshCoreThread';
 import type { useMeshCoreRoom } from './useMeshCoreRoom';
 import threadStyles from '../chat/ChannelThread.module.css';
@@ -36,6 +38,7 @@ type Room = ReturnType<typeof useMeshCoreRoom>;
 
 export default function RoomPosts({ room, name, roomKey, readOnly = false }: { room: Room; name: string; roomKey: string; readOnly?: boolean }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const { authStatus } = useAuth();
   const { sources } = useShellDevices();
@@ -63,19 +66,25 @@ export default function RoomPosts({ room, name, roomKey, readOnly = false }: { r
       translateHint: t('workspace.chat.translate_hint', { language: STANDARD_LANGUAGES.find((l) => l.code === viewerLang)?.name ?? viewerLang }),
       sendsTapback: '',
       sendsResend: '',
-      // Today's room posts: Translate, Copy, and Details on ours; no reply, react, resend or delete.
+      nodeDetails: true,
+      // Today's room posts: Translate, Copy, the author's Node Details, and Details on ours; no reply, react, resend or delete.
       filter: (item: MessageActionItem, msg, mine): MessageActionItem | null => {
+        if (item.kind === 'node') {
+          const m = room.posts.find((p) => p.id === msg.id);
+          return m && senderKeyOf(m, meshCore.contacts) ? item : null;
+        }
         if (item.kind === 'translate') return translatableIds.includes(msg.id) ? item : null;
         if (item.kind === 'copy') return item;
         if (item.kind === 'details') return mine ? item : null;
         return null;
       },
     }),
-    [translationSettings.canTranslate, viewerLang, t, translatableIds],
+    [translationSettings.canTranslate, viewerLang, t, translatableIds, room.posts, meshCore.contacts],
   );
   const onAction = (kind: string, row: McRow) => {
     if (kind === 'translate') void translateMessage(row.message.id, row.message.text);
     else if (kind === 'details') setDetails(row.message);
+    else if (kind === 'node' && row.senderKey) void navigate(`/source/${encodeURIComponent(sourceId)}/dm/${encodeURIComponent(row.senderKey)}`);
     else if (kind === 'copy')
       void navigator.clipboard
         .writeText(row.message.text)

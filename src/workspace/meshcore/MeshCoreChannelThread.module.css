@@ -43,6 +43,12 @@
   cursor: pointer;
 }
 
+/* Phone targets (8-19, 8-24): the entries to the heard-by and route sheets. */
+.link[data-phone],
+.heardButton[data-phone] {
+  min-height: 44px;
+}
+
 .link:focus-visible,
 .heardButton:focus-visible {
   outline: 2px solid var(--color-accent);

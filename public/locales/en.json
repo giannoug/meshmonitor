@@ -8531,6 +8531,7 @@
   "workspace.meshcore.password_saved": "password saved",
   "workspace.meshcore.log_out": "Log out",
   "workspace.meshcore.log_out_title": "Forget this login in MeshMonitor; sends nothing to the room",
+  "workspace.meshcore.log_out_hint": "Log out only forgets this login in MeshMonitor; nothing is sent to the room",
   "workspace.meshcore.login_title": "Log in to read posts",
   "workspace.meshcore.login_sub": "A room server pushes its stored posts after a login.",
   "workspace.meshcore.sends_login_press": "Each attempt sends 1 login message to {{room}}",

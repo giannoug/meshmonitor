@@ -34,7 +34,7 @@ import { useUserPreferences } from '../prefs/useUserPreferences';
 import { useIsPhone } from '../shell/useIsPhone';
 import MessageRowD, { type MessageActionKind, type RowTranslationActions } from '../chat/MessageRowD';
 import type { MessageActionContext } from '../chat/messageActions';
-import { shortMark } from './meshcoreLabels';
+import { senderKeyOf, shortMark } from './meshcoreLabels';
 import styles from './MeshCoreThread.module.css';
 
 const NO_REACTIONS: MeshMessage[] = [];
@@ -44,7 +44,7 @@ export interface McRow {
   message: MeshCoreMessage;
   mine: boolean;
   name: string;
-  /** Today's sender key for a node page link, when the sender resolves to a contact. */
+  /** The contact the sender's name leads to (today's name link → Node Details), when it names one. */
   senderKey: string | null;
   chips: ReactionChip[];
 }
@@ -127,11 +127,10 @@ export default function MeshCoreThread(props: MeshCoreThreadProps) {
       messages.map((m): McRow => {
         const mine = !!selfKey && m.fromPublicKey === selfKey;
         const channel = m.fromPublicKey.startsWith('channel-');
-        const contact = !channel ? contacts.find((c) => c.publicKey === m.fromPublicKey) ?? resolveAuthorContact(contacts, m.fromPublicKey) : null;
         const name = mine
           ? youLabel
           : m.fromName ?? nameForKey(m.fromPublicKey) ?? (channel ? t('meshcore.unknown_sender', 'Unknown sender') : `${m.fromPublicKey.slice(0, 8)}…`);
-        return { message: m, mine, name, senderKey: contact?.publicKey ?? null, chips: chipsByTarget.get(m.id) ?? [] };
+        return { message: m, mine, name, senderKey: mine ? null : senderKeyOf(m, contacts), chips: chipsByTarget.get(m.id) ?? [] };
       }),
     [messages, selfKey, contacts, chipsByTarget, nameForKey, youLabel, t],
   );

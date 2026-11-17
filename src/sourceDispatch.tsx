@@ -35,7 +35,7 @@ export interface SourcePages {
 
 /** Controlled views for the MeshCore/Reticulum pages; the Workspace drives them from the URL. Classic passes none. */
 export interface SourceViews {
-  meshcore?: { view: MeshCoreView; onViewChange(view: MeshCoreView): void; dmContact?: string | null };
+  meshcore?: { view: MeshCoreView; onViewChange(view: MeshCoreView): void; dmContact?: string | null; dmRequest?: string };
   reticulum?: { view: ReticulumView; onViewChange(view: ReticulumView): void };
 }
 

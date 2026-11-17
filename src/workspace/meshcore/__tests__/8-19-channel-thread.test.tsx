@@ -17,6 +17,9 @@ describe('8-19-channel-thread', () => {
   it('8-19-channel-thread shows the board', async () => {
     const { container } = renderMeshCore(`${HELTEC}/channel/1`, { phone: true });
     const own = (await screen.findByText('Heading to Glyfada, will report back on the coast road')).closest('[data-message-id]') as HTMLElement;
+    // Phone targets (44 px, CSS keyed on data-phone): the entries to the heard-by and route sheets.
+    expect(within(own).getByRole('button', { name: /^Heard by 1/ })).toHaveAttribute('data-phone');
+    expect(screen.getAllByRole('button', { name: 'Route details' })[0]).toHaveAttribute('data-phone');
     fireEvent.click(within(own).getByRole('button', { name: /^Heard by 1/ }));
     const sheet = await screen.findByRole('dialog', { name: /Heard by 1 of 2 repeaters/ });
     expect(sheet).toHaveTextContent('Penteli Repeater');

@@ -7,11 +7,11 @@ import { afterEach, describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { MC } from '../../__fixtures__/meshcore';
-import { setRoomLoggedIn } from '../roomSessions';
+import { syncRoomSessionsOwner } from '../roomSessions';
 import { HELTEC, renderMeshCore } from './renderMeshCore';
 
 // Logins live for the session; each test starts logged out.
-afterEach(() => setRoomLoggedIn('src-heltec', MC.athensRoom, false));
+afterEach(() => syncRoomSessionsOwner('test-reset'));
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('./mocks')).wsMock(orig));
 

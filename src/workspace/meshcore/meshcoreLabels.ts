@@ -2,6 +2,8 @@
 import type { TFunction } from 'i18next';
 import { formatMeshCoreChannelName } from '../../utils/meshcoreHelpers';
 import { meshcoreChannelKind } from '../../utils/meshcoreChannelKind';
+import { isUsableSenderKey, resolveAuthorContact } from '../../utils/meshcoreKeyMatch';
+import type { MeshCoreContact } from '../../utils/meshcoreHelpers';
 
 export interface McChannelRow {
   id: number;
@@ -41,4 +43,21 @@ export function shortMark(name: string): string {
 /** Today's room name (MeshCoreRoomsView's `roomLabel`): advertised, stored, else a key prefix. */
 export function roomLabel(room: { publicKey: string; advName?: string; name?: string }): string {
   return room.advName || room.name || `${room.publicKey.substring(0, 12)}…`;
+}
+
+/**
+ * The contact a message's sender name leads to (today's MeshCoreMessageStream name link): a channel
+ * message by its sender name, any other by its usable key prefix. Null when it names no contact.
+ */
+export function senderKeyOf(
+  m: { fromPublicKey: string; fromName?: string },
+  contacts: ReadonlyArray<{ publicKey: string; advName?: string; name?: string }>,
+): string | null {
+  if (m.fromPublicKey.startsWith('channel-')) {
+    const want = m.fromName?.toLowerCase();
+    if (!want) return null;
+    return contacts.find((c) => c.advName?.toLowerCase() === want || c.name?.toLowerCase() === want)?.publicKey ?? null;
+  }
+  if (!isUsableSenderKey(m.fromPublicKey)) return null;
+  return (contacts.find((c) => c.publicKey === m.fromPublicKey) ?? resolveAuthorContact(contacts as MeshCoreContact[], m.fromPublicKey))?.publicKey ?? null;
 }

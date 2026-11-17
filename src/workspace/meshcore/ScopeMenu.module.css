@@ -167,3 +167,10 @@
 .sends {
   padding: 0 12px 8px;
 }
+
+/* Phone targets. */
+.input[data-phone],
+.use[data-phone],
+.reset[data-phone] {
+  min-height: 44px;
+}

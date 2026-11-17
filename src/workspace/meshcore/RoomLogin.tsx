@@ -12,6 +12,7 @@
  * picked here (today's 1–24 h choices): its Sends line says what it costs.
  */
 import { useId } from 'react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import { PasswordField } from '../../components/shared/config/PasswordField';
@@ -29,7 +30,7 @@ export default function RoomLogin({ room, name }: { room: Room; name: string }) 
   const isPhone = useIsPhone();
   const id = useId();
   const { receiveOnly } = useMeshCoreRuntime();
-  const { login, sync } = room;
+  const { login } = room;
   const off = login.loading || receiveOnly || !room.canSend;
   const offReason = receiveOnly
     ? t('meshcore.receive_only.control_tooltip')
@@ -38,14 +39,7 @@ export default function RoomLogin({ room, name }: { room: Room; name: string }) 
       : undefined;
   const waiting = !!login.progress && (login.progress.phase === 'waiting' || login.progress.phase === 'retrying');
   const max = login.progress?.maxAttempts ?? 0;
-  const savedWarning =
-    !login.error && sync.failure
-      ? sync.failure.reason === 'rejected'
-        ? t('meshcore.rooms.saved_password_refused')
-        : t('meshcore.rooms.saved_password_unanswered', { count: sync.failure.count })
-      : null;
-  const intervals = SYNC_INTERVALS.includes(sync.interval) ? SYNC_INTERVALS : [...SYNC_INTERVALS, sync.interval].sort((a, b) => a - b);
-  const hours = (min: number) => Math.round((min / 60) * 10) / 10;
+  const savedWarning = syncWarning(t, room);
 
   return (
     <div className={styles.loginLayout} data-phone={isPhone || undefined}>
@@ -110,44 +104,7 @@ export default function RoomLogin({ room, name }: { room: Room; name: string }) 
         {login.notice && !login.error && <p className={styles.notice} role="status">{login.notice}</p>}
       </div>
 
-      {room.canConfig && room.saved && (
-        <section className={styles.side} aria-label={t('meshcore.rooms.auto_sync', 'Auto-sync')}>
-          <h2 className={styles.sideTitle}>{t('meshcore.rooms.auto_sync', 'Auto-sync')}</h2>
-          <div className={styles.card}>
-            <label className={styles.toggleRow}>
-              <span className={styles.rowText}>
-                <span className={styles.rowTitle}>{t('meshcore.rooms.auto_sync', 'Auto-sync')}</span>
-                <span className={styles.rowSub}>{t('meshcore.rooms.sync_enabled_tooltip', 'Periodically re-login to fetch new posts')}</span>
-              </span>
-              <input type="checkbox" role="switch" className={styles.switch} checked={sync.enabled} onChange={(e) => sync.setEnabled(e.target.checked)} />
-            </label>
-            <label className={styles.toggleRow}>
-              <span className={styles.rowText}>
-                <span className={styles.rowTitle}>{t('workspace.meshcore.relogin_every')}</span>
-                <span className={styles.rowSub}>{t('workspace.meshcore.relogin_range')}</span>
-              </span>
-              <select className={styles.select} value={sync.interval} disabled={!sync.enabled} onChange={(e) => sync.setInterval(Number(e.target.value))}>
-                {intervals.map((m) => (
-                  <option key={m} value={m}>{t('workspace.meshcore.every_hours', { hours: hours(m) })}</option>
-                ))}
-              </select>
-            </label>
-            {sync.enabled && <SendsLine>{t('workspace.meshcore.sends_autosync', { room: name, hours: hours(sync.interval) })}</SendsLine>}
-            {sync.dirty && (
-              <button type="button" className={styles.secondary} onClick={() => void sync.save()}>
-                {t('meshcore.rooms.save_sync', 'Save')}
-              </button>
-            )}
-            {receiveOnly && <p className={styles.rowSub}>{t('meshcore.receive_only.control_tooltip')}</p>}
-          </div>
-          {savedWarning && (
-            <p className={styles.warning} role="note">
-              <UiIcon name="alert" size={16} />
-              <span>{savedWarning}</span>
-            </p>
-          )}
-        </section>
-      )}
+      {room.canConfig && room.saved && <AutoSyncCard room={room} name={name} />}
       {!(room.canConfig && room.saved) && savedWarning && (
         <p className={styles.warning} role="note">
           <UiIcon name="alert" size={16} />
@@ -155,5 +112,67 @@ export default function RoomLogin({ room, name }: { room: Room; name: string }) 
         </p>
       )}
     </div>
+  );
+}
+
+/** Today's warning for a saved password that stopped working (shown unless this session's own error says it). */
+function syncWarning(t: TFunction, room: Room): string | null {
+  const { login, sync } = room;
+  if (login.error || !sync.failure) return null;
+  return sync.failure.reason === 'rejected'
+    ? t('meshcore.rooms.saved_password_refused')
+    : t('meshcore.rooms.saved_password_unanswered', { count: sync.failure.count });
+}
+
+/**
+ * Auto-sync (today's per-room setting, run by today's server scheduler): the switch, today's
+ * 1–24 h choices, its Sends line, Save, and the saved-password warning. Beside the login card,
+ * and while logged in in its own sheet (today's logged-in header has it, for configuration:write).
+ */
+export function AutoSyncCard({ room, name, heading = true }: { room: Room; name: string; heading?: boolean }) {
+  const { t } = useTranslation();
+  const isPhone = useIsPhone();
+  const { receiveOnly } = useMeshCoreRuntime();
+  const { sync } = room;
+  const intervals = SYNC_INTERVALS.includes(sync.interval) ? SYNC_INTERVALS : [...SYNC_INTERVALS, sync.interval].sort((a, b) => a - b);
+  const hours = (min: number) => Math.round((min / 60) * 10) / 10;
+  const warning = syncWarning(t, room);
+  return (
+    <section className={styles.side} aria-label={t('meshcore.rooms.auto_sync', 'Auto-sync')}>
+      {heading && <h2 className={styles.sideTitle}>{t('meshcore.rooms.auto_sync', 'Auto-sync')}</h2>}
+      <div className={styles.card}>
+        <label className={styles.toggleRow}>
+          <span className={styles.rowText}>
+            <span className={styles.rowTitle}>{t('meshcore.rooms.auto_sync', 'Auto-sync')}</span>
+            <span className={styles.rowSub}>{t('meshcore.rooms.sync_enabled_tooltip', 'Periodically re-login to fetch new posts')}</span>
+          </span>
+          <input type="checkbox" role="switch" className={styles.switch} data-phone={isPhone || undefined} checked={sync.enabled} onChange={(e) => sync.setEnabled(e.target.checked)} />
+        </label>
+        <label className={styles.toggleRow}>
+          <span className={styles.rowText}>
+            <span className={styles.rowTitle}>{t('workspace.meshcore.relogin_every')}</span>
+            <span className={styles.rowSub}>{t('workspace.meshcore.relogin_range')}</span>
+          </span>
+          <select className={styles.select} data-phone={isPhone || undefined} value={sync.interval} disabled={!sync.enabled} onChange={(e) => sync.setInterval(Number(e.target.value))}>
+            {intervals.map((m) => (
+              <option key={m} value={m}>{t('workspace.meshcore.every_hours', { hours: hours(m) })}</option>
+            ))}
+          </select>
+        </label>
+        {sync.enabled && <SendsLine>{t('workspace.meshcore.sends_autosync', { room: name, hours: hours(sync.interval) })}</SendsLine>}
+        {sync.dirty && (
+          <button type="button" className={styles.secondary} data-phone={isPhone || undefined} onClick={() => void sync.save()}>
+            {t('meshcore.rooms.save_sync', 'Save')}
+          </button>
+        )}
+        {receiveOnly && <p className={styles.rowSub}>{t('meshcore.receive_only.control_tooltip')}</p>}
+      </div>
+      {warning && (
+        <p className={styles.warning} role="note">
+          <UiIcon name="alert" size={16} />
+          <span>{warning}</span>
+        </p>
+      )}
+    </section>
   );
 }

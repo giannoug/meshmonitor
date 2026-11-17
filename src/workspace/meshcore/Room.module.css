@@ -317,3 +317,31 @@
   color: var(--color-text-subtle);
   font-size: 12px;
 }
+
+/* The logged-in tools, with the line saying Log out only forgets the login here (M4). */
+.toolsCol {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.toolsHint {
+  color: var(--color-text-subtle);
+  font-size: 12px;
+  text-align: right;
+}
+
+.sheetPad {
+  padding: 4px 20px 12px;
+}
+
+.switch[data-phone] {
+  width: 44px;
+  height: 44px;
+}
+
+.select[data-phone],
+.secondary[data-phone] {
+  min-height: 44px;
+}

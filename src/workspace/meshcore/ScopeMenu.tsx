@@ -114,6 +114,7 @@ export default function ScopeMenu({ channelName, scope, receiveOnly, phone }: { 
               {t('meshcore.scope.override_label', 'Send scope')}
               <input
                 className={styles.input}
+                data-phone={phone || undefined}
                 value={typed}
                 onChange={(e) => setTyped(e.target.value)}
                 placeholder={scope.base ? t('meshcore.scope.override_placeholder', 'e.g. {{scope}}', { scope: scope.base }) : unscoped}
@@ -122,12 +123,12 @@ export default function ScopeMenu({ channelName, scope, receiveOnly, phone }: { 
                 autoCorrect="off"
               />
             </label>
-            <button type="submit" className={styles.use} disabled={!typed.trim()}>
+            <button type="submit" className={styles.use} data-phone={phone || undefined} disabled={!typed.trim()}>
               {t('workspace.meshcore.scope_use')}
             </button>
           </form>
           {scope.override !== null && (
-            <button type="button" role="menuitem" className={styles.reset} onClick={() => choose(null)}>
+            <button type="button" role="menuitem" className={styles.reset} data-phone={phone || undefined} onClick={() => choose(null)}>
               {t('workspace.meshcore.scope_reset')}
             </button>
           )}

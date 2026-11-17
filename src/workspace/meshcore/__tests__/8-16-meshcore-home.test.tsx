@@ -23,6 +23,16 @@ describe('8-16-meshcore-home', () => {
     expectBoard('8-16-meshcore-home', joined(container, menu));
   });
 
+  it('without connection:read the phone keeps the device header and switcher; only the content is the note', async () => {
+    renderMeshCore(HELTEC, {
+      phone: true,
+      permissions: { bySource: { 'src-heltec': { nodes: { read: true, write: false } } } },
+    });
+    expect(await screen.findByText('You do not have permission to view this MeshCore source.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Heltec MeshCore: switch device' })).toHaveAttribute('aria-haspopup', 'dialog');
+    expect(screen.queryByRole('button', { name: 'Device actions' })).toBeNull();
+  });
+
   it('Disconnect sends one request; the adverts keep their lines', async () => {
     const { log } = renderMeshCore(HELTEC, { phone: true });
     await screen.findByText('Kifisia BBS');

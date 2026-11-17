@@ -79,9 +79,11 @@ interface MeshCorePageProps {
   onViewChange?: (view: MeshCoreView) => void;
   /** Opens this contact's DM (the Workspace's `dm/<key>` URL, #6365); through the same hand-off as Node Details. */
   dmContact?: string | null;
+  /** Changes on every visit to that URL (the location key), so a repeat click opens the contact again. */
+  dmRequest?: string;
 }
 
-export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, enabled, onStatusChange, view: viewProp, onViewChange, dmContact }) => {
+export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, enabled, onStatusChange, view: viewProp, onViewChange, dmContact, dmRequest }) => {
   const { t } = useTranslation();
   const { authStatus } = useAuth();
   const isAdmin = authStatus?.user?.isAdmin ?? false;
@@ -215,10 +217,20 @@ export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, e
     if (view !== 'rooms') setPendingRoom(null);
   }, [view]);
 
-  // The Workspace's `dm/<key>` URL (#6365): the same hand-off a Node Details jump uses.
+  // The Workspace's `dm/<key>` URL (#6365): the same hand-off a Node Details jump uses. On
+  // each visit (`dmRequest`) the pending contact is cleared first and set on the next commit,
+  // so the DM view selects it again even when it is the contact already handed over.
+  const [dmHandOff, setDmHandOff] = useState<string | null>(null);
   useEffect(() => {
-    if (dmContact) setPendingDmContact(dmContact);
-  }, [dmContact]);
+    if (!dmContact) return;
+    setPendingDmContact(null);
+    setDmHandOff(dmContact);
+  }, [dmContact, dmRequest]);
+  useEffect(() => {
+    if (!dmHandOff) return;
+    setPendingDmContact(dmHandOff);
+    setDmHandOff(null);
+  }, [dmHandOff]);
 
   // Deep link from outside the page (Mesh Issues, #6263): select the contact
   // through the same hand-off Show on Map uses. Declared after the view

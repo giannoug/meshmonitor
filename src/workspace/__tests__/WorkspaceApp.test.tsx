@@ -373,6 +373,12 @@ describe('MeshCore and Reticulum views come from the URL', () => {
     renderAt(`${heltec}/dm/abcd`);
     await expectPage('meshcore');
     expect(screen.getByTestId('dm-contact')).toHaveTextContent('abcd');
+    // A second visit to the same URL (the sidebar row again) is a new request, so the page re-selects it.
+    const first = screen.getByTestId('dm-request').textContent;
+    goTo(`${heltec}/dm/abcd`);
+    await waitFor(() => expect(screen.getByTestId('dm-request').textContent).not.toBe(first));
+    expect(screen.getByTestId('dm-contact')).toHaveTextContent('abcd');
+    expect(mounts.meshcore).toBe(1);
   });
 
   it('opens Configuration from the #configuration deep link and puts it in the URL', async () => {
