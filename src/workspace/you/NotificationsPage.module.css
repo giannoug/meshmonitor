@@ -26,26 +26,13 @@
   font-weight: 700;
 }
 
-/* The switch draws at the kit's size inside a 44 px tap target (D8). */
+/* The kit switch sits inside a 44 px tap target (D8). */
 .hit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 44px;
   min-height: 44px;
-}
-
-.switch {
-  width: 22px;
-  height: 22px;
-  margin: 0;
-  accent-color: var(--color-accent);
-  cursor: pointer;
-}
-
-.switch:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* "What each device sends › In its settings": the title wraps (s2). */

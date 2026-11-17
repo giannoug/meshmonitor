@@ -129,6 +129,8 @@ describe('controls', () => {
     sw.focus();
     await userEvent.keyboard(' ');
     expect(sw).toBeChecked();
+    await userEvent.keyboard(' ');
+    expect(sw).not.toBeChecked();
   });
 
   it('desktop: the select is a native select', () => {

@@ -24,6 +24,7 @@ import { pushSupported, subscribeHere, unsubscribeHere, usePushHere } from '../s
 import layout from './LayoutPage.module.css';
 import styles from './YouHome.module.css';
 import own from './NotificationsPage.module.css';
+import kit from '../settings/kit/kit.module.css';
 
 /** The device's own Notifications page, or null where the type has none. */
 function notificationsPath(s: WorkspaceSource): string | null {
@@ -159,7 +160,7 @@ function DeviceRow({ source }: { source: WorkspaceSource }) {
           <input
             type="checkbox"
             role="switch"
-            className={own.switch}
+            className={kit.switch}
             aria-label={source.name}
             checked={on}
             disabled={!supported || busy || push.isLoading}
