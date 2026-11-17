@@ -1160,3 +1160,46 @@ Ruling: 6.7 all — `sourceControls` (deviceInfo.ts) is DevicesPage's Connect/Di
 Ruling: 6.7 h5 (fix 1) — a listen-only device (receive-only, MQTT broker or bridge) gets "<name> is offline. History stays here." (new copy). The board's "sending is paused" would contradict the receive-only line under it — cost if wrong: one string.
 Ruling: 6.7 all (fix 1) — `connectSourceAndWait` dedupes per source in memory, for this tab only (not across tabs or users). The server still accepts concurrent `/connect` calls, as today — cost if wrong: none on the mesh; a second tab can still send one more POST.
 Ruling: 6.7 all (fix 1) — while offline, a message row's send actions show the composer's "Sending is paused while <device> is offline" in place of "Disconnected", and the offline reason now outranks the TX-disabled tooltip, since both come from composerGate. When connected, nothing changes — cost if wrong: one tooltip string.
+
+## Phase 6 summary (gate)
+- Commits: a070132..892dfb9, 25 commits covering tasks 6.1–6.7 plus K1, the kit-switch fix.
+  - Every task was reviewed. 6.1, 6.3, 6.5, 6.6, 6.7 and K1 each needed one fix round. 6.2 and 6.4 are recorded in their sections.
+  - 6.7's round also carried a controller ruling (HC): it brought the phone device header back to the boards' 64 px after the fix had made it 96 px.
+- Boards accepted: 60, as on the contact sheet. They cover You, sign-in, preferences and help, Server (all categories), Add device and Server › Devices, and the device states (h5/h6, i4–i6).
+  - No `staged` board strings remain. The only "staged" match in the tests is the firmware fixture field `stagedUpload`.
+- Contact sheet (private artifact): https://claude.ai/artifact/1qnp3LFQj79Bsc3TR12cp2. Its screenshots were re-encoded as JPEG to fit the 16 MB limit. The canonical PNGs come from `npm run test:workspace-e2e`.
+- CI has not run on this fork, because Actions is off. The gate was verified locally at a01d7f7:
+  - lint:ci filter: 0 FAIL lines.
+  - tsc: client and server both clean.
+  - Full Vitest (`--maxWorkers=4`, PG/MySQL up): 40,877 total, 40,747 passed, 0 failed, 109 pending.
+  - Build and bundle check: pass.
+  - Playwright: 258 passed.
+- Backend changes this phase: none. No `src/server` file was touched.
+- Classic: extractions only, under Rule X, with Classic DOM and tests unchanged:
+  - account hooks (`src/components/account/`, plus `useSignIn`);
+  - theme hooks (`src/components/themes/`);
+  - `unseenNews`;
+  - `useCustomTilesetForm`;
+  - `useMeshCoreChannelImport`;
+  - `useSourceForm` (DashboardPage's roughly 60 form states, with a payload-equality test across all 6 source types);
+  - `sourceStatusInfo`'s optional `idle` field.
+  - Classic App and DashboardPage skip their own news check while embedded in the shell (GO).
+- Mesh impact this phase:
+  - No new automatic sends, retries or timers. Today's timers moved verbatim (GQ).
+  - Save in Add device is today's add.
+  - Try again and Connect send 1 `/connect` per press, and one connect per source can be in flight in a tab.
+  - Resync and the flood-type actions sit behind a ConfirmSheet with a SendsLine and `submitOnEnter={false}`.
+  - The Devices page and the Connection card read today's status queries on today's 15 s cadence. The card's `/api/connection` read mounts only while the card is open.
+- FINAL REPORT ITEMs raised this phase:
+  - **No connection history.** There is no "offline since" time and no 24 h up/down history for a source, so h5/i4 draw today's status words without the duration bar. Drawing them needs a server field.
+  - **Phone status line target.** The phone status-line button is 30 px tall, an exception to the ≥44 px rule (HC).
+  - **Edit re-enables a source.** Editing a disabled source PUTs `enabled: true`, in Classic and in Workspace, because that is today's body (6.6 GZ M5).
+  - **PRE-EXISTING SECURITY:** `/api/solar/trigger` is mounted with optionalAuth only.
+  - **No cooldowns.** "Run analysis now" and "Fetch Estimates Now" have none. The manual "Fix All" path is unpaced (CM).
+  - **Remote admin attempts.** Remote admin allows up to 10 attempts.
+  - **News auto-open.** Before GO, the Workspace had no news auto-open.
+  - **Not built in 6.6:**
+    - the found-serial-ports list, because no endpoint exists;
+    - a stored device colour ("Square"), because none is stored;
+    - the broker's per-bridge rewrites in the Workspace edit (Classic keeps them).
+- No PR created (requester's instruction).
