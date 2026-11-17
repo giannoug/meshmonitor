@@ -28,7 +28,7 @@ import { BaseMap } from '../../components/map/BaseMap';
 import { useCustomTilesetForm } from '../../components/useCustomTilesetForm';
 import { useGeoJsonLayers } from '../../components/useGeoJsonLayers';
 import { useMapStyles } from '../../components/useMapStyles';
-import { isVectorTileUrl } from '../../config/tilesets';
+import { isVectorTileUrl, validateTileUrl } from '../../config/tilesets';
 import { useSettings } from '../../contexts/SettingsContext';
 import apiService from '../../services/api';
 import { formatTileSize } from '../../utils/tileServerTest';
@@ -89,6 +89,18 @@ function TileServers() {
   const [busy, setBusy] = useState(false);
   const formOpen = f.isAdding || !!f.editingId;
   const set = (patch: Partial<typeof f.formData>) => f.setFormData({ ...f.formData, ...patch });
+  const probing = f.isTesting || f.isAutodetecting;
+  // s13n5: Test URL also finds the format. A tile URL is tested as today; a server address is
+  // autodetected first (today's Autodetect), and the URL picked from its results is then tested.
+  const testOrDetect = () => {
+    const url = f.formData.url.trim();
+    if (validateTileUrl(url).valid) void f.testUrl(url);
+    else void f.autodetectFrom(url);
+  };
+  const use = (url: string) => {
+    f.handleSelectAutodetectedUrl(url);
+    void f.testUrl(url);
+  };
 
   const remove = async () => {
     if (!deleting) return;
@@ -165,7 +177,7 @@ function TileServers() {
             <Field label={t('tileset_manager.field_name')} help={t('tileset_manager.name_help')}>
               <input className={pages.keyInput} value={f.formData.name} maxLength={100} required disabled={f.isSaving} placeholder={t('tileset_manager.name_placeholder')} onChange={(e) => set({ name: e.target.value })} />
             </Field>
-            <Field label={t('tileset_manager.field_url')} help={t('tileset_manager.url_help')}>
+            <Field label={t('tileset_manager.field_url')} help={`${t('tileset_manager.url_help')} ${t('workspace.server.test_url_help')}`}>
               <span className={styles.fieldLine}>
                 <input
                   className={pages.keyInput}
@@ -177,8 +189,8 @@ function TileServers() {
                   placeholder="https://example.com/{z}/{x}/{y}.png"
                   onChange={(e) => f.handleUrlChange(e.target.value)}
                 />
-                <button type="button" className={pages.button} title={t('tileset_manager.test_button_title')} disabled={f.isSaving || f.isTesting || !f.urlValidation?.valid} onClick={() => void f.handleTestConnection()}>
-                  {f.isTesting ? t('tileset_manager.testing') : t('tileset_manager.test_button')}
+                <button type="button" className={pages.button} title={t('tileset_manager.test_button_title')} disabled={f.isSaving || probing || !f.formData.url.trim()} onClick={testOrDetect}>
+                  {f.isAutodetecting ? t('tileset_manager.autodetecting') : f.isTesting ? t('tileset_manager.testing') : t('workspace.server.test_url')}
                 </button>
               </span>
             </Field>
@@ -199,14 +211,6 @@ function TileServers() {
                 </span>
               </div>
             )}
-            <Field label={t('tileset_manager.autodetect_title')} help={t('tileset_manager.autodetect_help')}>
-              <span className={styles.fieldLine}>
-                <input className={pages.keyInput} value={f.autodetectBaseUrl} disabled={f.isSaving || f.isAutodetecting} placeholder={t('tileset_manager.autodetect_placeholder')} onChange={(e) => f.setAutodetectBaseUrl(e.target.value)} />
-                <button type="button" className={pages.button} disabled={f.isSaving || f.isAutodetecting || !f.autodetectBaseUrl.trim()} onClick={() => void f.handleAutodetect()}>
-                  {f.isAutodetecting ? t('tileset_manager.autodetecting') : t('tileset_manager.autodetect_button')}
-                </button>
-              </span>
-            </Field>
             {f.isAutodetecting && f.autodetectProgress && (
               <p className={pages.infoHelp}>{t('tileset_manager.autodetect_testing', { current: f.autodetectProgress.current, total: f.autodetectProgress.total })}</p>
             )}
@@ -220,7 +224,7 @@ function TileServers() {
                     <span key={i} className={styles.fieldLine}>
                       <span className={pages.chip}>{d.type === 'vector' ? t('tileset_manager.vector') : t('tileset_manager.raster')}</span>
                       <code className={styles.code}>{d.url}</code>
-                      <button type="button" className={pages.button} onClick={() => f.handleSelectAutodetectedUrl(d.url)}>{t('tileset_manager.use_this_url')}</button>
+                      <button type="button" className={pages.button} onClick={() => use(d.url)}>{t('tileset_manager.use_this_url')}</button>
                     </span>
                   ))}
                 </>
@@ -285,6 +289,9 @@ function GeoJsonLayers() {
   const { report, line } = useReport();
   const g = useGeoJsonLayers(report);
   const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
+  const [styling, setStyling] = useState<string | null>(null);
+  // The layer as the server last answered, so each change in the sheet starts from it.
+  const styled = g.layers.find((l) => l.id === styling);
   return (
     <SettingGroup title={t('workspace.server.geojson_layers')}>
       <p className={styles.cardPara}>{t('workspace.server.geojson_desc')}</p>
@@ -296,12 +303,10 @@ function GeoJsonLayers() {
         g.layers.map((layer) => (
           <div key={layer.id} className={styles.layerRow} data-phone={isPhone || undefined} data-testid="geojson-layer">
             <div className={styles.layerHead}>
-              <input
-                type="color"
-                className={styles.colour}
-                aria-label={`${t('workspace.server.geojson_colour')}: ${layer.name}`}
-                value={layer.style.color}
-                onChange={(e) => void g.updateLayer(layer.id, { style: { ...layer.style, color: e.target.value } })}
+              <span
+                className={styles.swatch}
+                aria-hidden="true"
+                style={{ background: layer.style.color }}
               />
               <input
                 className={`${pages.keyInput} ${styles.nameInput}`}
@@ -310,27 +315,24 @@ function GeoJsonLayers() {
                 onChange={(e) => g.setLayers((prev) => prev.map((l) => (l.id === layer.id ? { ...l, name: e.target.value } : l)))}
                 onBlur={(e) => void g.updateLayer(layer.id, { name: e.target.value })}
               />
-              <RowSwitch label={`${t('workspace.server.geojson_visible')}: ${layer.name}`} checked={layer.visible} onChange={(v) => void g.updateLayer(layer.id, { visible: v })} />
+              <span className={styles.switchText} title={t('workspace.server.geojson_public_hint')}>
+                {layer.publiclyVisible ? t('workspace.server.geojson_public') : t('workspace.server.geojson_signed_in')}
+              </span>
+              <RowSwitch
+                label={`${t('workspace.server.geojson_public')}: ${layer.name}`}
+                checked={layer.publiclyVisible ?? false}
+                onChange={(v) => void g.updateLayer(layer.id, { publiclyVisible: v })}
+              />
+              {/* s13n5: colour, opacity and no popup live in the row's ⋯ (with Visible, so nothing is lost). */}
               <RowMenu
                 label={t('workspace.server.layer_actions', { name: layer.name })}
-                items={[{ key: 'delete', label: t('common.delete'), icon: 'delete', danger: true, onSelect: () => setDeleting({ id: layer.id, name: layer.name }) }]}
+                items={[
+                  { key: 'style', label: t('workspace.server.geojson_style'), icon: 'edit', onSelect: () => setStyling(layer.id) },
+                  { key: 'visible', label: t('workspace.server.geojson_visible'), icon: 'visibility', checked: layer.visible, onSelect: () => void g.updateLayer(layer.id, { visible: !layer.visible }) },
+                  { key: 'popup', label: t('workspace.server.geojson_no_popup'), icon: 'blocked', checked: layer.disablePopup ?? false, onSelect: () => void g.updateLayer(layer.id, { disablePopup: !(layer.disablePopup ?? false) }) },
+                  { key: 'delete', label: t('common.delete'), icon: 'delete', danger: true, onSelect: () => setDeleting({ id: layer.id, name: layer.name }) },
+                ]}
               />
-            </div>
-            <div className={styles.layerStyle}>
-              <label className={styles.check} title={t('workspace.server.geojson_public_hint')}>
-                <input type="checkbox" checked={layer.publiclyVisible ?? false} onChange={(e) => void g.updateLayer(layer.id, { publiclyVisible: e.target.checked })} />
-                {t('workspace.server.geojson_public')}
-              </label>
-              <label className={styles.check} title={t('workspace.server.geojson_no_popup_hint')}>
-                <input type="checkbox" checked={layer.disablePopup ?? false} onChange={(e) => void g.updateLayer(layer.id, { disablePopup: e.target.checked })} />
-                {t('workspace.server.geojson_no_popup')}
-              </label>
-              <Range label={t('workspace.server.geojson_opacity')} value={layer.style.opacity} onChange={(v) => void g.updateLayer(layer.id, { style: { ...layer.style, opacity: v } })} />
-              <Range label={t('workspace.server.geojson_fill_opacity')} value={layer.style.fillOpacity} onChange={(v) => void g.updateLayer(layer.id, { style: { ...layer.style, fillOpacity: v } })} />
-              <label className={styles.check}>
-                {t('workspace.server.geojson_width')}
-                <NumberInput className={`${pages.keyInput} ${styles.small}`} min={1} max={10} integer value={layer.style.weight} onChange={(weight) => void g.updateLayer(layer.id, { style: { ...layer.style, weight } })} />
-              </label>
             </div>
           </div>
         ))
@@ -352,6 +354,28 @@ function GeoJsonLayers() {
           {g.uploading ? t('workspace.server.uploading') : t('workspace.server.geojson_upload')}
         </button>
       </div>
+      {styled && (
+        <Sheet open onClose={() => setStyling(null)} title={`${t('workspace.server.geojson_style')} · ${styled.name}`}>
+          <div className={styles.sheetBody} data-phone={isPhone || undefined}>
+            <label className={styles.check}>
+              {t('workspace.server.geojson_colour')}
+              <input
+                type="color"
+                className={styles.colour}
+                value={styled.style.color}
+                onChange={(e) => void g.updateLayer(styled.id, { style: { ...styled.style, color: e.target.value } })}
+              />
+            </label>
+            <Range label={t('workspace.server.geojson_opacity')} value={styled.style.opacity} onChange={(v) => void g.updateLayer(styled.id, { style: { ...styled.style, opacity: v } })} />
+            <Range label={t('workspace.server.geojson_fill_opacity')} value={styled.style.fillOpacity} onChange={(v) => void g.updateLayer(styled.id, { style: { ...styled.style, fillOpacity: v } })} />
+            <label className={styles.check}>
+              {t('workspace.server.geojson_width')}
+              <NumberInput className={`${pages.keyInput} ${styles.small}`} min={1} max={10} integer value={styled.style.weight} onChange={(weight) => void g.updateLayer(styled.id, { style: { ...styled.style, weight } })} />
+            </label>
+            <p className={pages.infoHelp}>{t('workspace.server.geojson_style_note')}</p>
+          </div>
+        </Sheet>
+      )}
       <ConfirmSheet
         open={deleting !== null}
         title={t('common.delete')}
@@ -404,16 +428,18 @@ function MapStyles() {
               />
               <span className={pages.infoHelp}>{style.sourceType === 'upload' ? t('map_style_manager.source_upload') : t('map_style_manager.source_url')}</span>
             </div>
-            {m.activeStyleId === style.id ? (
+            {m.activeStyleId === style.id && (
               <span className={pages.chip} data-tone="on">
                 <UiIcon name="check" size={12} /> {t('map_style_manager.active')}
               </span>
-            ) : (
-              <button type="button" className={pages.button} onClick={() => void m.setActiveMapStyleId(style.id)}>{t('map_style_manager.activate')}</button>
             )}
+            {/* s13n5: a style's ⋯ holds Activate and Delete. */}
             <RowMenu
               label={t('workspace.server.style_actions', { name: style.name })}
-              items={[{ key: 'delete', label: t('common.delete'), icon: 'delete', danger: true, onSelect: () => setDeleting({ id: style.id, name: style.name }) }]}
+              items={[
+                ...(m.activeStyleId === style.id ? [] : [{ key: 'activate', label: t('map_style_manager.activate'), icon: 'check' as const, onSelect: () => void m.setActiveMapStyleId(style.id) }]),
+                { key: 'delete', label: t('common.delete'), icon: 'delete', danger: true, onSelect: () => setDeleting({ id: style.id, name: style.name }) },
+              ]}
             />
           </div>
         ))
@@ -531,27 +557,29 @@ function DefaultCentre() {
         <UiIcon name="location" size={16} />
         {t('workspace.server.pick_on_map')}
       </button>
-      <CentreSheet
-        open={open}
-        value={value}
-        onClose={() => setOpen(false)}
-        onSave={(c) => {
-          set(c);
-          setOpen(false);
-        }}
-      />
+      {/* Mounted per opening, so the view starts at the map's own centre every time (6.4 I2). */}
+      {open && (
+        <CentreSheet
+          value={value}
+          onClose={() => setOpen(false)}
+          onSave={(c) => {
+            set(c);
+            setOpen(false);
+          }}
+        />
+      )}
     </SettingRow>
   );
 }
 
-function CentreSheet({ open, value, onClose, onSave }: { open: boolean; value: Centre; onClose(): void; onSave(c: Centre): void }) {
+function CentreSheet({ value, onClose, onSave }: { value: Centre; onClose(): void; onSave(c: Centre): void }) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
-  // Where the map is now: today's picker saves the view, not a click.
+  // Where the map is now: today's picker saves the view, not a click. It starts where the map opens.
   const view = useRef({ lat: value?.lat ?? 20, lon: value?.lon ?? 0, zoom: value?.zoom ?? 2 });
   return (
     <Sheet
-      open={open}
+      open
       onClose={onClose}
       title={t('workspace.server.default_centre')}
       footer={

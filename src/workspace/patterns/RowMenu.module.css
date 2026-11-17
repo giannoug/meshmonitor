@@ -33,10 +33,10 @@
 }
 
 .menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  z-index: 20;
+  position: fixed;
+  /* Above the shell (20), below sheets (10000). */
+  z-index: 9000;
+  box-sizing: border-box;
   min-width: 160px;
   padding: 4px;
   border: 1px solid var(--color-border-strong);

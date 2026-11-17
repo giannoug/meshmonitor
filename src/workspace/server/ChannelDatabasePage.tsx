@@ -20,18 +20,18 @@
  *
  * Mesh impact: none. These keys only decrypt what MeshMonitor hears.
  */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { UiIcon } from '../../components/icons';
-import { useToast } from '../../components/ToastContainer';
 import AeadBadge from '../../components/channels/AeadBadge';
 import { ROLE_DISABLED, ROLE_PRIMARY, ROLE_SECONDARY, useChannelDatabase } from '../../components/configuration/useChannelDatabase';
-import apiService, { type ChannelDatabaseEntry } from '../../services/api';
+import { useMeshCoreChannelImport } from '../../components/configuration/useMeshCoreChannelImport';
+import type { ChannelDatabaseEntry } from '../../services/api';
 import { getPskBase64ByteLength, normalizeChannelUrlPskToBase64 } from '../../utils/channelUrl';
-import { logger } from '../../utils/logger';
 import ConfirmSheet from '../patterns/ConfirmSheet';
 import RowMenu from '../patterns/RowMenu';
 import Sheet from '../patterns/Sheet';
@@ -49,11 +49,18 @@ import styles from './Server.module.css';
 
 type Db = ReturnType<typeof useChannelDatabase>;
 
-/** Today's key line on a card. */
-function pskLine(c: ChannelDatabaseEntry): string {
-  if (c.pskLength === 0) return 'PSK: (none) (None)';
-  const kind = c.pskLength === 1 ? 'Shorthand (AES-128)' : c.pskLength === 16 ? 'AES-128' : c.pskLength === 32 ? 'AES-256' : 'Unknown';
-  return `PSK: ${c.pskPreview} (${kind})`;
+/** Today's key line on a card, in `workspace.*` copy. */
+function pskLine(t: TFunction, c: ChannelDatabaseEntry): string {
+  if (c.pskLength === 0) return t('workspace.server.psk_none');
+  const kind =
+    c.pskLength === 1
+      ? t('workspace.server.psk_shorthand')
+      : c.pskLength === 16
+        ? t('workspace.server.psk_aes128')
+        : c.pskLength === 32
+          ? t('workspace.server.psk_aes256')
+          : t('workspace.server.psk_unknown');
+  return t('workspace.server.psk_line', { preview: c.pskPreview, kind });
 }
 
 export default function ChannelDatabasePage() {
@@ -213,7 +220,7 @@ function KeyRow({ channel: c, db }: { channel: ChannelDatabaseEntry; db: Db }) {
         </span>
         {c.description && <span className={pages.infoHelp}>{c.description}</span>}
         <span className={pages.infoHelp}>
-          {pskLine(c)} · {c.decryptedPacketCount} {t('channel_database.decrypted')} · {t('channel_database.last_decrypted')}: {db.formatTimestamp(c.lastDecryptedAt)}
+          {pskLine(t, c)} · {c.decryptedPacketCount} {t('channel_database.decrypted')} · {t('channel_database.last_decrypted')}: {db.formatTimestamp(c.lastDecryptedAt)}
         </span>
       </div>
       <RowSwitch label={`${t('channel_database.enabled')}: ${c.name}`} checked={c.isEnabled} onChange={() => void db.handleToggleEnabled(c)} />
@@ -419,50 +426,15 @@ function ImportUrlSheet({ db }: { db: Db }) {
   );
 }
 
-interface ImportResult {
-  imported: Array<{ id: number; name: string }>;
-  skipped: Array<{ name: string; reason: 'duplicate' | 'no_secret' }>;
-}
-
 /**
- * Today's "Import from MeshCore device" (MeshCoreChannelImport), redrawn: the
- * MeshCore device sources, read when it opens, and one
- * `POST /api/channel-database/import-meshcore` per Import press.
+ * Today's "Import from MeshCore device", redrawn on today's state and requests
+ * (`useMeshCoreChannelImport`, Rule X): the MeshCore device sources, read when
+ * it opens, and one `POST /api/channel-database/import-meshcore` per Import press.
  */
 function MeshCoreImportSheet({ open, onClose, onImported }: { open: boolean; onClose(): void; onImported(): void }) {
   const { t } = useTranslation();
-  const { showToast } = useToast();
   const isPhone = useIsPhone();
-  const [sources, setSources] = useState<Array<{ id: string; name: string; type: string }>>([]);
-  const [sourceId, setSourceId] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<ImportResult | null>(null);
-  const [loadFailed, setLoadFailed] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    setLoadFailed(false);
-    void (async () => {
-      try {
-        const all = await apiService.get<Array<{ id: string; name: string; type: string }>>('/api/sources');
-        if (cancelled) return;
-        // Only device sources hold channels; an MQTT ingest source has none.
-        const devices = (Array.isArray(all) ? all : []).filter((s) => s.type === 'meshcore');
-        setSources(devices);
-        setSourceId((prev) => prev || devices[0]?.id || '');
-      } catch (error) {
-        logger.error('Error loading sources for MeshCore channel import:', error);
-        if (!cancelled) {
-          setSources([]);
-          setLoadFailed(true);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [open]);
+  const { sources, sourceId, setSourceId, busy, result, setResult, loadFailed, runImport, duplicates, noSecret } = useMeshCoreChannelImport(open, onImported);
 
   const close = () => {
     if (busy) return;
@@ -470,23 +442,6 @@ function MeshCoreImportSheet({ open, onClose, onImported }: { open: boolean; onC
     onClose();
   };
 
-  const run = async () => {
-    if (!sourceId) return;
-    setBusy(true);
-    try {
-      const response = await apiService.importMeshcoreChannels(sourceId);
-      setResult(response.data);
-      if (response.data.imported.length > 0) onImported();
-    } catch (error) {
-      logger.error('Error importing MeshCore channels:', error);
-      showToast(error instanceof Error ? error.message : t('channel_database.meshcore_import_failed', 'Import failed'), 'error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const duplicates = result?.skipped.filter((s) => s.reason === 'duplicate').length ?? 0;
-  const noSecret = result?.skipped.filter((s) => s.reason === 'no_secret').length ?? 0;
   return (
     <Sheet
       open={open}
@@ -496,7 +451,7 @@ function MeshCoreImportSheet({ open, onClose, onImported }: { open: boolean; onC
       footer={
         <div className={styles.sheetActions} data-phone={isPhone || undefined}>
           <button type="button" className={pages.button} disabled={busy} onClick={close}>{t('common.close', 'Close')}</button>
-          <button type="button" className={`${pages.button} ${pages.primary}`} disabled={busy || !sourceId} onClick={() => void run()}>
+          <button type="button" className={`${pages.button} ${pages.primary}`} disabled={busy || !sourceId} onClick={() => void runImport()}>
             {busy ? t('common.loading', 'Loading...') : t('common.import', 'Import')}
           </button>
         </div>

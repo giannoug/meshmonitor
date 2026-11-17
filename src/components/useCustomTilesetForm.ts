@@ -75,12 +75,16 @@ export function useCustomTilesetForm(report: (message: string) => void) {
     if (!formData.url.trim() || !urlValidation?.valid) {
       return;
     }
+    await testUrl(formData.url);
+  };
 
+  /** Tests one tile URL (the Workspace's Test URL tests a URL it has just picked). */
+  const testUrl = async (url: string) => {
     setIsTesting(true);
     setTestResult(null);
 
     try {
-      const result = await testTileServer(formData.url);
+      const result = await testTileServer(url);
       setTestResult(result);
     } catch (error) {
       console.error('Test failed:', error);
@@ -145,7 +149,11 @@ export function useCustomTilesetForm(report: (message: string) => void) {
     if (!autodetectBaseUrl.trim()) {
       return;
     }
+    await autodetectFrom(autodetectBaseUrl);
+  };
 
+  /** Autodetects from one address (the Workspace's Test URL passes the URL field). */
+  const autodetectFrom = async (base: string) => {
     setIsAutodetecting(true);
     setAutodetectProgress(null);
     setAutodetectResult(null);
@@ -153,7 +161,7 @@ export function useCustomTilesetForm(report: (message: string) => void) {
 
     try {
       const result = await autodetectTileServer(
-        autodetectBaseUrl,
+        base,
         (progress) => setAutodetectProgress(progress)
       );
       setAutodetectResult(result);
@@ -162,7 +170,7 @@ export function useCustomTilesetForm(report: (message: string) => void) {
       setAutodetectResult({
         success: false,
         detectedUrls: [],
-        baseUrl: autodetectBaseUrl,
+        baseUrl: base,
         testedPatterns: 0,
         errors: [error instanceof Error ? error.message : 'Unknown error']
       });
@@ -228,6 +236,8 @@ export function useCustomTilesetForm(report: (message: string) => void) {
     handleSubmit,
     handleCancel,
     handleAutodetect,
+    autodetectFrom,
+    testUrl,
     handleSelectAutodetectedUrl,
     handleEdit,
   };

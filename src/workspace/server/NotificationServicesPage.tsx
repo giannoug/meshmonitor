@@ -22,6 +22,7 @@ import { useCsrfFetch } from '../../hooks/useCsrfFetch';
 import { appBasename } from '../../init';
 import apiService from '../../services/api';
 import { logger } from '../../utils/logger';
+import StateView from '../patterns/StateView';
 import SettingGroup from '../settings/kit/SettingGroup';
 import SettingRow from '../settings/kit/SettingRow';
 import { SavedLine } from '../settings/categories/autosave';
@@ -148,6 +149,7 @@ function VapidGroup() {
     queryFn: () => apiService.get<VapidStatus>('/api/push/status'),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
+    retry: false,
   });
   const [subject, setSubject] = useState<string | null>(null);
   const [state, setState] = useState<{ saved: boolean; error?: string }>({ saved: false });
@@ -172,6 +174,8 @@ function VapidGroup() {
   return (
     <>
       <SettingGroup title={t('workspace.server.web_push')}>
+        {vapid.isLoading && <StateView kind="loading" />}
+        {vapid.isError && <StateView kind="error" onRetry={() => void vapid.refetch()} />}
         {data && (
           <>
             <SettingRow id="notification-services.vapidStatus" label={t('common.status')}>

@@ -8,7 +8,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
-import { SERVER_SETTINGS } from '../../__fixtures__/server';
+import { SERVER_SETTINGS, VAPID_STATUS } from '../../__fixtures__/server';
 import { grants, renderServer } from './serverHarness';
 
 const PATH = '/server/notification-services';
@@ -75,6 +75,17 @@ describe('18-11 / 18-12 notification services', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Update Contact Email' }));
     await waitFor(() => expect(log.writes).toContainEqual({ method: 'PUT', path: '/api/push/vapid-subject', body: { subject: 'mailto:ops@example.com' } }));
     await waitFor(() => expect(log.reads.filter((r) => r === '/api/push/status').length).toBe(before + 1));
+  });
+
+  it('VAPID: loading, then on a failed read an error with Try again (M6)', async () => {
+    let fail = true;
+    renderServer(PATH, {
+      fixtures: { 'GET /api/push/status': () => (fail ? new Response(JSON.stringify({ error: 'down' }), { status: 500 }) : VAPID_STATUS) },
+    });
+    const retry = await screen.findByRole('button', { name: 'Try again' });
+    fail = false;
+    fireEvent.click(retry);
+    expect(await screen.findByText('Configured')).toBeInTheDocument();
   });
 
   it('a non-admin gets no access and nothing is read', async () => {

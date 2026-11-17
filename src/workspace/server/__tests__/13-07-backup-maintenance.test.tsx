@@ -21,8 +21,26 @@ describe('13-07 / 13-24 backup & maintenance', () => {
     const { container } = renderServer(PATH, { phone });
     await screen.findAllByTestId('system-backup');
     await screen.findByRole('button', { name: /Restart Container/ });
-    await screen.findByLabelText('Message Retention');
+    // Desktop draws the six retention rows; phone a Retention row to their page (s13n7).
+    if (phone) await screen.findByRole('link', { name: /Retention/ });
+    else await screen.findByLabelText('Message Retention');
     expectBoard(board, container);
+  });
+
+  it('on phone Retention is a page of its own with the six rows, saved as you go (s13n7)', async () => {
+    const { log } = renderServer(PATH, { phone: true });
+    const link = await screen.findByRole('link', { name: /Retention.*Messages 90 days · 6 kinds/ });
+    expect(screen.queryByLabelText('Message Retention')).toBeNull();
+    fireEvent.click(link);
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/server/backup/retention'));
+    const messages = await screen.findByLabelText('Message Retention');
+    expect(screen.getByLabelText('MeshCore CLI History Retention')).toHaveValue(30);
+    expect(screen.getAllByRole('link', { name: /Backup & maintenance/ }).some((a) => a.getAttribute('href') === '/server/backup')).toBe(true);
+    // One status read for the page and its sub-page (shared).
+    expect(log.reads.filter((r) => r === '/api/maintenance/status')).toHaveLength(1);
+    fireEvent.change(messages, { target: { value: '45' } });
+    fireEvent.blur(messages);
+    await waitFor(() => expect(log.writes).toContainEqual({ method: 'POST', path: '/api/settings', body: { messageRetentionDays: '45' } }));
   });
 
   it('Create writes once and reads the list again', async () => {

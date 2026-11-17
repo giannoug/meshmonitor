@@ -95,6 +95,21 @@ describe('13-08 / 13-17 channel database', () => {
     await waitFor(() => expect(log.writes.filter((w) => w.method === 'POST' && w.path === '/api/channel-database')).toHaveLength(2));
   });
 
+  it('Import from MeshCore device: today\'s source list and one import, with today\'s counts (M1)', async () => {
+    const { log } = renderServer(PATH);
+    fireEvent.click(await screen.findByRole('button', { name: 'Import from MeshCore device' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Import from MeshCore device' });
+    // Only MeshCore device sources hold channels.
+    const select = await within(sheet).findByRole('combobox');
+    expect(within(select).getAllByRole('option').map((o) => o.textContent)).toEqual(['Heltec MeshCore']);
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Import' }));
+    expect(await within(sheet).findByText('1 added')).toBeInTheDocument();
+    expect(within(sheet).getByText('1 already stored (same key)')).toBeInTheDocument();
+    expect(log.writes.filter((w) => w.path === '/api/channel-database/import-meshcore')).toEqual([
+      { method: 'POST', path: '/api/channel-database/import-meshcore', body: { sourceId: 'src-heltec' } },
+    ]);
+  });
+
   it('a non-admin gets no access and nothing is read', async () => {
     renderServer(PATH, { permissions: grants({ write: true }) });
     expect(await screen.findByText("You don't have permission to do this")).toBeInTheDocument();

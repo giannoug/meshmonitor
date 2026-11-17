@@ -23,6 +23,7 @@ const MapTilesPage = lazy(() => import('./MapTilesPage.tsx'));
 const EmbedPage = lazy(() => import('./EmbedPage.tsx'));
 const BackupMaintenancePage = lazy(() => import('./BackupMaintenancePage.tsx'));
 const ChannelDatabasePage = lazy(() => import('./ChannelDatabasePage.tsx'));
+const RetentionPage = lazy(() => import('./RetentionPage.tsx'));
 
 
 function ServerIndex() {
@@ -45,6 +46,8 @@ export function ServerRoutes() {
       <Route path="map" element={<MapTilesPage />} />
       <Route path="embed" element={<EmbedPage />} />
       <Route path="backup" element={<BackupMaintenancePage />} />
+      {/* Phone: the retention periods as a page of their own (s13n7). */}
+      <Route path="backup/retention" element={<RetentionPage />} />
       <Route path="channel-database" element={<ChannelDatabasePage />} />
       {Object.entries(SERVER_ALIASES).map(([from, to]) => (
         <Route key={from} path={from} element={<Navigate replace to={`/server/${to}`} />} />

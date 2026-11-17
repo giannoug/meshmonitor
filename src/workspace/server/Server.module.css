@@ -504,3 +504,27 @@
   font-size: 15px;
   color: var(--color-text-subtle);
 }
+
+/* Phone targets (D8): option labels and the drag handle at 44 px. */
+.form[data-phone] .check,
+.layerRow[data-phone] .check,
+.sheetBody[data-phone] .check {
+  min-height: 44px;
+}
+
+.keyRow[data-phone] .handle {
+  width: 44px;
+}
+
+.swatch {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 5px;
+}
+
+.switchText {
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}

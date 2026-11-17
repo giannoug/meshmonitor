@@ -23,6 +23,7 @@
  * Mesh impact: none. This is the MeshMonitor server and its database.
  */
 import { useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
@@ -32,6 +33,7 @@ import apiService, { ApiError } from '../../services/api';
 import { logger } from '../../utils/logger';
 import ConfirmSheet from '../patterns/ConfirmSheet';
 import DangerZone from '../patterns/DangerZone';
+import StateView from '../patterns/StateView';
 import SettingGroup from '../settings/kit/SettingGroup';
 import SettingNumber from '../settings/kit/SettingNumber';
 import SettingRow from '../settings/kit/SettingRow';
@@ -379,6 +381,7 @@ function useMaintenanceKey<T>(key: string, current: T, commit: 'change' | 'blur'
 
 function MaintenanceRows(props: RowsProps) {
   const { t } = useTranslation();
+  const isPhone = useIsPhone();
   const { status: s, readOnly } = props;
   const [enabled, setEnabled, enabledStatus] = useMaintenanceKey('maintenanceEnabled', s.enabled, 'change', (v) => (v ? 'true' : 'false'), (_p, v) => ({ enabled: v }), props);
   const [time, setTime, timeStatus] = useMaintenanceKey('maintenanceTime', s.maintenanceTime, 'change', String, (_p, v) => ({ maintenanceTime: v }), props);
@@ -398,14 +401,58 @@ function MaintenanceRows(props: RowsProps) {
             <SavedLine status={timeStatus} />
             <input type="time" className={pages.keyInput} aria-label={t('maintenance.maintenance_time')} value={time} disabled={readOnly} onChange={(e) => e.target.value && setTime(e.target.value)} />
           </SettingRow>
-          <h3 className={styles.subTitle}>{t('workspace.server.retention_days')}</h3>
-          {RETENTION.map((r) => (
-            <RetentionRow key={r.key} field={r} {...props} />
-          ))}
-          <p className={styles.cardPara}>{t('maintenance.retention_hint')}</p>
+          {isPhone ? (
+            // s13n7: on phone, Retention is a page of its own.
+            <Link to="/server/backup/retention" className={pages.linkRow}>
+              <span className={pages.infoText}>
+                <span className={pages.infoLabel}>{t('workspace.server.retention')}</span>
+              </span>
+              <span className={pages.infoHelp}>
+                {t('workspace.server.retention_value', { days: s.settings.messageRetentionDays ?? 30, count: RETENTION.length })}
+              </span>
+              <UiIcon name="chevronRight" size={18} />
+            </Link>
+          ) : (
+            <>
+              <h3 className={styles.subTitle}>{t('workspace.server.retention_days')}</h3>
+              <RetentionFields {...props} />
+            </>
+          )}
         </>
       )}
     </>
+  );
+}
+
+function RetentionFields(props: RowsProps) {
+  const { t } = useTranslation();
+  return (
+    <>
+      {RETENTION.map((r) => (
+        <RetentionRow key={r.key} field={r} {...props} />
+      ))}
+      <p className={styles.cardPara}>{t('maintenance.retention_hint')}</p>
+    </>
+  );
+}
+
+/**
+ * The six retention rows on their own page (phone, s13n7: `/server/backup/retention`), read from
+ * the same maintenance status as the page above it (one read, shared).
+ */
+export function RetentionRows() {
+  const queryClient = useQueryClient();
+  const { canWrite } = useServerAccess();
+  const status = useQuery({ queryKey: MAINT_STATUS, queryFn: () => apiService.get<MaintenanceStatus>('/api/maintenance/status'), ...ONCE });
+  if (status.isError) return <StateView kind="error" onRetry={() => void status.refetch()} />;
+  if (!status.data) return <StateView kind="loading" />;
+  return (
+    <RetentionFields
+      status={status.data}
+      readOnly={!canWrite}
+      settled={() => void queryClient.invalidateQueries({ queryKey: MAINT_STATUS })}
+      onWritten={(patch) => queryClient.setQueryData<MaintenanceStatus>(MAINT_STATUS, (prev) => (prev ? { ...prev, ...patch(prev) } : prev))}
+    />
   );
 }
 
