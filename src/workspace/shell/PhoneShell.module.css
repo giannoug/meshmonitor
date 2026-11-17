@@ -21,20 +21,44 @@
   flex-direction: column;
 }
 
-/* A device's header: the switcher row and the status line, each 44 px. */
+/*
+ * A device's header keeps 64 px (Ruling 6.7 HC). The ident column ends at the
+ * header's bottom edge: the switcher row (the name, 24 px) on top, with the
+ * 44 px square hung from it into the left gutter, and the status line under
+ * the name down to the bottom edge (30 px). The two never overlap: the status
+ * line starts right of the square and below the name.
+ */
 .header[data-device] {
-  align-items: flex-start;
-  padding-top: 4px;
-  padding-bottom: 4px;
+  align-items: flex-end;
 }
 
-/* The status line opens the device's Connection card (ds6), its text under the name. */
+.header[data-device] .quick {
+  align-self: center;
+}
+
+.header[data-device] .ident {
+  position: relative;
+  padding-left: 56px;
+}
+
+.header[data-device] .switch {
+  min-height: 24px;
+}
+
+/* Still part of the switcher button: a click on it is a click on the button. */
+.header[data-device] .switch .square {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* The status line opens the device's Connection card (ds6), its text right under the name. */
 .statusButton {
-  min-height: 44px;
+  min-height: 30px;
   margin: 0;
-  padding: 0 0 0 56px;
+  padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: none;
   font: inherit;
   font-size: 13px;
@@ -42,7 +66,7 @@
   cursor: pointer;
 }
 
-/* The text sits at the top of its 44 px target, right under the name (after .status's centring). */
+/* After .status's centring. */
 .header .statusButton {
   align-items: flex-start;
 }

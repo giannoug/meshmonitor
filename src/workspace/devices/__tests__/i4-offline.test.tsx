@@ -56,6 +56,18 @@ describe('i4 offline', () => {
     expect(screen.queryByRole('dialog', { name: 'Connection' })).toBeNull();
   });
 
+  it('the status line and the switcher share no hit area: separate buttons, neither inside the other', async () => {
+    renderChat(rakHome, { phone: true, fixtures: RAK_HISTORY });
+    const switcher = await screen.findByRole('button', { name: 'Rooftop RAK: switch device' });
+    const status = await screen.findByRole('button', { name: 'Rooftop RAK: Disconnected' });
+    expect(status).not.toBe(switcher);
+    expect(switcher.contains(status)).toBe(false);
+    expect(status.contains(switcher)).toBe(false);
+    // The 44 px square is the switcher's; the status line holds only the dot and the words.
+    expect(within(switcher).getByText('RR')).toBeInTheDocument();
+    expect(status).toHaveTextContent(/^Disconnected$/);
+  });
+
   it('a non-admin with connection:write reaches today\'s Disconnect from the phone status line', async () => {
     const R = { read: true, write: false };
     renderChat(`/source/${SOURCE_IDS.g2}`, {

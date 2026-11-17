@@ -9,7 +9,9 @@
  *
  * On a device the status line is its own button under the name, which opens
  * the device's Connection card (ds6, Task 6.7); the square and the name open
- * the switcher. Both are 44 px tall, so that header is taller (96 px).
+ * the switcher. The header keeps the boards' 64 px (Ruling 6.7 HC): the
+ * switcher's target includes the 44 px square, and the status line's runs from
+ * under the name to the header's bottom edge (30 px), beside the square.
  *
  * Re-hosted Classic pages reserve room for their own header and bottom bar
  * from `--app-header-height` and `--app-nav-bar-height`; here those carry the
@@ -30,8 +32,6 @@ import type { WorkspaceSource } from './useWorkspaceSources';
 import styles from './PhoneShell.module.css';
 
 const HEADER = 64;
-/** A device's header: the switcher row and the status line, each a 44 px target. */
-const DEVICE_HEADER = 96;
 const TAB_BAR = 64;
 /** Other devices beside the open one; the switcher holds the rest (Review Focus 1). */
 const QUICK_SQUARES = 2;
@@ -92,7 +92,7 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
       ? `${statusLabel(t, source.status)} · ${t('workspace.shell.online_count', { count: active })}`
       : statusLabel(t, source.status);
   const vars = {
-    '--app-header-height': `${showHeader ? (source ? DEVICE_HEADER : HEADER) : 0}px`,
+    '--app-header-height': `${showHeader ? HEADER : 0}px`,
     '--app-nav-bar-height': `${TAB_BAR}px`,
     '--ws-tabbar-height': `${TAB_BAR}px`,
   } as CSSProperties;
