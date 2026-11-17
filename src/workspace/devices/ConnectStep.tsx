@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { UiIcon, type UiIconName } from '../../components/icons';
 import { NumberInput } from '../../components/common/NumberInput';
 import type { DashboardSource } from '../../hooks/useDashboardData';
+import { getStatusInfo } from '../../components/Dashboard/sourceStatusInfo';
 import { useIsPhone } from '../shell/useIsPhone';
 import { Advanced, Check, Field, PassiveMode } from './ConnectionStep';
 import { autoConnectOf, type ConnectPhase, type useConnectResult } from './connectResult';
@@ -96,6 +97,7 @@ export function ConnectResult({
   const endpoint = endpointOf(saved.type, saved.config, (port) => t('workspace.devices.port', { port }));
   const shown: ConnectPhase = retrying ? 'pending' : phase;
   const meshtastic = saved.type === 'meshtastic_tcp';
+  const lastError = typeof live?.lastError === 'string' ? live.lastError : null;
   const reason = typeof live?.permissionMessage === 'string' && live.permissionMessage
     ? live.permissionMessage
     : t(meshtastic ? 'workspace.devices.failed_meshtastic' : 'workspace.devices.failed_other');
@@ -103,10 +105,12 @@ export function ConnectResult({
     <section className={styles.result} data-phone={isPhone || undefined} aria-live="polite">
       <h3 className={styles.resultHead}>{t('workspace.devices.connecting')}</h3>
       <ul className={styles.resultList}>
-        <Row
-          state={shown === 'connected' ? 'done' : shown === 'failed' ? 'fail' : 'pending'}
-          label={t('workspace.devices.reached', { endpoint })}
-        />
+        {shown === 'failed' ? (
+          // Not reached: the endpoint with today's status word (the source card's), not "Reached".
+          <Row state="fail" label={endpoint} detail={getStatusInfo(saved, live ?? null, t).label} />
+        ) : (
+          <Row state={shown === 'connected' ? 'done' : 'pending'} label={t('workspace.devices.reached', { endpoint })} />
+        )}
         {shown !== 'failed' && shown !== 'idle' && (
           <>
             {meshtastic && (
@@ -138,6 +142,8 @@ export function ConnectResult({
           <UiIcon name="alert" size={16} />
           <span>
             <strong>{t('workspace.devices.failed')}</strong> {reason}
+            {/* The manager's own error, which the status gives admins (Devices shows it as the status title). */}
+            {lastError && <span className={styles.errorDetail}>{lastError}</span>}
           </span>
         </p>
       )}

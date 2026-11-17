@@ -8,7 +8,7 @@
  * today's placeholder for a stored value, which is never put back in the
  * field (`DashboardPage.maskedFields`).
  */
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import { NumberInput } from '../../components/common/NumberInput';
@@ -38,6 +38,23 @@ export function Field({ label, help, children }: { label: string; help?: ReactNo
         <span>{label}</span>
         {children}
       </label>
+      {help && <p className={styles.help}>{help}</p>}
+    </div>
+  );
+}
+
+/**
+ * A labelled choice that is not a form input (a segmented control): no <label> around it, which
+ * would make a click on the label text press the first option and lend it the label as its name.
+ */
+function Choice({ label, help, value, options, onChange }: { label: string; help?: ReactNode; value: string; options: ReadonlyArray<{ value: string; label: string }>; onChange(v: string): void }) {
+  const id = useId();
+  return (
+    <div className={styles.field}>
+      <div className={styles.fieldLabel}>
+        <span id={id}>{label}</span>
+        <SettingSegmented labelledBy={id} value={value} options={options} onChange={onChange} />
+      </div>
       {help && <p className={styles.help}>{help}</p>}
     </div>
   );
@@ -143,17 +160,15 @@ export default function ConnectionStep({ form, sources }: { form: SourceForm; so
     body = (
       <>
         <Head type="meshcore" title={t('workspace.devices.type.meshcore')} />
-        <Field label={t('workspace.devices.connected_by')}>
-          <SettingSegmented
-            label={t('workspace.devices.connected_by')}
-            value={f.formMcTransport}
-            options={[
-              { value: 'usb', label: t('workspace.devices.usb') },
-              { value: 'tcp', label: t('workspace.devices.network') },
-            ]}
-            onChange={(v) => f.setFormMcTransport(v === 'tcp' ? 'tcp' : 'usb')}
-          />
-        </Field>
+        <Choice
+          label={t('workspace.devices.connected_by')}
+          value={f.formMcTransport}
+          options={[
+            { value: 'usb', label: t('workspace.devices.usb') },
+            { value: 'tcp', label: t('workspace.devices.network') },
+          ]}
+          onChange={(v) => f.setFormMcTransport(v === 'tcp' ? 'tcp' : 'usb')}
+        />
         {f.formMcTransport === 'tcp' ? (
           <div className={styles.pair} data-phone={isPhone || undefined}>
             <Field label={t('source.form.host')} help={t('meshcore.form.tcp_host_help', 'Hostname or IP of the MeshCore companion reachable over TCP (e.g. esp-link, ser2net, or native TCP firmware).')}>
@@ -168,22 +183,21 @@ export default function ConnectionStep({ form, sources }: { form: SourceForm; so
             <input className={styles.input} type="text" value={f.formMcSerialPort} onChange={(e) => f.setFormMcSerialPort(e.target.value)} placeholder="/dev/ttyACM0" />
           </Field>
         )}
-        <Field label={t('workspace.devices.firmware')} help={t('workspace.devices.repeater_note')}>
-          <SettingSegmented
-            label={t('workspace.devices.firmware')}
-            value={f.formMcDeviceType}
-            options={[
-              { value: 'companion', label: t('meshcore.device_type.companion', 'Companion') },
-              { value: 'repeater', label: t('meshcore.device_type.repeater', 'Repeater') },
-            ]}
-            onChange={(v) => {
-              const next = v === 'repeater' ? 'repeater' : 'companion';
-              f.setFormMcDeviceType(next);
-              // New source, field untouched: the Repeater probe stays off until the user sets it (#5563).
-              if (!f.editingSourceId && !f.formHeartbeatTouched) f.setFormHeartbeat(next === 'repeater' ? '0' : '30');
-            }}
-          />
-        </Field>
+        <Choice
+          label={t('workspace.devices.firmware')}
+          help={t('workspace.devices.repeater_note')}
+          value={f.formMcDeviceType}
+          options={[
+            { value: 'companion', label: t('meshcore.device_type.companion', 'Companion') },
+            { value: 'repeater', label: t('meshcore.device_type.repeater', 'Repeater') },
+          ]}
+          onChange={(v) => {
+            const next = v === 'repeater' ? 'repeater' : 'companion';
+            f.setFormMcDeviceType(next);
+            // New source, field untouched: the Repeater probe stays off until the user sets it (#5563).
+            if (!f.editingSourceId && !f.formHeartbeatTouched) f.setFormHeartbeat(next === 'repeater' ? '0' : '30');
+          }}
+        />
         <Advanced label={t('workspace.devices.advanced_meshcore')}>
           <Field label={t('source.form.heartbeat')} help={t('meshcore.form.heartbeat_help', 'Seconds between health probes (0 = disabled). After three failed probes the source reconnects on its own, with backoff. Works for Companion and Repeater devices. The probe stays on the local link and sends nothing over the radio.')}>
             <NumberInput
@@ -333,22 +347,18 @@ export default function ConnectionStep({ form, sources }: { form: SourceForm; so
     body = (
       <>
         <Head type="reticulum" title={t('workspace.devices.type.reticulum')} lead={t('workspace.devices.reticulum_lead')} />
-        <Field
+        <Choice
           label={t('reticulum.form.mode', 'Mode')}
           help={f.formRnsMode === 'attach'
             ? t('reticulum.form.mode_attach_help', 'The bridge sidecar joins a shared rnsd instance by reading its RNS config directory.')
             : t('reticulum.form.mode_tcp_peer_help', 'The bridge sidecar runs its own RNS instance and dials out to a single TCPClientInterface peer — no local rnsd or config directory needed.')}
-        >
-          <SettingSegmented
-            label={t('reticulum.form.mode', 'Mode')}
-            value={f.formRnsMode}
-            options={[
-              { value: 'attach', label: t('reticulum.form.mode_attach', 'Attach to shared rnsd') },
-              { value: 'tcp_peer', label: t('reticulum.form.mode_tcp_peer', 'TCP peer') },
-            ]}
-            onChange={(v) => f.setFormRnsMode(v === 'tcp_peer' ? 'tcp_peer' : 'attach')}
-          />
-        </Field>
+          value={f.formRnsMode}
+          options={[
+            { value: 'attach', label: t('reticulum.form.mode_attach', 'Attach to shared rnsd') },
+            { value: 'tcp_peer', label: t('reticulum.form.mode_tcp_peer', 'TCP peer') },
+          ]}
+          onChange={(v) => f.setFormRnsMode(v === 'tcp_peer' ? 'tcp_peer' : 'attach')}
+        />
         {f.formRnsMode === 'attach' ? (
           <Field label={t('reticulum.form.config_dir', 'Config directory')} help={t('reticulum.form.config_dir_help', "Directory of the shared rnsd instance's RNS config, as seen by the bridge sidecar's container/host.")}>
             <input className={styles.input} type="text" value={f.formRnsConfigDir} onChange={(e) => f.setFormRnsConfigDir(e.target.value)} placeholder="/rns" />

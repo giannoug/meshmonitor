@@ -41,8 +41,9 @@ describe('h4 server devices', () => {
     expect(row('Old bridge')).toHaveAttribute('data-off');
     expect(row('Old bridge')).toHaveTextContent('Disabled');
     expect(within(row('Old bridge')).getByRole('switch', { name: 'Enabled: Old bridge' })).not.toBeChecked();
-    // The credentials of a URL never show: the bridge's line is its host.
+    // The stored upstream URL carries `meshdev:large4cats@`; the row shows only its host and port.
     expect(row('Old bridge')).toHaveTextContent('MQTT bridge · mqtt.meshtastic.org:1883');
+    expect(row('Old bridge').textContent).not.toMatch(/meshdev|large4cats/);
   });
 
   it('↑ and ↓ save today\'s order with one POST each', async () => {
@@ -122,13 +123,16 @@ describe('h4 server devices', () => {
     const password = within(dialog).getByLabelText('Password');
     expect(password).toHaveValue('');
     expect(password).toHaveAttribute('placeholder', 'Unchanged (leave blank to keep)');
-    expect(within(dialog).getByLabelText('Upstream URL')).toHaveValue('mqtt://mqtt.meshtastic.org:1883');
+    // The edit form shows the URL as stored, as today's modal does for an admin.
+    expect(within(dialog).getByLabelText('Upstream URL')).toHaveValue('mqtt://meshdev:large4cats@mqtt.meshtastic.org:1883');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Next' }));
     expect(within(dialog).getByLabelText('Name')).toHaveValue('Old bridge');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(log.writes.some((w) => w.method === 'PUT' && w.path === '/api/sources/src-oldbridge')).toBe(true));
     const put = log.writes.find((w) => w.method === 'PUT' && w.path === '/api/sources/src-oldbridge')!;
     expect(JSON.stringify(put.body)).not.toContain('password');
+    // `enabled: true` is today's DashboardPage body, kept on purpose (Rule X): saving an edit
+    // re-enables a disabled device, exactly as today's Edit Source does.
     expect(put.body).toMatchObject({ name: 'Old bridge', type: 'mqtt_bridge', enabled: true });
   });
 
@@ -146,5 +150,28 @@ describe('h4 server devices', () => {
     renderDevices('/server/devices?add=1', { permissions: grants({ write: true }) });
     expect(await screen.findByText("You don't have permission to do this")).toBeInTheDocument();
     expect(screen.queryByRole('dialog', { name: 'Add device' })).toBeNull();
+  });
+
+  it('Edit fills the form before its first render: no default Meshtastic form flashes', async () => {
+    renderDevices();
+    await screen.findByText('Old bridge');
+    fireEvent.click(within(row('Old bridge')).getByRole('button', { name: 'More for Old bridge' }));
+    const item = await screen.findByRole('menuitem', { name: 'Edit' });
+    const seen = new MutationObserver(() => {});
+    seen.observe(document.body, { childList: true, subtree: true });
+    fireEvent.click(item);
+    // A first render of the default form would show up as nodes removed by the fill that follows.
+    const removed = seen.takeRecords().flatMap((r) => Array.from(r.removedNodes)).map((n) => n.textContent ?? '');
+    seen.disconnect();
+    expect(removed.some((text) => text.includes('Meshtastic node over the network') || text.includes('Host / IP'))).toBe(false);
+    expect(within(screen.getByRole('dialog', { name: 'Edit device' })).getByLabelText('Upstream URL')).toBeInTheDocument();
+  });
+
+  it('phone: the head\'s Add device is a phone target', async () => {
+    renderDevices('/server/devices', { phone: true });
+    await screen.findByText('Old bridge');
+    const add = screen.getAllByRole('link', { name: /Add device/ }).find((l) => l.textContent?.includes('Add device'))!;
+    // Devices.module.css: `.button[data-phone] { min-height: 44px }` (jsdom computes no CSS).
+    expect(add).toHaveAttribute('data-phone');
   });
 });

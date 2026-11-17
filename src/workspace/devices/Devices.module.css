@@ -272,6 +272,13 @@
   border-color: transparent;
 }
 
+/* Add device on the phone page (a Link styled as a button), above the list. */
+.button[data-phone] {
+  min-height: 44px;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
 .dialogFoot[data-phone] .button {
   min-height: 48px;
 }
@@ -577,6 +584,15 @@
 .resultLabel {
   flex: 1;
   min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.errorDetail {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 13px;
+  color: var(--color-text-subtle);
   overflow-wrap: anywhere;
 }
 

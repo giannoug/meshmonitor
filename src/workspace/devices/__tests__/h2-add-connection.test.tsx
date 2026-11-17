@@ -6,7 +6,7 @@
  * device, step 2. Today's per-type fields and checks (`useSourceForm`).
  */
 import { describe, it, expect } from 'vitest';
-import { fireEvent, screen, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { renderDevices } from './devicesHarness';
 
@@ -81,5 +81,43 @@ describe('step 2: connection', () => {
     renderDevices(ADD);
     const dialog = await toConnection('Reticulum');
     expect(within(dialog).getByLabelText('Bridge token')).toHaveAttribute('type', 'password');
+  });
+
+  it('clicking the Firmware label text keeps Repeater and the heartbeat (no <label> around a segmented control)', async () => {
+    renderDevices(ADD);
+    const dialog = await toConnection('MeshCore');
+    fireEvent.click(within(dialog).getByRole('radio', { name: 'Repeater' }));
+    fireEvent.click(within(dialog).getByText('Advanced · heartbeat, virtual node'));
+    const heartbeat = within(dialog).getByLabelText('Heartbeat (seconds, 0 = off)');
+    expect(heartbeat).toHaveValue(0);
+    fireEvent.click(within(dialog).getByText('Firmware'));
+    expect(within(dialog).getByRole('radio', { name: 'Repeater' })).toHaveAttribute('aria-checked', 'true');
+    expect(within(dialog).getByRole('radio', { name: 'Companion' })).toHaveAttribute('aria-checked', 'false');
+    expect(heartbeat).toHaveValue(0);
+    expect(within(dialog).getByRole('radiogroup', { name: 'Firmware' })).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByText('Connected by'));
+    expect(within(dialog).getByRole('radio', { name: 'USB on the server' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('clicking the Mode label text keeps TCP peer', async () => {
+    renderDevices(ADD);
+    const dialog = await toConnection('Reticulum');
+    fireEvent.click(within(dialog).getByRole('radio', { name: 'TCP peer' }));
+    fireEvent.click(within(dialog).getByText('Mode'));
+    expect(within(dialog).getByRole('radio', { name: 'TCP peer' })).toHaveAttribute('aria-checked', 'true');
+    expect(within(dialog).getByLabelText('Host / IP')).toBeInTheDocument();
+    expect(within(dialog).getByRole('radiogroup', { name: 'Mode' })).toBeInTheDocument();
+  });
+
+  it('Esc closes the MQTT topic finder opened inside the flow, not the flow (one layer, CR)', async () => {
+    renderDevices(ADD);
+    const dialog = await toConnection('MQTT bridge');
+    fireEvent.click(within(dialog).getByRole('button', { name: /Find topics/ }));
+    await screen.findByRole('dialog', { name: 'Find MQTT topics' });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Find MQTT topics' })).toBeNull());
+    expect(screen.getByRole('dialog', { name: 'Add device' })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add device' })).toBeNull());
   });
 });

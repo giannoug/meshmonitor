@@ -16,20 +16,26 @@ export const DEVICE_TYPES: ReadonlyArray<{ type: SourceType; icon: UiIconName; t
 
 export const typeInfo = (type: string) => DEVICE_TYPES.find((d) => d.type === type);
 
-/** The host part of a URL, or the text as given when it does not parse. */
-function hostOf(url: unknown): string {
+/**
+ * The host (and port) of a URL. Never its credentials: a value that does not
+ * parse as a URL with a host (`user:pw@broker:1883`, `host:port`) keeps only
+ * what follows its last `@`.
+ */
+export function hostOf(url: unknown): string {
   const text = typeof url === 'string' ? url : '';
   try {
-    return new URL(text).host || text;
+    const host = new URL(text).host;
+    if (host) return host;
   } catch {
-    return text;
+    // Not a URL: fall through.
   }
+  return text.slice(text.lastIndexOf('@') + 1);
 }
 
 /**
  * Where a device connects, from its stored config: `192.168.1.40:4403`,
  * `/dev/ttyACM0`, the broker's host, `port 1883`. Empty when the server
- * withheld it. Only the host of a URL is shown, never its credentials.
+ * withheld it. A URL shows only its host and port (`hostOf`).
  */
 export function endpointOf(type: string, config: Record<string, unknown> | undefined, portLabel: (port: string) => string): string {
   const c = (config ?? {}) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- #6365 today's untyped config blob

@@ -70,6 +70,14 @@ describe('h3 / i3 name and connect', () => {
     const dialog = await addMeshtastic(false, '192.168.1.52', 'Rooftop RAK');
     await within(dialog).findByText('Couldn’t connect.');
     expect(dialog).toHaveTextContent('Is the node on this network, with WiFi or Ethernet on?');
+    // The host was not reached: the row is the endpoint with today's status word, and the
+    // manager's own error (admins' status payload) sits under the reason.
+    expect(dialog).not.toHaveTextContent('Reached');
+    expect(within(dialog).getByText('192.168.1.52:4403')).toBeInTheDocument();
+    expect(within(dialog).getByText('connect ETIMEDOUT 192.168.1.52:4403')).toBeInTheDocument();
+    // One way back, not two: Edit connection, and no footer Back.
+    expect(within(dialog).getByRole('button', { name: 'Edit connection' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'Back' })).toBeNull();
     expect(statusReads(log, NEW_ID)).toBe(1);
     fireEvent.click(within(dialog).getByRole('button', { name: /Try again/ }));
     await within(dialog).findByText('Connected. The rest of the node list fills in over the next minute.');

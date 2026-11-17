@@ -15,9 +15,11 @@ export interface SettingSegmentedProps {
   readOnly?: boolean;
   /** The group's name where no row names it. */
   label?: string;
+  /** The id of a visible element that names the group (instead of `label`). */
+  labelledBy?: string;
 }
 
-export default function SettingSegmented({ value, options, onChange, readOnly, label }: SettingSegmentedProps) {
+export default function SettingSegmented({ value, options, onChange, readOnly, label, labelledBy }: SettingSegmentedProps) {
   const row = useSettingRow();
   const off = useReadOnly(readOnly);
   const isPhone = useIsPhone();
@@ -25,7 +27,8 @@ export default function SettingSegmented({ value, options, onChange, readOnly, l
     <span
       className={styles.segmented}
       role="radiogroup"
-      aria-label={label ?? row?.label}
+      aria-label={labelledBy ? undefined : (label ?? row?.label)}
+      aria-labelledby={labelledBy}
       aria-describedby={row?.helpId}
       data-phone={isPhone || undefined}
     >

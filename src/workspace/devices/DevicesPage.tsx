@@ -53,15 +53,22 @@ export default function DevicesPage() {
       scope={t('workspace.server.scope_admins')}
       icon="radioSignal"
       gate="admin"
-      actions={
-        <Link to="/server/devices?add=1" className={`${styles.button} ${styles.primary}`}>
-          <UiIcon name="plus" size={16} />
-          {t('workspace.shell.add_device')}
-        </Link>
-      }
+      actions={<AddLink />}
     >
       <DevicesBody />
     </ServerFrame>
+  );
+}
+
+/** Add device: in the head on desktop; on phone (whose bar has no actions) above the list, at 44 px. */
+function AddLink() {
+  const { t } = useTranslation();
+  const isPhone = useIsPhone();
+  return (
+    <Link to="/server/devices?add=1" className={`${styles.button} ${styles.primary}`} data-phone={isPhone || undefined}>
+      <UiIcon name="plus" size={16} />
+      {t('workspace.shell.add_device')}
+    </Link>
   );
 }
 
@@ -73,6 +80,7 @@ function hasGeoBounds(s: DashboardSource): boolean {
 
 function DevicesBody() {
   const { t } = useTranslation();
+  const isPhone = useIsPhone();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -249,6 +257,7 @@ function DevicesBody() {
 
   return (
     <>
+      {isPhone && <AddLink />}
       {!isLoading && sources.length === 0 ? (
         <p className={styles.para}>{t('workspace.devices.empty')}</p>
       ) : (

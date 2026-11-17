@@ -51,24 +51,27 @@ function Flow({ sources, editId, onClose }: AddDeviceFlowProps) {
   const isPhone = useIsPhone();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const form = useSourceForm(sources);
+  // An edit starts filled from the saved device, before the first render.
+  const form = useSourceForm(sources, editId);
   const [step, setStep] = useState<Step>(editId ? 2 : 1);
   const [saved, setSaved] = useState<DashboardSource | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const retry = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    if (editId) form.startEdit(editId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 fill the form once, when the flow opens
-  }, [editId]);
   // Closing stops a Try again's re-poll.
   useEffect(() => () => retry.current?.abort(), []);
 
   const close = () => {
     if (!form.formSaving) onClose();
   };
-  const { contentRef, onKeyDown } = useDialogA11y(close);
+  // Esc closes the flow only when it is the top layer: a dialog opened inside it (today's MQTT topic
+  // finder, a common/Modal rendered in place) takes its own Esc, and its listener runs after ours (CR).
+  const onEscape = () => {
+    const top = Array.from(document.querySelectorAll('[role="dialog"][aria-modal="true"]')).pop();
+    if (!top || top.hasAttribute('data-add-device')) close();
+  };
+  const { contentRef, onKeyDown } = useDialogA11y(onEscape);
 
   const next = () => {
     if (step === 1) {
@@ -125,6 +128,7 @@ function Flow({ sources, editId, onClose }: AddDeviceFlowProps) {
         data-wide={(step === 3 && !isPhone) || undefined}
         role="dialog"
         aria-modal="true"
+        data-add-device=""
         aria-label={title}
         tabIndex={-1}
         onKeyDown={onKeyDown}
@@ -262,7 +266,8 @@ function Footer(p: FooterProps) {
   return (
     <div className={styles.dialogFoot} data-phone={isPhone || undefined}>
       {!isPhone && p.step === 1 && <p className={styles.footNote}>{t('workspace.devices.admins_note')}</p>}
-      {!isPhone && (!first || p.saved) && (
+      {/* After Save, Edit connection (or Add another) is the way back: one control, not two. */}
+      {!isPhone && !first && !p.saved && (
         <button type="button" className={`${styles.button} ${styles.quiet}`} onClick={p.onBack}>
           {t('common.back')}
         </button>

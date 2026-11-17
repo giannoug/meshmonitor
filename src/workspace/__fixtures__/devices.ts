@@ -28,7 +28,7 @@ export function deviceList(): DashboardSource[] {
       type: 'mqtt_bridge',
       enabled: false,
       config: {
-        upstream: { url: 'mqtt://mqtt.meshtastic.org:1883', username: 'meshdev' },
+        upstream: { url: 'mqtt://meshdev:large4cats@mqtt.meshtastic.org:1883', username: 'meshdev' },
         subscriptions: ['msh/EU_868/#'],
         downlinkFilters: { geo: { minLat: 37.8, maxLat: 38.2, minLng: 23.5, maxLng: 24 } },
       },
@@ -91,7 +91,7 @@ export function devicesFixtures(log: ServerLog, { outcome = 'connected', stays =
       if (id === NEW_ID) {
         return connected
           ? { sourceId: id, connected: true, nodeNum: 0xa1b2c3d4, nodeId: '!a1b2c3d4', nodeCount: 31, activeNodeCount: 5 }
-          : { sourceId: id, connected: false, nodeCount: 0, activeNodeCount: 0 };
+          : { sourceId: id, connected: false, lastError: 'connect ETIMEDOUT 192.168.1.52:4403', nodeCount: 0, activeNodeCount: 0 };
       }
       return A.statuses[id] ?? { sourceId: id, connected: false, nodeCount: 0, activeNodeCount: 0 };
     },
