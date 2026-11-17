@@ -10,6 +10,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NumberInput } from '../../components/common/NumberInput';
+import type { NodeFilterFeature, NodeFilterRoleOption } from '../../components/AdvancedNodeFilterPopup/AdvancedNodeFilterPopup';
 import { ROLE_NAMES } from '../../constants';
 import type { Channel } from '../../types/device';
 import type { NodeFilters, SecurityFilter } from '../../types/ui';
@@ -26,24 +27,28 @@ export interface NodeFiltersSheetProps {
   securityFilter: SecurityFilter;
   onSecurityFilterChange(filter: SecurityFilter): void;
   channels: Channel[];
+  /** As today's popup: an omitted feature is shown. MeshCore hides the Meshtastic-only ones (Task 7.2). */
+  features?: Partial<Record<NodeFilterFeature, boolean>>;
+  /** The Device role choices; default the Meshtastic roles. */
+  roleOptions?: ReadonlyArray<NodeFilterRoleOption>;
 }
 
 const ROLES = Object.entries(ROLE_NAMES).map(([value, label]) => ({ value: Number(value), label }));
 
 type Feature = 'showTelemetry' | 'showEnvironment' | 'showPosition' | 'showPKI' | 'showRemoteAdmin' | 'showMqtt' | 'showUnknown' | 'showIgnored' | 'showFavorites' | 'showFavoriteLocked' | 'showHiddenFromMap';
-// The popup's order and keys.
-const FEATURES: Array<[Feature, string, string]> = [
-  ['showTelemetry', 'node_filter.telemetry', 'Telemetry data'],
-  ['showEnvironment', 'node_filter.environment', 'Environment metrics'],
-  ['showPosition', 'node_filter.position', 'Position data'],
-  ['showPKI', 'node_filter.pkc', 'Public Key Crypto'],
-  ['showRemoteAdmin', 'node_filter.remote_admin', 'Remote Admin'],
-  ['showMqtt', 'node_filter.mqtt', 'MQTT nodes'],
-  ['showUnknown', 'node_filter.unknown', 'Unknown nodes'],
-  ['showIgnored', 'node_filter.ignored', 'Show ignored nodes'],
-  ['showFavorites', 'node_filter.favorites', 'Favorites'],
-  ['showFavoriteLocked', 'node_filter.favorite_locked', 'Favorite locked'],
-  ['showHiddenFromMap', 'node_filter.hidden_from_map', 'Hidden from map'],
+// The popup's order, keys and feature names.
+const FEATURES: Array<[Feature, string, string, NodeFilterFeature]> = [
+  ['showTelemetry', 'node_filter.telemetry', 'Telemetry data', 'telemetry'],
+  ['showEnvironment', 'node_filter.environment', 'Environment metrics', 'environment'],
+  ['showPosition', 'node_filter.position', 'Position data', 'position'],
+  ['showPKI', 'node_filter.pkc', 'Public Key Crypto', 'pki'],
+  ['showRemoteAdmin', 'node_filter.remote_admin', 'Remote Admin', 'remoteAdmin'],
+  ['showMqtt', 'node_filter.mqtt', 'MQTT nodes', 'mqtt'],
+  ['showUnknown', 'node_filter.unknown', 'Unknown nodes', 'unknown'],
+  ['showIgnored', 'node_filter.ignored', 'Show ignored nodes', 'ignored'],
+  ['showFavorites', 'node_filter.favorites', 'Favorites', 'favorites'],
+  ['showFavoriteLocked', 'node_filter.favorite_locked', 'Favorite locked', 'favoriteLocked'],
+  ['showHiddenFromMap', 'node_filter.hidden_from_map', 'Hidden from map', 'hiddenFromMap'],
 ];
 
 /** How many filters differ from the defaults (the mode is how they apply, not a filter). */
@@ -65,6 +70,9 @@ export default function NodeFiltersSheet(p: NodeFiltersSheetProps) {
   const f = p.nodeFilters;
   const set = (patch: Partial<NodeFilters>) => p.onNodeFiltersChange({ ...f, ...patch });
   const count = activeFilterCount(f, p.securityFilter);
+  const on = (feature: NodeFilterFeature) => p.features?.[feature] !== false;
+  const roles = p.roleOptions ?? ROLES;
+  const features = FEATURES.filter(([, , , feature]) => on(feature));
   const title = isPhone ? t('common.filters') : t('workspace.map.more_filters');
 
   const segments = <T extends string>(name: string, value: T, options: Array<[T, string]>, onPick: (v: T) => void) => (
@@ -153,7 +161,7 @@ export default function NodeFiltersSheet(p: NodeFiltersSheetProps) {
             </p>
           </>,
         )}
-        {section(
+        {on('security') && section(
           t('node_filter.security', 'Security'),
           segments<SecurityFilter>('nf-security', p.securityFilter, [
             ['all', t('node_filter.all_nodes', 'All Nodes')],
@@ -164,7 +172,7 @@ export default function NodeFiltersSheet(p: NodeFiltersSheetProps) {
         {section(
           t('node_filter.node_features', 'Node Features'),
           <div className={styles.features}>
-            {FEATURES.map(([key, label, fallback]) => (
+            {features.map(([key, label, fallback]) => (
               <label key={key} className={styles.check}>
                 <input type="checkbox" checked={!!f[key]} onChange={(e) => set({ [key]: e.target.checked })} />
                 {t(label, fallback)}
@@ -172,7 +180,7 @@ export default function NodeFiltersSheet(p: NodeFiltersSheetProps) {
             ))}
           </div>,
         )}
-        {section(
+        {on('powerSource') && section(
           t('node_filter.power_source', 'Power Source'),
           segments('nf-power', f.powerSource, [
             ['both', t('node_filter.both', 'Both')],
@@ -180,7 +188,7 @@ export default function NodeFiltersSheet(p: NodeFiltersSheetProps) {
             ['battery', t('node_filter.battery_only', 'Battery only')],
           ], (powerSource) => set({ powerSource })),
         )}
-        {section(
+        {on('hops') && section(
           t('node_filter.hops_away', 'Hops Away'),
           <div className={styles.range}>
             <label>
@@ -193,17 +201,17 @@ export default function NodeFiltersSheet(p: NodeFiltersSheetProps) {
             </label>
           </div>,
         )}
-        {disclosure(
+        {on('roles') && disclosure(
           t('node_filter.device_role', 'Device Role'),
-          ROLES.length,
+          roles.length,
           f.deviceRoles,
-          checks(ROLES, f.deviceRoles, (v, on) => set({ deviceRoles: toggleInSelection(f.deviceRoles, v, on, ROLES.map((r) => r.value)) })),
+          checks([...roles], f.deviceRoles, (v, checked) => set({ deviceRoles: toggleInSelection(f.deviceRoles, v, checked, roles.map((r) => r.value)) })),
         )}
-        {disclosure(
+        {on('channels') && disclosure(
           t('node_filter.channel', 'Channel'),
           channelItems.length,
           f.channels,
-          checks(channelItems, f.channels, (v, on) => set({ channels: toggleInSelection(f.channels, v, on, channelItems.map((c) => c.value)) })),
+          checks(channelItems, f.channels, (v, checked) => set({ channels: toggleInSelection(f.channels, v, checked, channelItems.map((c) => c.value)) })),
         )}
       </div>
     </Sheet>

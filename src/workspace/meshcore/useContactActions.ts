@@ -31,7 +31,8 @@ export type DiscoverState =
 /** Today's per-browser "Auto return path" choice for Trace Path (#5485). */
 const TRACE_AUTO_RETURN_KEY = 'meshcoreTraceAutoReturn';
 
-export function useContactActions(publicKey: string, contact: MeshCoreContact | null, actions: MeshCoreActions) {
+/** `serverFavorite`: the node row's favourite flag (#5507), which the page shows once it changes. */
+export function useContactActions(publicKey: string, contact: MeshCoreContact | null, actions: MeshCoreActions, serverFavorite: boolean) {
   const { t } = useTranslation();
 
   const [pinging, setPinging] = useState(false);
@@ -214,20 +215,23 @@ export function useContactActions(publicKey: string, contact: MeshCoreContact | 
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [favoriteOverride, setFavoriteOverride] = useState<boolean | null>(null);
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
+  // The node list catching up (or a change from elsewhere) replaces the server-confirmed value.
+  useEffect(() => setFavoriteOverride(null), [serverFavorite]);
+  const isFavorite = favoriteOverride ?? serverFavorite;
   const toggleFavorite = useCallback(
-    async (current: boolean) => {
+    async () => {
       if (favoriteBusy) return;
       setFavoriteBusy(true);
       setFavoriteError(null);
       try {
-        const next = !current;
+        const next = !isFavorite;
         if (await actions.setNodeFavorite(publicKey, next)) setFavoriteOverride(next);
         else setFavoriteError(t('meshcore.favorite.failed', 'Failed to update favorite'));
       } finally {
         setFavoriteBusy(false);
       }
     },
-    [actions, favoriteBusy, publicKey, t],
+    [actions, favoriteBusy, isFavorite, publicKey, t],
   );
 
   const [cliBusy, setCliBusy] = useState(false);
@@ -251,7 +255,7 @@ export function useContactActions(publicKey: string, contact: MeshCoreContact | 
     sharing, shareNote, runShare,
     exporting, exported, runExport,
     removing, removeError, runRemove,
-    favoriteBusy, favoriteOverride, favoriteError, toggleFavorite,
+    favoriteBusy, isFavorite, favoriteError, toggleFavorite,
     cliBusy, cliError, setRemoteCli,
   };
 }

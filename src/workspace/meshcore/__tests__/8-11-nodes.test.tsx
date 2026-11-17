@@ -75,4 +75,17 @@ describe('8-11-nodes', () => {
     await screen.findByRole('link', { name: 'Lycabettus Repeater' });
     await waitFor(() => expect(screen.getByRole('button', { name: /Discover Repeaters/ })).toBeDisabled());
   });
+
+  it('More filters apply as today: Favorites in Show only leaves the favourites, and the roles are MeshCore\'s', async () => {
+    renderMeshCore(route);
+    await screen.findByRole('link', { name: 'Penteli Repeater' });
+    fireEvent.click(screen.getByRole('button', { name: /More filters/ }));
+    const sheet = await screen.findByRole('dialog', { name: /More filters/ });
+    expect(within(sheet).getByLabelText('Repeater')).toBeInTheDocument();
+    expect(within(sheet).queryByText('Power Source')).toBeNull();
+    fireEvent.click(within(sheet).getByLabelText('Favorites'));
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Penteli Repeater' })).toBeNull());
+    expect(screen.getByRole('link', { name: 'Lycabettus Repeater' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Glyfada Beach' })).toBeInTheDocument();
+  });
 });

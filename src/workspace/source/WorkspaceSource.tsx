@@ -156,13 +156,13 @@ export default function WorkspaceSource() {
           : MC_NODES_PATH.test(splat)
             ? { kind: 'nodes' }
             : node
-              ? { kind: 'node', key: decodeURIComponent(node[1]), tab: nodeTabKnown && node[2] ? node[2] : 'overview' }
+              ? { kind: 'node', key: node[1], tab: nodeTabKnown && node[2] ? node[2] : 'overview' }
               : isPhone && splat === '' && !location.hash
                 ? { kind: 'home' }
                 : null;
     if (screen) {
       return (
-        <Redirect to={node && !nodeTabKnown ? `${base}/node/${node[1]}` : null}>
+        <Redirect to={node && !nodeTabKnown ? `${base}/node/${encodeURIComponent(node[1])}` : null}>
           <Rehost>
             <MeshCoreScreen key={sourceId} sourceId={sourceId} source={source} screen={screen} />
           </Rehost>

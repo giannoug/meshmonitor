@@ -19,7 +19,7 @@
  *   are server reads (stored neighbours, trace history, the admin session).
  */
 import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { UiIcon } from '../../components/icons';
@@ -105,7 +105,7 @@ export default function ContactPage({ publicKey, tab }: { publicKey: string; tab
       ? ({ publicKey: nodeRow.publicKey, advName: nodeRow.name, advType: nodeRow.advType, latitude: nodeRow.latitude, longitude: nodeRow.longitude,
           rssi: nodeRow.rssi, snr: nodeRow.snr, lastSeen: nodeRow.lastHeard } as MeshCoreContact)
       : null;
-  const a = useContactActions(raw?.publicKey ?? publicKey, contact, actions);
+  const a = useContactActions(raw?.publicKey ?? publicKey, contact, actions, nodeRow?.isFavorite ?? false);
   const [dialog, setDialog] = useState<Dialog>(null);
   const ignored = useMeshCoreIgnoredNodes(sourceId);
   const setIgnored = useSetMeshCoreIgnoredNode(sourceId);
@@ -136,7 +136,7 @@ export default function ContactPage({ publicKey, tab }: { publicKey: string; tab
   // A direct neighbour is traced through its own hash (#5914): only a repeater or room server forwards it.
   const traceable = pathKnown && (pathLen! > 0 || advType === REPEATER || advType === ROOM_SERVER);
   const traceReason = sendReason('traceroute') ?? (traceable ? undefined : t('workspace.meshcore.path_unknown'));
-  const isFavorite = a.favoriteOverride ?? nodeRow?.isFavorite ?? false;
+  const isFavorite = a.isFavorite;
   const ignoreMode = ignored.data?.find((e) => e.publicKey.toLowerCase() === key)?.mode ?? null;
   const hasPosition = typeof contact.latitude === 'number' && typeof contact.longitude === 'number';
   // #5964: Show on Map only for a node the MeshCore map draws (and not one on the ignore list, #5408).
@@ -151,6 +151,8 @@ export default function ContactPage({ publicKey, tab }: { publicKey: string; tab
   const page = `${base}/node/${encodeURIComponent(pk)}`;
   const tabKeys = isRepeater ? ['overview', 'telemetry', 'neighbours', 'admin'] : ['overview', 'telemetry', 'links', 'position', 'admin'];
   const shown = tabKeys.includes(tab) ? tab : 'overview';
+  // A tab this node type lacks (Neighbours on a companion, Links on a repeater): Overview, and the URL follows.
+  if (shown !== tab) return <Navigate to={page} replace />;
   const tabLabel = (k: string) => (k === 'neighbours' ? t('workspace.meshcore.tab_neighbours') : t(`workspace.node.tab_${k}`));
 
   const stub = {
@@ -172,7 +174,7 @@ export default function ContactPage({ publicKey, tab }: { publicKey: string; tab
     organise: [
       { id: 'favorite', icon: isFavorite ? 'favorite' : 'favoriteOff',
         label: isFavorite ? t('meshcore.contact_details.favorite_remove', 'Remove from favorites') : t('meshcore.contact_details.favorite_add', 'Add to favorites'),
-        reason: needs('nodes') ?? (!connected ? t('source.status_disconnected') : undefined), busy: a.favoriteBusy, run: () => void a.toggleFavorite(isFavorite) },
+        reason: needs('nodes') ?? (!connected ? t('source.status_disconnected') : undefined), busy: a.favoriteBusy, run: () => void a.toggleFavorite() },
       ...(canShowOnMap
         ? [{ id: 'map', icon: 'map' as const, label: t('messages.show_on_map', 'Show on Map'), run: () => void navigate(`${base}/map?node=${encodeURIComponent(pk)}`) }]
         : []),
@@ -297,10 +299,14 @@ export default function ContactPage({ publicKey, tab }: { publicKey: string; tab
           <UiIcon name="link" size={16} />
           {t('workspace.meshcore.share_contact')}
         </button>
-        <button type="button" className={styles.button} disabled={!isCompanion || a.exporting} onClick={() => void a.runExport()}>
+        <button type="button" className={styles.button} disabled={!isCompanion || a.exporting} title={isCompanion ? undefined : t('workspace.meshcore.companion_only')}
+          onClick={() => void a.runExport()}>
           <UiIcon name="download" size={16} />
           {t('workspace.meshcore.export_contact')}
         </button>
+        {(sendReason('nodes') ?? (isCompanion ? undefined : t('workspace.meshcore.companion_only'))) && (
+          <p className={styles.reason}>{sendReason('nodes') ?? t('workspace.meshcore.companion_only')}</p>
+        )}
         {a.shareNote && <p className={a.shareNote.ok ? styles.ok : styles.error} role={a.shareNote.ok ? 'status' : 'alert'}>{a.shareNote.text}</p>}
         {a.exported && <p className={styles.ok} role="status">{t('meshcore.contact_details.export_contact_success', 'Copied to clipboard.')}</p>}
       </div>
@@ -416,6 +422,7 @@ export default function ContactPage({ publicKey, tab }: { publicKey: string; tab
         }}
       />
       <div className={pageStyles.body}>
+        {isRepeater && remoteAdminReason && <p className={styles.reason}>{t('workspace.meshcore.log_in_off', { reason: remoteAdminReason })}</p>}
         {a.favoriteError && <p className={styles.error} role="alert">{a.favoriteError}</p>}
         {a.removeError && <p className={styles.error} role="alert">{a.removeError}</p>}
         <div className={styles.stack} data-phone={isPhone || undefined}>{body}</div>
@@ -658,9 +665,9 @@ function TraceChain({ a, contacts, selfKey, outPath }: { a: ContactActions; cont
   const self = contacts.find((c) => c.publicKey === selfKey);
   return (
     <ol className={styles.chain} aria-label={t('meshcore.contact_details.trace_path_results', 'Trace Path Results')}>
-      <li className={styles.chipItem}><span className={styles.mark}>{shortMark(self?.advName || 'You')}</span>{t('workspace.meshcore.trace_you')}</li>
+      <li className={styles.chipItem}><span className={styles.mark}>{shortMark(self?.advName || t('workspace.meshcore.trace_you'))}</span>{t('workspace.meshcore.trace_you')}</li>
       {r.hops.map((hop) => {
-        const label = hashes[hop.index] ? resolveHop(hashes[hop.index], options).label : '??';
+        const label = hashes[hop.index] ? resolveHop(hashes[hop.index], options).label : t('workspace.meshcore.hop_unknown');
         return (
           <li key={hop.index} className={styles.chipItem}>
             <UiIcon name="forward" size={16} className={styles.arrow} />
@@ -686,7 +693,7 @@ function TraceTable({ a, outPath }: { a: ContactActions; outPath?: string | null
     <FactCard title={t('meshcore.contact_details.trace_path_results', 'Trace Path Results')}>
       <Facts>
         {r.hops.map((hop) => (
-          <Fact key={hop.index} label={`${hop.index + 1} · ${hashes[hop.index] ?? '??'}`}>{`${hop.snr.toFixed(2)} dB`}</Fact>
+          <Fact key={hop.index} label={`${hop.index + 1} · ${hashes[hop.index] ?? t('workspace.meshcore.hop_unknown')}`}>{`${hop.snr.toFixed(2)} dB`}</Fact>
         ))}
         <Fact label={t('meshcore.contact_details.trace_destination', 'Destination')}>{`${r.lastSnr.toFixed(2)} dB`}</Fact>
       </Facts>
@@ -735,7 +742,7 @@ function RepeaterFacts({ publicKey, sourceId, nodeRow, canAsk }: {
 }) {
   const { t } = useTranslation();
   const { meshCore } = useMeshCoreRuntime();
-  const { data: session } = useQuery({
+  const { data: session, isSuccess } = useQuery({
     queryKey: ['meshcore', 'admin-session', sourceId, publicKey],
     queryFn: () => meshCore.actions.getRemoteAdminSession(publicKey),
     enabled: canAsk,
@@ -743,11 +750,14 @@ function RepeaterFacts({ publicKey, sourceId, nodeRow, canAsk }: {
   return (
     <FactCard title={t('meshcore.device_type.repeater', 'Repeater')}>
       <Facts>
-        <Fact label={t('workspace.meshcore.admin_login')}>
-          <span className={session ? styles.ok : styles.warn}>
-            {session ? t('meshcore.remoteConsole.session_saved', 'Saved session') : t('meshcore.rooms.not_logged_in', 'Not logged in')}
-          </span>
-        </Fact>
+        {/* Only for whoever may log in (today's console is hidden from the rest), once the server answered. */}
+        {canAsk && isSuccess && (
+          <Fact label={t('workspace.meshcore.admin_login')}>
+            <span className={session ? styles.ok : styles.warn}>
+              {session ? t('meshcore.remoteConsole.session_saved', 'Saved session') : t('meshcore.rooms.not_logged_in', 'Not logged in')}
+            </span>
+          </Fact>
+        )}
         {typeof nodeRow?.uptimeSecs === 'number' && nodeRow.uptimeSecs > 0 && (
           <Fact label={t('nodes.uptime')}>{formatCompactSpan(nodeRow.uptimeSecs)}</Fact>
         )}
@@ -770,6 +780,7 @@ interface StoredNeighbour {
 /** Neighbours tab (repeater): today's stored table (a server read) and the paged fetch with Cancel. */
 function NeighboursPane({ publicKey, sourceId, reason }: { publicKey: string; sourceId: string; reason?: string }) {
   const { t } = useTranslation();
+  const { timeFormat, dateFormat } = useSettings();
   const { meshCore } = useMeshCoreRuntime();
   const { actions } = meshCore;
   const fetcher = useMeshCoreNeighboursFetch({
@@ -798,7 +809,7 @@ function NeighboursPane({ publicKey, sourceId, reason }: { publicKey: string; so
         snr: n.snr ?? 0,
         ago: (n.lastHeardSecs ?? 0) + Math.max(0, Math.floor((now - n.timestamp) / 1000)),
       }));
-  const agoText = (s: number) => (s < 60 ? `${s}s ago` : s < 3600 ? `${Math.floor(s / 60)}m ago` : `${Math.floor(s / 3600)}h ago`);
+  const agoText = (secs: number) => formatRelativeTime(now - secs * 1000, timeFormat, dateFormat, false);
   return (
     <div className={styles.stack}>
       <div className={styles.action}>

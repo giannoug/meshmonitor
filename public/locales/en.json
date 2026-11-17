@@ -8543,6 +8543,8 @@
   "workspace.meshcore.sends_post": "Sends 1 post to {{room}}; the room stores it for its members",
   "workspace.meshcore.post_to": "Post to {{room}}",
   "workspace.meshcore.log_in": "Log in",
+  "workspace.meshcore.log_in_off": "Log in: {{reason}}",
+  "workspace.meshcore.hop_unknown": "Unknown hop",
   "workspace.meshcore.log_in_title": "Opens the console for this node, where you log in",
   "workspace.meshcore.tab_neighbours": "Neighbours",
   "workspace.meshcore.tab_console": "Console",

@@ -99,8 +99,8 @@
 }
 
 .star {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -172,4 +172,26 @@
   font-family: var(--font-mono, monospace);
   font-size: 13px;
   resize: vertical;
+}
+
+/* Phone: 44 px targets (Import contact, Export, the quick age window). */
+.tall[data-phone] {
+  min-height: 44px;
+}
+
+.headTools {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 8px;
+}
+
+.headTools[data-phone] button {
+  min-height: 44px;
+}
+
+.age[data-phone] select {
+  min-height: 44px;
 }

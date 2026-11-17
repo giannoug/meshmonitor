@@ -14,7 +14,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
-import { AdvancedNodeFilterPopup, type NodeFilterFeature } from '../../components/AdvancedNodeFilterPopup/AdvancedNodeFilterPopup';
+import type { NodeFilterFeature } from '../../components/AdvancedNodeFilterPopup/AdvancedNodeFilterPopup';
 import NodeQuickAgeFilter from '../../components/NodeQuickAgeFilter';
 import { NodeSortControls } from '../../components/nodes/NodeSortControls';
 import { meshcoreRoleLabel, meshcoreRoleLabelKey } from '../../components/MeshCore/meshcoreRole';
@@ -45,6 +45,7 @@ import {
 import { orderFavoritesFirst, sortByKey } from '../../utils/nodeSort';
 import { NODE_TYPE_CATEGORY_META } from '../../utils/nodeTypeCategory';
 import { isHeardRecently } from '../chat/channelLabel';
+import NodeFiltersSheet from '../nodes/NodeFiltersSheet';
 import nodesStyles from '../nodes/NodesTable.module.css';
 import ConfirmSheet from '../patterns/ConfirmSheet';
 import RowMenu from '../patterns/RowMenu';
@@ -202,7 +203,7 @@ export default function MeshCoreNodesTable() {
 
   const importLabel = t('workspace.meshcore.import_contact');
   const importButton = (
-    <button type="button" className={nodesStyles.button} onClick={() => setImportOpen(true)}>
+    <button type="button" className={`${nodesStyles.button} ${styles.tall}`} data-phone={isPhone || undefined} onClick={() => setImportOpen(true)}>
       <UiIcon name="plus" size={18} />
       {importLabel}
     </button>
@@ -247,7 +248,23 @@ export default function MeshCoreNodesTable() {
       onNew={setNewKeys}
     />
   );
-  const age = <NodeQuickAgeFilter settingsHours={display.maxNodeAgeHours} variant="meshcore" />;
+  const age = (
+    <span className={styles.age} data-phone={isPhone || undefined}>
+      <NodeQuickAgeFilter settingsHours={display.maxNodeAgeHours} variant="meshcore" />
+    </span>
+  );
+  // Today's export menu (ExportMenuButton, on desktop and phone): CSV or HTML of the rows shown.
+  const exportMenu = (
+    <RowMenu
+      label={t('nodes.export', 'Export node list')}
+      triggerClassName={`${nodesStyles.button} ${styles.tall}`}
+      trigger={<><UiIcon name="download" size={18} />{t('common.export')}<UiIcon name="chevronDown" size={14} /></>}
+      items={[
+        { key: 'csv', label: 'CSV', icon: 'file', disabled: flat.length === 0, onSelect: () => exportRows('csv') },
+        { key: 'html', label: 'HTML', icon: 'fileCode', disabled: flat.length === 0, onSelect: () => exportRows('html') },
+      ]}
+    />
+  );
 
   const empty = search
     ? t('meshcore.no_search_results', 'No nodes match your search')
@@ -380,7 +397,10 @@ export default function MeshCoreNodesTable() {
           </div>
           <div className={nodesStyles.listHead}>
             <span className={nodesStyles.count}>{t('workspace.nodes.count', { count: flat.length })}{age}</span>
+          </div>
+          <div className={styles.headTools} data-phone="">
             {sort}
+            {exportMenu}
           </div>
         </>
       ) : (
@@ -400,29 +420,21 @@ export default function MeshCoreNodesTable() {
             {filtersChip(t('workspace.map.more_filters'))}
             {groupChip}
             <span className={nodesStyles.spacer} />
-            {/* Today's export menu (ExportMenuButton): CSV or HTML of the rows shown. */}
-            <RowMenu
-              label={t('nodes.export', 'Export node list')}
-              triggerClassName={nodesStyles.button}
-              trigger={<><UiIcon name="download" size={18} />{t('common.export')}<UiIcon name="chevronDown" size={14} /></>}
-              items={[
-                { key: 'csv', label: 'CSV', icon: 'file', disabled: flat.length === 0, onSelect: () => exportRows('csv') },
-                { key: 'html', label: 'HTML', icon: 'fileCode', disabled: flat.length === 0, onSelect: () => exportRows('html') },
-              ]}
-            />
+            {exportMenu}
             {importButton}
           </div>
           {discover && <div className={styles.discoverBar}>{discover}</div>}
         </>
       )}
       {body}
-      <AdvancedNodeFilterPopup
-        isOpen={filtersOpen}
+      <NodeFiltersSheet
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
         nodeFilters={nodeFilters}
+        onNodeFiltersChange={setNodeFilters}
         securityFilter={securityFilter}
         onSecurityFilterChange={setSecurityFilter}
-        onNodeFiltersChange={setNodeFilters}
-        onClose={() => setFiltersOpen(false)}
+        channels={[]}
         features={FEATURES}
         roleOptions={MESHCORE_ROLE_FILTER_OPTIONS.map((o) => ({ value: o.value, label: t(meshcoreRoleLabelKey(o.value), o.label) }))}
       />
