@@ -35,6 +35,11 @@ describe('10-06-channel-thread', () => {
     expect(await screen.findByText('Sends 1 message on # LongFast · hop limit 3')).toBeInTheDocument();
   });
 
+  it("a Meshtastic composer keeps today's byte counter (Task 7.6 hides it only on LXMF)", async () => {
+    renderChat(route, { phone: true });
+    expect(await screen.findByText('0/200')).toBeInTheDocument();
+  });
+
   it('Send posts today\'s request: the text on the channel, with the reply id', async () => {
     renderChat(route, { phone: true });
     await screen.findByText('Glyfada Beach checking in');

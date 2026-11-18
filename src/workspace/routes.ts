@@ -5,7 +5,7 @@
  * router-relative (basename already stripped).
  */
 import { MESHCORE_VIEWS, type MeshCoreView } from '../components/MeshCore/meshCoreViewAccess';
-import { RETICULUM_VIEWS, type ReticulumView } from '../types/reticulum';
+import type { ReticulumView } from '../types/reticulum';
 import { classicFallback } from './layout/classicFallback';
 import { SECTION_TO_CATEGORY } from './settings/categories';
 import { MESHCORE_SECTION_TO_CATEGORY } from './meshcore/settings/meshcoreSearch';
@@ -102,13 +102,6 @@ export function meshcoreSettingsRedirect(base: string, splat: string, hash: stri
 /** Destinations: the Reticulum page's default view. */
 export const RETICULUM_DEFAULT_VIEW: ReticulumView = 'destinations';
 
-/** The Reticulum view a source URL asks for, or null for a segment Reticulum has no view for. */
-export function reticulumViewForPath(splat: string): ReticulumView | null {
-  const segment = splat.split('/')[0];
-  if (!segment) return RETICULUM_DEFAULT_VIEW;
-  if (segment === 'dm') return 'dms';
-  return (RETICULUM_VIEWS as readonly string[]).includes(segment) ? (segment as ReticulumView) : null;
-}
 
 /** Today's Reticulum views that are native screens now (Task 7.6), plus the Dashboard, by URL segment. */
 const RNS_SCREENS = ['destinations', 'interfaces', 'paths', 'map', 'dashboard', 'dms', 'info'] as const;
@@ -134,7 +127,15 @@ export type ReticulumScreenRoute =
 export function reticulumScreenForPath(splat: string, isPhone: boolean): { screen: ReticulumScreenRoute; fix: string | null } {
   const parts = splat.split('/').filter(Boolean);
   if (parts.length === 0) return isPhone ? { screen: { kind: 'home' }, fix: null } : { screen: { kind: RETICULUM_DEFAULT_VIEW as 'destinations' }, fix: RETICULUM_DEFAULT_VIEW };
-  if (parts[0] === 'dm') return parts[1] ? { screen: { kind: 'dm', peer: decodeURIComponent(parts[1]) }, fix: null } : { screen: { kind: 'dms' }, fix: null };
+  if (parts[0] === 'dm') {
+    if (!parts[1]) return { screen: { kind: 'dms' }, fix: null };
+    try {
+      return { screen: { kind: 'dm', peer: decodeURIComponent(parts[1]) }, fix: null };
+    } catch {
+      // A malformed %-escape names no peer: today's Messages view.
+      return { screen: { kind: 'dms' }, fix: 'dms' };
+    }
+  }
   const view = (RNS_SCREENS as readonly string[]).find((v) => v === parts[0]);
   return view ? { screen: { kind: view as (typeof RNS_SCREENS)[number] }, fix: null } : { screen: { kind: 'destinations' }, fix: RETICULUM_DEFAULT_VIEW };
 }

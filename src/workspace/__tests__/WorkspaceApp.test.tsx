@@ -17,7 +17,11 @@ import { mounts } from './pageStub';
 vi.mock('../../contexts/WebSocketContext', () => ({
   WebSocketProvider: ({ children }: { children: React.ReactNode }) => <div data-ws-provider="">{children}</div>,
   useOptionalSocket: () => null,
+  // The real Reticulum screen (the socket check below) reads the socket from the context.
+  useWebSocketContext: () => ({ state: { socket: null, connected: false } }),
 }));
+/** The socket check mounts the real Reticulum screen; every other test its stub. */
+const reticulumScreen = vi.hoisted(() => ({ real: false }));
 vi.mock('../../App', async () => ({ default: (await import('./pageStub')).pageStub('app') }));
 vi.mock('../../pages/DashboardPage', async () => ({ default: (await import('./pageStub')).pageStub('dashboard') }));
 vi.mock('../../components/automations/AutomationsPage', async () => ({ default: (await import('./pageStub')).pageStub('automations') }));
@@ -37,7 +41,11 @@ vi.mock('../../pages/ReticulumSourcePage', async () => ({ default: (await import
 // A MeshCore channel, room and phone Home are the Workspace's own (Task 7.1); their tests live in meshcore/__tests__.
 vi.mock('../meshcore/MeshCoreScreen', async () => ({ default: (await import('./pageStub')).pageStub('meshcore-screen') }));
 // Every Reticulum view is the Workspace's own screen (Task 7.6); its tests live in reticulum/__tests__.
-vi.mock('../reticulum/ReticulumScreen', async () => ({ default: (await import('./pageStub')).pageStub('reticulum-screen') }));
+vi.mock('../reticulum/ReticulumScreen', async (orig) => {
+  const Real = (await orig<{ default: React.ComponentType<object> }>()).default;
+  const Stub = (await import('./pageStub')).pageStub('reticulum-screen');
+  return { default: (props: object) => (reticulumScreen.real ? <Real {...props} /> : <Stub {...props} />) };
+});
 vi.mock('../chat/ChannelThread', async () => ({ default: (await import('./pageStub')).pageStub('channel-thread') }));
 vi.mock('../chat/DmConversation', async () => ({ default: (await import('./pageStub')).pageStub('dm-conversation') }));
 vi.mock('../chat/DmInbox', async () => ({ default: (await import('./pageStub')).pageStub('dm-inbox') }));
@@ -493,6 +501,17 @@ describe('sockets (Ruling N)', () => {
     const { container } = renderAt(route);
     await (page === 'overview-map' || page === 'reports-route' ? screen.findByTestId(`page-${page}`) : expectPage(page));
     expect(container.querySelectorAll('[data-ws-provider]')).toHaveLength(1);
+  });
+
+  it("a Reticulum device's native screen has exactly one WebSocketProvider (Task 7.6)", async () => {
+    reticulumScreen.real = true;
+    try {
+      const { container } = renderAt(`${rns}/destinations`);
+      await screen.findByRole('heading', { level: 1, name: 'Destinations' });
+      expect(container.querySelectorAll('[data-ws-provider]')).toHaveLength(1);
+    } finally {
+      reticulumScreen.real = false;
+    }
   });
 
   it('device settings open no socket (nothing on them is live)', async () => {

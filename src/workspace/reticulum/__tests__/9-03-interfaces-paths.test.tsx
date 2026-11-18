@@ -16,6 +16,10 @@ import { RNS_URL, renderReticulum, rnsRequests } from './renderReticulum';
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('../../meshcore/__tests__/mocks')).wsMock(orig));
 
 const pause = () => act(async () => new Promise((r) => setTimeout(r, 50)));
+const telemetryCalls = () => vi.mocked(fetch).mock.calls.filter(([u]) => new URL(String(u), 'http://localhost').pathname.startsWith('/api/telemetry/'));
+const telemetryReads = () => telemetryCalls().length;
+const telemetryPaths = () =>
+  [...new Set(telemetryCalls().map(([u]) => decodeURIComponent(new URL(String(u), 'http://localhost').pathname.replace('/api/telemetry/', ''))))].sort();
 const row = (name: string) => screen.getByText(name, { selector: 'strong' }).closest('tr')!;
 
 /** Holds every probe of `hash` unanswered, as a probe in flight. */
@@ -56,8 +60,27 @@ describe('9-03-interfaces', () => {
     expectBoard('9-03-interfaces', container);
   });
 
-  it('Add to Dashboard saves the chart for every interface, once each, and sends nothing on the network', async () => {
-    const posts: unknown[] = [];
+  it('reads the Dashboard favourites once, and history only for the interfaces with a chart on the Dashboard (today\'s reads)', async () => {
+    const settingsReads = () =>
+      vi.mocked(fetch).mock.calls.filter(([u, i]) => /\/api\/settings\?sourceId=src-rns$/.test(String(u)) && (i?.method ?? 'GET') === 'GET').length;
+    renderReticulum(`${RNS_URL}/destinations`);
+    const sidebar = await screen.findByRole('complementary', { name: 'Reticulum node' });
+    await screen.findByText('38 destinations · 4 interfaces');
+    await pause();
+    const before = settingsReads();
+    fireEvent.click(within(sidebar).getByRole('button', { name: /More tools/ }));
+    fireEvent.click(within(sidebar).getByRole('link', { name: 'Interfaces' }));
+    await screen.findByText('RX rate');
+    await waitFor(() => expect(telemetryReads()).toBeGreaterThan(0));
+    await pause();
+    expect(settingsReads() - before).toBe(1);
+    // Athens LoRa, Athens Hub and Default Interface have charts; Backup Hub does not.
+    expect(telemetryPaths()).toEqual(['rns:iface:Athens Hub', 'rns:iface:Athens LoRa', 'rns:iface:Default Interface']);
+    expect(telemetryReads()).toBe(3);
+  });
+
+  it('Add to Dashboard saves the chart for each interface that lacks it, once each, and sends nothing on the network', async () => {
+    const posts: Array<{ telemetryFavorites: string }> = [];
     const { log } = renderReticulum(`${RNS_URL}/interfaces`, {
       fixtures: {
         'POST /api/settings': (_u: URL, init?: RequestInit) => {
@@ -70,9 +93,10 @@ describe('9-03-interfaces', () => {
     const add = within(screen.getByRole('region', { name: 'RX rate' })).getByRole('button', { name: /Add to Dashboard/ });
     await waitFor(() => expect(add).toBeEnabled());
     fireEvent.click(add);
-    await waitFor(() => expect(posts).toHaveLength(4));
+    await waitFor(() => expect(posts).toHaveLength(1));
     await pause();
-    expect(posts).toHaveLength(4);
+    expect(posts).toHaveLength(1);
+    expect(JSON.parse(posts[0].telemetryFavorites)).toContainEqual({ nodeId: 'rns:iface:Backup Hub', telemetryType: 'reticulum_iface_rx_rate' });
     expect(log.writes).toEqual([]);
   });
 });
@@ -118,6 +142,31 @@ describe('9-04-paths', () => {
     await screen.findByText(/112 known path/);
     await pause();
     expect(rnsRequests('GET', /\/remote-status\//)).toBe(1);
+  });
+
+  it('Enter in Remote Fleet sends one request per press: a held key and a press while one is in flight send nothing', async () => {
+    renderReticulum(`${RNS_URL}/paths`);
+    await screen.findByText('Glyfada Propagation');
+    const real = vi.mocked(fetch).getMockImplementation()!;
+    vi.mocked(fetch).mockImplementation((u, init) => (String(u).includes('/remote-status/') ? new Promise<Response>(() => {}) : real(u, init)));
+    const input = screen.getByRole('textbox', { name: 'Destination hash…' });
+    fireEvent.change(input, { target: { value: RNS.halandriT } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await screen.findByRole('button', { name: 'Querying…' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.keyDown(input, { key: 'Enter', repeat: true });
+    await pause();
+    expect(rnsRequests('GET', /\/remote-status\//)).toBe(1);
+  });
+
+  it('a held Enter (key repeat) sends nothing more than its first press', async () => {
+    renderReticulum(`${RNS_URL}/paths`);
+    await screen.findByText('Glyfada Propagation');
+    const input = screen.getByRole('textbox', { name: 'Destination hash…' });
+    fireEvent.change(input, { target: { value: RNS.halandriT } });
+    fireEvent.keyDown(input, { key: 'Enter', repeat: true });
+    await pause();
+    expect(rnsRequests('GET', /\/remote-status\//)).toBe(0);
   });
 
   it("without nodes:write there is no Probe, as today", async () => {

@@ -45,9 +45,11 @@ interface PhoneShellProps {
   children: ReactNode;
 }
 
-function activeTab(pathname: string, mode: SidebarMode): PhoneTab {
+function activeTab(pathname: string, mode: SidebarMode, type: string | undefined): PhoneTab {
   if (mode === 'you' || mode === 'server') return 'you';
   const tab = matchPath('/source/:id/:tab/*', pathname)?.params.tab;
+  // A Reticulum conversation opens from Home's LXMF MESSAGES, and Home stays lit (9-10).
+  if (tab === 'dm' && type === 'reticulum') return 'home';
   if (tab === 'messages' || tab === 'dms' || tab === 'dm') return 'dms';
   return tab === 'activity' ? 'activity' : 'home';
 }
@@ -186,7 +188,7 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
         )}
         {source && <ConnectionCard source={source} open={cardOpen} onClose={() => setCardOpen(false)} />}
         {children}
-        <TabBar home={home} active={activeTab(pathname, mode)} />
+        <TabBar home={home} active={activeTab(pathname, mode, source?.type)} />
         <DeviceSwitcherSheet
           open={switcherOpen}
           onClose={() => setSwitcherOpen(false)}

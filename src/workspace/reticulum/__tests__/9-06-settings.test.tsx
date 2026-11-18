@@ -67,10 +67,24 @@ describe('9-06-settings-identity', () => {
     expect(posts).toHaveLength(1);
   });
 
+  it('an active countdown ticks down and sends nothing while it runs', async () => {
+    const { log } = renderReticulum(IDENTITY, { reticulum: { cooldownRemainingSeconds: 42 } });
+    await screen.findByText('Announce now (42 s)');
+    const reads = log.reads.length;
+    await act(async () => new Promise((r) => setTimeout(r, 2200)));
+    expect(screen.getByRole('button', { name: /Announce now \((40|39) s\)/ })).toBeDisabled();
+    expect(log.writes).toEqual([]);
+    expect(log.reads.length).toBe(reads);
+    expect(vi.mocked(fetch).mock.calls.filter(([u]) => String(u).endsWith('/reticulum/announce'))).toHaveLength(0);
+  });
+
   it('9-15-settings-identity shows the board', async () => {
     const { container } = renderReticulum(IDENTITY, { phone: true, reticulum: { cooldownRemainingSeconds: 42 } });
     await screen.findByText('Announce now (42 s)');
     expectBoard('9-15-settings-identity', container);
+    // The phone's scope line is "On this node" alone; the desktop's long line squeezed it into a column.
+    expect(screen.getByText('On this node')).toBeInTheDocument();
+    expect(screen.queryByText(/applies the name when the source next connects/)).toBeNull();
   });
 });
 

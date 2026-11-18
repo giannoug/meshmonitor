@@ -14,7 +14,9 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
-import { useFavorites, useToggleFavorite } from '../../hooks/useFavorites';
+import { useQuery } from '@tanstack/react-query';
+import { useToggleFavorite, type FavoriteChart } from '../../hooks/useFavorites';
+import apiService from '../../services/api';
 import { useTelemetry, type TelemetryData } from '../../hooks/useTelemetry';
 import { appBasename } from '../../init';
 import { UiIcon } from '../../components/icons';
@@ -35,12 +37,7 @@ const HOURS = 24;
 const ifaceNodeId = (name: string) => `rns:iface:${name}`;
 
 const NO_POINTS: TelemetryData[] = [];
-const NO_FAVORITES = new Set<string>();
-
-interface Series {
-  points: TelemetryData[];
-  favorites: Set<string>;
-}
+const NO_FAVORITES: ReadonlySet<string> = new Set<string>();
 
 export default function InterfacesPage() {
   const { t } = useTranslation();
@@ -128,13 +125,39 @@ export default function InterfacesPage() {
   );
 }
 
-/** One interface's series (today's telemetry read) and its Dashboard favourites, reported up. */
-function SeriesSource({ name, sourceId, canFavorite, onData }: { name: string; sourceId: string; canFavorite: boolean; onData(name: string, s: Series): void }) {
-  const nodeId = ifaceNodeId(name);
-  const { data: points } = useTelemetry({ nodeId, sourceId, hours: HOURS, baseUrl: appBasename });
-  const { data: favorites } = useFavorites({ nodeId, baseUrl: appBasename, enabled: canFavorite });
-  useEffect(() => onData(name, { points: points ?? NO_POINTS, favorites: favorites ?? NO_FAVORITES }), [name, points, favorites, onData]);
+/** One interface's series (today's telemetry read), reported up. Mounted only for an interface with a chart on the Dashboard. */
+function SeriesSource({ name, sourceId, onData }: { name: string; sourceId: string; onData(name: string, points: TelemetryData[]): void }) {
+  const { data: points } = useTelemetry({ nodeId: ifaceNodeId(name), sourceId, hours: HOURS, baseUrl: appBasename });
+  useEffect(() => onData(name, points ?? NO_POINTS), [name, points, onData]);
   return null;
+}
+
+/**
+ * The Dashboard's telemetry favourites of this device's interfaces: today's
+ * stored list (`telemetryFavorites` in the device's settings), read once for
+ * the page, by interface node id.
+ */
+function useInterfaceFavorites(sourceId: string) {
+  return useQuery({
+    queryKey: ['workspace', 'reticulum', 'iface-favorites', sourceId],
+    queryFn: async (): Promise<Map<string, Set<string>>> => {
+      const settings = await apiService.get<{ telemetryFavorites?: string }>(`/api/settings?sourceId=${encodeURIComponent(sourceId)}`);
+      const map = new Map<string, Set<string>>();
+      let list: FavoriteChart[];
+      try {
+        list = settings?.telemetryFavorites ? (JSON.parse(settings.telemetryFavorites) as FavoriteChart[]) : [];
+      } catch {
+        // A malformed stored list reads as no charts.
+        list = [];
+      }
+      for (const f of list) {
+        if (!f.nodeId?.startsWith('rns:iface:')) continue;
+        map.set(f.nodeId, (map.get(f.nodeId) ?? new Set<string>()).add(f.telemetryType));
+      }
+      return map;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 }
 
 function RateHistory({ interfaces, sourceId }: { interfaces: ReticulumInterfaceRow[]; sourceId: string }) {
@@ -143,9 +166,11 @@ function RateHistory({ interfaces, sourceId }: { interfaces: ReticulumInterfaceR
   const { showToast } = useToast();
   // Today's favourite gate (MeshCore Info's): saving the Dashboard's charts writes settings.
   const canFavorite = hasPermission('settings', 'write', { sourceId });
-  const [series, setSeries] = useState<Record<string, Series>>({});
-  const onData = useCallback((name: string, s: Series) => {
-    setSeries((prev) => (prev[name]?.points === s.points && prev[name]?.favorites === s.favorites ? prev : { ...prev, [name]: s }));
+  const favorites = useInterfaceFavorites(sourceId);
+  const favs = (n: string) => favorites.data?.get(ifaceNodeId(n)) ?? NO_FAVORITES;
+  const [series, setSeries] = useState<Record<string, TelemetryData[]>>({});
+  const onData = useCallback((name: string, points: TelemetryData[]) => {
+    setSeries((prev) => (prev[name] === points ? prev : { ...prev, [name]: points }));
   }, []);
   const toggle = useToggleFavorite({
     baseUrl: appBasename,
@@ -156,36 +181,45 @@ function RateHistory({ interfaces, sourceId }: { interfaces: ReticulumInterfaceR
   });
   const [busy, setBusy] = useState(false);
   const names = interfaces.map((i) => i.interfaceName);
+  // Today's Dashboard reads history only for its favourited charts: so does this.
+  const charted = names.filter((n) => favs(n).size > 0);
 
   const addToDashboard = async (type: string) => {
-    const on = names.every((n) => series[n]?.favorites.has(type));
+    const on = names.every((n) => favs(n).has(type));
     setBusy(true);
     try {
       // One settings write per interface whose chart changes; each reads the stored list first (today's mutation).
       for (const n of names) {
-        const favorites = series[n]?.favorites ?? new Set<string>();
-        if (favorites.has(type) === !on) continue;
-        await toggle.mutateAsync({ nodeId: ifaceNodeId(n), telemetryType: type, currentFavorites: favorites });
+        const current = favs(n);
+        if (current.has(type) === !on) continue;
+        await toggle.mutateAsync({ nodeId: ifaceNodeId(n), telemetryType: type, currentFavorites: new Set(current) });
       }
     } finally {
+      await favorites.refetch();
       setBusy(false);
     }
   };
 
   return (
     <section className={styles.section}>
-      {names.map((n) => (
-        <SeriesSource key={n} name={n} sourceId={sourceId} canFavorite={canFavorite} onData={onData} />
+      {charted.map((n) => (
+        <SeriesSource key={n} name={n} sourceId={sourceId} onData={onData} />
       ))}
       <h2 className={styles.sectionTitle}>{t('workspace.reticulum.rate_history')}</h2>
       <div className={styles.cardGrid}>
         {([RX, TX] as const).map((type) => {
-          const on = names.length > 0 && names.every((n) => series[n]?.favorites.has(type));
+          const on = names.length > 0 && names.every((n) => favs(n).has(type));
+          const shown = names.filter((n) => favs(n).has(type));
           return (
             <RateChart
               key={type}
               title={type === RX ? t('workspace.reticulum.rx_rate') : t('workspace.reticulum.tx_rate')}
-              lines={names.map((n, idx) => ({ name: n, tone: idx % 6, points: (series[n]?.points ?? []).filter((p) => p.telemetryType === type) }))}
+              empty={shown.length === 0 ? t('workspace.reticulum.not_on_dashboard') : t('workspace.reticulum.no_history')}
+              lines={names.map((n, idx) => ({
+                name: n,
+                tone: idx % 6,
+                points: shown.includes(n) ? (series[n] ?? NO_POINTS).filter((p) => p.telemetryType === type) : NO_POINTS,
+              }))}
               action={
                 <button
                   type="button"
@@ -213,7 +247,7 @@ interface Line {
 }
 
 /** A line per interface over the last 24 h, 0 to the largest rate. */
-function RateChart({ title, lines, action }: { title: string; lines: Line[]; action: ReactNode }) {
+function RateChart({ title, lines, action, empty: emptyText }: { title: string; lines: Line[]; action: ReactNode; empty: string }) {
   const { t } = useTranslation();
   const now = Date.now();
   const start = now - HOURS * 3_600_000;
@@ -238,7 +272,7 @@ function RateChart({ title, lines, action }: { title: string; lines: Line[]; act
         ))}
       </ul>
       {empty ? (
-        <p className={styles.muted}>{t('workspace.reticulum.no_history')}</p>
+        <p className={styles.muted}>{emptyText}</p>
       ) : (
         <div className={styles.chart}>
           <svg viewBox="0 0 300 120" preserveAspectRatio="none" role="img" aria-label={title} className={styles.chartSvg}>

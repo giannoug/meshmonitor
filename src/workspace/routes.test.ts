@@ -5,7 +5,7 @@ import {
   classicSourceLocation,
   meshcoreViewForPath,
   meshcoreSettingsRedirect,
-  reticulumViewForPath,
+  reticulumScreenForPath,
 } from './routes';
 
 const loc = (url: string) => {
@@ -98,15 +98,22 @@ describe('meshcoreViewForPath', () => {
   });
 });
 
-describe('reticulumViewForPath', () => {
+describe('reticulumScreenForPath (Task 7.6)', () => {
   it.each([
-    ['', 'destinations'],
-    ['interfaces', 'interfaces'],
-    ['paths', 'paths'],
-    ['dm/abc', 'dms'],
-    ['nodes', null],
-  ])('%s → %s', (splat, view) => {
-    expect(reticulumViewForPath(splat)).toBe(view);
+    ['', false, { kind: 'destinations' }, 'destinations'],
+    ['', true, { kind: 'home' }, null],
+    ['interfaces', false, { kind: 'interfaces' }, null],
+    ['paths/', false, { kind: 'paths' }, null],
+    ['dashboard', false, { kind: 'dashboard' }, null],
+    ['dms', false, { kind: 'dms' }, null],
+    ['dm', false, { kind: 'dms' }, null],
+    ['dm/abc', false, { kind: 'dm', peer: 'abc' }, null],
+    ['dm/a%20b', false, { kind: 'dm', peer: 'a b' }, null],
+    // A malformed %-escape does not throw: today's Messages view.
+    ['dm/%E0%A4%A', false, { kind: 'dms' }, 'dms'],
+    ['nodes', false, { kind: 'destinations' }, 'destinations'],
+  ])('%s (phone %s) → %o, fix %s', (splat, phone, screen, fix) => {
+    expect(reticulumScreenForPath(splat, phone)).toEqual({ screen, fix });
   });
 });
 

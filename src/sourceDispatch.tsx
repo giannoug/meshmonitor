@@ -30,7 +30,8 @@ export interface SourcePages {
   App: ComponentType;
   MeshCoreSourcePage: ComponentType<Partial<NonNullable<SourceViews['meshcore']>>>;
   MeshCoreIngestSourcePage: ComponentType;
-  ReticulumSourcePage: ComponentType<Partial<NonNullable<SourceViews['reticulum']>>>;
+  /** Classic's Reticulum page; the Workspace draws its own (Task 7.6) and passes none. */
+  ReticulumSourcePage?: ComponentType<Partial<NonNullable<SourceViews['reticulum']>>>;
 }
 
 /** Controlled views for the MeshCore/Reticulum pages; the Workspace drives them from the URL. Classic passes none. */
@@ -75,7 +76,7 @@ export function renderSourceApp(
     return (
       <SourceProvider sourceId={sourceId} sourceName={source.name} sourceType={source.type}>
         <WebSocketProvider>
-          <ReticulumSourcePage key={sourceId} {...views.reticulum} />
+          {ReticulumSourcePage && <ReticulumSourcePage key={sourceId} {...views.reticulum} />}
         </WebSocketProvider>
       </SourceProvider>
     );

@@ -180,7 +180,8 @@ export default function PathsPage() {
             value={remoteHash}
             onChange={(e) => setRemoteHash(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') query();
+              // One request per press: a held key's repeats and a press while one is in flight send nothing.
+              if (e.key === 'Enter' && !e.repeat && !remoteStatusLoading) query();
             }}
             placeholder={t('reticulum.paths.remote_placeholder', 'Destination hash…')}
             aria-label={t('reticulum.paths.remote_placeholder', 'Destination hash…')}

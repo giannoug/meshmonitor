@@ -71,12 +71,11 @@ import type { MeshCoreScreenKind } from '../meshcore/MeshCoreScreen';
 import { isMqttOnlySourceType } from '../../utils/nodeTransport';
 import styles from './WorkspaceSource.module.css';
 
-// The same chunks Classic loads (main.tsx).
+// The same chunks Classic loads (main.tsx); Reticulum's page is the Workspace's own (Task 7.6).
 const PAGES: SourcePages = {
   App: lazy(() => import('../../App.tsx')),
   MeshCoreSourcePage: lazy(() => import('../../pages/MeshCoreSourcePage.tsx')),
   MeshCoreIngestSourcePage: lazy(() => import('../../pages/MeshCoreIngestSourcePage.tsx')),
-  ReticulumSourcePage: lazy(() => import('../../pages/ReticulumSourcePage.tsx')),
 };
 
 const ChannelThread = lazy(() => import('../chat/ChannelThread.tsx'));

@@ -41,6 +41,8 @@ interface MessageComposeInputProps {
   sending?: boolean;
   /** Default true. False: Shift+Enter adds no newline; pasted newlines become spaces. */
   allowNewlines?: boolean;
+  /** Default true. False: no byte counter (a protocol with no per-message byte budget, LXMF). */
+  showByteCounter?: boolean;
 }
 
 /**
@@ -68,6 +70,7 @@ const MessageComposeInput: React.FC<MessageComposeInputProps> = ({
   buildMentionInsertion,
   sending = false,
   allowNewlines = true,
+  showByteCounter = true,
 }) => {
   const { t } = useTranslation();
   const overLimitHintId = useId();
@@ -173,9 +176,11 @@ const MessageComposeInput: React.FC<MessageComposeInputProps> = ({
             {overLimitHint}
           </div>
         )}
-        <div className={byteCountDisplay.className}>
-          {byteCountDisplay.text}
-        </div>
+        {showByteCounter && (
+          <div className={byteCountDisplay.className}>
+            {byteCountDisplay.text}
+          </div>
+        )}
       </div>
       <MessageEmojiButton
         textareaRef={textareaRef}

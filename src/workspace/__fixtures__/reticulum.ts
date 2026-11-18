@@ -241,6 +241,19 @@ export function reticulumFixtures(log: ReticulumLog = { reads: [], writes: [] },
     'PUT /api/sources/:id/reticulum/display-name': write(() => ok({ applied: true })),
     'PUT /api/sources/:id/reticulum/announce-interval': write(() => ok()),
     'PUT /api/sources/:id/reticulum/radio-config': write(() => ok()),
+    // The device's settings: the Dashboard's charts of three interfaces' rates (9-03).
+    'GET /api/settings': (u) =>
+      u.searchParams.get('sourceId') === ID
+        ? {
+            ...athensFixture.settings,
+            telemetryFavorites: JSON.stringify(
+              ['Athens LoRa', 'Athens Hub', 'Default Interface'].flatMap((n) => [
+                { nodeId: `rns:iface:${n}`, telemetryType: 'reticulum_iface_rx_rate' },
+                { nodeId: `rns:iface:${n}`, telemetryType: 'reticulum_iface_tx_rate' },
+              ]),
+            ),
+          }
+        : undefined,
     'GET /api/telemetry/:nodeId': (u) => (u.searchParams.get('sourceId') === ID ? rateHistory(u.pathname.split('/')[3]) : undefined),
   };
 }

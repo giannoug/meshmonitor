@@ -17,6 +17,7 @@
  */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useIsPhone } from '../../shell/useIsPhone';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useSettings } from '../../../contexts/SettingsContext';
 import { UiIcon } from '../../../components/icons';
@@ -37,13 +38,15 @@ import styles from '../Reticulum.module.css';
 
 export default function IdentityCategory({ sourceId }: CategoryProps) {
   const { t } = useTranslation();
+  const isPhone = useIsPhone();
   const { hasPermission } = useAuth();
   const { timeFormat, dateFormat } = useSettings();
   const canWrite = hasPermission('configuration', 'write', { sourceId });
   const id = useReticulumIdentity(sourceId);
   const { settings } = id;
   const [copied, setCopied] = useState(false);
-  useSettingsHeader({ scope: t('workspace.reticulum.settings.identity_scope') });
+  // Desktop only: on the phone the long line squeezed "On this node" into a column (9-15 draws none).
+  useSettingsHeader(isPhone ? null : { scope: t('workspace.reticulum.settings.identity_scope') });
   const base = `/source/${encodeURIComponent(sourceId)}/settings`;
 
   const when = (ms: number | null) =>

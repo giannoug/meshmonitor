@@ -52,7 +52,8 @@ export default function RNodeCategory({ sourceId }: CategoryProps) {
   const radio = useReticulumRadioConfig(sourceId, true);
   const draft = useDraft<RadioConfig & Record<string, unknown>>(radio.saved as RadioConfig & Record<string, unknown>);
   const numbers = useNumberInputScope();
-  useSettingsHeader({ scope: t('workspace.reticulum.settings.rnode_scope') });
+  // Desktop only: on the phone the long line squeezed "On this node" into a column (9-15 draws none).
+  useSettingsHeader(isPhone ? null : { scope: t('workspace.reticulum.settings.rnode_scope') });
   const off = !canWrite || radio.saving;
 
   // The first read only: a read again after Apply keeps the page.

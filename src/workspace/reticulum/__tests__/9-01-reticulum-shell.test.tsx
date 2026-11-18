@@ -116,5 +116,26 @@ describe('9-01-reticulum-shell', () => {
     const { container } = renderReticulum(KIFISIA, { phone: true });
     await screen.findByText('Bringing water either way');
     expectBoard('9-10-lxmf-thread', container);
+    // The conversation opens from Home's LXMF MESSAGES: Home stays lit (9-10).
+    expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'DMs' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('LXMF has no byte budget: the composer shows no byte counter, and a long message still sends', async () => {
+    const { container, log } = renderReticulum(KIFISIA);
+    await screen.findByText('Bringing water either way');
+    expect(container.querySelector('.byte-counter')).toBeNull();
+    expect(screen.queryByText(/\/200$/)).toBeNull();
+    const box = screen.getByPlaceholderText('Type a message…');
+    await waitFor(() => expect(box).toBeEnabled());
+    fireEvent.change(box, { target: { value: 'x'.repeat(300) } });
+    expect(screen.queryByText(/\/200$/)).toBeNull();
+    fireEvent.keyDown(box, { key: 'Enter' });
+    await waitFor(() => expect(log.writes).toHaveLength(1));
+  });
+
+  it('a malformed peer in the URL opens the conversations instead of failing', async () => {
+    renderReticulum(`${RNS_URL}/dm/%E0%A4%A`);
+    expect(await screen.findByRole('heading', { level: 1, name: 'LXMF messages' })).toBeInTheDocument();
   });
 });

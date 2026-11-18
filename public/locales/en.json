@@ -9953,5 +9953,6 @@
   "workspace.reticulum.settings.lt_alock_help": "Long-term airtime cap",
   "workspace.reticulum.settings.radio_note": "Peers on this RNode’s channel must use the same frequency, bandwidth, spreading factor and coding rate.",
   "workspace.reticulum.settings.device_info": "Device info",
-  "workspace.reticulum.settings.sends_apply": "Apply changes the radio at once; peers left on the old settings stop hearing it. Sends nothing on the network."
+  "workspace.reticulum.settings.sends_apply": "Apply changes the radio at once; peers left on the old settings stop hearing it. Sends nothing on the network.",
+  "workspace.reticulum.not_on_dashboard": "Not on the Dashboard yet. Add it to chart each interface's rate here."
 }

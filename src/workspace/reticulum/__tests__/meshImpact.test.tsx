@@ -40,7 +40,7 @@ describe('Reticulum mesh impact', () => {
     spy.mockRestore();
   });
 
-  it.each(['', '/destinations', '/interfaces', '/paths', '/map', '/info', '/dms', `/dm/${RNS.kifisia}`, '/settings/lxmf-identity', '/settings/rnode'])(
+  it.each(['', '/destinations', '/interfaces', '/paths', '/map', '/info', '/dashboard', '/dms', `/dm/${RNS.kifisia}`, '/configuration', '/settings/lxmf-identity', '/settings/rnode'])(
     'opening %s and re-rendering sends nothing and writes nothing',
     async (path) => {
       const { log, rerenderWorkspace } = renderReticulum(`${RNS_URL}${path}`, { phone: path === '' });

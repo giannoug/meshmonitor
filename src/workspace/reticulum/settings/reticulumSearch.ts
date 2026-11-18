@@ -2,7 +2,7 @@
  * Finding a Reticulum device's settings (Task 7.6), mounted or not: every
  * setting row the LXMF identity and RNode radio pages draw on the row kit,
  * for settings search (as `MESHCORE_FIELDS`); a hit opens the page at the
- * row's `#setting-<id>`. `reticulumSettings.test.tsx` holds this list to the
+ * row's `#setting-<id>`. `__tests__/9-06-settings.test.tsx` holds this list to the
  * rows the pages draw.
  */
 export interface ReticulumField {

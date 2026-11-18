@@ -128,8 +128,9 @@ export default function LxmfThread({ peer }: { peer: string }) {
         sends={sends}
         placeholder={t('reticulum.dms.compose_placeholder', 'Type a message…')}
         sending={sending}
-        // Today's LXMF box: Enter sends, Shift+Enter a new line.
+        // Today's LXMF box: Enter sends, Shift+Enter a new line, and no byte counter (LXMF has no 200-byte budget).
         allowNewlines
+        showByteCounter={false}
         onSend={(text) => void send(text)}
         canTranslate={false}
         mentionCandidates={[]}

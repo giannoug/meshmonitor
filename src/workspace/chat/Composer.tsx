@@ -53,6 +53,8 @@ export interface ComposerProps {
   sending?: boolean;
   buildMentionInsertion?: (candidate: MentionCandidate) => string;
   allowNewlines?: boolean;
+  /** Reticulum (Task 7.6): LXMF has no per-message byte budget, so no counter. Default true. */
+  showByteCounter?: boolean;
 }
 
 export default function Composer(props: ComposerProps) {
@@ -143,6 +145,7 @@ export default function Composer(props: ComposerProps) {
           sending={props.sending}
           buildMentionInsertion={props.buildMentionInsertion}
           allowNewlines={props.allowNewlines}
+          showByteCounter={props.showByteCounter}
           disabled={off}
           disabledTitle={disabledReason}
           onFocus={scrollInputIntoView}
