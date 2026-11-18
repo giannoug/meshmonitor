@@ -98,6 +98,13 @@ describe('categories', () => {
     expect(repeater).not.toContain('path-scope');
     // On a remote target only the target's pages.
     expect(mc({ deviceType: 1 }, { remote: true })).toEqual(['node-settings', 'console']);
+    // A repeater has Access as its own page, and no Regions (today: a Companion only).
+    expect(repeater).toContain('access');
+    expect(repeater).not.toContain('regions');
+    // An unknown role offers only the pages every role has: never one a repeater lacks.
+    const unknown = mc(undefined);
+    expect(unknown.filter((id) => !repeater.includes(id))).toEqual([]);
+    expect(unknown).not.toContain('adverts');
     // settings:read without configuration:read keeps Contacts (today's Settings tab keeps the device actions).
     const settingsOnly = mc({ deviceType: 1 }, { hasPermission: (r) => r === 'settings' });
     expect(settingsOnly).toContain('contacts');
@@ -198,7 +205,12 @@ describe('categories', () => {
 
   it('categoryIndex lists every category with today\'s keywords', () => {
     const index = categoryIndex();
-    expect(index.map((e) => e.id)).toEqual(CATEGORIES.filter((c) => categoryById(c.id) === c).map((c) => c.id));
+    const ids = index.map((e) => e.id);
+    // One entry per id: Meshtastic's where a MeshCore page shares it (channels, telemetry, notifications).
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.slice(0, 4)).toEqual(['identity', 'lora', 'channels', 'security']);
+    expect(ids).toEqual(expect.arrayContaining(['name', 'radio', 'path-scope', 'maintenance', 'console', 'access', 'regions', 'display']));
+    expect(index.find((e) => e.id === 'channels')?.keywords).toContain('psk');
     expect(index.find((e) => e.id === 'lora')?.keywords).toContain('region');
     expect(index.find((e) => e.id === 'data')?.keywords).toEqual(expect.arrayContaining(['layout', 'purge']));
   });

@@ -51,7 +51,12 @@ export const formatBackupTimestamp = (timestamp: string): string => {
   }
 };
 
-export function useBackupManagement({ onBackupCreated, protocol, sourceId: sourceIdProp }: UseBackupManagementOptions) {
+/**
+ * The backups' state and requests without the SaveBar registration (Rule X,
+ * Task 7.4): the Workspace's MeshCore Maintenance saves the schedule from its
+ * own dock. `useBackupManagement` is this plus today's SaveBar registration.
+ */
+export function useBackupManagementState({ onBackupCreated, protocol, sourceId: sourceIdProp }: UseBackupManagementOptions) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { sourceId: contextSourceId } = useSource();
@@ -158,17 +163,8 @@ export function useBackupManagement({ onBackupCreated, protocol, sourceId: sourc
     }
   };
 
-  // Register with SaveBar. The scope blocks Save while a number field is blank (#5649).
+  // The scope blocks Save while a number field is blank (#5649).
   const numberScope = useNumberInputScope();
-  useSaveBar({
-    id: 'backup-management',
-    sectionName: t('backup_management.title'),
-    hasChanges,
-    isSaving: isSavingSettings,
-    onSave: handleSaveBackupSettings,
-    onDismiss: resetChanges,
-    numberScope
-  });
 
   const handleManualBackup = async () => {
     try {
@@ -300,6 +296,10 @@ export function useBackupManagement({ onBackupCreated, protocol, sourceId: sourc
   };
 
   return {
+    hasChanges,
+    isSavingSettings,
+    handleSaveBackupSettings,
+    resetChanges,
     numberScope,
     lastAuto,
     autoBackupEnabled,
@@ -320,4 +320,20 @@ export function useBackupManagement({ onBackupCreated, protocol, sourceId: sourc
     confirmRestore,
     deleteBackup,
   };
+}
+
+/** Today's hook: the backups' state, with the schedule registered on the page's SaveBar. */
+export function useBackupManagement(options: UseBackupManagementOptions) {
+  const { t } = useTranslation();
+  const b = useBackupManagementState(options);
+  useSaveBar({
+    id: 'backup-management',
+    sectionName: t('backup_management.title'),
+    hasChanges: b.hasChanges,
+    isSaving: b.isSavingSettings,
+    onSave: b.handleSaveBackupSettings,
+    onDismiss: b.resetChanges,
+    numberScope: b.numberScope,
+  });
+  return b;
 }

@@ -30,7 +30,7 @@ const rowIds = () =>
   Array.from(document.querySelectorAll('[data-setting-id]'), (el) => el.getAttribute('data-setting-id')!).filter((id) => id.startsWith('meshcore.')).sort();
 
 describe('every MeshCore page opens', () => {
-  it.each(MESHCORE_CATEGORIES.filter((c) => !['adverts', 'clock'].includes(c.id)).map((c) => c.id))('%s', async (id) => {
+  it.each(MESHCORE_CATEGORIES.filter((c) => !['adverts', 'access', 'clock'].includes(c.id)).map((c) => c.id))('%s', async (id) => {
     renderMeshCore(`${HELTEC}/settings/${id}`, { fixtures });
     const nav = await screen.findByRole('navigation', { name: 'Settings' });
     await waitFor(() => expect(within(nav).getByRole('link', { current: 'page' })).toHaveAttribute('href', `${HELTEC}/settings/${id}`));
@@ -40,7 +40,7 @@ describe('every MeshCore page opens', () => {
     expect(document.body.textContent).not.toMatch(/\b(workspace|meshcore)\.[a-z_]+\.[a-z_]+/);
   });
 
-  it.each(['adverts', 'clock'])('a local repeater\'s %s', async (id) => {
+  it.each(['adverts', 'access', 'clock'])('a local repeater\'s %s', async (id) => {
     renderMeshCore(`${HELTEC}/settings/${id}`, { meshcore: { deviceType: 2 } });
     const nav = await screen.findByRole('navigation', { name: 'Settings' });
     await waitFor(() => expect(within(nav).getByRole('link', { current: 'page' })).toHaveAttribute('href', `${HELTEC}/settings/${id}`));
@@ -51,7 +51,7 @@ describe('settings search over MeshCore pages (MESHCORE_FIELDS)', () => {
   const pages = [...new Set(MESHCORE_FIELDS.map((f) => f.categoryId))];
 
   it.each(pages)('MESHCORE_FIELDS lists every row of %s', async (id) => {
-    renderMeshCore(`${HELTEC}/settings/${id}`, { fixtures });
+    renderMeshCore(`${HELTEC}/settings/${id}`, { fixtures, meshcore: { deviceType: ['adverts', 'access', 'clock'].includes(id) ? 2 : 1 } });
     const first = MESHCORE_FIELDS.find((f) => f.categoryId === id)!;
     await waitFor(() => expect(document.querySelector(`[data-setting-id="${first.id}"]`)).not.toBeNull());
     await pause();

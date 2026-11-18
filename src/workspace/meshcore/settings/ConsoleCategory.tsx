@@ -22,7 +22,7 @@ function LocalConsole({ sourceId }: { sourceId: string }) {
   const d = useMcDevice();
   return (
     <McPage>
-      <div className={styles.hosted}>
+      <div className={styles.section}>
         <MeshCoreLocalConsole
           sourceId={sourceId}
           deviceName={d.local?.name}

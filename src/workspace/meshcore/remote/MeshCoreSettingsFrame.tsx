@@ -17,8 +17,6 @@ import { useEffect, useMemo, type ReactNode } from 'react';
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import RouteLoading from '../../../components/RouteLoading/RouteLoading';
-import { SaveBar } from '../../../components/SaveBar';
-import { SaveBarProvider } from '../../../contexts/SaveBarContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { MeshCoreContact } from '../../../utils/meshcoreHelpers';
 import { Redirect } from '../../rehost/pages';
@@ -34,6 +32,7 @@ import { useVisibleCategories } from '../../settings/useVisibleCategories';
 import { clearRemote, updateRemote, useRemoteEntry, type RemoteNode } from '../../settings/remote/remoteTargetStore';
 import { useMeshCoreRuntime } from '../runtime';
 import { channelsQuery } from '../useMeshCoreLists';
+import LocalRepeaterProvider from '../settings/LocalRepeaterProvider';
 import { MeshCoreTargetProvider } from './MeshCoreRemoteTarget';
 import { contactLabel, isRemoteTarget } from './remoteTarget';
 import MeshCoreTargetPicker from './MeshCoreTargetPicker';
@@ -171,11 +170,8 @@ export default function MeshCoreSettingsFrame({ path }: { path: string }) {
           {page}
         </MeshCoreTargetProvider>
       ) : (
-        // Today's sections on this radio's pages that save through today's SaveBar (the Observer, display, backups).
-        <SaveBarProvider>
-          {page}
-          <SaveBar />
-        </SaveBarProvider>
+        // A local repeater's settings, read once while its settings stay open (Ruling HL).
+        <LocalRepeaterProvider>{page}</LocalRepeaterProvider>
       )}
       {allowed && <MeshCoreTargetPicker sourceId={sourceId} targets={pick.targets} deviceName={deviceName} />}
     </Redirect>

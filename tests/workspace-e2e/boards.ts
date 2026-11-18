@@ -1967,7 +1967,7 @@ export const BOARDS: Board[] = [
     id: '8-09-channels',
     size: 'desktop',
     path: '/source/src-heltec/settings/channels',
-    fixtures: MESHCORE(),
+    fixtures: MESHCORE({ slot0Renamed: true }),
     init: macPlatform,
     setup: async (page) => {
       await page.getByText('Key from the name').waitFor();
@@ -1995,7 +1995,7 @@ export const BOARDS: Board[] = [
     id: '8-26-channels',
     size: 'phone',
     path: '/source/src-heltec/settings/channels',
-    fixtures: MESHCORE(),
+    fixtures: MESHCORE({ slot0Renamed: true }),
     setup: async (page) => {
       await page.getByText('Scope: inherit default').first().waitFor();
       await page.getByRole('button', { name: 'Add channel' }).click();

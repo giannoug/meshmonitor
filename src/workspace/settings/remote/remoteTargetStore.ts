@@ -69,7 +69,11 @@ export function updateRemote(sourceId: string, patch: Partial<RemoteEntry> | ((e
 }
 
 export function clearRemote(sourceId: string): void {
-  if (!entries.delete(sourceId)) return;
+  const prev = entries.get(sourceId);
+  if (!prev) return;
+  // A MeshCore device's role outlives its settings frame, so search and the list never offer pages it lacks.
+  if (prev.device) entries.set(sourceId, { ...EMPTY, device: prev.device });
+  else entries.delete(sourceId);
   for (const l of listeners) l();
 }
 

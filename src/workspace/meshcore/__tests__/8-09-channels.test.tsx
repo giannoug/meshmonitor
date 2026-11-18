@@ -31,7 +31,7 @@ const zeroTaken = {
 describe('8-09-channels', () => {
   it('8-09-channels shows the board', async () => {
     vi.spyOn(navigator, 'platform', 'get').mockReturnValue('MacIntel');
-    const { container } = renderMeshCore(route);
+    const { container } = renderMeshCore(route, { meshcore: { slot0Renamed: true } });
     await screen.findByText('Key from the name');
     fireEvent.click(screen.getAllByRole('button', { name: 'Share' })[0]);
     await screen.findByText('As a URL and QR code');
@@ -88,17 +88,25 @@ describe('8-09-channels', () => {
     expect(log.writes[0]).toMatchObject({ method: 'DELETE', path: '/api/channels/0' });
   });
 
-  it('Reset to Public is off while slot 0 already holds the Public channel (today)', async () => {
+  it('Reset to Public is hidden while slot 0 already holds the Public channel (today)', async () => {
     renderMeshCore(route);
     await screen.findByText('Key from the name');
-    expect(screen.getByRole('button', { name: 'Reset to Public' })).toBeDisabled();
-    expect(screen.getByText('Slot 0 already holds the Public channel.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reset to Public' })).toBeNull();
+  });
+
+  it('a channel draft asks before a link leaves the page', async () => {
+    const { log } = renderMeshCore(route);
+    fireEvent.click(await screen.findByRole('button', { name: /Add channel/ }));
+    fireEvent.change(await screen.findByLabelText('Name'), { target: { value: '#coast' } });
+    fireEvent.click(screen.getByRole('link', { name: 'Radio' }));
+    expect(await screen.findByRole('dialog', { name: /Discard|unsaved|Keep/i })).toBeInTheDocument();
+    expect(log.writes).toHaveLength(0);
   });
 });
 
 describe('8-26-channels', () => {
   it('8-26-channels shows the board', async () => {
-    const { container } = renderMeshCore(route, { phone: true });
+    const { container } = renderMeshCore(route, { phone: true, meshcore: { slot0Renamed: true } });
     await screen.findAllByText('Scope: inherit default');
     fireEvent.click(screen.getByRole('button', { name: /Add channel/ }));
     await screen.findByText('Add channel · slot 3');

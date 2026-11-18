@@ -18,6 +18,7 @@
  * - Danger zone: Reset slot 0 to Public, confirmed with what it removes.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../../components/icons';
@@ -25,6 +26,8 @@ import { useToast } from '../../../components/ToastContainer';
 import { QrCodeCanvas } from '../../../components/common/QrCodeCanvas';
 import { MeshCoreChannelReorderPanel } from '../../../components/MeshCore/MeshCoreChannelReorderPanel';
 import { base64ToHex, generateChannelKey, hexToBase64, isValidChannelKey } from '../../../components/shared/config/channelKey';
+import { PasswordField } from '../../../components/shared/config/PasswordField';
+import LeaveGuard from '../../settings/LeaveGuard';
 import { useCsrfFetch } from '../../../hooks/useCsrfFetch';
 import { appBasename } from '../../../init';
 import apiService from '../../../services/api';
@@ -81,6 +84,9 @@ export default function ChannelsCategory({ sourceId, readOnly }: CategoryProps) 
   useSettingsHeader({ scope: t('workspace.meshcore.settings.channels_scope', { used: rows.length, total: max }) });
 
   const [editing, setEditing] = useState<Editing | null>(null);
+  // The editor as it opened: a draft that differs is guarded on leaving (LeaveGuard).
+  const [start, setStart] = useState<Editing | null>(null);
+  const { pathname } = useLocation();
   const [saving, setSaving] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [shareIdx, setShareIdx] = useState<number | null>(null);
@@ -113,18 +119,23 @@ export default function ChannelsCategory({ sourceId, readOnly }: CategoryProps) 
   const startAdd = () => {
     if (nextFree === null) return showToast(t('meshcore.channels.no_free_slot', 'No free channel slot. Delete a channel first.'), 'error');
     setReordering(false);
-    setEditing({ idx: nextFree, isNew: true, mode: 'hashtag', name: '#', secretHex: generateChannelKey(SECRET_BYTES, 'hex'), scope: '' });
+    const e: Editing = { idx: nextFree, isNew: true, mode: 'hashtag', name: '#', secretHex: generateChannelKey(SECRET_BYTES, 'hex'), scope: '' };
+    setEditing(e);
+    setStart(e);
   };
   const startEdit = (row: McChannelRow) => {
-    setEditing({
+    const e: Editing = {
       idx: row.id,
       isNew: false,
       mode: isHashtagChannelName(row.name) ? 'hashtag' : 'secret',
       name: row.name,
       secretHex: base64ToHex(row.psk),
       scope: row.scope ?? '',
-    });
+    };
+    setEditing(e);
+    setStart(e);
   };
+  const dirty = !!editing && (editing.isNew || !start || ['name', 'secretHex', 'scope'].some((k) => editing[k as keyof Editing] !== start[k as keyof Editing]));
 
   const save = async () => {
     if (!editing) return;
@@ -197,7 +208,6 @@ export default function ChannelsCategory({ sourceId, readOnly }: CategoryProps) 
     <div className={styles.card}>
       {!isPhone && (
         <div className={styles.tableHead} aria-hidden="true">
-          <span />
           <span>{t('workspace.meshcore.settings.slot')}</span>
           <span>{t('meshcore.channels.name_label')}</span>
           <span>{t('workspace.meshcore.settings.region_scope')}</span>
@@ -223,7 +233,6 @@ export default function ChannelsCategory({ sourceId, readOnly }: CategoryProps) 
               ? t('workspace.meshcore.settings.slots_free', { range: freeFrom === max - 1 ? String(freeFrom) : `${freeFrom}–${max - 1}` })
               : (
                 <>
-                  <span />
                   <span className={styles.slotNum}>{freeFrom === max - 1 ? freeFrom : `${freeFrom}–${max - 1}`}</span>
                   <span>{t('workspace.meshcore.settings.free')}</span>
                 </>
@@ -245,7 +254,6 @@ export default function ChannelsCategory({ sourceId, readOnly }: CategoryProps) 
             <UiIcon name="plus" size={16} /> {t('meshcore.channels.add')}
           </button>
         )}
-        {isPhone && <span className={styles.muted}>{t('workspace.meshcore.settings.drag_short')}</span>}
         <button
           type="button"
           className={styles.button}
@@ -258,7 +266,6 @@ export default function ChannelsCategory({ sourceId, readOnly }: CategoryProps) 
         >
           <UiIcon name="sortAscending" size={16} /> {t('meshcore.channels.reorder.button')}
         </button>
-        {!isPhone && <span className={styles.muted}>{t('workspace.meshcore.settings.drag_hint')}</span>}
       </div>
 
       <div className={styles.split} data-phone={isPhone || undefined}>
@@ -299,32 +306,34 @@ export default function ChannelsCategory({ sourceId, readOnly }: CategoryProps) 
               </button>
             )
           )}
-          <DangerZone
-            title={
-              <span className={styles.inline}>
-                <UiIcon name="alert" size={16} /> {t('config.danger_zone')}
-              </span>
-            }
-          >
-            <div className={styles.dangerRow}>
-              <div className={styles.dangerText}>
-                <span className={styles.rowLabel}>{t('workspace.meshcore.settings.reset_public_title')}</span>
-                <span className={styles.muted}>
-                  {t(isPhone ? 'workspace.meshcore.settings.reset_public_help_short' : 'workspace.meshcore.settings.reset_public_help')}
+          {/* Today offers Reset to Public only while slot 0 holds something else. */}
+          {publicRow && !isStockPublic(publicRow) && (
+            <DangerZone
+              title={
+                <span className={styles.inline}>
+                  <UiIcon name="alert" size={16} /> {t('config.danger_zone')}
                 </span>
-                {publicRow && isStockPublic(publicRow) && <span className={styles.muted}>{t('workspace.meshcore.settings.reset_public_stock')}</span>}
-                <SendsLine>{sendsNothing}</SendsLine>
+              }
+            >
+              <div className={styles.dangerRow}>
+                <div className={styles.dangerText}>
+                  <span className={styles.rowLabel}>{t('workspace.meshcore.settings.reset_public_title')}</span>
+                  <span className={styles.muted}>
+                    {t(isPhone ? 'workspace.meshcore.settings.reset_public_help_short' : 'workspace.meshcore.settings.reset_public_help')}
+                  </span>
+                    <SendsLine>{sendsNothing}</SendsLine>
+                </div>
+                <button
+                  type="button"
+                  className={styles.danger}
+                  disabled={off || !publicRow || isStockPublic(publicRow)}
+                  onClick={() => publicRow && setToDelete(publicRow)}
+                >
+                  {t('meshcore.channels.reset_public')}
+                </button>
               </div>
-              <button
-                type="button"
-                className={styles.danger}
-                disabled={off || !publicRow || isStockPublic(publicRow)}
-                onClick={() => publicRow && setToDelete(publicRow)}
-              >
-                {t('meshcore.channels.reset_public')}
-              </button>
-            </div>
-          </DangerZone>
+            </DangerZone>
+          )}
         </div>
         {shareRow && !isPhone && (
           <aside className={styles.side}>
@@ -365,6 +374,19 @@ export default function ChannelsCategory({ sourceId, readOnly }: CategoryProps) 
           void remove(idx);
         }}
         onCancel={() => setToDelete(null)}
+      />
+      <LeaveGuard
+        base={`/source/${encodeURIComponent(sourceId)}/settings`}
+        pending={
+          dirty && editing
+            ? {
+                scope: pathname,
+                title: t(editing.isNew ? 'workspace.meshcore.settings.add_slot' : 'workspace.meshcore.settings.edit_slot', { idx: editing.idx }),
+                changes: [t('meshcore.channels.name_label')],
+                discard: () => setEditing(null),
+              }
+            : null
+        }
       />
     </McPage>
   );
@@ -420,7 +442,6 @@ function SlotRow({ row, title, active, off, onShare, onEdit, onDelete }: {
   if (isPhone) {
     return (
       <li className={styles.slot} data-phone="">
-        <UiIcon name="dragHandle" size={18} />
         <span className={styles.slotNum}>{row.id}</span>
         {isPublicSlot ? name : (
           <button type="button" className={styles.rowButton} disabled={off} onClick={onEdit}>{name}</button>
@@ -431,7 +452,6 @@ function SlotRow({ row, title, active, off, onShare, onEdit, onDelete }: {
   }
   return (
     <li className={styles.slot} data-active={active || undefined}>
-      <UiIcon name="dragHandle" size={18} />
       <span className={styles.slotNum}>{row.id}</span>
       {name}
       <span className={styles.muted}>{scope}</span>
@@ -517,7 +537,8 @@ function ChannelEditor({ editing, setEditing, saving, off, savedRegions, onSave,
               <label className={styles.field}>
                 <span>{t('meshcore.channels.secret_label')}</span>
                 <span className={styles.keyRow}>
-                  <input
+                  {/* Masked by default, as today's ChannelKeyField; Show reveals it. */}
+                  <PasswordField
                     className={`${styles.input} ${styles.mono}`}
                     value={editing.secretHex}
                     spellCheck={false}

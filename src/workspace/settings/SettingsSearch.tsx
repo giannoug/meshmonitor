@@ -138,7 +138,7 @@ export default function SettingsSearch({ sources, openId, phone, initialQuery, o
         // Every MeshCore row (MESHCORE_FIELDS), today's Device Configuration sections, and each page by name.
         for (const f of MESHCORE_FIELDS) {
           const c = categories.get(f.categoryId);
-          const label = t(f.labelKey);
+          const label = t(f.labelKey, f.fallback ?? f.labelKey);
           if (!c || !matchesQuery(label, tokens)) continue;
           hits.push({
             to: `${base}/${c.id}#${settingAnchor(f.id)}`,

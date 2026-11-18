@@ -66,10 +66,15 @@ export interface ObserverConfigDraft {
   removeBroker: (rowId: string) => void;
 }
 
-export function useObserverConfigDraft(
+/**
+ * The broker draft without the SaveBar registration (Rule X, Task 7.4): the
+ * Workspace's Observer page saves it from its own dock. `useObserverConfigDraft`
+ * is this plus today's SaveBar registration.
+ */
+export function useObserverConfigDraftState(
   sourceId: string,
-  options: { canEdit: boolean; sectionName: string },
-): ObserverConfigDraft {
+  options: { canEdit: boolean },
+): ObserverConfigDraft & { save: () => Promise<void>; dismiss: () => void } {
   const { t } = useTranslation();
   const { data: sources } = useDashboardSources();
   const source = sources?.find((s) => s.id === sourceId);
@@ -136,16 +141,10 @@ export function useObserverConfigDraft(
     setError(null);
   };
 
-  useSaveBar({
-    id: 'meshcore-observer-config',
-    sectionName: options.sectionName,
-    hasChanges,
-    isSaving,
-    onSave: save,
-    onDismiss: dismiss,
-  });
 
   return {
+    save,
+    dismiss,
     loaded: source !== undefined,
     draft: current.draft,
     hasChanges,
@@ -167,4 +166,20 @@ export function useObserverConfigDraft(
       })),
     removeBroker: (rowId) => update((f) => ({ ...f, brokers: f.brokers.filter((row) => row.id !== rowId) })),
   };
+}
+
+export function useObserverConfigDraft(
+  sourceId: string,
+  options: { canEdit: boolean; sectionName: string },
+): ObserverConfigDraft {
+  const d = useObserverConfigDraftState(sourceId, options);
+  useSaveBar({
+    id: 'meshcore-observer-config',
+    sectionName: options.sectionName,
+    hasChanges: d.hasChanges,
+    isSaving: d.isSaving,
+    onSave: d.save,
+    onDismiss: d.dismiss,
+  });
+  return d;
 }

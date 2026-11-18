@@ -137,16 +137,18 @@ const meshcoreRemote = (id: string, labelKey: string, component: CategoryDef['co
 });
 
 // A MeshCore device's role (MeshCoreConfigurationView): Companion 1, Repeater 2, Room server 3.
-const mcCompanion = (c: GateCtx) => (c.meshcore?.deviceType ?? 1) === 1;
+// An unknown role (a device whose settings were not opened yet) offers only the pages every role has.
+const mcCompanion = (c: GateCtx) => c.meshcore?.deviceType === 1;
 const mcRepeater = (c: GateCtx) => c.meshcore?.deviceType === 2 || c.meshcore?.advType === 2;
-// Channels, the Observer and backups: not on a repeater or room server (today's notCompanionOnlyDevice).
-const mcNotCompanionOnly = (c: GateCtx) => ![2, 3].includes(c.meshcore?.advType ?? 1);
+// Channels and the Observer: not on a repeater or room server (today's notCompanionOnlyDevice).
+const mcNotCompanionOnly = (c: GateCtx) => !!c.meshcore && ![2, 3].includes(c.meshcore.advType ?? 1);
 const mcConfigRead = (c: GateCtx) => c.hasPermission('configuration', 'read', { sourceId: c.sourceId });
 const mcSettingsRead = (c: GateCtx) => c.hasPermission('settings', 'read', { sourceId: c.sourceId });
 const mcPage = (lazyPage: () => Promise<unknown>, name: string) =>
   lazy(() => lazyPage().then((m) => ({ default: (m as Record<string, ComponentType<CategoryProps>>)[name] })));
 const mcRadioPages = () => import('../meshcore/settings/DeviceCategories.tsx');
-const mcHosted = () => import('../meshcore/settings/HostedCategories.tsx');
+const mcCompanionPages = () => import('../meshcore/settings/CompanionCategories.tsx');
+const mcRepeaterPages = () => import('../meshcore/settings/RepeaterCategories.tsx');
 const mcMeshMonitor = () => import('../meshcore/settings/MeshMonitorCategories.tsx');
 
 /** A MeshCore page of today's Device Configuration (configuration:read on this source), and `when` its section shows today. */
@@ -177,14 +179,15 @@ export const MESHCORE_CATEGORIES: CategoryDef[] = [
   mcRadio('tx-power', 'workspace.meshcore.settings.tx_power', mcPage(mcRadioPages, 'TxPowerCategory')),
   mcRadio('telemetry', 'meshcore.config.telemetry', mcPage(mcRadioPages, 'TelemetryCategory')),
   // A local repeater's own settings, read over its serial CLI (#6255).
-  mcRadio('adverts', 'meshcore.repeater.adverts_title', mcPage(mcHosted, 'RepeaterAdvertsCategory'), mcRepeater),
-  mcRadio('clock', 'meshcore.repeater.clock_title', mcPage(mcHosted, 'RepeaterClockCategory'), mcRepeater),
-  mcRadio('path-scope', 'workspace.meshcore.settings.path_scope', mcPage(mcHosted, 'PathScopeCategory'), mcCompanion),
-  mcRadio('sender-names', 'workspace.meshcore.settings.sender_names', mcPage(mcHosted, 'SenderNamesCategory'), mcCompanion),
+  mcRadio('adverts', 'meshcore.repeater.adverts_title', mcPage(mcRepeaterPages, 'RepeaterAdvertsCategory'), mcRepeater),
+  mcRadio('access', 'workspace.meshcore.settings.access', mcPage(mcRepeaterPages, 'RepeaterAccessCategory'), mcRepeater),
+  mcRadio('clock', 'meshcore.repeater.clock_title', mcPage(mcRepeaterPages, 'RepeaterClockCategory'), mcRepeater),
+  mcRadio('path-scope', 'workspace.meshcore.settings.path_scope', mcPage(mcCompanionPages, 'PathScopeCategory'), mcCompanion),
+  mcRadio('sender-names', 'workspace.meshcore.settings.sender_names', mcPage(mcCompanionPages, 'SenderNamesCategory'), mcCompanion),
   mcRadio('channels', 'meshcore.channels.title', lazy(() => import('../meshcore/settings/ChannelsCategory.tsx')), mcNotCompanionOnly),
   // Today's device actions also show on Settings for a viewer without configuration:read.
-  { ...mcRadio('contacts', 'workspace.meshcore.settings.contacts', mcPage(mcHosted, 'ContactsCategory')), gate: (c) => mcConfigRead(c) || mcSettingsRead(c) },
-  mcRadio('observer', 'meshcore.observer.title', mcPage(mcHosted, 'ObserverCategory'), mcNotCompanionOnly),
+  { ...mcRadio('contacts', 'workspace.meshcore.settings.contacts', mcPage(mcCompanionPages, 'ContactsCategory')), gate: (c) => mcConfigRead(c) || mcSettingsRead(c) },
+  mcRadio('observer', 'meshcore.observer.title', lazy(() => import('../meshcore/settings/ObserverCategory.tsx')), mcNotCompanionOnly),
   // This radio's serial console (configuration:write, today's showConsole), or a remote target's (remote_admin:write, Task 7.3).
   {
     ...mcRadio('console', 'workspace.meshcore.tab_console', lazy(() => import('../meshcore/settings/ConsoleCategory.tsx'))),
@@ -197,12 +200,13 @@ export const MESHCORE_CATEGORIES: CategoryDef[] = [
   mcRadio('maintenance', 'workspace.settings.group.maintenance', lazy(() => import('../meshcore/settings/MaintenanceCategory.tsx'))),
   mcSettings('connection', 'meshcore.connection', mcPage(mcMeshMonitor, 'ConnectionCategory')),
   mcSettings('receive-only', 'workspace.meshcore.settings.receive_only', mcPage(mcMeshMonitor, 'ReceiveOnlyCategory')),
-  mcSettings('reactions', 'workspace.meshcore.settings.reactions', mcPage(mcHosted, 'ReactionsCategory')),
-  mcSettings('required-repeaters', 'workspace.meshcore.settings.required_repeaters', mcPage(mcHosted, 'RequiredRepeatersCategory')),
-  mcSettings('regions', 'workspace.meshcore.settings.regions', mcPage(mcMeshMonitor, 'RegionsCategory')),
-  mcSettings('display', 'workspace.meshcore.settings.display', mcPage(mcHosted, 'DisplayCategory')),
-  mcSettings('filters', 'workspace.meshcore.settings.filters', mcPage(mcHosted, 'FiltersCategory')),
-  mcSettings('notifications', 'nav.notifications', mcPage(mcHosted, 'NotificationsCategory')),
+  mcSettings('reactions', 'workspace.meshcore.settings.reactions', mcPage(mcMeshMonitor, 'ReactionsCategory')),
+  mcSettings('required-repeaters', 'workspace.meshcore.settings.required_repeaters', mcPage(mcMeshMonitor, 'RequiredRepeatersCategory')),
+  // Today's saved regions show on a Companion only (MeshCoreSettingsView).
+  mcSettings('regions', 'workspace.meshcore.settings.regions', mcPage(mcMeshMonitor, 'RegionsCategory'), (c) => mcSettingsRead(c) && mcCompanion(c)),
+  mcSettings('display', 'workspace.meshcore.settings.display', lazy(() => import('../meshcore/settings/DisplayCategory.tsx'))),
+  mcSettings('filters', 'workspace.meshcore.settings.filters', lazy(() => import('../meshcore/settings/FiltersCategory.tsx'))),
+  mcSettings('notifications', 'nav.notifications', mcPage(mcMeshMonitor, 'NotificationsCategory')),
 ];
 
 export const CATEGORIES: CategoryDef[] = [

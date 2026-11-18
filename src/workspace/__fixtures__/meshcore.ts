@@ -148,6 +148,8 @@ export interface MeshCoreFixtureOptions {
   adminSession?: boolean;
   /** The radio's role (Task 7.4): 1 Companion (default), 2 Repeater. */
   deviceType?: number;
+  /** Slot 0 holds a renamed Public channel, so Reset to Public shows (boards 8-09, 8-26; today hides it on a stock slot 0). */
+  slot0Renamed?: boolean;
 }
 
 /** Lycabettus Repeater's settings as a remote read returns them, per group (boards 8-07, 8-25). */
@@ -192,7 +194,10 @@ export function meshcoreFixtures(log: MeshCoreLog = { writes: [] }, opts: MeshCo
     ),
     'GET /api/sources/:id/meshcore/contacts': only(() => ({ success: true, data: mcContacts, count: mcContacts.length })),
     'GET /api/sources/:id/meshcore/messages': only(() => ok(athensMessages)),
-    'GET /api/channels/all': (u) => (u.searchParams.get('sourceId') === SOURCE_IDS.heltec ? mcChannels : undefined),
+    'GET /api/channels/all': (u) =>
+      u.searchParams.get('sourceId') === SOURCE_IDS.heltec
+        ? opts.slot0Renamed ? [{ ...mcChannels[0], name: 'Athens Public' }, ...mcChannels.slice(1)] : mcChannels
+        : undefined,
     'GET /api/sources/:id/meshcore/messages/channel-counts': only(() => ({
       success: true,
       counts: { 0: 12, 1: 41, 2: 5, 9: 3 },
@@ -350,6 +355,16 @@ export function meshcoreFixtures(log: MeshCoreLog = { writes: [] }, opts: MeshCo
     'GET /api/sources/:id/meshcore/config/private-key': only(() => ok({ privateKey: MC_PRIVATE_KEY })),
     'GET /api/sources/:id/meshcore/config/default-path-hash-size': only(() => ok({ size: 1 })),
     'GET /api/sources/:id/meshcore/config/sender-names': only(() => ok({ allowed: [], enforce: false })),
+    'PATCH /api/sources/:id/meshcore/config/repeater-settings': only(write((_u, b) => {
+      const patch = (b ?? {}) as Record<string, unknown>;
+      return ok({ ok: true, results: Object.fromEntries(Object.keys(patch).map((k) => [k, { ok: true, changed: true, verified: true }])), values: patch });
+    })),
+    'GET /api/sources/:id/meshcore/message-filters': only(() =>
+      ok([{ id: 'f1', mode: 'ignore', matchType: 'wildcard', pattern: 'buy *', caseSensitive: false, fields: 'body', enabled: true, hitCount: 3, lastHitAt: null }]),
+    ),
+    'POST /api/sources/:id/meshcore/message-filters': only(write((_u, b) => ok({ id: 'f2', hitCount: 0, lastHitAt: null, ...(b as object) }))),
+    'PUT /api/sources/:id/meshcore/message-filters/:fid': only(write((_u, b) => ok({ id: 'f1', hitCount: 3, lastHitAt: null, ...(b as object) }))),
+    'DELETE /api/sources/:id/meshcore/message-filters/:fid': only(write()),
     'GET /api/sources/:id/meshcore/config/repeater-settings': only(() =>
       ok({ values: lycabettusSettings.adverts, guestPasswordSet: false, firmware: { version: 'v1.8.2' }, capabilities: { reboot: true, powerOff: false, keyExport: false, keyImport: false } }),
     ),

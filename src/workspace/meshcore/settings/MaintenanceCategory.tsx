@@ -8,7 +8,8 @@
  *   Remove non-favourite contacts asks with what and how many, then one request.
  * - Node database: Purge non-favourite nodes reads the count, asks with it,
  *   then one request; MeshMonitor's database only.
- * - Backups (Companion): useBackupManagement `protocol: 'meshcore'` (Phase 5).
+ * - Backups (Companion): useBackupManagementState `protocol: 'meshcore'` (Phase 5's
+ *   hook without today's SaveBar); the schedule saves from the page's own bar.
  * - Danger zone (connected, configuration:write): Reboot Device asks plainly;
  *   Shut down, Restore Private Key and Factory Reset ask for the device name
  *   (the first 8 key characters when it has none); Backup Private Key shows
@@ -29,11 +30,10 @@ import { NumberInput } from '../../../components/common/NumberInput';
 import { NumberInputScope } from '../../../components/common/NumberInputScope';
 import { FactoryResetWipeList } from '../../../components/shared/config/FactoryResetWipeList';
 import { BackupRestoreSummary } from '../../../components/configuration/BackupRestoreConfirmDialog';
-import { formatBackupTimestamp, useBackupManagement } from '../../../components/configuration/useBackupManagement';
+import { formatBackupTimestamp, useBackupManagementState } from '../../../components/configuration/useBackupManagement';
 import { COMPANION_CMD_FIRMWARE_MIN } from '../../../components/MeshCore/MeshCoreMultiAcksSection';
 import { companionCapabilities, type DeviceManagementCapabilities } from '../../../components/MeshCore/deviceManagementCapabilities';
 import { MAX_HOPS_CHOICES, TYPE_ORDER, useMeshCoreContactSync, type AddMode } from '../../../components/MeshCore/hooks/useMeshCoreContactSync';
-import type { RepeaterSettingsSnapshot } from '../../../components/MeshCore/hooks/useMeshCore';
 import { appBasename } from '../../../init';
 import apiService, { ApiError } from '../../../services/api';
 import ConfirmSheet from '../../patterns/ConfirmSheet';
@@ -43,8 +43,10 @@ import SendsLine from '../../patterns/SendsLine';
 import type { CategoryProps } from '../../settings/categories';
 import { useSettingsHeader } from '../../settings/settingsDock';
 import { useIsPhone } from '../../shell/useIsPhone';
-import { McPage } from './mcShared';
+import { McDock, McPage } from './mcShared';
 import { useMcDevice } from './useMcDevice';
+import { useLocalRepeater } from './localRepeater';
+import kit from '../../settings/kit/kit.module.css';
 import styles from './McSettings.module.css';
 
 type Danger = 'reboot' | 'powerOff' | 'restore' | 'factoryReset';
@@ -68,7 +70,7 @@ export default function MaintenanceCategory({ sourceId }: CategoryProps) {
   );
 }
 
-function ContactList({ sourceId }: { sourceId: string }) {
+export function ContactList({ sourceId }: { sourceId: string }) {
   const { t } = useTranslation();
   const d = useMcDevice();
   const c = useMeshCoreContactSync({ baseUrl: appBasename, sourceId, connected: d.connected, canEditConfig: d.canWriteConfig });
@@ -126,7 +128,7 @@ function ContactList({ sourceId }: { sourceId: string }) {
               <span className={styles.rowLabel}>{t('meshcore.contact_sync.overwrite_label')}</span>
               <span className={styles.muted}>{t('meshcore.contact_sync.overwrite_hint')}</span>
             </span>
-            <input type="checkbox" role="switch" className={styles.switch} checked={c.config!.overwriteOldest} disabled={c.configLocked} onChange={(e) => void c.handleOverwrite(e.target.checked)} />
+            <input type="checkbox" role="switch" className={kit.switch} checked={c.config!.overwriteOldest} disabled={c.configLocked} onChange={(e) => void c.handleOverwrite(e.target.checked)} />
           </label>
         )}
         {c.config && !c.config.supported && <p className={styles.muted}>{t('meshcore.contact_sync.unsupported', 'This firmware does not support auto-add options.')}</p>}
@@ -282,7 +284,7 @@ function NodePurge({ sourceId }: { sourceId: string }) {
 function Backups({ sourceId }: { sourceId: string }) {
   const { t } = useTranslation();
   const d = useMcDevice();
-  const b = useBackupManagement({ protocol: 'meshcore', sourceId });
+  const b = useBackupManagementState({ protocol: 'meshcore', sourceId });
   const [legacyAck, setLegacyAck] = useState(false);
   const [toDelete, setToDelete] = useState<string | null>(null);
   const { loadBackups } = b;
@@ -305,7 +307,7 @@ function Backups({ sourceId }: { sourceId: string }) {
             <span className={styles.muted}>{t('workspace.meshcore.settings.stored', { count: b.backupList.length })}</span>
           </span>
           <label className={styles.check}>
-            <input type="checkbox" role="switch" className={styles.switch} checked={b.autoBackupEnabled} disabled={!canWrite} onChange={(e) => b.setAutoBackupEnabled(e.target.checked)} />
+            <input type="checkbox" role="switch" className={kit.switch} checked={b.autoBackupEnabled} disabled={!canWrite} onChange={(e) => b.setAutoBackupEnabled(e.target.checked)} />
             {t('workspace.meshcore.settings.daily')}
           </label>
         </span>
@@ -359,6 +361,16 @@ function Backups({ sourceId }: { sourceId: string }) {
         )}
         <SendsLine>{t('workspace.meshcore.settings.sends_backup')}</SendsLine>
       </div>
+      <McDock
+        changes={b.hasChanges ? [t('backup_management.auto_title')] : []}
+        page={t('workspace.meshcore.settings.backups')}
+        sends={t('workspace.meshcore.settings.sends_backup_schedule')}
+        saveLabel={t('backup_management.save_settings')}
+        saving={b.isSavingSettings}
+        blocked={!canWrite || b.numberScope.invalid}
+        onSave={() => void b.handleSaveBackupSettings()}
+        onDiscard={b.resetChanges}
+      />
       <ConfirmSheet
         open={pending !== null}
         title={t('backup_management.restore_dialog_title')}
@@ -388,6 +400,7 @@ function Backups({ sourceId }: { sourceId: string }) {
         title={t('backup_management.confirm_delete', { filename: toDelete ?? '' })}
         confirmLabel={t('backup_management.delete')}
         danger
+        submitOnEnter={false}
         onConfirm={() => {
           const f = toDelete!;
           setToDelete(null);
@@ -413,21 +426,8 @@ function DeviceDanger() {
   const [exportedKey, setExportedKey] = useState<string | null>(null);
   const [keyDraft, setKeyDraft] = useState('');
   const [keyError, setKeyError] = useState<string | null>(null);
-  const [snapshot, setSnapshot] = useState<RepeaterSettingsSnapshot | null>(null);
-
-  // A local repeater's capabilities come with its settings, read over its serial CLI as today's page does.
-  const readRepeater = isRepeater && d.connected && d.canReadConfig;
-  const { getRepeaterSettings } = actions;
-  useEffect(() => {
-    if (!readRepeater) return;
-    let cancelled = false;
-    void Promise.resolve(getRepeaterSettings?.())
-      .then((s) => !cancelled && setSnapshot(s ?? null))
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [readRepeater, getRepeaterSettings]);
+  // A local repeater's capabilities come with its settings, read once while the settings stay open (shared, Ruling HL).
+  const snapshot = useLocalRepeater()?.snapshot ?? null;
 
   const caps: DeviceManagementCapabilities = isRepeater
     ? {
@@ -627,6 +627,7 @@ function DeviceDanger() {
         title={t('meshcore.factory_reset.dialog_title')}
         body={
           <>
+            <p className={styles.para}>{t('meshcore.factory_reset.dialog_body', { name: shown })}</p>
             <FactoryResetWipeList
               items={['settings', 'channels', 'contacts', 'network', 'identity']}
               labels={{

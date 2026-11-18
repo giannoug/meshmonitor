@@ -43,6 +43,8 @@ describe('8-10-maintenance', () => {
     const { log } = renderMeshCore(route);
     await openDanger('Factory Reset…');
     const sheet = await screen.findByRole('dialog', { name: 'Factory reset this device?' });
+    // Today's first sentence (meshcore.factory_reset.dialog_body).
+    expect(within(sheet).getByText('Heltec MeshCore erases its own storage and restarts. This cannot be undone.')).toBeInTheDocument();
     const word = within(sheet).getByRole('textbox');
     fireEvent.change(word, { target: { value: 'Heltec MeshCore' } });
     // Enter does not confirm (submitOnEnter={false}).
@@ -97,6 +99,13 @@ describe('8-10-maintenance', () => {
     expect(within(sheet).queryByRole('textbox')).toBeNull();
     fireEvent.click(within(sheet).getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(sent(log, '/contacts/remove-non-favorites')).toHaveLength(1));
+  });
+
+  it('a backup Delete confirm does not submit on Enter (Ruling BH)', async () => {
+    renderMeshCore(route);
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Delete' }))[0]);
+    const sheet = await screen.findByRole('dialog');
+    expect(within(sheet).getByRole('button', { name: 'Delete' })).toHaveAttribute('type', 'button');
   });
 
   it('Backup Private Key shows the key once with today\'s warning; nothing keeps it', async () => {
