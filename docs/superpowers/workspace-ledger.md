@@ -1437,3 +1437,27 @@ Ruling: 7.6 HU — The Dashboard page's `canEdit` checks `dashboard:write` on th
   - **Build memory (pre-existing):** `tsc` needs more than a 2 GB heap on the base too. The build needs `NODE_OPTIONS` of at least 4 GB.
   - **Container restarts:** the container restarted twice during this phase. No work was lost.
 - No PR created (requester's instruction).
+
+## Task 8.1 — Device dashboard, per-user board
+
+Ruling: 8.1 HV — the dashboard filters come back as a compact control reusing useDashboardFilters (search, node, type, role) over the board items. Sort is replaced by the user's own order, which is the board's model (D12); FINAL REPORT ITEM. Fix I1–I4:
+Ruling: 8.1 HW — promote these minors:
+Ruling: 8.1 j1/k1 — Packets / h is not a tile, and the board checks drop "Packets / h" — why: no read the Dashboard makes returns packet counts (the dispatch's no-new-request rule) — cost if wrong: a packet-stats read per device.
+Ruling: 8.1 all — the nine tiles are Nodes online, Channel util., Airtime TX, Low battery, New today, Direct (default six), plus Favorites, Battery, Uptime; all from the nodes read and the status poll — why: the board draws six and says "6 of 9"; the other three are not drawn — cost if wrong: tile swaps.
+Ruling: 8.1 j1/k1 — no sparklines, no "+2 vs yesterday", no channel name, no "limit 10%" on tiles — why: no history, channel or limit in the reads — cost if wrong: extra reads.
+Ruling: 8.1 all — Low battery is 1–20 % (today's default notification threshold); 0 and 101 (mains) are not low — cost if wrong: a threshold change.
+Ruling: 8.1 j1/j2/k2/k3 — widget names and descriptions are today's (D9b): Node Status, Hop Distribution, Distance Distribution, Hop/Distance Heatmap, Live Mesh Activity; checks swapped — cost if wrong: string edits.
+Ruling: 8.1 j1 — "packets / min" and "NodeInfo" dropped from the check: today's Live Mesh Activity is a per-node table, not stacked bars by type (D9d) — cost if wrong: a new widget body.
+Ruling: 8.1 k1/k2 — "MESH HEALTH", "YOUR BOARD · TOP TO BOTTOM" are CSS-uppercased "Mesh health", "Your board · top to bottom" (Ruling Q precedent); k2's "Telemetry chart · battery" → "Telemetry chart · Battery Level" (today's metric label) — cost if wrong: string edits.
+Ruling: 8.1 j2 — the footer reads "Widgets offered depend on the device." without "MeshCore adds repeater stats, Reticulum interfaces": today MeshCore offers the same six and Reticulum none — cost if wrong: copy.
+Ruling: 8.1 j2/k3 — *Telemetry chart* opens starring help (today's modal's help, steps rewritten for node pages) rather than a node and metric picker — why: today's behaviour (D9d), and a picker needs per-node telemetry reads — cost if wrong: a picker step.
+Ruling: 8.1 all — today's search, node, type, role filters and sort are not on the Workspace board; the user's order replaces sort — why: the boards draw none and the board is per user — cost if wrong: a filter row (useDashboardFilters is reusable). FINAL REPORT ITEM (GR).
+Ruling: 8.1 all — removing a starred chart in edit mode unstars it for everyone on Done, with no confirm (today's × has none) — why: D19 — cost if wrong: a ConfirmSheet, or hiding the chart per user instead.
+Ruling: 8.1 all — renderers mount with `bare` inside Workspace cards; their body controls keep Classic styling (chart mode toggles, Node Status search, Live window) — why: HH allows reuse "through small props"; GR keeps every control — cost if wrong: a redraw of each widget body.
+Ruling: 8.1 Reticulum — no health strip (no mesh-health data in its reads; its status line carries interfaces); still gated on `dashboard:read` as its sidebar row — cost if wrong: a Reticulum-specific strip.
+Ruling: 8.1 MeshCore — tiles that MeshCore does not report (channel util, airtime, battery, uptime, new today) show "—"; Nodes' `?show=` scopes apply to Meshtastic-family Nodes only, and MeshCore Nodes opens unfiltered — cost if wrong: MeshCore Nodes reading `?show=`.
+Ruling: 8.1 all — Edit needs `dashboard:write` on this source (today's canEdit, per source as 7.6 HU) and a signed-in user (the board is saved to the account) — cost if wrong: readers can't arrange their own board.
+Ruling: 8.1 j2 — the Add widget panel is the shared Sheet (docked right, with backdrop), not a non-modal side panel — why: one sheet pattern (spec §5.7) — cost if wrong: a non-modal panel.
+Ruling: 8.1 HV — sort is replaced by the user's own order (D12); search, node, type and role filters are back over the charts through today's `useDashboardFilters` — FINAL REPORT ITEM.
+Ruling: 8.1 I3 — a tile whose value the device does not report is "—", "Not reported" and not a link — why: "each tile links to its filtered view" is kept true for every tile that links — cost if wrong: dead tiles on MeshCore and Reticulum-like sources.
+Ruling: 8.1 M4 — tile counts are over every node with the opened view's predicate; in traceroute hop mode Direct uses no traceroutes (no new read) — cost if wrong: a small count difference in that mode.
