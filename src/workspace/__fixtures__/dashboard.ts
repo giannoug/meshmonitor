@@ -11,7 +11,7 @@
  * (method, path, body) so a test can count them.
  */
 import { athensFixture, SOURCE_IDS } from './athens';
-import type { FixtureHandler } from './fixtureApi';
+import { dbRow, type FixtureHandler } from './fixtureApi';
 import type { DeviceInfo } from '../../types/device';
 
 const NOW_S = Math.floor(Date.now() / 1000);
@@ -59,6 +59,23 @@ export const dashboardNodes: DeviceInfo[] = athensFixture.nodes.map((n) => {
   };
 });
 
+/** The Overview board's item keys (Task 8.2): a chart key carries its device. */
+export const OV = {
+  chart: `${SOURCE_IDS.g2}/!a1b2c301-batteryLevel`,
+  hops: 'ov-hops',
+  live: 'ov-live',
+} as const;
+
+/** The user's Overview board (`dashboard.overview`, j3 / 16-04): Station G2's battery chart, Athens MQTT's Live Mesh Activity, Station G2's Hop Distribution. */
+export const overviewBoard = {
+  widgets: [
+    { id: OV.hops, type: 'hopDistribution', sourceId: SOURCE_IDS.g2 },
+    { id: OV.live, type: 'liveMeshActivity', windowMinutes: 10, sourceId: SOURCE_IDS.mqtt },
+  ],
+  charts: [{ sourceId: SOURCE_IDS.g2, nodeId: '!a1b2c301', telemetryType: 'batteryLevel' }],
+  order: [OV.chart, OV.live, OV.hops],
+};
+
 export interface DashboardLog {
   writes: Array<{ method: string; path: string; search: string; body: Record<string, unknown> | undefined }>;
 }
@@ -66,11 +83,14 @@ export interface DashboardLog {
 export interface DashboardFixtureOptions {
   /** The user's saved board for Station G2 (`dashboard.src-g2`); none: seeded from today's. */
   saved?: unknown;
+  /** The user's saved Overview board (`dashboard.overview`). */
+  overview?: unknown;
 }
 
 export function dashboardFixtures(log: DashboardLog = { writes: [] }, opts: DashboardFixtureOptions = {}): Record<string, FixtureHandler> {
   const prefs: Record<string, unknown> = { ...athensFixture.userPreferences };
   if (opts.saved !== undefined) prefs[`dashboard.${SOURCE_IDS.g2}`] = opts.saved;
+  if (opts.overview !== undefined) prefs['dashboard.overview'] = opts.overview;
   const perSource: Record<string, Record<string, string>> = { [SOURCE_IDS.g2]: { ...dashboardSettings } };
   const body = (init?: RequestInit) => (typeof init?.body === 'string' ? (JSON.parse(init.body) as Record<string, unknown>) : undefined);
   const logWrite = (u: URL, init?: RequestInit) =>
@@ -90,6 +110,15 @@ export function dashboardFixtures(log: DashboardLog = { writes: [] }, opts: Dash
       perSource[id] = { ...perSource[id], ...(body(init) as Record<string, string>) };
       return { success: true };
     },
+    // The all-devices bundle (database rows), with Station G2's nodes as its Dashboard reads them.
+    'GET /api/unified/dashboard': (u) =>
+      (u.searchParams.get('sources') ?? '').split(',').filter(Boolean).map((sourceId) => ({
+        sourceId,
+        nodes: sourceId === SOURCE_IDS.g2 ? dashboardNodes.map((n) => dbRow(n as (typeof athensFixture.nodes)[number], sourceId)) : [],
+        traceroutes: [],
+        neighborInfo: [],
+        channels: [],
+      })),
     'GET /api/nodes': (u) => (u.searchParams.get('sourceId') === SOURCE_IDS.g2 ? dashboardNodes : []),
     'GET /api/solar/estimates': () => ({ estimates: [] }),
     'GET /api/packets/stats/node-activity': () => ({

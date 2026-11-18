@@ -121,6 +121,10 @@ export interface AddWidgetSheetProps {
   /** The device's widget types (its data source's `widgets.supported`). */
   supported: ReadonlySet<WidgetType>;
   onAdd(type: WidgetType): void;
+  /** Overview (Task 8.2): the device picked first, with a way back to the device list. */
+  device?: { name: string; onChange(): void };
+  /** Overview: the device's starred charts, offered under Telemetry chart before the starring help. */
+  starred?: Array<{ key: string; title: string; onAdd(): void }>;
 }
 
 /**
@@ -128,7 +132,7 @@ export interface AddWidgetSheetProps {
  * its row explains how, as today's modal's help does; each widget type adds
  * one and closes the sheet, as today.
  */
-export function AddWidgetSheet({ open, onClose, supported, onAdd }: AddWidgetSheetProps) {
+export function AddWidgetSheet({ open, onClose, supported, onAdd, device, starred }: AddWidgetSheetProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const [help, setHelp] = useState(false);
@@ -144,8 +148,37 @@ export function AddWidgetSheet({ open, onClose, supported, onAdd }: AddWidgetShe
       footer={!isPhone && <p className={styles.note}>{t('workspace.dashboard.offered_note')}</p>}
     >
       <div className={styles.sheetBody} data-phone={isPhone || undefined}>
+        {device && (
+          <p className={styles.sheetDevice}>
+            <span>{device.name}</span>
+            <button type="button" className={styles.textButton} onClick={device.onChange}>
+              {t('workspace.overview_dashboard.change_device')}
+            </button>
+          </p>
+        )}
         {help ? (
           <>
+            {starred && starred.length > 0 && (
+              <ul className={styles.options}>
+                {starred.map((c) => (
+                  <li key={c.key}>
+                    <button
+                      type="button"
+                      className={styles.option}
+                      aria-label={t('workspace.dashboard.add_named', { name: c.title })}
+                      onClick={() => {
+                        c.onAdd();
+                        close();
+                      }}
+                    >
+                      <span className={styles.optionIcon}><UiIcon name="telemetry" size={22} /></span>
+                      <span className={styles.optionText}><span className={styles.optionTitle}>{c.title}</span></span>
+                      <span className={styles.optionAdd}><UiIcon name="plus" size={22} /></span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
             <ol className={styles.steps}>
               <li>{t('workspace.dashboard.chart_help.step1')}</li>
               <li>{t('workspace.dashboard.chart_help.step2')}</li>

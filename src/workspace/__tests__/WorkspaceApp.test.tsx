@@ -56,6 +56,7 @@ vi.mock('../node-page/NodePage', async () => ({ default: (await import('./pageSt
 vi.mock('../overview/OverviewMap', async () => ({ default: (await import('./pageStub')).pageStub('overview-map') }));
 // Reports are the Workspace's own list and report pages (Task 4.4); their tests live in reports/__tests__.
 vi.mock('../reports/ReportsRoute', async () => ({ default: (await import('./pageStub')).pageStub('reports-route') }));
+vi.mock('../dashboard/OverviewDashboard', async () => ({ default: (await import('./pageStub')).pageStub('overview-dashboard') }));
 vi.mock('../overview/OverviewHome', async () => ({ default: (await import('./pageStub')).pageStub('overview-home') }));
 // Overview › Messages and its export are the Workspace's own (Task 4.6); their tests live in overview/__tests__.
 vi.mock('../overview/OverviewMessages', async () => ({ default: (await import('./pageStub')).pageStub('overview-messages') }));
@@ -107,7 +108,6 @@ const rns = `/source/${SOURCE_IDS.rns}`;
 
 describe('WorkspaceApp routes (spec §5.5)', () => {
   it.each([
-    ['/overview/dashboard', 'dashboard'],
     ['/overview/automations', 'automations'],
     ['/automations', 'automations'],
     ['/automations/12', 'automations'],
@@ -334,16 +334,27 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     expect(realUrl()).toBe(route);
   });
 
-  it.each(['/overview/dashboard'])('%s shows today\'s Dashboard without the landing jump', async (route) => {
+  // An Overview URL with no Workspace page of its own (none is linked) keeps today's page, with no landing jump.
+  it.each(['/overview/bogus'])('%s shows today\'s Dashboard without the landing jump', async (route) => {
     renderAt(route);
     await waitFor(() => expect(screen.getByTestId('page-dashboard')).toHaveAttribute('data-show-list', 'true'));
     expect(realUrl()).toBe(route);
   });
 
   it('renders inside the Workspace shell', async () => {
-    const { container } = renderAt('/overview/dashboard');
+    const { container } = renderAt('/overview/bogus');
     const page = await expectPage('dashboard');
     expect(container.querySelector('[data-workspace-shell]')).toContainElement(page);
+  });
+
+  // The Overview dashboard is the Workspace's own page (Task 8.2), with today's Dashboard page not mounted.
+  it('/overview/dashboard is the Workspace Overview dashboard, inside the shell, with nothing re-hosted', async () => {
+    const { container } = renderAt('/overview/dashboard');
+    const page = await screen.findByTestId('page-overview-dashboard');
+    expect(page).toHaveAttribute('data-embedded', 'false');
+    expect(container.querySelector('[data-workspace-shell]')).toContainElement(page);
+    expect(screen.queryByTestId('page-dashboard')).toBeNull();
+    expect(realUrl()).toBe('/overview/dashboard');
   });
 });
 

@@ -875,6 +875,30 @@ export function mergeUnifiedSourceData(
 }
 
 /**
+ * The raw per-source bundles behind useDashboardUnifiedData: ONE request for
+ * the whole unified view instead of four GETs per source per poll (#3735),
+ * polled every 15 s. Exported for a page that needs each source's own rows
+ * (the Workspace Overview dashboard's device rows, Task 8.2).
+ */
+export function useUnifiedDashboardBundles(sourceIds: string[], enabled: boolean, options?: DashboardDataOptions) {
+  const { isAuthenticated, authResolved } = useDashboardAuthGate();
+  // An explicit `options` wins; otherwise a surrounding scope's (the Workspace Overview, #6365).
+  const scoped = useContext(DashboardDataOptionsContext);
+  const ageWindow = (options ?? scoped)?.ageWindow === true;
+  const sourcesKey = sourceIds.join(',');
+  return useQuery({
+    queryKey: ['dashboard', 'unified-dashboard', sourcesKey, isAuthenticated, ageWindow],
+    queryFn: () =>
+      fetchJson<SourceDashboardBundle[]>(
+        `${appBasename}/api/unified/dashboard?sources=${encodeURIComponent(sourcesKey)}${ageWindow ? '&ageWindow=settings' : ''}`,
+      ),
+    enabled: enabled && sourceIds.length > 0 && authResolved,
+    retry: false,
+    refetchInterval: DASHBOARD_POLL_INTERVAL,
+  });
+}
+
+/**
  * Hook that fetches the same per-source data as useDashboardSourceData but
  * for *every* source in parallel, then merges into a single dataset for the
  * synthetic "Unified" view. Disabled (returns empty) when `enabled` is false
@@ -886,10 +910,6 @@ export function useDashboardUnifiedData(
   enabled: boolean,
   options?: DashboardDataOptions,
 ): DashboardSourceData {
-  const { isAuthenticated, authResolved } = useDashboardAuthGate();
-  // An explicit `options` wins; otherwise a surrounding scope's (the Workspace Overview, #6365).
-  const scoped = useContext(DashboardDataOptionsContext);
-  const ageWindow = (options ?? scoped)?.ageWindow === true;
   // Accept either bare source-id strings (MapAnalysis layers, which never use
   // the per-node `sources` field) or full DashboardSource objects (the Unified
   // dashboard map, which needs source names + protocol for the popup).
@@ -908,22 +928,10 @@ export function useDashboardUnifiedData(
   );
   const sourceIds = sourceMeta.map((m) => m[0]);
 
-  // ONE request for the whole unified view instead of four GETs per source per
-  // poll (#3735). The endpoint returns a per-source bundle array; we re-key it
-  // by sourceId and stamp the caller's name/protocol metadata back on so the
-  // merge can attribute each node to its source.
-  const sourcesKey = sourceIds.join(',');
+  // We re-key the per-source bundles by sourceId and stamp the caller's
+  // name/protocol metadata back on so the merge can attribute each node to its source.
   const active = enabled && sourceIds.length > 0;
-  const query = useQuery({
-    queryKey: ['dashboard', 'unified-dashboard', sourcesKey, isAuthenticated, ageWindow],
-    queryFn: () =>
-      fetchJson<SourceDashboardBundle[]>(
-        `${appBasename}/api/unified/dashboard?sources=${encodeURIComponent(sourcesKey)}${ageWindow ? '&ageWindow=settings' : ''}`,
-      ),
-    enabled: active && authResolved,
-    retry: false,
-    refetchInterval: DASHBOARD_POLL_INTERVAL,
-  });
+  const query = useUnifiedDashboardBundles(sourceIds, enabled, options);
 
   // The merge is expensive on a large mesh (100+ ms), so it runs only when the
   // fetched data, the source metadata or the position-discard toggle changes,

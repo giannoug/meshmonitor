@@ -22,7 +22,7 @@ import { devicesFixtures, type DevicesFixtureOptions } from '../../src/workspace
 import { MC, meshcoreFixtures, type MeshCoreFixtureOptions } from '../../src/workspace/__fixtures__/meshcore';
 import { regionFeedFixtures } from '../../src/workspace/__fixtures__/meshcoreTools';
 import { RNS, reticulumFixtures, type ReticulumFixtureOptions } from '../../src/workspace/__fixtures__/reticulum';
-import { dashboardFixtures, phoneBoard, savedBoard } from '../../src/workspace/__fixtures__/dashboard';
+import { dashboardFixtures, overviewBoard, phoneBoard, savedBoard } from '../../src/workspace/__fixtures__/dashboard';
 
 export interface Board {
   id: string;
@@ -2050,7 +2050,21 @@ export const BOARDS: Board[] = [
   { id: 'k1-dashboard', size: 'phone', path: '/source/src-g2/dashboard', fixtures: DASHBOARD(phoneBoard), setup: dashboardLoaded },
   { id: 'k2-dashboard-edit', size: 'phone', path: '/source/src-g2/dashboard', fixtures: DASHBOARD(phoneBoard), setup: (page) => editDashboard(page, false) },
   { id: 'k3-add-widget', size: 'phone', path: '/source/src-g2/dashboard', fixtures: DASHBOARD(phoneBoard), setup: (page) => editDashboard(page, true) },
+  // Task 8.2: the Overview dashboard, one row per device, then the user's Overview board.
+  { id: 'j3-overview-dashboard', size: 'desktop', path: '/overview/dashboard', fixtures: OVERVIEW_DASHBOARD(), setup: overviewDashboardLoaded },
+  { id: '16-04-overview-dashboard', size: 'phone', path: '/overview/dashboard', fixtures: OVERVIEW_DASHBOARD(), setup: overviewDashboardLoaded },
 ];
+
+/** The user's Overview board (Task 8.2) over the Dashboard fixture. */
+function OVERVIEW_DASHBOARD(): Board['fixtures'] {
+  return dashboardFixtures({ writes: [] }, { overview: overviewBoard });
+}
+
+/** The device rows and the board's chart have drawn. */
+async function overviewDashboardLoaded(page: Page): Promise<void> {
+  await page.getByTestId('device-rows').waitFor();
+  await page.locator('.recharts-surface').first().waitFor();
+}
 
 /** Station G2's Dashboard with the user's saved board, a fresh log per board. */
 function DASHBOARD(saved: unknown): Board['fixtures'] {

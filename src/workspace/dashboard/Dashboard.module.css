@@ -597,3 +597,13 @@
   min-height: 44px;
   min-width: 44px;
 }
+
+/* Overview (Task 8.2): the picked device at the top of the Add widget sheet, with Change device. */
+.sheetDevice {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 600;
+}

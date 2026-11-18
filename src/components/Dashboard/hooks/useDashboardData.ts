@@ -94,6 +94,19 @@ export async function fetchDashboardSettings(sourceId: string | null): Promise<D
   };
 }
 
+/** A source's nodes keyed for the Dashboard (`dataSource.nodeKey`); shared with the Workspace Overview board (Task 8.2). */
+export async function fetchDashboardNodes(dataSource: DashboardDataSource, sourceId: string | null): Promise<Map<string, NodeInfo>> {
+  const nodesData = await dataSource.fetchNodes(sourceId);
+  const nodesMap = new Map<string, NodeInfo>();
+  nodesData.forEach((node) => {
+    const key = dataSource.nodeKey(node);
+    if (key) {
+      nodesMap.set(key, node);
+    }
+  });
+  return nodesMap;
+}
+
 /**
  * Hook for fetching and managing dashboard data (favorites, nodes, widgets)
  * Uses TanStack Query for caching, automatic refetching, and background updates
@@ -130,17 +143,7 @@ export function useDashboardData(options?: UseDashboardDataOptions): UseDashboar
   // Meshtastic or MeshCore source without forking.
   const nodesQuery = useQuery({
     queryKey: [...dashboardQueryKeys.nodes(sourceId), dataSource.kind] as const,
-    queryFn: async (): Promise<Map<string, NodeInfo>> => {
-      const nodesData = await dataSource.fetchNodes(sourceId);
-      const nodesMap = new Map<string, NodeInfo>();
-      nodesData.forEach((node) => {
-        const key = dataSource.nodeKey(node);
-        if (key) {
-          nodesMap.set(key, node);
-        }
-      });
-      return nodesMap;
-    },
+    queryFn: () => fetchDashboardNodes(dataSource, sourceId),
     enabled,
     staleTime: 10 * 1000, // 10 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes

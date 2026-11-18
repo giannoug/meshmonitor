@@ -29,19 +29,8 @@ import { useDashboardData } from '../../components/Dashboard/hooks/useDashboardD
 import { createWidget, useCustomWidgets } from '../../components/Dashboard/hooks/useCustomWidgets';
 import { useChartSettings, useGlobalTimeRange } from '../../components/Dashboard/hooks/useChartSettings';
 import { meshtasticDashboardSource, type DashboardDataSource } from '../../components/Dashboard/dataSources';
-import type { CustomWidget, FavoriteChart, NodeInfo } from '../../components/Dashboard/types';
-import TelemetryChart, { getTelemetryLabel } from '../../components/TelemetryChart';
-import TransportSeriesChart from '../../components/TransportSeriesChart';
-import PacketRateChart, { isPacketRateType } from '../../components/PacketRateChart';
-import SmartHopsChart, { isSmartHopsType } from '../../components/SmartHopsChart';
-import LinkQualityChart, { isLinkQualityType } from '../../components/LinkQualityChart';
-import NodeStatusWidget from '../../components/NodeStatusWidget';
-import TracerouteWidget from '../../components/TracerouteWidget';
-import HopDistributionWidget from '../../components/HopDistributionWidget';
-import DistanceDistributionWidget from '../../components/DistanceDistributionWidget';
-import HopDistanceHeatmapWidget from '../../components/HopDistanceHeatmapWidget';
-import LiveMeshActivityWidget from '../../components/LiveMeshActivityWidget';
-import { isTransportSeriesType } from '../../utils/transportSeries';
+import type { CustomWidget, NodeInfo } from '../../components/Dashboard/types';
+import { getTelemetryLabel } from '../../components/TelemetryChart';
 import { useAuth } from '../../contexts/AuthContext';
 import { SettingsProvider, useSettings } from '../../contexts/SettingsContext';
 import { SourceProvider } from '../../contexts/SourceContext';
@@ -59,6 +48,7 @@ import StateView from '../patterns/StateView';
 import { useIsPhone } from '../shell/useIsPhone';
 import { AddWidgetSheet, EditRows, TilesSheet, type ItemLabel } from './EditControls';
 import HealthStrip from './HealthStrip';
+import { renderChart, renderWidget, type ChartEnv, type WidgetEnv } from './boardBodies';
 import { DEFAULT_TILES, healthValues, type HealthNode, type HealthTileId } from './healthTiles';
 import { boardItems, chartKey, useUserBoard, type BoardItem } from './useUserBoard';
 import styles from './Dashboard.module.css';
@@ -380,96 +370,21 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
     );
   }
 
-  const chartProps = (f: FavoriteChart) => ({
-    id: chartKey(f),
-    favorite: f,
-    node: nodes.get(f.nodeId),
+  const chartEnv: ChartEnv = {
+    nodes,
     hours,
-    baseUrl: appBasename,
+    temperatureUnit,
     globalTimeRange,
-    onRemove: noop,
-    bare: true,
-  });
-  const chart = (f: FavoriteChart): ReactNode => {
-    const p = chartProps(f);
-    if (isTransportSeriesType(f.telemetryType)) return <TransportSeriesChart {...p} />;
-    if (isPacketRateType(f.telemetryType)) return <PacketRateChart {...p} />;
-    if (isSmartHopsType(f.telemetryType)) return <SmartHopsChart {...p} />;
-    if (isLinkQualityType(f.telemetryType)) return <LinkQualityChart {...p} />;
-    return (
-      <TelemetryChart
-        {...p}
-        temperatureUnit={temperatureUnit}
-        globalMinTime={globalMinTime}
-        solarEstimates={solarEstimates ?? new Map()}
-        onDataLoaded={handleDataLoaded}
-        showSolar={getSolarVisibility(f.nodeId, f.telemetryType)}
-        onToggleSolar={handleToggleSolar}
-        solarMonitoringEnabled={solarMonitoringEnabled}
-        yRange={getYRange(f.nodeId, f.telemetryType)}
-        onYRangeChange={canEdit ? handleYRangeChange : undefined}
-      />
-    );
+    globalMinTime,
+    onDataLoaded: handleDataLoaded,
+    solarEstimates: solarEstimates ?? new Map(),
+    solarMonitoringEnabled,
+    showSolar: (f) => getSolarVisibility(f.nodeId, f.telemetryType),
+    onToggleSolar: handleToggleSolar,
+    yRange: (f) => getYRange(f.nodeId, f.telemetryType),
+    onYRangeChange: canEdit ? handleYRangeChange : undefined,
   };
-  const widget = (w: CustomWidget): ReactNode => {
-    // A widget's settings save to the user's board: offered only where that save can happen.
-    const common = { id: w.id, nodes, onRemove: noop, canEdit: canEditBoard, bare: true };
-    switch (w.type) {
-      case 'nodeStatus':
-        return (
-          <NodeStatusWidget
-            {...common}
-            nodeIds={w.nodeIds}
-            baseUrl={appBasename}
-            onAddNode={(id) => widgetOps.addNodeToWidget(w.id, id)}
-            onRemoveNode={(id) => widgetOps.removeNodeFromWidget(w.id, id)}
-            onOpenNodeDetails={openNode}
-            voltageFallback={dataSource.widgets.voltageFallback}
-          />
-        );
-      case 'traceroute':
-        return (
-          <TracerouteWidget
-            {...common}
-            targetNodeId={w.targetNodeId}
-            currentNodeId={localId}
-            onSelectNode={(id) => widgetOps.selectTracerouteNode(w.id, id)}
-            sourceKind={dataSource.kind}
-          />
-        );
-      case 'hopDistribution':
-        return <HopDistributionWidget {...common} />;
-      case 'distanceDistribution':
-        return (
-          <DistanceDistributionWidget
-            {...common}
-            bucketSize={w.bucketSize}
-            currentNodeId={localId}
-            distanceUnit={distanceUnit}
-            onBucketSizeChange={(size) => widgetOps.updateWidgetConfig(w.id, { bucketSize: size })}
-          />
-        );
-      case 'hopDistanceHeatmap':
-        return (
-          <HopDistanceHeatmapWidget
-            {...common}
-            bucketSize={w.bucketSize}
-            currentNodeId={localId}
-            distanceUnit={distanceUnit}
-            onBucketSizeChange={(size) => widgetOps.updateWidgetConfig(w.id, { bucketSize: size })}
-          />
-        );
-      case 'liveMeshActivity':
-        return (
-          <LiveMeshActivityWidget
-            {...common}
-            windowMinutes={w.windowMinutes}
-            onWindowChange={(minutes) => widgetOps.updateWidgetConfig(w.id, { windowMinutes: minutes })}
-            onOpenNodeDetails={openNode}
-          />
-        );
-    }
-  };
+  const widgetEnv: WidgetEnv = { nodes, localId, dataSource, distanceUnit, canEdit: canEditBoard, openNode, ops: widgetOps };
 
   return (
     <Page contained={contained}>
@@ -506,7 +421,7 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
                   {item.kind === 'widget' && l.sub && <span className={styles.muted}>{l.sub}</span>}
                   {menu.length > 0 && <RowMenu label={t('workspace.dashboard.card_menu', { name: l.title })} items={menu} />}
                 </div>
-                <div className={styles.cardBody}>{item.kind === 'chart' ? chart(item.favorite) : widget(item.widget)}</div>
+                <div className={styles.cardBody}>{item.kind === 'chart' ? renderChart(item.favorite, chartEnv) : renderWidget(item.widget, widgetEnv)}</div>
               </section>
             );
           })}

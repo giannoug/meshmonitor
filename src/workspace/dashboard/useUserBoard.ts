@@ -23,6 +23,8 @@ export interface UserBoardValue {
   order: string[];
   /** The health tiles shown; absent: the default six. */
   tiles?: HealthTileId[];
+  /** Overview only (Task 8.2): charts pinned from a device's stars, each with its device. */
+  charts?: Array<FavoriteChart & { sourceId: string }>;
 }
 
 export interface UserBoard extends UserBoardValue {
@@ -78,11 +80,12 @@ export type BoardItem =
 /**
  * The board's items in its order: every widget and every starred chart. One
  * not in `order` (a chart starred since) follows the rest, widgets before charts.
+ * `keyOf` names a chart in `order` (the Overview's carry their device).
  */
-export function boardItems(widgets: CustomWidget[], favorites: FavoriteChart[], order: string[]): BoardItem[] {
+export function boardItems(widgets: CustomWidget[], favorites: FavoriteChart[], order: string[], keyOf = chartKey): BoardItem[] {
   const items: BoardItem[] = [
     ...widgets.map((widget): BoardItem => ({ key: widget.id, kind: 'widget', widget })),
-    ...favorites.map((favorite): BoardItem => ({ key: chartKey(favorite), kind: 'chart', favorite })),
+    ...favorites.map((favorite): BoardItem => ({ key: keyOf(favorite), kind: 'chart', favorite })),
   ];
   const rank = new Map(order.map((k, i) => [k, i]));
   const at = (item: BoardItem, i: number) => rank.get(item.key) ?? order.length + i;

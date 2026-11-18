@@ -33,6 +33,7 @@ import { PreferencesRoutes } from './you/preferences/PreferencesRoutes';
 
 const OverviewMap = lazy(() => import('./overview/OverviewMap.tsx'));
 const OverviewHome = lazy(() => import('./overview/OverviewHome.tsx'));
+const OverviewDashboard = lazy(() => import('./dashboard/OverviewDashboard.tsx'));
 const OverviewMessages = lazy(() => import('./overview/OverviewMessages.tsx'));
 const ExportMessagesPage = lazy(() => import('./overview/ExportMessagesPage.tsx'));
 const OverviewTelemetry = lazy(() => import('./overview/OverviewTelemetry.tsx'));
@@ -82,7 +83,8 @@ function WorkspaceRoutes() {
           <Route index element={<OverviewIndex landing />} />
           <Route path="overview" element={<OverviewIndex />} />
           <Route path="overview/map" element={<OverviewIndex />} />
-          {/* `/overview/dashboard`, which has no cross-source Classic page: today's Dashboard until Phase 8. */}
+          {/* The Overview dashboard (Task 8.2): one row per device, then the user's Overview board. */}
+          <Route path="overview/dashboard" element={<OverviewDashboard />} />
           <Route path="overview/*" element={<OverviewRehost />} />
           {/* Overview › Messages and its export (Task 4.6), with no Classic page mounted (Ruling AD). */}
           <Route path="overview/messages" element={<OverviewMessages />} />
