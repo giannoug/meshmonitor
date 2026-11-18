@@ -314,7 +314,19 @@ export default function ObserverCategory({ sourceId }: CategoryProps) {
                   </label>
                   {manualError && <span className={styles.error} role="alert">{manualError}</span>}
                   <span className={styles.buttons}>
-                    <button type="button" className={styles.plain} disabled={key.busy !== null} onClick={() => setManualOpen(false)}>{t('common.cancel', 'Cancel')}</button>
+                    <button
+                      type="button"
+                      className={styles.plain}
+                      disabled={key.busy !== null}
+                      onClick={() => {
+                        // Today's Cancel drops the pasted key.
+                        setManualOpen(false);
+                        setManual('');
+                        setManualError(null);
+                      }}
+                    >
+                      {t('common.cancel', 'Cancel')}
+                    </button>
                     <button type="button" className={styles.primary} disabled={key.busy !== null || manual.trim().length === 0} onClick={() => void saveManual()}>
                       {key.busy === 'manual' ? t('meshcore.observer.manual_saving', 'Saving…') : t('meshcore.observer.manual_save', 'Save key')}
                     </button>
@@ -475,7 +487,18 @@ function BrokerCredentials({ broker, stored, canWrite, canStore, busy, error, on
             <PasswordField className={styles.input} value={password} autoComplete="off" disabled={busy} placeholder={t('meshcore.observer.credentials_password_placeholder', 'Broker password')} onChange={(e) => setPassword(e.target.value)} />
           </label>
           <span className={styles.buttons}>
-            <button type="button" className={styles.plain} disabled={busy} onClick={() => setOpen(false)}>{t('common.cancel', 'Cancel')}</button>
+            <button
+              type="button"
+              className={styles.plain}
+              disabled={busy}
+              onClick={() => {
+                // Today's Cancel drops the typed password.
+                setOpen(false);
+                setPassword('');
+              }}
+            >
+              {t('common.cancel', 'Cancel')}
+            </button>
             <button type="button" className={styles.primary} disabled={busy || !username.trim() || !password} onClick={() => void save()}>
               {busy ? t('meshcore.observer.manual_saving', 'Saving…') : t('meshcore.observer.credentials_save', 'Save credentials')}
             </button>

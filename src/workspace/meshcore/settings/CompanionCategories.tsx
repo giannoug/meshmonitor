@@ -31,6 +31,7 @@ import { useReadOnly, useSettingRow } from '../../settings/kit/useFieldRegistry'
 import { Warn } from '../../settings/categories/RowParts';
 import { ContactList } from './MaintenanceCategory';
 import { DeviceNotes, McDock, McPage } from './mcShared';
+import { runSweep, useSweep } from './sweepStore';
 import { useDraft } from './useDraft';
 import { useMcDevice } from './useMcDevice';
 import styles from './McSettings.module.css';
@@ -48,7 +49,8 @@ export function PathScopeCategory(_props: CategoryProps) {
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const [regions, setRegions] = useState<string[] | null>(null);
-  const [discovering, setDiscovering] = useState(false);
+  const sweep = useSweep(d.sourceId);
+  const discovering = sweep === 'regions';
   const [savedRegions, setSavedRegions] = useState<SavedRegion[]>([]);
   const [savingRegion, setSavingRegion] = useState(false);
 
@@ -98,16 +100,12 @@ export function PathScopeCategory(_props: CategoryProps) {
     if (failedNames.length) setFailed(t('workspace.meshcore.settings.not_saved', { names: failedNames.join(', ') }));
   };
   const discover = async () => {
-    setDiscovering(true);
-    try {
-      const result = await discoverRegions();
-      if (!result) return showToast(t('meshcore.scope.discover_failed', 'Failed to discover regions'), 'error');
-      setRegions(result.regions);
-      if (result.noZeroHopRepeaters) showToast(t('meshcore.scope.discover_no_repeaters', 'No nearby (0-hop) repeaters found. Move closer to a repeater and try again.'), 'info');
-      else if (result.regions.length === 0) showToast(t('meshcore.scope.discover_none', 'Nearby repeaters reported no regions.'), 'info');
-    } finally {
-      setDiscovering(false);
-    }
+    if (sweep !== null) return;
+    const result = await runSweep(d.sourceId, 'regions', discoverRegions);
+    if (result === null) return showToast(t('meshcore.scope.discover_failed', 'Failed to discover regions'), 'error');
+    setRegions(result.regions);
+    if (result.noZeroHopRepeaters) showToast(t('meshcore.scope.discover_no_repeaters', 'No nearby (0-hop) repeaters found. Move closer to a repeater and try again.'), 'info');
+    else if (result.regions.length === 0) showToast(t('meshcore.scope.discover_none', 'Nearby repeaters reported no regions.'), 'info');
   };
   const saveRegion = async (name: string) => {
     setSavingRegion(true);
@@ -120,7 +118,8 @@ export function PathScopeCategory(_props: CategoryProps) {
       setSavingRegion(false);
     }
   };
-  const discoverOff = !d.canWriteNodes || !d.connected || d.loading || discovering || d.receiveOnly;
+  // One radio sweep at a time (today's otherSweepRunning): a node discovery holds this too.
+  const discoverOff = !d.canWriteNodes || !d.connected || d.loading || sweep !== null || d.receiveOnly;
 
   return (
     <McPage>
@@ -319,23 +318,24 @@ export function ContactsCategory({ sourceId }: CategoryProps) {
   const d = useMcDevice();
   const { showToast } = useToast();
   const [flood, setFlood] = useState(false);
-  const [discovering, setDiscovering] = useState<DiscoverMode | null>(null);
+  const [mode, setMode] = useState<DiscoverMode | null>(null);
+  const sweep = useSweep(sourceId);
+  // The running node sweep's mode (this page's), so its button reads Discovering….
+  const discovering = sweep === 'nodes' ? mode : null;
   const [found, setFound] = useState<DiscoveredNode[] | null>(null);
   const receiveOnly = d.receiveOnly ? t('meshcore.receive_only.control_tooltip') : null;
   const advertOff = !d.canWriteConnection || !d.connected || d.loading || d.receiveOnly;
-  const discoverOff = !d.canWriteNodes || !d.connected || d.loading || discovering !== null || d.receiveOnly;
-  const discover = async (mode: DiscoverMode) => {
-    setDiscovering(mode);
+  // One radio sweep at a time (today's otherSweepRunning): a region discovery holds this too.
+  const discoverOff = !d.canWriteNodes || !d.connected || d.loading || sweep !== null || d.receiveOnly;
+  const discover = async (m: DiscoverMode) => {
+    if (sweep !== null) return;
+    setMode(m);
     setFound(null);
-    try {
-      const r = await d.actions.discoverNodes(mode);
-      if (r) {
-        setFound(r.nodes);
-        showToast(t('meshcore.discover.result', { returned: r.returned, new: r.newCount }), 'success');
-      } else showToast(t('meshcore.discover.failed'), 'error');
-    } finally {
-      setDiscovering(null);
-    }
+    const r = await runSweep(sourceId, 'nodes', () => d.actions.discoverNodes(m));
+    if (r) {
+      setFound(r.nodes);
+      showToast(t('meshcore.discover.result', { returned: r.returned, new: r.newCount }), 'success');
+    } else showToast(t('meshcore.discover.failed'), 'error');
   };
   const row = (label: string, help: string, sends: string, children: React.ReactNode, blocked?: string | null) => (
     <div className={styles.cardRow}>

@@ -88,7 +88,7 @@ describe('MeshCore settings URLs (Task 7.4: no URL regresses)', () => {
 
   it('settings/console without a target is this radio\'s serial console', async () => {
     renderAt(`${HELTEC}/settings/console`);
-    expect(await screen.findByText(/Device console/)).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Device console' })).toBeInTheDocument();
     expect(where()).toBe(`${HELTEC}/settings/console`);
   });
 });

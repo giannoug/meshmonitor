@@ -729,3 +729,12 @@
   background: var(--color-error);
   color: var(--color-bg-sunken);
 }
+
+/* The local Console (Task 7.4, as 8-06): the shared console's input and buttons reach 44 px on the phone. */
+.console {
+  min-width: 0;
+}
+
+.page[data-phone] .console :where(button, input, select) {
+  min-height: 44px;
+}

@@ -277,6 +277,7 @@ export function meshcoreFixtures(log: MeshCoreLog = { writes: [] }, opts: MeshCo
     'POST /api/sources/:id/meshcore/advert': only(write()),
     'POST /api/sources/:id/meshcore/messages/send': only(write()),
     'POST /api/sources/:id/meshcore/messages/:mid/resend': only(write(() => ok({ resendCount: 2, lastResendAt: Date.now() }))),
+    'DELETE /api/sources/:id/meshcore/messages': only(write()),
     'DELETE /api/sources/:id/meshcore/messages/:mid': only(write()),
     'DELETE /api/sources/:id/meshcore/messages/channel/:idx': only(write()),
     'POST /api/sources/:id/disconnect': (u, init) => (isHeltec(u) ? write()(u, init) : undefined),
@@ -313,6 +314,8 @@ export function meshcoreFixtures(log: MeshCoreLog = { writes: [] }, opts: MeshCo
     'POST /api/sources/:id/meshcore/admin/login-with-saved': only(write(() => ({ success: true, usedStored: true }))),
     'DELETE /api/sources/:id/meshcore/admin/session/:pk': only(write()),
     'DELETE /api/sources/:id/meshcore/admin/credentials/:pk': only(write()),
+    // This radio's serial CLI (Task 7.4's Console).
+    'POST /api/sources/:id/meshcore/cli': only(write((_u, b) => ok({ reply: (b as { command?: string })?.command === 'ver' ? 'MeshCore v1.8.2' : 'OK', elapsedMs: 40 }))),
     'POST /api/sources/:id/meshcore/admin/cli': only(write((_u, b) => {
       const cmd = (b as { command?: string })?.command ?? '';
       return ok({ reply: cmd === 'ver' ? 'MeshCore v1.8.2 (Build: 14-Sep-2026)' : cmd === 'get radio' ? '869.618,62.5,8,8' : 'OK', elapsedMs: 900 });

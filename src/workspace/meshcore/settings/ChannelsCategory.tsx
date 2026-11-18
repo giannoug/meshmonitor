@@ -135,7 +135,14 @@ export default function ChannelsCategory({ sourceId, readOnly }: CategoryProps) 
     setEditing(e);
     setStart(e);
   };
-  const dirty = !!editing && (editing.isNew || !start || ['name', 'secretHex', 'scope'].some((k) => editing[k as keyof Editing] !== start[k as keyof Editing]));
+  // The fields the draft changed, by today's labels (the leave guard lists them).
+  const fieldLabels: Array<[keyof Editing, string]> = [
+    ['name', t('meshcore.channels.name_label')],
+    ['secretHex', t('meshcore.channels.secret_label')],
+    ['scope', t('meshcore.channels.scope_label')],
+  ];
+  const changedFields = editing && start ? fieldLabels.filter(([k]) => editing[k] !== start[k]).map(([, label]) => label) : [];
+  const dirty = !!editing && (editing.isNew || changedFields.length > 0);
 
   const save = async () => {
     if (!editing) return;
@@ -382,7 +389,8 @@ export default function ChannelsCategory({ sourceId, readOnly }: CategoryProps) 
             ? {
                 scope: pathname,
                 title: t(editing.isNew ? 'workspace.meshcore.settings.add_slot' : 'workspace.meshcore.settings.edit_slot', { idx: editing.idx }),
-                changes: [t('meshcore.channels.name_label')],
+                changes: editing.isNew ? [] : changedFields,
+                note: editing.isNew ? t('workspace.settings.channels.new_not_saved') : undefined,
                 discard: () => setEditing(null),
               }
             : null

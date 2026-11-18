@@ -80,7 +80,11 @@ describe('the s8n4 pages save from their own bar (Ruling HK)', () => {
     await pause();
     expect(requests('DELETE', /\/meshcore\/messages$/)).toBe(0);
     fireEvent.click(confirm);
-    await waitFor(() => expect(requests('DELETE', /\/meshcore\/messages/) + log.writes.length).toBeGreaterThan(0));
+    // Exactly today's one request.
+    await waitFor(() => expect(requests('DELETE', /\/meshcore\/messages$/)).toBe(1));
+    await pause();
+    expect(requests('DELETE', /\/meshcore\/messages$/)).toBe(1);
+    expect(log.writes.filter((w) => w.method === 'DELETE')).toHaveLength(1);
   });
 
   it('Observer: the Publish switch saves from the bar with today\'s one source update', async () => {
@@ -172,5 +176,109 @@ describe('the channel key (Ruling HL)', () => {
     expect(key).toHaveAttribute('type', 'password');
     fireEvent.click(screen.getByRole('button', { name: 'Show password' }));
     expect(key).toHaveAttribute('type', 'text');
+  });
+});
+
+describe('this radio\'s Console, as 8-06 (Ruling HN)', () => {
+  const route = `${HELTEC}/settings/console`;
+  const cli = (log: { writes: Array<{ path: string; body: unknown }> }) => log.writes.filter((w) => w.path.endsWith('/meshcore/cli'));
+
+  it('one command sends once, over the serial CLI', async () => {
+    const { log } = renderMeshCore(route);
+    const input = await screen.findByPlaceholderText(/Type a CLI command/);
+    expect(screen.getByText(/advert, advert.zerohop and discover.neighbors transmit on the mesh/)).toBeInTheDocument();
+    fireEvent.change(input, { target: { value: 'ver' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    await waitFor(() => expect(cli(log)).toHaveLength(1));
+    expect(cli(log)[0].body).toMatchObject({ command: 'ver' });
+    expect(await screen.findByText('MeshCore v1.8.2')).toBeInTheDocument();
+    await pause();
+    expect(cli(log)).toHaveLength(1);
+    expect(document.querySelector('.meshcore-remote-console, .mrc-modal')).toBeNull();
+  });
+
+  it('a danger command waits for the typed name; Enter and Cancel send nothing; the button sends once with confirm', async () => {
+    const { log } = renderMeshCore(route);
+    fireEvent.click(await screen.findByRole('button', { name: 'Reboot' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    let sheet = await screen.findByRole('dialog', { name: 'Confirm destructive command' });
+    expect(cli(log)).toHaveLength(0);
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Cancel' }));
+    await pause();
+    expect(cli(log)).toHaveLength(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Reboot' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    sheet = await screen.findByRole('dialog', { name: 'Confirm destructive command' });
+    const word = within(sheet).getByRole('textbox');
+    const confirm = within(sheet).getByRole('button', { name: 'Send reboot' });
+    expect(confirm).toBeDisabled();
+    fireEvent.change(word, { target: { value: 'Heltec MeshCore' } });
+    fireEvent.submit(word.closest('form')!);
+    fireEvent.keyDown(word, { key: 'Enter' });
+    await pause();
+    expect(cli(log)).toHaveLength(0);
+    fireEvent.click(confirm);
+    await waitFor(() => expect(cli(log)).toHaveLength(1));
+    expect(cli(log)[0].body).toMatchObject({ command: 'reboot', confirm: true });
+    await pause();
+    expect(cli(log)).toHaveLength(1);
+  });
+});
+
+describe('review round 2', () => {
+  it('Observer: Cancel drops the pasted key (today)', async () => {
+    renderMeshCore(`${HELTEC}/settings/observer`, { fixtures });
+    fireEvent.click(await screen.findByRole('button', { name: /Enter key manually/ }));
+    const field = screen.getByPlaceholderText('128-character hex private key');
+    fireEvent.change(field, { target: { value: 'ab'.repeat(64) } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(screen.getByRole('button', { name: /Enter key manually/ }));
+    expect(screen.getByPlaceholderText('128-character hex private key')).toHaveValue('');
+  });
+
+  it('one radio sweep at a time: a node discovery holds region discovery, across pages', async () => {
+    let release: () => void = () => {};
+    const hang = {
+      ...fixtures,
+      // The reply comes only when the test releases it: the sweep stays in flight.
+      'POST /api/sources/:id/meshcore/discover': () =>
+        new Response(
+          new ReadableStream({
+            start(c) {
+              release = () => {
+                c.enqueue(new TextEncoder().encode(JSON.stringify({ success: true, returned: 0, new: 0, nodes: [] })));
+                c.close();
+              };
+            },
+          }),
+          { headers: { 'content-type': 'application/json' } },
+        ),
+    };
+    renderMeshCore(`${HELTEC}/settings/contacts`, { fixtures: hang });
+    fireEvent.click(await screen.findByRole('button', { name: 'Discover Nearby Nodes' }));
+    await waitFor(() => expect(requests('POST', /\/meshcore\/discover$/)).toBe(1));
+    // Leave for Path hash & scope while it runs: region discovery is held and sends nothing.
+    fireEvent.click(screen.getByRole('link', { name: 'Path hash & scope' }));
+    const regions = await screen.findByRole('button', { name: 'Discover regions from repeaters' });
+    expect(regions).toBeDisabled();
+    fireEvent.click(regions);
+    await pause();
+    expect(requests('POST', /\/regions\/discover$/)).toBe(0);
+    // Back on Contacts (a remount) the node sweep still holds every Discover.
+    fireEvent.click(screen.getByRole('link', { name: 'Contacts' }));
+    expect(await screen.findByRole('button', { name: 'Discover Repeaters' })).toBeDisabled();
+    await act(async () => release());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Discover Repeaters' })).not.toBeDisabled());
+    expect(requests('POST', /\/meshcore\/discover$/)).toBe(1);
+  });
+
+  it('the Channels leave guard names the fields that changed', async () => {
+    renderMeshCore(`${HELTEC}/settings/channels`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit ops' }));
+    fireEvent.change(await screen.findByLabelText('Region / Scope (optional)'), { target: { value: 'gr-att' } });
+    fireEvent.click(screen.getByRole('link', { name: 'Radio' }));
+    const sheet = await screen.findByRole('dialog');
+    expect(within(sheet).getByText(/Region \/ Scope \(optional\)/)).toBeInTheDocument();
+    expect(within(sheet).queryByText(/Secret \(hex, 32 chars\)/)).toBeNull();
   });
 });

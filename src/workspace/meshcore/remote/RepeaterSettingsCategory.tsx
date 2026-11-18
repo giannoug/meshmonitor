@@ -149,7 +149,7 @@ export default function RepeaterSettingsCategory(_props: CategoryProps) {
                 <UiIcon name="chevronRight" size={20} />
               </button>
             ) : (
-              <AclManager target={target} disabled={off} />
+              <AclManager run={(c) => target.actions.sendCliCommand(target.publicKey, c)} sends={t('workspace.meshcore.remote.sends_acl', { name: target.name })} disabled={off} />
             )}
           </div>
         </div>
@@ -157,7 +157,7 @@ export default function RepeaterSettingsCategory(_props: CategoryProps) {
       {isPhone && (
         <Sheet open={aclOpen} onClose={() => setAclOpen(false)} title={t('workspace.meshcore.remote.access_list')} side="bottom">
           <div className={styles.sheet} data-phone="">
-            <AclManager target={target} disabled={off} heading={false} />
+            <AclManager run={(c) => target.actions.sendCliCommand(target.publicKey, c)} sends={t('workspace.meshcore.remote.sends_acl', { name: target.name })} disabled={off} heading={false} />
           </div>
         </Sheet>
       )}

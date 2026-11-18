@@ -85,7 +85,7 @@ export default function RepeaterConsoleCategory({ sourceId }: CategoryProps) {
           />
           <SendsLine>{t('workspace.meshcore.remote.sends_command', { name })}</SendsLine>
         </section>
-        <HistoryPanel target={target} sourceId={sourceId} />
+        <HistoryPanel target={target.publicKey} sourceId={sourceId} />
       </div>
       <ConfirmSheet
         open={danger !== null}

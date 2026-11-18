@@ -120,7 +120,8 @@ export function RemoteStatusPanel({ target }: { target: MeshCoreTarget }) {
   return <section className={styles.card} aria-label={title}>{body}</section>;
 }
 
-export function HistoryPanel({ target, sourceId }: { target: MeshCoreTarget; sourceId: string }) {
+/** `target`: the history's target, a node's public key or `local` (this radio's serial console). */
+export function HistoryPanel({ target, sourceId }: { target: string; sourceId: string }) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const title = t('meshcore.cliHistory.title');
@@ -139,14 +140,14 @@ export function HistoryPanel({ target, sourceId }: { target: MeshCoreTarget; sou
   );
 }
 
-function HistoryBody({ target, sourceId, heading }: { target: MeshCoreTarget; sourceId: string; heading?: string }) {
+function HistoryBody({ target, sourceId, heading }: { target: string; sourceId: string; heading?: string }) {
   const { t } = useTranslation();
   const { authStatus } = useAuth();
   const me = authStatus?.user?.username;
   const [mine, setMine] = useState(false);
   const [expanded, setExpanded] = useState<number | null>(null);
   // Opened with the page (desktop) or its sheet (phone): reads only.
-  const { entries, nextCursor, loading, error, load } = useCliHistory(sourceId, target.publicKey, true, mine ? me : undefined);
+  const { entries, nextCursor, loading, error, load } = useCliHistory(sourceId, target, true, mine ? me : undefined);
   const vn = t('meshcore.cliHistory.vn_client', 'Virtual Node app');
   const unknown = t('meshcore.cliHistory.unknown_user', 'Unknown');
   return (

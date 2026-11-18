@@ -11,10 +11,18 @@ import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isAclKey, PERMISSION_LEVELS } from '../../../components/MeshCore/meshcoreAclLevels';
 import SendsLine from '../../patterns/SendsLine';
-import type { MeshCoreTarget } from './remoteTarget';
 import styles from './McRemote.module.css';
 
-export default function AclManager({ target, disabled, heading = true }: { target: MeshCoreTarget; disabled: boolean; heading?: boolean }) {
+export interface AclManagerProps {
+  /** Sends one CLI command to the node (a remote target's admin CLI, or this radio's serial CLI, Task 7.4). */
+  run(command: string): Promise<{ ok: true; reply: string } | { ok: false; error: string }>;
+  /** What Apply sends, for its Sends line. */
+  sends: string;
+  disabled: boolean;
+  heading?: boolean;
+}
+
+export default function AclManager({ run, sends, disabled, heading = true }: AclManagerProps) {
   const { t } = useTranslation();
   const id = useId();
   const [key, setKey] = useState('');
@@ -30,7 +38,7 @@ export default function AclManager({ target, disabled, heading = true }: { targe
     setBusy(true);
     setResult(null);
     try {
-      const r = await target.actions.sendCliCommand(target.publicKey, `setperm ${normalized} ${level}`);
+      const r = await run(`setperm ${normalized} ${level}`);
       setResult(r.ok ? { ok: true, text: r.reply || '(empty reply)' } : { ok: false, text: r.error });
       setKey('');
     } finally {
@@ -77,7 +85,7 @@ export default function AclManager({ target, disabled, heading = true }: { targe
             {result.text}
           </p>
         )}
-        <SendsLine>{t('workspace.meshcore.remote.sends_acl', { name: target.name })}</SendsLine>
+        <SendsLine>{sends}</SendsLine>
       </div>
     </section>
   );

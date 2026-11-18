@@ -35,6 +35,7 @@ import SettingToggle from '../../settings/kit/SettingToggle';
 import { useReadOnly } from '../../settings/kit/useFieldRegistry';
 import { McDock, McPage } from './mcShared';
 import { useMcDevice } from './useMcDevice';
+import pages from '../../settings/categories/SettingsPages.module.css';
 import styles from './McSettings.module.css';
 
 export function ConnectionCategory(_props: CategoryProps) {
@@ -498,8 +499,9 @@ export function NotificationsCategory({ readOnly: _readOnly }: CategoryProps) {
       {s.enableAudioNotifications && (
         <section className={styles.section} aria-labelledby="mc-sounds">
           <h2 className={styles.heading} id="mc-sounds">{t('settings.channel_sounds_label', 'Per-channel notification sound')}</h2>
-          <div className={styles.card}>
-            <span className={styles.muted}>{t('settings.channel_sounds_description')}</span>
+          {/* Phase 5's embedded block: the picker's controls reach 44 px on the phone. */}
+          <div className={pages.embedded}>
+            <p className={pages.muted}>{t('settings.channel_sounds_description')}</p>
             <ChannelSoundPicker meshcoreDeviceType={d.status?.deviceType} />
           </div>
         </section>

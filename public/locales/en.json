@@ -9756,5 +9756,8 @@
   "workspace.meshcore.settings.sends_observer_key": "Fetch from device reads the radio. Sends nothing on the mesh.",
   "workspace.meshcore.settings.sends_refresh": "Sends nothing on the mesh · reads the radio",
   "workspace.meshcore.settings.sends_repeater": "Writes the changed settings to the repeater over its serial link. Sends nothing on the mesh.",
-  "workspace.meshcore.settings.windows": "Node windows"
+  "workspace.meshcore.settings.windows": "Node windows",
+  "workspace.meshcore.settings.sends_local_command": "Commands go to this radio over its serial link; advert, advert.zerohop and discover.neighbors transmit on the mesh",
+  "workspace.meshcore.settings.sends_local_danger": "Sends {{command}} to {{name}} over its serial link; nothing on the mesh",
+  "workspace.meshcore.settings.sends_local_acl": "Apply: writes 1 setperm on {{name}} over its serial link; nothing on the mesh"
 }
