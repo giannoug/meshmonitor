@@ -39,6 +39,7 @@ import {
 } from './categories';
 import { useVisibleCategories } from './useVisibleCategories';
 import TargetPickerTrigger from './remote/TargetPickerTrigger';
+import { meshcoreCategoryKeywords } from '../meshcore/settings/meshcoreSearch';
 import { useRemoteEntry } from './remote/remoteTargetStore';
 import styles from './SettingsList.module.css';
 
@@ -60,6 +61,24 @@ const ICONS: Record<string, UiIconName> = {
   data: 'database',
   'coverage-recording': 'radio',
   console: 'terminal',
+  // A MeshCore device's pages (Task 7.4, board 8-22).
+  name: 'identity',
+  location: 'location',
+  radio: 'radioSignal',
+  'tx-power': 'zap',
+  'path-scope': 'route',
+  'sender-names': 'users',
+  contacts: 'user',
+  observer: 'server',
+  adverts: 'announcement',
+  clock: 'time',
+  connection: 'link',
+  'receive-only': 'visibilityOff',
+  reactions: 'reaction',
+  'required-repeaters': 'repeater',
+  regions: 'globe',
+  display: 'visibility',
+  filters: 'filter',
 };
 
 interface Row {
@@ -75,6 +94,8 @@ interface Row {
   readOnly: boolean;
   /** A remote category's last Send to node. */
   status?: { text: string; tone: string };
+  /** What the page holds now (a MeshCore device's list page, 8-22). */
+  summary?: string;
 }
 
 export interface SettingsListProps {
@@ -91,9 +112,10 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
   const { pathname } = useLocation();
   const { hasPermission, authStatus } = useAuth();
   const remote = useRemoteEntry(sourceId);
-  const { categories } = useVisibleCategories(sourceId, sourceType, !!remote.node);
   // Today's remote admin: an admin on a Meshtastic radio; remote_admin:write on a MeshCore device (Task 7.3).
   const meshcore = sourceType === 'meshcore';
+  // A MeshCore device's pages follow its role, which its settings frame reads (Task 7.4).
+  const { categories } = useVisibleCategories(sourceId, sourceType, !!remote.node, meshcore ? remote.device ?? undefined : undefined);
   const canPick = meshcore
     ? hasPermission('remote_admin', 'write', { sourceId })
     : authStatus?.user?.isAdmin === true && sourceType === 'meshtastic_tcp';
@@ -107,13 +129,20 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
   const { openSettingsSearch } = useShellDevices();
   const [query, setQuery] = useState('');
   const fieldId = useId();
-  const keywords = useMemo(() => new Map(categoryIndex().map((c) => [c.id, c.keywords.join(' ')])), []);
+  const keywords = useMemo(
+    () => (meshcore ? meshcoreCategoryKeywords() : new Map(categoryIndex().map((c) => [c.id, c.keywords.join(' ')]))),
+    [meshcore],
+  );
   const device = `/source/${encodeURIComponent(sourceId)}`;
   const base = `${device}/settings`;
   const rest = pathname.startsWith(`${base}/`) ? pathname.slice(base.length + 1) : '';
   const open = resolveSettingsPath(rest);
   const openGroup = open.group ?? (open.categoryId ? categoryById(open.categoryId)?.group : undefined);
-  const visible = new Set(categories.map((c) => c.id));
+  // This device's definition of an id (a MeshCore page may share a Meshtastic page's id).
+  const visible = new Map(categories.map((c) => [c.id, c]));
+  // A MeshCore device has no groups: its `maintenance` page reads as Meshtastic's group name.
+  const openId = open.categoryId ?? (meshcore ? open.group : undefined);
+  const canRemote = hasPermission('remote_admin', 'write', { sourceId });
 
   const row = (c: CategoryDef, tone: Row['tone'], child = false): Row => ({
     key: c.id,
@@ -121,16 +150,17 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
     label: t(c.labelKey),
     icon: ICONS[c.id] ?? ICONS[c.group ?? ''] ?? 'settings',
     tone,
-    active: open.categoryId === c.id,
+    active: openId === c.id,
     chevron: false,
     child,
-    readOnly: readOnlyFor(c, hasPermission, sourceId),
+    readOnly: meshcore && remote.node ? !canRemote : readOnlyFor(c, hasPermission, sourceId),
     status: remote.sent[c.id] ? { text: t(SENT[remote.sent[c.id]]), tone: remote.sent[c.id] } : undefined,
+    summary: meshcore && !remote.node ? remote.device?.summaries[c.id] : undefined,
   });
 
   const pinned: Row[] = pins
     .filter((id) => visible.has(id))
-    .map((id) => ({ ...row(categoryById(id)!, 'pin'), key: `pin:${id}`, icon: 'favorite', active: false }));
+    .map((id) => ({ ...row(visible.get(id)!, 'pin'), key: `pin:${id}`, icon: 'favorite', active: false }));
 
   const radio: Row[] = [];
   // A MeshCore target's pages are all its own: listed under its name (8-06).
@@ -232,10 +262,11 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
               title={remote.node ? t('workspace.settings.remote.on_node', { name: remote.node.longName }) : t('workspace.settings.on_radio')}
               rows={radio}
               sidebar={sidebar}
+              count={meshcore && !remote.node}
               onNavigate={onNavigate}
             />
             <Section title={t('workspace.settings.remote.remote_only')} rows={[...remoteOnly, ...radioTail]} sidebar={sidebar} onNavigate={onNavigate} />
-            <Section title={t('workspace.settings.in_meshmonitor')} rows={meshmonitor} sidebar={sidebar} onNavigate={onNavigate} />
+            <Section title={t('workspace.settings.in_meshmonitor')} rows={meshmonitor} sidebar={sidebar} count={meshcore} onNavigate={onNavigate} />
             {remote.session && (
               // A MeshCore target's admin session (board 8-06).
               <section className={styles.section}>
@@ -254,8 +285,11 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
   );
 }
 
-/** "View only" beside the group when the viewer may only look at all of it, else beside each such row. */
-function Section({ title, rows, sidebar, onNavigate }: { title: string; rows: Row[]; sidebar: boolean; onNavigate?: () => void }) {
+/**
+ * "View only" beside the group when the viewer may only look at all of it, else beside each such row.
+ * `count`: the phone list page says how many pages the group holds (8-22: "On the radio · 12").
+ */
+function Section({ title, rows, sidebar, count, onNavigate }: { title: string; rows: Row[]; sidebar: boolean; count?: boolean; onNavigate?: () => void }) {
   const { t } = useTranslation();
   const id = useId();
   if (rows.length === 0) return null;
@@ -263,7 +297,7 @@ function Section({ title, rows, sidebar, onNavigate }: { title: string; rows: Ro
   return (
     <section className={styles.section}>
       <h2 className={styles.sectionTitle}>
-        <span id={id}>{title}</span>
+        <span id={id}>{count && !sidebar ? `${title} · ${rows.length}` : title}</span>
         {viewOnly && <span className={styles.viewOnly}>{t('workspace.settings.view_only')}</span>}
       </h2>
       <ul className={styles.list} aria-labelledby={id}>
@@ -283,6 +317,7 @@ function Section({ title, rows, sidebar, onNavigate }: { title: string; rows: Ro
               )}
               {sidebar && r.tone === 'pin' && <UiIcon name="favorite" size={14} />}
               <span className={styles.label}>{r.label}</span>
+              {r.summary && !sidebar && <span className={styles.summary}>{r.summary}</span>}
               {r.status && <span className={styles.status} data-tone={r.status.tone}>{r.status.text}</span>}
               {!viewOnly && r.readOnly && <span className={styles.viewOnly}>{t('workspace.settings.view_only')}</span>}
               {(r.chevron || !sidebar) && <UiIcon name="chevronRight" size={sidebar ? 16 : 20} />}

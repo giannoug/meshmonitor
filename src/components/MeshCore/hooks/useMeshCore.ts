@@ -233,6 +233,8 @@ export interface MeshCoreNode {
   firmwareBuild?: string;
   model?: string;
   ver?: string;
+  /** Channel slots the local device has (DeviceQuery), when it reports them. */
+  maxChannels?: number;
 }
 
 export type MessageDeliveryStatus = 'sending' | 'sent' | 'delivered' | 'failed';

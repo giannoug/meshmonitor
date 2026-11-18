@@ -8,6 +8,7 @@
  * themselves live in the frame (Ruling DG).
  */
 import { useSyncExternalStore } from 'react';
+import type { MeshCoreDeviceFacts } from '../categories';
 
 export interface RemoteNode {
   nodeNum: number;
@@ -47,6 +48,8 @@ export interface RemoteEntry {
   unsent: Array<{ key: string; title: string; changes: string[] }>;
   /** A MeshCore target's admin session (Task 7.3), for the settings list's Session line. */
   session?: { loggedIn: boolean; status: string } | null;
+  /** A MeshCore device's role and list summaries (Task 7.4), from its settings frame, for the settings list and search. */
+  device?: (MeshCoreDeviceFacts & { summaries: Record<string, string> }) | null;
 }
 
 const EMPTY: RemoteEntry = { node: null, pickerOpen: false, passkey: null, lastRead: {}, sent: {}, unsent: [] };

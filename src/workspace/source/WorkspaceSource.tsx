@@ -22,11 +22,12 @@
  *   MeshCoreScreen (Task 7.1), with today's page not mounted, and so are Nodes
  *   (`nodes`) and a node's page (`node/<key>[/<tab>]`, Task 7.2). Today's
  *   Nodes view (list and map) is `map` (`?node=<key>` centres it on a node);
- *   `dm/<key>` opens today's DM view on that contact. A repeater's or room
- *   server's Settings and Console (`settings[/node-settings|/console]?node=<key>`,
- *   the node page's Log in and Console links) are the settings frame with that
- *   remote target (Task 7.3); every other view, other settings URLs included,
- *   stays re-hosted.
+ *   `dm/<key>` opens today's DM view on that contact. Device settings
+ *   (`settings[/…]`) are the settings frame: this radio's pages (Task 7.4) and a
+ *   repeater's or room server's Settings and Console with `?node=<key>` (the
+ *   node page's Log in and Console links, Task 7.3); today's Device
+ *   Configuration URLs (`configuration[#<section>]`, `#configuration`) open
+ *   the page that holds them. Every other view stays re-hosted.
  * - An unknown source shows the Overview with a "not found" note.
  */
 import { lazy, useCallback } from 'react';
@@ -46,7 +47,8 @@ import type { ReticulumView } from '../../types/reticulum';
 import { renderSourceApp, type SourcePages } from '../../sourceDispatch';
 import {
   classicSourceLocation,
-  MESHCORE_REMOTE_SETTINGS,
+  MESHCORE_SETTINGS,
+  meshcoreSettingsRedirect,
   meshcoreViewForPath,
   RETICULUM_DEFAULT_VIEW,
   reticulumViewForPath,
@@ -58,7 +60,6 @@ import type { NodeTab } from '../node-page/NodePage';
 import { useIsPhone } from '../shell/useIsPhone';
 import type { MeshCoreScreenKind } from '../meshcore/MeshCoreScreen';
 import { isMqttOnlySourceType } from '../../utils/nodeTransport';
-import { useRemoteEntry } from '../settings/remote/remoteTargetStore';
 import styles from './WorkspaceSource.module.css';
 
 // The same chunks Classic loads (main.tsx).
@@ -118,8 +119,6 @@ export default function WorkspaceSource() {
   const { data: sources, isLoading } = useDashboardSources();
   const { authStatus, loading: authLoading, hasPermission } = useAuth();
   const isPhone = useIsPhone();
-  // A MeshCore device's remote target, kept while its settings stay open (Task 7.3).
-  const remote = useRemoteEntry(sourceId);
   const source = sources?.find((s) => s.id === sourceId);
   const base = `/source/${encodeURIComponent(sourceId)}`;
   const goToView = useCallback((view: string) => void navigate(`${base}/${view}`), [navigate, base]);
@@ -174,20 +173,24 @@ export default function WorkspaceSource() {
       );
     }
     const query = new URLSearchParams(location.search);
-    // A remote target (`?node=`, or the one picked while these settings stay open): the settings
-    // frame (Task 7.3). Every other settings URL stays today's page until Task 7.4.
-    if (MESHCORE_REMOTE_SETTINGS.test(splat) && (query.has('node') || remote.node)) {
+    // Device settings, this radio's and a remote target's (Tasks 7.3, 7.4): the settings frame.
+    // Today's Device Configuration URLs (`configuration[#<section>]`, `#configuration`) open the page that holds them.
+    const settingsTo = meshcoreSettingsRedirect(base, splat, location.hash);
+    if (settingsTo || MESHCORE_SETTINGS.test(splat)) {
+      const path = (settingsTo ?? location.pathname).split('?')[0].replace(/^\/source\/[^/]+\/settings\/?/, '').replace(/\/$/, '');
       return (
-        <Rehost>
-          <SettingsFrame key={sourceId} sourceId={sourceId} source={source} path={splat.replace(/^settings\/?/, '').replace(/\/$/, '')} />
-        </Rehost>
+        <Redirect to={settingsTo}>
+          <Rehost>
+            <SettingsFrame key={sourceId} sourceId={sourceId} source={source} path={path} />
+          </Rehost>
+        </Redirect>
       );
     }
     const view = resolveMeshCoreView(requested ?? MESHCORE_FALLBACK_VIEW, visible);
     const dm = splat.match(MC_DM_PATH);
     // Keep the URL on the view the page shows: a forbidden or unknown view, or
     // the `#configuration` deep link, becomes `/source/:id/<view>`.
-    const fix = requested !== view || (splat === '' && location.hash === '#configuration');
+    const fix = requested !== view;
     const onViewChange = (next: MeshCoreView) => next !== view && goToView(mcViewPath(next));
     return (
       <Redirect to={fix ? `${base}/${mcViewPath(view)}` : null}>

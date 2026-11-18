@@ -121,6 +121,9 @@ describe('b-set-d4-search', () => {
     fireEvent.keyDown(input, { key: 'ArrowDown' });
     expect(options[1]).toHaveAttribute('aria-selected', 'true');
     expect(input).toHaveAttribute('aria-activedescendant', options[1].id);
+    // Heltec MeshCore's Device actions ("zero hop") ranks second since Task 7.4 searches MeshCore pages.
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    expect(options[2]).toHaveAttribute('aria-selected', 'true');
     fireEvent.keyDown(input, { key: 'Enter' });
     await waitFor(() => expect(realUrl()).toBe(`${rak}/settings/lora`));
   });

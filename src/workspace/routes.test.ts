@@ -4,6 +4,7 @@ import {
   workspaceRedirect,
   classicSourceLocation,
   meshcoreViewForPath,
+  meshcoreSettingsRedirect,
   reticulumViewForPath,
 } from './routes';
 
@@ -106,5 +107,24 @@ describe('reticulumViewForPath', () => {
     ['nodes', null],
   ])('%s → %s', (splat, view) => {
     expect(reticulumViewForPath(splat)).toBe(view);
+  });
+});
+
+describe('meshcoreSettingsRedirect (Task 7.4)', () => {
+  it.each([
+    ['', '#configuration', '/source/m/settings'],
+    ['configuration', '', '/source/m/settings'],
+    ['configuration/', '', '/source/m/settings'],
+    ['configuration', '#meshcore-config-name', '/source/m/settings/name'],
+    ['configuration', '#meshcore-default-scope', '/source/m/settings/path-scope'],
+    ['configuration', '#meshcore-contact-sync', '/source/m/settings/maintenance'],
+    ['configuration', '#meshcore-config-repeater-clock', '/source/m/settings/clock'],
+    ['configuration', '#nope', '/source/m/settings'],
+    ['configuration', '#%E0', '/source/m/settings'],
+    ['settings', '', null],
+    ['channels', '', null],
+    ['', '', null],
+  ])('%s %s → %s', (splat, hash, to) => {
+    expect(meshcoreSettingsRedirect('/source/m', splat, hash)).toBe(to);
   });
 });

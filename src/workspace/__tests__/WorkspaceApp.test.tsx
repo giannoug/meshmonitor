@@ -362,8 +362,6 @@ describe('redirects', () => {
 describe('MeshCore and Reticulum views come from the URL', () => {
   it.each([
     [`${heltec}/channels`, 'channels'],
-    [`${heltec}/configuration`, 'configuration'],
-    [`${heltec}/settings`, 'settings'],
     [`${heltec}/dm/abcd`, 'dms'],
     [`${heltec}/`, 'nodes'],
   ])('%s → %s', async (route, view) => {
@@ -385,10 +383,16 @@ describe('MeshCore and Reticulum views come from the URL', () => {
     expect(mounts.meshcore).toBe(1);
   });
 
-  it('opens Configuration from the #configuration deep link and puts it in the URL', async () => {
-    renderAt(`${heltec}/#configuration`);
-    await waitFor(() => expect(realUrl()).toBe(`${heltec}/configuration`));
-    expect(screen.getByTestId('view')).toHaveTextContent('configuration');
+  it.each([
+    [`${heltec}/#configuration`, `${heltec}/settings`],
+    [`${heltec}/configuration`, `${heltec}/settings`],
+    [`${heltec}/configuration#meshcore-config-radio`, `${heltec}/settings/radio`],
+    [`${heltec}/settings`, `${heltec}/settings`],
+  ])('MeshCore device settings are the settings frame (Task 7.4): %s → %s', async (from, to) => {
+    renderAt(from);
+    await expectPage('settings-frame');
+    await waitFor(() => expect(realUrl()).toBe(to));
+    expect(mounts.meshcore).toBeUndefined();
   });
 
   it('a view the user cannot open falls back, and the URL follows', async () => {
@@ -411,10 +415,10 @@ describe('MeshCore and Reticulum views come from the URL', () => {
     expect(realUrl()).toBe(`${heltec}/settings/console?node=abcd`);
   });
 
-  it('a MeshCore settings URL without a remote target stays today\'s page (Task 7.3, until Task 7.4)', async () => {
+  it('a MeshCore settings URL without a remote target is this radio\'s settings (Task 7.4)', async () => {
     renderAt(`${heltec}/settings/console`);
-    await expectPage('meshcore');
-    expect(screen.getByTestId('view')).toHaveTextContent('settings');
+    await expectPage('settings-frame');
+    expect(realUrl()).toBe(`${heltec}/settings/console`);
   });
 
   it('Show on Map opens today\'s Nodes map on that node (Task 7.2)', async () => {
@@ -444,11 +448,7 @@ describe('MeshCore and Reticulum views come from the URL', () => {
     expect(screen.getByTestId('view')).toHaveTextContent('paths');
   });
 
-  it('MeshCore keeps /configuration (the Meshtastic redirect does not apply)', async () => {
-    renderAt(`${heltec}/configuration`);
-    await expectPage('meshcore');
-    expect(realUrl()).toBe(`${heltec}/configuration`);
-  });
+
 });
 
 describe('unknown sources (Review Focus 4)', () => {

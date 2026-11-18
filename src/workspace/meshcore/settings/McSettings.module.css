@@ -1,0 +1,681 @@
+/* A MeshCore radio's settings pages (Task 7.4, boards 8-08 … 8-10, 8-22, 8-26, 8-27). */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.cardTitle {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* One row inside a card: text on the left, its control on the right. */
+.cardRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+.rowText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowLabel {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.lead,
+.note,
+.muted {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.lead {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.para {
+  margin: 0 0 8px;
+  color: var(--color-text);
+}
+
+.preview {
+  margin: 0 0 8px;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-error);
+  font-size: 14px;
+}
+
+.warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-warning);
+  font-size: 14px;
+}
+
+.ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-success);
+}
+
+.mono {
+  font-family: var(--font-mono, monospace);
+}
+
+.inline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.buttons {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.primary,
+.button,
+.plain,
+.danger,
+.dangerSolid {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-bg-sunken);
+}
+
+.plain {
+  border-color: transparent;
+}
+
+.button[data-active] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-bg-sunken);
+}
+
+.danger {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.dangerSolid {
+  border-color: var(--color-error);
+  background: var(--color-error);
+  color: var(--color-bg-sunken);
+}
+
+.primary:disabled,
+.button:disabled,
+.plain:disabled,
+.danger:disabled,
+.dangerSolid:disabled,
+.segment:disabled,
+.icon:disabled,
+.value:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.primary:focus-visible,
+.button:focus-visible,
+.plain:focus-visible,
+.danger:focus-visible,
+.dangerSolid:focus-visible,
+.segment:focus-visible,
+.icon:focus-visible,
+.value:focus-visible,
+.rowButton:focus-visible,
+.link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+/* A row's value and chevron that opens its sheet (BLE PIN, 8-08). */
+.value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 4px 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.input,
+.select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.select {
+  width: auto;
+}
+
+.switch {
+  width: 44px;
+  height: 24px;
+  accent-color: var(--color-accent);
+}
+
+.map {
+  min-height: 240px;
+}
+
+/* Segmented choices (Add channel's kind, Auto-add contacts). */
+.segments {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.segment {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.segment[aria-checked='true'] {
+  background: var(--color-accent);
+  color: var(--color-bg-sunken);
+}
+
+.checks {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text);
+}
+
+.result {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+/* Channels (8-09, 8-26). */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.toolbar[data-phone] {
+  justify-content: space-between;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  align-items: start;
+}
+
+.split[data-phone] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.side {
+  position: sticky;
+  top: 0;
+}
+
+.tableHead,
+.slot {
+  display: grid;
+  grid-template-columns: 24px 40px minmax(0, 1.4fr) minmax(0, 0.8fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.tableHead {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.slots {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.slot > * {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot {
+  min-height: 64px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.slot[data-active] {
+  background: var(--color-surface-hover);
+}
+
+.slot[data-phone] {
+  grid-template-columns: 20px 24px minmax(0, 1fr) auto;
+  min-height: 72px;
+}
+
+.free {
+  display: grid;
+  grid-template-columns: 24px 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  color: var(--color-text-muted);
+}
+
+.free[data-phone] {
+  display: flex;
+  padding-left: 52px;
+}
+
+.slotNum {
+  color: var(--color-text);
+  font-family: var(--font-mono, monospace);
+}
+
+.nameCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nameLine {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.rowButton {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.slotActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tag {
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--color-surface-active);
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tag[data-kind='hashtag'] {
+  background: var(--color-accent);
+  color: var(--color-bg-sunken);
+}
+
+.tag[data-kind='private'] {
+  background: var(--color-success);
+  color: var(--color-bg-sunken);
+}
+
+.editorHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 16px;
+}
+
+.fields[data-phone] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.keyRow {
+  display: flex;
+  gap: 8px;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.facts dt {
+  color: var(--color-text-muted);
+}
+
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.share {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.shareHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.qr {
+  align-self: center;
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+.url {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+/* Danger zones (8-09, 8-10). */
+.dangerRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  min-height: 52px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.dangerText {
+  flex: 1 1 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Maintenance (8-10): Node database and Backups side by side. */
+.twoUp {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.twoUp[data-phone] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.backups {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.backup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+/* Regions. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  color: var(--color-text);
+}
+
+.chipX {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+/* Today's sections on an undrawn page (Ruling 7.4). */
+.hosted {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Phone: 44 px targets, 52 px rows. */
+.page[data-phone] .primary,
+.page[data-phone] .button,
+.page[data-phone] .plain,
+.page[data-phone] .danger,
+.page[data-phone] .dangerSolid,
+.page[data-phone] .segment,
+.page[data-phone] .icon,
+.page[data-phone] .value,
+.page[data-phone] .input,
+.page[data-phone] .select,
+.page[data-phone] .chipX {
+  min-height: 44px;
+}
+
+.page[data-phone] .icon,
+.page[data-phone] .chipX {
+  min-width: 44px;
+}
+
+.page[data-phone] .card {
+  padding: 12px 16px;
+}
+
+.sheet[data-phone] .button,
+.sheet[data-phone] .segment {
+  min-height: 44px;
+}

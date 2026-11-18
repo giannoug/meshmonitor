@@ -31,7 +31,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import { globalSettingsNav } from '../../components/nav/sourceNavEntries';
-import { buildConfigSurfaces } from '../../components/search/configSections';
+import { buildConfigSurfaces, meshcoreConfigurationNavItems } from '../../components/search/configSections';
 import { matchRank, matchesQuery, tokenize } from '../../components/search/configSearchMatch';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
@@ -45,10 +45,12 @@ import type { WorkspaceSource } from '../shell/useWorkspaceSources';
 import { SECTION_TO_CATEGORY, visibleCategories, type CategoryDef } from './categories';
 import { isMac, settingAnchor, useFieldRegistry } from './kit/useFieldRegistry';
 import { remoteEntry } from './remote/remoteTargetStore';
+import { MESHCORE_FIELDS, MESHCORE_SECTION_TO_CATEGORY } from '../meshcore/settings/meshcoreSearch';
 import styles from './SettingsSearch.module.css';
 
-/** The device types the settings frame serves. */
-const FRAME_TYPES = ['meshtastic_tcp', 'mqtt_broker', 'mqtt_bridge'];
+/** The device types the settings frame serves (a MeshCore device since Task 7.4). */
+const FRAME_TYPES = ['meshtastic_tcp', 'mqtt_broker', 'mqtt_bridge', 'meshcore'];
+const MESHCORE_FIELD_IDS = new Set(MESHCORE_FIELDS.map((f) => f.id));
 /** Cap on shown results, as today's palette: a query that matches everything is not a useful list. */
 const MAX_HITS = 40;
 
@@ -109,13 +111,18 @@ export default function SettingsSearch({ sources, openId, phone, initialQuery, o
           hasPermission,
           // The open device's remote target lists what its settings list does (Task 5.9).
           remote: d.id === openId && remoteEntry(d.id).node !== null,
+          // A MeshCore device's pages follow its role, as its settings frame last read it (Task 7.4).
+          meshcore: remoteEntry(d.id).device ?? undefined,
         }).map((c) => [c.id, c]),
       );
+      const meshcore = d.type === 'meshcore';
       const base = `/source/${encodeURIComponent(d.id)}/settings`;
       const scopeOf = (c: CategoryDef) => t(c.scope === 'radio' ? 'workspace.settings.on_radio' : 'workspace.settings.in_meshmonitor');
       const hits: Hit[] = [];
       if (d.id === openId) {
         for (const f of fields) {
+          // A MeshCore page's rows are listed below, mounted or not.
+          if (meshcore && MESHCORE_FIELD_IDS.has(f.id)) continue;
           const c = categories.get(f.categoryId);
           if (!c || !matchesQuery(`${f.label} ${f.keywords.join(' ')}`, tokens)) continue;
           hits.push({
@@ -126,6 +133,47 @@ export default function SettingsSearch({ sources, openId, phone, initialQuery, o
             rank: matchRank(f.label, tokens),
           });
         }
+      }
+      if (meshcore) {
+        // Every MeshCore row (MESHCORE_FIELDS), today's Device Configuration sections, and each page by name.
+        for (const f of MESHCORE_FIELDS) {
+          const c = categories.get(f.categoryId);
+          const label = t(f.labelKey);
+          if (!c || !matchesQuery(label, tokens)) continue;
+          hits.push({
+            to: `${base}/${c.id}#${settingAnchor(f.id)}`,
+            label,
+            where: t('workspace.settings.search.where', { scope: scopeOf(c), category: t(c.labelKey) }),
+            kind: 'setting',
+            rank: matchRank(label, tokens),
+          });
+        }
+        const sections = meshcoreConfigurationNavItems(t, {
+          isCompanion: true,
+          showChannels: true,
+          showContactSync: true,
+          showConsole: true,
+          showObserver: true,
+          showDangerZone: true,
+          showBackups: true,
+          showRepeaterSettings: true,
+          showRepeaterClock: true,
+        }).map((item) => ({ item, c: categories.get(MESHCORE_SECTION_TO_CATEGORY[item.id]) }));
+        const named = new Set(sections.map((s) => s.c?.id));
+        const pages = [...categories.values()].filter((c) => !named.has(c.id)).map((c) => ({ item: { id: c.id, label: t(c.labelKey), keywords: [] as string[] }, c }));
+        for (const { item, c } of [...sections, ...pages]) {
+          const category = c && t(c.labelKey);
+          if (!c || !matchesQuery(`${item.label} ${category} ${(item.keywords ?? []).join(' ')}`, tokens)) continue;
+          hits.push({
+            to: `${base}/${c.id}`,
+            label: item.label,
+            where: item.label === category ? scopeOf(c) : t('workspace.settings.search.where', { scope: scopeOf(c), category }),
+            kind: 'section',
+            rank: matchRank(item.label, tokens),
+          });
+        }
+        if (hits.length) out.push({ key: d.id, title: d.name, hits: hits.sort(byRank) });
+        continue;
       }
       // Every gate below is the category's: the catalogue is asked for everything, then filtered by it.
       const surfaces = buildConfigSurfaces(t, {

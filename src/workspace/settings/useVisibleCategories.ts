@@ -1,14 +1,19 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useHealth } from '../../hooks/useHealth';
 import { appBasename } from '../../init';
-import { RADIO, visibleCategories, type CategoryDef } from './categories';
+import { RADIO, visibleCategories, type CategoryDef, type MeshCoreDeviceFacts } from './categories';
 
 /**
  * The categories this viewer may open on a device, once the grants (and, for
  * an admin on a radio, the OTA flag) are known: deciding on an empty grant set
  * would send a deep link to the first category.
  */
-export function useVisibleCategories(sourceId: string, sourceType: string, remote = false): { ready: boolean; categories: CategoryDef[] } {
+export function useVisibleCategories(
+  sourceId: string,
+  sourceType: string,
+  remote = false,
+  meshcore?: MeshCoreDeviceFacts,
+): { ready: boolean; categories: CategoryDef[] } {
   const { authStatus, loading, hasPermission } = useAuth();
   const isAdmin = authStatus?.user?.isAdmin === true;
   const askHealth = isAdmin && (RADIO as string[]).includes(sourceType);
@@ -23,6 +28,7 @@ export function useVisibleCategories(sourceId: string, sourceType: string, remot
     firmwareOtaEnabled: health.data?.firmwareOtaEnabled === true,
     hasPermission,
     remote,
+    meshcore,
   });
   return { ready, categories };
 }

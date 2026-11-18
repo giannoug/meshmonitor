@@ -65,9 +65,12 @@ export default function CategoryPage({ def, group, sub = '', categories, sourceI
   const title = header?.title ?? label;
   const remote = useRemoteTarget();
   // A MeshCore remote target's page (Task 7.3) names the node in its own scope line.
-  const ownScope = !remote && def?.remote === 'only' ? header?.scope : undefined;
+  const mcRemote = !remote && !!def?.sourceTypes.includes('meshcore') && target.kind === 'remote';
+  const ownScope = mcRemote ? header?.scope : undefined;
   // Its header actions too: a slot the page portals into (Meshtastic pages draw none).
-  const ownActions = !remote && def?.remote === 'only';
+  const ownActions = mcRemote;
+  // A remote node's page is not pinned.
+  const pinnable = !!def && def.remote !== 'only' && !mcRemote;
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   const scope = ownScope ?? t(def?.scope === 'meshmonitor' ? 'workspace.settings.in_meshmonitor' : 'workspace.settings.on_radio');
   const viewOnly = readOnly && <span className={styles.viewOnly}>{t('workspace.settings.view_only')}</span>;
@@ -119,7 +122,7 @@ export default function CategoryPage({ def, group, sub = '', categories, sourceI
           </Link>
           <h1 className={styles.barTitle}>{header?.phoneTitle ?? title}</h1>
           {remote && def?.remote === 'only' && <TargetActionsButton />}
-          {def && def.remote !== 'only' && <PinButton id={def.id} name={label} />}
+          {pinnable && <PinButton id={def.id} name={label} />}
         </header>
       ) : (
         <header className={styles.header}>
@@ -141,7 +144,7 @@ export default function CategoryPage({ def, group, sub = '', categories, sourceI
             )}
           </div>
           {ownActions && <div ref={setSlot} className={styles.headActions} />}
-          {def && def.remote !== 'only' && <PinButton id={def.id} name={label} />}
+          {pinnable && <PinButton id={def.id} name={label} />}
         </header>
       )}
       {isPhone && def && (

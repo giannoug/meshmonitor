@@ -74,8 +74,16 @@ export const mcStatus = {
   deviceType: 1,
   deviceTypeName: 'Companion',
   config: { connectionType: 'tcp', tcpHost: '192.168.1.41', tcpPort: 5000 },
-  localNode: { publicKey: MC.self, name: 'Heltec MeshCore', advType: 1, latitude: 37.975, longitude: 23.735 },
+  // Board 8-08: EU/UK (Narrow) on companion protocol 14 (power-off, text CLI), Multi-ACKs off, 8 channel slots (Task 7.4).
+  localNode: {
+    publicKey: MC.self, name: 'Heltec MeshCore', advType: 1, latitude: 37.975, longitude: 23.735,
+    radioFreq: 869.618, radioBw: 62.5, radioSf: 8, radioCr: 8, txPower: 20, maxTxPower: 22, multiAcks: 0, firmwareVer: 14,
+    maxChannels: 8, advLocPolicy: 1, telemetryModeBase: 'always', telemetryModeLoc: 'device', telemetryModeEnv: 'never',
+  },
 };
+
+/** A test private key (128 hex chars): never a real device's. */
+export const MC_PRIVATE_KEY = 'ab'.repeat(64);
 
 /** Public (slot 0), the hashtag #athens, the private ops, and a Channel Database key (virtual). */
 export const mcChannels = [
@@ -138,6 +146,8 @@ export interface MeshCoreFixtureOptions {
   connected?: boolean;
   /** Remote admin (Task 7.3): a remembered admin login on Lycabettus Repeater. */
   adminSession?: boolean;
+  /** The radio's role (Task 7.4): 1 Companion (default), 2 Repeater. */
+  deviceType?: number;
 }
 
 /** Lycabettus Repeater's settings as a remote read returns them, per group (boards 8-07, 8-25). */
@@ -154,7 +164,14 @@ const never = () => new Response(new ReadableStream({ start() {} }), { status: 2
 
 export function meshcoreFixtures(log: MeshCoreLog = { writes: [] }, opts: MeshCoreFixtureOptions = {}): Record<string, FixtureHandler> {
   const connected = opts.connected ?? true;
-  const status = { ...mcStatus, connected };
+  const deviceType = opts.deviceType ?? 1;
+  const status = {
+    ...mcStatus,
+    connected,
+    deviceType,
+    deviceTypeName: deviceType === 2 ? 'Repeater' : 'Companion',
+    localNode: { ...mcStatus.localNode, advType: deviceType },
+  };
   const body = (init?: RequestInit) => (typeof init?.body === 'string' ? JSON.parse(init.body) : undefined);
   const write = (reply: (u: URL, b: unknown) => unknown = () => ok()): FixtureHandler => (u, init) => {
     const b = body(init);
@@ -326,6 +343,52 @@ export function meshcoreFixtures(log: MeshCoreLog = { writes: [] }, opts: MeshCo
       return ok({ ok: true, results, values: patch, sent: Object.keys(patch).length });
     })),
     'GET /api/sources/:id/meshcore/neighbors': only(() => ok({ items: [] })),
+    // Device settings (Task 7.4, boards 8-08 … 8-10): today's config routes, each write logged.
+    'POST /api/sources/:id/meshcore/config/:setting': only(write()),
+    'GET /api/sources/:id/meshcore/config/ble-pin': only(() => ok({ pin: 123456 })),
+    'GET /api/sources/:id/meshcore/config/discoverable': only(() => ({ success: true, enabled: false })),
+    'GET /api/sources/:id/meshcore/config/private-key': only(() => ok({ privateKey: MC_PRIVATE_KEY })),
+    'GET /api/sources/:id/meshcore/config/default-path-hash-size': only(() => ok({ size: 1 })),
+    'GET /api/sources/:id/meshcore/config/sender-names': only(() => ok({ allowed: [], enforce: false })),
+    'GET /api/sources/:id/meshcore/config/repeater-settings': only(() =>
+      ok({ values: lycabettusSettings.adverts, guestPasswordSet: false, firmware: { version: 'v1.8.2' }, capabilities: { reboot: true, powerOff: false, keyExport: false, keyImport: false } }),
+    ),
+    'GET /api/sources/:id/meshcore/config/autoadd-config': only(() =>
+      ok({ supported: true, overwriteOldest: true, types: { chat: true, repeater: true, room: true, sensor: false }, maxHops: 3 }),
+    ),
+    'GET /api/sources/:id/meshcore/contacts/device-sync': only(() =>
+      ok({ available: true, manualAddContacts: 1, autoAddEnabled: false, missingFavorites: [], deviceContactCount: 41, deviceContactsKnown: true, removableContactCount: 38, keptContactCount: 3 }),
+    ),
+    'POST /api/sources/:id/meshcore/contacts/push-to-device': only(write(() =>
+      ok({ added: [], alreadyOnDevice: 41, skipped: [], notAddedNoRoom: 0, evicted: [], capacityKnown: true, maxContacts: 100, freeSlotsBefore: 59, freeSlotsAfter: 59 }),
+    )),
+    'POST /api/sources/:id/meshcore/contacts/remove-non-favorites': only(write(() => ok({ removed: 38, kept: 3, failed: 0, total: 41 }))),
+    'GET /api/sources/:id/meshcore/nodes/purge-non-favourites/preview': only(() => ok({ count: 12 })),
+    'POST /api/sources/:id/meshcore/nodes/purge-non-favourites': only(write(() => ok({ deleted: 12 }))),
+    'PUT /api/channels/:idx': (u, init) => {
+      const b = body(init) as { sourceId?: string } | undefined;
+      if (b?.sourceId !== SOURCE_IDS.heltec) return undefined;
+      log.writes.push({ method: 'PUT', path: u.pathname, body: b });
+      return ok();
+    },
+    'DELETE /api/channels/:idx': (u) => {
+      if (u.searchParams.get('sourceId') !== SOURCE_IDS.heltec) return undefined;
+      log.writes.push({ method: 'DELETE', path: u.pathname, body: undefined });
+      return ok();
+    },
+    'POST /api/channels/encode-url': (_u, init) => {
+      const b = body(init) as { sourceId?: string } | undefined;
+      return b?.sourceId === SOURCE_IDS.heltec ? { url: 'meshcore://channel/add?name=%23athens&secret=0123456789abcdef0123456789abcdef' } : undefined;
+    },
+    'GET /api/backup/settings': (u) =>
+      u.searchParams.get('sourceId') === SOURCE_IDS.heltec ? { enabled: true, maxBackups: 7, backupTime: '03:00' } : undefined,
+    'GET /api/backup/list': (u) =>
+      u.searchParams.get('sourceId') === SOURCE_IDS.heltec
+        ? [
+            { filename: 'meshcore-heltec-1.yaml', timestamp: new Date(clock(3, 0) + 86_400_000).toISOString(), size: 2048, type: 'automatic' },
+            { filename: 'meshcore-heltec-0.yaml', timestamp: new Date(clock(3, 0)).toISOString(), size: 2048, type: 'automatic' },
+          ]
+        : undefined,
     'GET /api/sources/:id/meshcore/hop-snr': only((u) =>
       u.searchParams.get('publicKey') === MC.glyfada
         ? ok({

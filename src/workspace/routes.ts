@@ -8,6 +8,7 @@ import { MESHCORE_VIEWS, type MeshCoreView } from '../components/MeshCore/meshCo
 import { RETICULUM_VIEWS, type ReticulumView } from '../types/reticulum';
 import { classicFallback } from './layout/classicFallback';
 import { SECTION_TO_CATEGORY } from './settings/categories';
+import { MESHCORE_SECTION_TO_CATEGORY } from './meshcore/settings/meshcoreSearch';
 
 type Loc = { pathname: string; hash: string; search: string };
 
@@ -80,11 +81,23 @@ export function meshcoreViewForPath(splat: string, hash: string): MeshCoreView |
 }
 
 /**
- * A MeshCore repeater's or room server's Settings and Console (Task 7.3), the
- * part of a source URL after `/source/:id/`: with a remote target these are
- * the Workspace settings frame; other settings URLs stay today's page.
+ * A MeshCore device's settings (Tasks 7.3, 7.4), the part of a source URL
+ * after `/source/:id/`: this radio's pages and a remote target's, all in the
+ * Workspace settings frame.
  */
-export const MESHCORE_REMOTE_SETTINGS = /^settings(?:\/(?:console|node-settings))?\/?$/;
+export const MESHCORE_SETTINGS = /^settings(\/|$)/;
+
+/**
+ * Where today's MeshCore settings URLs live now (Task 7.4), or null: the
+ * Device Configuration view (`configuration`, each `#<section>` to the page
+ * that holds it) and the source form's `#configuration` deep link.
+ */
+export function meshcoreSettingsRedirect(base: string, splat: string, hash: string): string | null {
+  if (splat === '' && hash === '#configuration') return `${base}/settings`;
+  if (!/^configuration\/?$/.test(splat)) return null;
+  const page = MESHCORE_SECTION_TO_CATEGORY[sectionOf(hash)];
+  return page ? `${base}/settings/${page}` : `${base}/settings`;
+}
 
 /** Destinations: the Reticulum page's default view. */
 export const RETICULUM_DEFAULT_VIEW: ReticulumView = 'destinations';

@@ -53,21 +53,17 @@ import FirstRun from '../devices/FirstRun';
 import { useIsNarrowDesktop, useIsPhone } from './useIsPhone';
 import { ShellDevicesContext } from './shellDevices';
 import { useWorkspaceSources } from './useWorkspaceSources';
-import { MESHCORE_REMOTE_SETTINGS } from '../routes';
-import { useRemoteEntry } from '../settings/remote/remoteTargetStore';
 import styles from './WorkspaceShell.module.css';
 
 const RAIL = 72;
 const SIDEBAR = 270;
 
-function modeOf(pathname: string, sourceType: string | undefined, meshcoreRemote = false): SidebarMode {
+function modeOf(pathname: string, sourceType: string | undefined): SidebarMode {
   if (matchPath('/source/:id/settings/*', pathname) && !['meshcore', 'reticulum', 'meshcore_mqtt'].includes(sourceType ?? '')) {
     return 'settings';
   }
-  // A MeshCore remote target's Settings and Console (Task 7.3); MeshCore's other settings stay today's page.
-  if (sourceType === 'meshcore' && meshcoreRemote && MESHCORE_REMOTE_SETTINGS.test(pathname.replace(/^\/source\/[^/]+\//, ''))) {
-    return 'settings';
-  }
+  // A MeshCore device's settings, its remote targets' too (Tasks 7.3, 7.4).
+  if (sourceType === 'meshcore' && matchPath('/source/:id/settings/*', pathname)) return 'settings';
   if (pathname.startsWith('/source/')) return 'device';
   if (/^\/server(\/|$)/.test(pathname)) return 'server';
   if (/^\/(you|preferences)(\/|$)/.test(pathname)) return 'you';
@@ -120,8 +116,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
 
   const openId = matchPath('/source/:sourceId/*', location.pathname)?.params.sourceId ?? null;
   const source = sources.find((s) => s.id === openId);
-  const remote = useRemoteEntry(openId ?? '');
-  const mode = modeOf(location.pathname, source?.type, new URLSearchParams(location.search).has('node') || remote.node !== null);
+  const mode = modeOf(location.pathname, source?.type);
   const home = sources.find((s) => s.id === (openId ?? lastId)) ?? null;
   const firstRun =
     authStatus?.authenticated === true &&

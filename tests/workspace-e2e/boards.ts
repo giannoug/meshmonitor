@@ -1947,6 +1947,74 @@ export const BOARDS: Board[] = [
       await page.evaluate(() => window.scrollTo(0, 0));
     },
   },
+  // Task 7.4: a MeshCore radio's settings, channels and maintenance.
+  {
+    id: '8-08-settings-radio',
+    size: 'desktop',
+    path: '/source/src-heltec/settings/radio',
+    fixtures: MESHCORE(),
+    init: macPlatform,
+    setup: async (page) => {
+      // The board's three edits: preset, bandwidth and spreading factor.
+      await page.getByLabel('Spreading Factor').waitFor();
+      await page.getByLabel('Bandwidth (kHz)').selectOption('250');
+      await page.getByLabel('Spreading Factor').fill('11');
+      await page.getByLabel('Spreading Factor').blur();
+      await page.getByText(/changes in Radio/).waitFor();
+    },
+  },
+  {
+    id: '8-09-channels',
+    size: 'desktop',
+    path: '/source/src-heltec/settings/channels',
+    fixtures: MESHCORE(),
+    init: macPlatform,
+    setup: async (page) => {
+      await page.getByText('Key from the name').waitFor();
+      await page.getByRole('button', { name: 'Share' }).first().click();
+      await page.getByText('As a URL and QR code').waitFor();
+      await page.getByRole('button', { name: 'Add channel' }).click();
+      await page.getByText('Add channel · slot 3').waitFor();
+    },
+  },
+  {
+    id: '8-10-maintenance',
+    size: 'desktop',
+    path: '/source/src-heltec/settings/maintenance',
+    fixtures: MESHCORE(),
+    init: macPlatform,
+    setup: async (page) => {
+      await page.getByText('Add only these types').waitFor();
+      await page.getByRole('button', { name: 'Factory Reset…' }).click();
+      const sheet = page.getByRole('dialog', { name: 'Factory reset this device?' });
+      await sheet.getByRole('textbox').fill('Heltec Mesh');
+    },
+  },
+  { id: '8-22-settings-list', size: 'phone', path: '/source/src-heltec/settings', fixtures: MESHCORE(), setup: (page) => page.getByText('3 of 8').waitFor() },
+  {
+    id: '8-26-channels',
+    size: 'phone',
+    path: '/source/src-heltec/settings/channels',
+    fixtures: MESHCORE(),
+    setup: async (page) => {
+      await page.getByText('Scope: inherit default').first().waitFor();
+      await page.getByRole('button', { name: 'Add channel' }).click();
+      await page.getByText('Add channel · slot 3').waitFor();
+      await page.evaluate(() => window.scrollTo(0, 0));
+    },
+  },
+  {
+    id: '8-27-maintenance',
+    size: 'phone',
+    path: '/source/src-heltec/settings/maintenance',
+    fixtures: MESHCORE(),
+    setup: async (page) => {
+      await page.getByText('Add only these types').waitFor();
+      await page.getByRole('button', { name: 'Factory Reset…' }).scrollIntoViewIfNeeded();
+      await page.getByRole('button', { name: 'Factory Reset…' }).click();
+      await page.getByRole('dialog', { name: 'Factory reset this device?' }).getByRole('textbox').fill('Heltec Mesh');
+    },
+  },
 ];
 
 /** 8-06 / 8-07: the board draws the Mac hint in the settings list. */

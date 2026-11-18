@@ -1,13 +1,13 @@
 {
   "must": [
     "This radio",
-    "ON THE RADIO",
+    "On the radio",
     "Radio",
     "Path hash",
     "Channels",
     "Console",
     "Maintenance",
-    "IN MESHMONITOR",
+    "In MeshMonitor",
     "Connection",
     "Receive-only"
   ],

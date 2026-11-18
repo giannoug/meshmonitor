@@ -18,10 +18,15 @@
  * today's Admin Commands reads and sends for a remote node, the Danger zone,
  * and the two remote-only pages (Node management, Remote console).
  *
- * A MeshCore device (Task 7.3) has only its remote targets here so far: a
+ * A MeshCore device (Tasks 7.3, 7.4): On the radio holds today's Device
+ * Configuration (configuration:read) split into pages, a local repeater adding
+ * Adverts & forwarding and Clock; In MeshMonitor holds today's Settings tab
+ * (settings:read). Which pages a device has follows today's sections, by role
+ * (`GateCtx.meshcore`, the device the frame reads). Its remote targets are a
  * repeater's or room server's Settings (with the access list) and Console,
- * behind today's `remote_admin:write`. Its other settings stay today's page
- * until Task 7.4.
+ * behind today's `remote_admin:write`; Console is also the local radio's serial
+ * console. A MeshCore id may repeat a Meshtastic one (`channels`): ids are
+ * unique per device type, and `categoryById` gives the first.
  */
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import type { TFunction } from 'i18next';
@@ -44,6 +49,14 @@ export interface GateCtx {
   /** Settings configure a remote node (Task 5.9). */
   remote?: boolean;
   hasPermission: ReturnType<typeof useAuth>['hasPermission'];
+  /** A MeshCore device's role, as its status reports it; unknown reads as a Companion. */
+  meshcore?: MeshCoreDeviceFacts;
+}
+
+/** What a MeshCore device's pages depend on: `deviceType` (status) and the local node's `advType`. */
+export interface MeshCoreDeviceFacts {
+  deviceType?: number;
+  advType?: number;
 }
 
 export type CategoryTarget = { kind: 'local' } | { kind: 'remote'; nodeNum: number };
@@ -123,6 +136,75 @@ const meshcoreRemote = (id: string, labelKey: string, component: CategoryDef['co
   gate: (c) => c.hasPermission('remote_admin', 'write', { sourceId: c.sourceId }),
 });
 
+// A MeshCore device's role (MeshCoreConfigurationView): Companion 1, Repeater 2, Room server 3.
+const mcCompanion = (c: GateCtx) => (c.meshcore?.deviceType ?? 1) === 1;
+const mcRepeater = (c: GateCtx) => c.meshcore?.deviceType === 2 || c.meshcore?.advType === 2;
+// Channels, the Observer and backups: not on a repeater or room server (today's notCompanionOnlyDevice).
+const mcNotCompanionOnly = (c: GateCtx) => ![2, 3].includes(c.meshcore?.advType ?? 1);
+const mcConfigRead = (c: GateCtx) => c.hasPermission('configuration', 'read', { sourceId: c.sourceId });
+const mcSettingsRead = (c: GateCtx) => c.hasPermission('settings', 'read', { sourceId: c.sourceId });
+const mcPage = (lazyPage: () => Promise<unknown>, name: string) =>
+  lazy(() => lazyPage().then((m) => ({ default: (m as Record<string, ComponentType<CategoryProps>>)[name] })));
+const mcRadioPages = () => import('../meshcore/settings/DeviceCategories.tsx');
+const mcHosted = () => import('../meshcore/settings/HostedCategories.tsx');
+const mcMeshMonitor = () => import('../meshcore/settings/MeshMonitorCategories.tsx');
+
+/** A MeshCore page of today's Device Configuration (configuration:read on this source), and `when` its section shows today. */
+const mcRadio = (id: string, labelKey: string, component: CategoryDef['component'], when?: (c: GateCtx) => boolean): CategoryDef => ({
+  id,
+  scope: 'radio',
+  labelKey,
+  sourceTypes: ['meshcore'],
+  component,
+  gate: (c) => mcConfigRead(c) && (when?.(c) ?? true),
+});
+
+/** A MeshCore page of today's Settings tab (settings:read on this source). */
+const mcSettings = (id: string, labelKey: string, component: CategoryDef['component'], gate: (c: GateCtx) => boolean = mcSettingsRead): CategoryDef => ({
+  id,
+  scope: 'meshmonitor',
+  labelKey,
+  sourceTypes: ['meshcore'],
+  component,
+  gate,
+});
+
+/** Every MeshCore page, in list order (board 8-08's sidebar). */
+export const MESHCORE_CATEGORIES: CategoryDef[] = [
+  mcRadio('name', 'meshcore.config.name_label', mcPage(mcRadioPages, 'NameCategory')),
+  mcRadio('location', 'workspace.meshcore.settings.location', mcPage(mcRadioPages, 'LocationCategory')),
+  mcRadio('radio', 'workspace.meshcore.settings.radio', lazy(() => import('../meshcore/settings/RadioCategory.tsx'))),
+  mcRadio('tx-power', 'workspace.meshcore.settings.tx_power', mcPage(mcRadioPages, 'TxPowerCategory')),
+  mcRadio('telemetry', 'meshcore.config.telemetry', mcPage(mcRadioPages, 'TelemetryCategory')),
+  // A local repeater's own settings, read over its serial CLI (#6255).
+  mcRadio('adverts', 'meshcore.repeater.adverts_title', mcPage(mcHosted, 'RepeaterAdvertsCategory'), mcRepeater),
+  mcRadio('clock', 'meshcore.repeater.clock_title', mcPage(mcHosted, 'RepeaterClockCategory'), mcRepeater),
+  mcRadio('path-scope', 'workspace.meshcore.settings.path_scope', mcPage(mcHosted, 'PathScopeCategory'), mcCompanion),
+  mcRadio('sender-names', 'workspace.meshcore.settings.sender_names', mcPage(mcHosted, 'SenderNamesCategory'), mcCompanion),
+  mcRadio('channels', 'meshcore.channels.title', lazy(() => import('../meshcore/settings/ChannelsCategory.tsx')), mcNotCompanionOnly),
+  // Today's device actions also show on Settings for a viewer without configuration:read.
+  { ...mcRadio('contacts', 'workspace.meshcore.settings.contacts', mcPage(mcHosted, 'ContactsCategory')), gate: (c) => mcConfigRead(c) || mcSettingsRead(c) },
+  mcRadio('observer', 'meshcore.observer.title', mcPage(mcHosted, 'ObserverCategory'), mcNotCompanionOnly),
+  // This radio's serial console (configuration:write, today's showConsole), or a remote target's (remote_admin:write, Task 7.3).
+  {
+    ...mcRadio('console', 'workspace.meshcore.tab_console', lazy(() => import('../meshcore/settings/ConsoleCategory.tsx'))),
+    remote: 'yes',
+    gate: (c) =>
+      c.remote
+        ? c.hasPermission('remote_admin', 'write', { sourceId: c.sourceId })
+        : c.hasPermission('configuration', 'write', { sourceId: c.sourceId }),
+  },
+  mcRadio('maintenance', 'workspace.settings.group.maintenance', lazy(() => import('../meshcore/settings/MaintenanceCategory.tsx'))),
+  mcSettings('connection', 'meshcore.connection', mcPage(mcMeshMonitor, 'ConnectionCategory')),
+  mcSettings('receive-only', 'workspace.meshcore.settings.receive_only', mcPage(mcMeshMonitor, 'ReceiveOnlyCategory')),
+  mcSettings('reactions', 'workspace.meshcore.settings.reactions', mcPage(mcHosted, 'ReactionsCategory')),
+  mcSettings('required-repeaters', 'workspace.meshcore.settings.required_repeaters', mcPage(mcHosted, 'RequiredRepeatersCategory')),
+  mcSettings('regions', 'workspace.meshcore.settings.regions', mcPage(mcMeshMonitor, 'RegionsCategory')),
+  mcSettings('display', 'workspace.meshcore.settings.display', mcPage(mcHosted, 'DisplayCategory')),
+  mcSettings('filters', 'workspace.meshcore.settings.filters', mcPage(mcHosted, 'FiltersCategory')),
+  mcSettings('notifications', 'nav.notifications', mcPage(mcHosted, 'NotificationsCategory')),
+];
+
 export const CATEGORIES: CategoryDef[] = [
   radio('identity', 'configuration.node_identity', lazy(() => import('./categories/IdentityCategory.tsx')), { saveSection: 'owner', remote: 'yes' }),
   radio('lora', 'workspace.settings.label.lora', lazy(() => import('./LoraCategory.tsx')), { saveSection: 'lora', remote: 'yes' }),
@@ -168,7 +250,6 @@ export const CATEGORIES: CategoryDef[] = [
   }),
   // MeshCore remote targets (Task 7.3), gated as today's remote console (`remote_admin:write` on this source).
   meshcoreRemote('node-settings', 'meshcore.repeater.remote_title', lazy(() => import('../meshcore/remote/RepeaterSettingsCategory.tsx'))),
-  meshcoreRemote('console', 'workspace.meshcore.tab_console', lazy(() => import('../meshcore/remote/RepeaterConsoleCategory.tsx'))),
   radio('maintenance/danger', 'config.danger_zone', lazy(() => import('./categories/DangerCategory.tsx')), { group: 'maintenance', remote: 'yes' }),
 
   // The bridge setup reads `sources` (#5683 follow-up): its own grant, not the Settings tab's.
@@ -190,6 +271,7 @@ export const CATEGORIES: CategoryDef[] = [
     gate: (c) =>
       canReadSettings(c) && isCoverageMqttSourceType(c.sourceType) && c.hasPermission('settings', 'write', { sourceId: c.sourceId }),
   }),
+  ...MESHCORE_CATEGORIES,
 ];
 
 /**
@@ -241,7 +323,9 @@ export const SECTION_TO_CATEGORY: Readonly<Record<string, string>> = {
   'settings-danger': 'data',
 };
 
-const BY_ID = new Map(CATEGORIES.map((c) => [c.id, c]));
+// The first definition of an id (Meshtastic's, where a MeshCore page shares it).
+const BY_ID = new Map<string, CategoryDef>();
+for (const c of CATEGORIES) if (!BY_ID.has(c.id)) BY_ID.set(c.id, c);
 
 export function categoryById(id: string): CategoryDef | undefined {
   return BY_ID.get(id);
@@ -257,7 +341,9 @@ export function readOnlyFor(def: CategoryDef | undefined, hasPermission: GateCtx
   // The bridge setup saves to the source row (MqttBridgeConfigurationView checks sources:write).
   if (def?.id === 'mqtt-bridge') return !hasPermission('sources', 'write');
   // A MeshCore remote target writes through today's remote admin routes.
-  if (def?.sourceTypes.includes('meshcore')) return !hasPermission('remote_admin', 'write', { sourceId });
+  if (def?.remote === 'only' && def.sourceTypes.includes('meshcore')) return !hasPermission('remote_admin', 'write', { sourceId });
+  // The serial console sends commands (MeshCoreLocalConsole's gate); a MeshCore page of today's Settings tab saves settings.
+  if (def?.id === 'console' && def.sourceTypes.includes('meshcore')) return !hasPermission('configuration', 'write', { sourceId });
   // PKI DM decryption saves this source's configuration.
   const configuration = !def || def.scope === 'radio' || def.id === 'pki-dm';
   return !hasPermission(configuration ? 'configuration' : 'settings', 'write', { sourceId });
@@ -280,10 +366,11 @@ export function resolveSettingsPath(rest: string): { categoryId?: string; group?
   if (parts.length >= 2 && BY_ID.has(`${parts[0]}/${parts[1]}`)) {
     return { categoryId: `${parts[0]}/${parts[1]}`, sub: parts.slice(2).join('/') };
   }
-  if (parts.length >= 1 && BY_ID.has(parts[0])) return { categoryId: parts[0], sub: parts.slice(1).join('/') };
+  // A group's index before a page of the same name (a MeshCore device's `maintenance` page reads it as its id).
   if (parts.length >= 1 && (GROUPS as readonly string[]).includes(parts[0])) {
     return { group: parts[0] as CategoryGroup, sub: parts.slice(1).join('/') };
   }
+  if (parts.length >= 1 && BY_ID.has(parts[0])) return { categoryId: parts[0], sub: parts.slice(1).join('/') };
   return { sub: parts.join('/') };
 }
 
@@ -314,7 +401,7 @@ export function categoryIndex(): Array<{ id: string; labelKey: string; keywords:
     for (const k of s.keywords ?? []) set.add(k);
     words.set(id, set);
   }
-  return CATEGORIES.map((c) => ({ id: c.id, labelKey: c.labelKey, keywords: [...(words.get(c.id) ?? [])] }));
+  return CATEGORIES.filter((c) => BY_ID.get(c.id) === c).map((c) => ({ id: c.id, labelKey: c.labelKey, keywords: [...(words.get(c.id) ?? [])] }));
 }
 
 /** Modules the firmware build or version leaves out, read as today's gates do (fail open on an unknown answer). */

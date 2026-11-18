@@ -9,9 +9,10 @@ import type { TFunction } from 'i18next';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { configurationNavItems, settingsNavItems } from '../../../components/search/configSections';
+import { configurationNavItems, meshcoreConfigurationNavItems, settingsNavItems } from '../../../components/search/configSections';
 import {
   CATEGORIES,
+  MESHCORE_CATEGORIES,
   SECTION_TO_CATEGORY,
   categoryById,
   categoryIndex,
@@ -22,6 +23,10 @@ import {
   type GateCtx,
 } from '../categories';
 import { g2DeviceConfig } from '../../__fixtures__/deviceConfig';
+import { MESHCORE_SECTION_TO_CATEGORY } from '../../meshcore/settings/meshcoreSearch';
+
+// The Meshtastic family's pages; a MeshCore page may share an id with one (Task 7.4).
+const MESHTASTIC = CATEGORIES.filter((c) => !c.sourceTypes.includes('meshcore'));
 
 const keyOnly = ((key: string) => key) as unknown as TFunction;
 const en = JSON.parse(
@@ -55,20 +60,55 @@ const ctx = (over: Partial<GateCtx> = {}): GateCtx => ({
 
 describe('categories', () => {
   it('every configurationNavItems and settingsNavItems(source) id maps to exactly one CategoryDef', () => {
-    const ids = CATEGORIES.map((c) => c.id);
+    const ids = MESHTASTIC.map((c) => c.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const section of new Set(todaySections)) {
       const target = SECTION_TO_CATEGORY[section];
       expect(target, section).toBeDefined();
-      expect(CATEGORIES.filter((c) => c.id === target), section).toHaveLength(1);
+      expect(MESHTASTIC.filter((c) => c.id === target), section).toHaveLength(1);
     }
+  });
+
+  it('every MeshCore Device Configuration section maps to exactly one MeshCore page; ids are unique per device type (Task 7.4)', () => {
+    const ids = MESHCORE_CATEGORIES.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    const all = meshcoreConfigurationNavItems(keyOnly, {
+      isCompanion: true, showChannels: true, showContactSync: true, showConsole: true, showObserver: true,
+      showDangerZone: true, showBackups: true, showRepeaterSettings: true, showRepeaterClock: true,
+    });
+    for (const s of all) {
+      expect(MESHCORE_CATEGORIES.filter((c) => c.id === MESHCORE_SECTION_TO_CATEGORY[s.id]), s.id).toHaveLength(1);
+    }
+    // A shared id resolves to the Meshtastic page for every caller that does not name the device type.
+    expect(categoryById('channels')?.sourceTypes).toEqual(['meshtastic_tcp']);
+  });
+
+  it('a MeshCore device lists its pages by role (today\'s sections)', () => {
+    const mc = (meshcore?: GateCtx['meshcore'], over: Partial<GateCtx> = {}) =>
+      visibleCategories(ctx({ sourceType: 'meshcore', meshcore, ...over })).map((c) => c.id);
+    const companion = mc({ deviceType: 1, advType: 1 });
+    expect(companion).toEqual([
+      'name', 'location', 'radio', 'tx-power', 'telemetry', 'path-scope', 'sender-names', 'channels', 'contacts', 'observer', 'console', 'maintenance',
+      'connection', 'receive-only', 'reactions', 'required-repeaters', 'regions', 'display', 'filters', 'notifications',
+    ]);
+    const repeater = mc({ deviceType: 2, advType: 2 });
+    expect(repeater).toContain('adverts');
+    expect(repeater).toContain('clock');
+    expect(repeater).not.toContain('channels');
+    expect(repeater).not.toContain('path-scope');
+    // On a remote target only the target's pages.
+    expect(mc({ deviceType: 1 }, { remote: true })).toEqual(['node-settings', 'console']);
+    // settings:read without configuration:read keeps Contacts (today's Settings tab keeps the device actions).
+    const settingsOnly = mc({ deviceType: 1 }, { hasPermission: (r) => r === 'settings' });
+    expect(settingsOnly).toContain('contacts');
+    expect(settingsOnly).not.toContain('radio');
   });
 
   it('every category holds at least one of today\'s sections (no empty page)', () => {
     const held = new Set(Object.values(SECTION_TO_CATEGORY));
     // The remote-only pages hold Admin Commands' sections, which these catalogues do not list (Task 5.9).
-    expect(CATEGORIES.filter((c) => !held.has(c.id) && c.remote !== 'only').map((c) => c.id)).toEqual([]);
-    expect(CATEGORIES.filter((c) => c.remote === 'only').map((c) => c.id)).toEqual(['node-management', 'remote-console', 'node-settings', 'console']);
+    expect(MESHTASTIC.filter((c) => !held.has(c.id) && c.remote !== 'only').map((c) => c.id)).toEqual([]);
+    expect(CATEGORIES.filter((c) => c.remote === 'only').map((c) => c.id)).toEqual(['node-management', 'remote-console', 'node-settings']);
   });
 
   it('every label has an English string', () => {
@@ -158,7 +198,7 @@ describe('categories', () => {
 
   it('categoryIndex lists every category with today\'s keywords', () => {
     const index = categoryIndex();
-    expect(index.map((e) => e.id)).toEqual(CATEGORIES.map((c) => c.id));
+    expect(index.map((e) => e.id)).toEqual(CATEGORIES.filter((c) => categoryById(c.id) === c).map((c) => c.id));
     expect(index.find((e) => e.id === 'lora')?.keywords).toContain('region');
     expect(index.find((e) => e.id === 'data')?.keywords).toEqual(expect.arrayContaining(['layout', 'purge']));
   });
