@@ -24,7 +24,8 @@ import type { MeshCoreContact } from '../../utils/meshcoreHelpers';
 import { useMeshCorePackets, meshCoreFilterParams, type MeshCorePacketFilters, type MeshCorePacketRow } from '../../hooks/useMeshCorePackets';
 import { useInfiniteVirtualRows } from '../../hooks/useInfiniteVirtualRows';
 import { deriveMeshCorePacketFields } from '../../utils/meshcorePacketDerived';
-import { hopByteForKey, resolveHop, type RepeaterOption } from '../../utils/meshcorePath';
+import { hopByteForKey, type RepeaterOption } from '../../utils/meshcorePath';
+import { formatTime, observerLabel, payloadLabel, resolvePacketFrom, routeLabel, validHash } from './meshcorePacketRows';
 import { openPacketMonitorPopout } from '../../utils/packetMonitorPopout';
 import PacketSearchInput from '../packets/PacketSearchInput';
 import TimeWindowSelect from '../packets/TimeWindowSelect';
@@ -61,9 +62,6 @@ interface MeshCorePacketMonitorViewProps {
 
 type Packet = MeshCorePacketRow;
 
-const HEX_HASH = /^[0-9a-f]{2,6}$/i;
-const validHash = (v: string): boolean => HEX_HASH.test(v) && v.length % 2 === 0;
-
 interface Distribution {
   byPayloadType: { payloadType: number; payloadTypeName: string | null; count: number }[];
   byRouteType: { routeType: number | null; routeTypeName: string | null; count: number }[];
@@ -83,36 +81,6 @@ interface GroupedPacket extends Packet {
   bestRssi: number | null;
   firstHeard: number;
   lastHeard: number;
-}
-
-/**
- * Render an observer count for display.
- *
- * `0` does NOT mean "nobody heard this" — it means OUR radio heard it, because
- * a local reception carries a NULL observerId and COUNT(DISTINCT) skips NULLs
- * (#5040 Phase 2). Showing the digit would invert the meaning for every
- * locally-heard packet, so the local case gets a word instead.
- */
-function observerLabel(count: number, localText: string): string {
-  return count > 0 ? String(count) : localText;
-}
-
-function payloadLabel(p: Packet): string {
-  if (p.payloadTypeName) return p.payloadTypeName;
-  const match = PAYLOAD_TYPES.find(t => t.value === p.payloadType);
-  return match ? match.label : `0x${p.payloadType.toString(16).padStart(2, '0')}`;
-}
-
-function routeLabel(p: Packet): string {
-  if (p.routeTypeName) return p.routeTypeName;
-  if (typeof p.routeType !== 'number') return '—';
-  const match = ROUTE_TYPES.find(t => t.value === p.routeType);
-  return match ? match.label : `0x${p.routeType.toString(16).padStart(2, '0')}`;
-}
-
-function formatTime(ts: number): string {
-  const d = new Date(ts);
-  return d.toLocaleTimeString([], { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
 }
 
 export const MeshCorePacketMonitorView: React.FC<MeshCorePacketMonitorViewProps> = ({ baseUrl, sourceId, isRepeaterSource = false, contacts, standalone = false, onNodeClick }) => {
@@ -256,27 +224,10 @@ export const MeshCorePacketMonitorView: React.FC<MeshCorePacketMonitorViewProps>
    * 1-byte hash names it only when exactly one known contact owns that hash.
    * An ambiguous hash shows `0x2f?` and an unknown one `0x2f`: never a guess.
    */
-  const resolveFrom = useCallback((p: Packet): { label: string | null; publicKey: string | null; title?: string } => {
-    const derived = p.srcHash !== undefined || p.senderPubKey !== undefined || p.advertName !== undefined
-      ? { srcHash: p.srcHash ?? null, senderPubKey: p.senderPubKey ?? null, advertName: p.advertName ?? null }
-      : deriveMeshCorePacketFields(p.rawHex);
-    if (derived.senderPubKey) {
-      const key = derived.senderPubKey.toLowerCase();
-      const short = `${key.slice(0, 8)}…`;
-      if (!canSeeNames) return { label: short, publicKey: null, title: key };
-      const exact = contactByKey.get(key);
-      if (exact) return { label: derived.advertName || exact.name, publicKey: exact.publicKey, title: key };
-      return { label: derived.advertName || short, publicKey: null, title: key };
-    }
-    if (!derived.srcHash) return { label: null, publicKey: null };
-    const hash = derived.srcHash.toLowerCase();
-    if (!canSeeNames) return { label: `0x${hash}`, publicKey: null };
-    const r = resolveHop(hash as RepeaterOption['hopByte'], contactOptions);
-    if (r.matches.length === 1) {
-      return { label: r.matches[0].name, publicKey: r.matches[0].publicKey, title: r.matches[0].publicKey };
-    }
-    return { label: r.matches.length > 1 ? `0x${hash}?` : `0x${hash}`, publicKey: null };
-  }, [canSeeNames, contactByKey, contactOptions]);
+  const resolveFrom = useCallback(
+    (p: Packet) => resolvePacketFrom(p, { canSeeNames, contactByKey, contactOptions }),
+    [canSeeNames, contactByKey, contactOptions],
+  );
   /**
    * TX/RX marker, only where the row's data decides it. An observer that is the
    * packet's own sender published it (TX); a local radio or another observer

@@ -37,6 +37,8 @@ import styles from './DeviceSidebar.module.css';
 
 // Its own chunk: today's MeshCore list helpers stay out of the shell.
 const MeshCoreSidebar = lazy(() => import('../meshcore/MeshCoreSidebar.tsx'));
+// A region feed's own list (Task 7.5).
+const RegionFeedSidebar = lazy(() => import('../meshcore/RegionFeedSidebar.tsx'));
 
 export type SidebarMode = 'device' | 'overview' | 'settings' | 'server' | 'you';
 
@@ -91,6 +93,16 @@ export default function DeviceSidebar({ mode, source, onNavigate, onSearch }: De
       <Frame title={source.name} header={header}>
         <Suspense fallback={null}>
           <MeshCoreSidebar key={source.id} source={source} onNavigate={onNavigate} />
+        </Suspense>
+      </Frame>
+    );
+  }
+
+  if (source.type === 'meshcore_mqtt') {
+    return (
+      <Frame title={source.name} header={header}>
+        <Suspense fallback={null}>
+          <RegionFeedSidebar key={source.id} source={source} onNavigate={onNavigate} />
         </Suspense>
       </Frame>
     );

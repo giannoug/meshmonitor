@@ -75,9 +75,16 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
       !!matchPath('/source/:id/nodes', pathname) ||
       !!matchPath('/source/:id/node/*', pathname) ||
       // The settings list and pages have Back, a remote target's too (8-21, 8-22, 8-25, Tasks 7.3, 7.4).
-      !!matchPath('/source/:id/settings/*', pathname));
+      !!matchPath('/source/:id/settings/*', pathname) ||
+      // Info, the packet monitor and Automations have Back (8-29, 8-30, 8-31, Task 7.5).
+      !!matchPath('/source/:id/info', pathname) ||
+      !!matchPath('/source/:id/packets', pathname) ||
+      !!matchPath('/source/:id/automations/*', pathname));
+  // A region feed draws its own device header and tiles (8-23, Task 7.5).
+  const feedOwn = source?.type === 'meshcore_mqtt' && !hash && /^\/source\/[^/]+(\/(nodes|channels|packets|notifications))?\/?$/.test(pathname);
   const ownHeader =
     meshcoreOwn ||
+    feedOwn ||
     (!!source &&
     isMeshtasticFamily(source.type) &&
     (!!matchPath('/source/:id/channel/*', pathname) ||

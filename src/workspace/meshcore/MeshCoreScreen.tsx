@@ -3,8 +3,9 @@
  * (`/source/:id/channel/:idx`), a room (`room/:key`) and the phone Home (the
  * bare device URL below 768 px); Nodes (`nodes`) and a node's page
  * (`node/:key[/<tab>]`, Task 7.2); a remote target's settings
- * (`settings[/…]?node=<key>`, Task 7.3, through SettingsFrame). Every other
- * MeshCore view stays re-hosted (WorkspaceSource).
+ * (`settings[/…]?node=<key>`, Task 7.3, through SettingsFrame); Info (`info`),
+ * the packet monitor (`packets`) and Automations (`automations[/<built-in>]`,
+ * Task 7.5). Every other MeshCore view stays re-hosted (WorkspaceSource).
  *
  * One owner per screen (Ruling AD): today's MeshCoreSourcePage is not mounted
  * here. This runs today's `useMeshCore` once for the device, inside the
@@ -41,6 +42,10 @@ import styles from './MeshCoreScreen.module.css';
 
 /** A repeater's or room server's Settings and Console (Task 7.3), in the settings frame's parts. */
 const MeshCoreSettingsFrame = lazy(() => import('./remote/MeshCoreSettingsFrame.tsx'));
+/** Info, the packet monitor and Automations (Task 7.5). */
+const MeshCoreInfoPage = lazy(() => import('./MeshCoreInfoPage.tsx'));
+const MeshCorePacketsPage = lazy(() => import('./MeshCorePacketsPage.tsx'));
+const MeshCoreAutomationsPage = lazy(() => import('./automations/MeshCoreAutomationsPage.tsx'));
 
 export type MeshCoreScreenKind =
   | { kind: 'home' }
@@ -49,7 +54,11 @@ export type MeshCoreScreenKind =
   | { kind: 'nodes' }
   | { kind: 'node'; key: string; tab: string }
   /** Device settings with a remote target (Task 7.3): `path` follows `/settings/`. */
-  | { kind: 'settings'; path: string };
+  | { kind: 'settings'; path: string }
+  /** Info, the packet monitor, Automations and one built-in's page (Task 7.5). */
+  | { kind: 'info' }
+  | { kind: 'packets' }
+  | { kind: 'automations'; builtin: string | null };
 
 export interface MeshCoreScreenProps {
   sourceId: string;
@@ -103,6 +112,12 @@ function Runtime({ sourceId, deviceName, screen }: { sourceId: string; deviceNam
     <RuntimeContext.Provider value={{ sourceId, deviceName, meshCore, receiveOnly }}>
       {screen.kind === 'settings' ? (
         <MeshCoreSettingsFrame path={screen.path} />
+      ) : screen.kind === 'info' ? (
+        <MeshCoreInfoPage />
+      ) : screen.kind === 'packets' ? (
+        <MeshCorePacketsPage sourceId={sourceId} contacts={meshCore.contacts} />
+      ) : screen.kind === 'automations' ? (
+        <MeshCoreAutomationsPage builtin={screen.builtin} />
       ) : screen.kind === 'nodes' ? (
         <MeshCoreNodesTable />
       ) : screen.kind === 'node' ? (

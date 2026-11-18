@@ -20,6 +20,7 @@ import { prefsFixtures } from '../../src/workspace/__fixtures__/preferences';
 import { newServerLog, serverFixtures } from '../../src/workspace/__fixtures__/server';
 import { devicesFixtures, type DevicesFixtureOptions } from '../../src/workspace/__fixtures__/devices';
 import { MC, meshcoreFixtures, type MeshCoreFixtureOptions } from '../../src/workspace/__fixtures__/meshcore';
+import { regionFeedFixtures } from '../../src/workspace/__fixtures__/meshcoreTools';
 
 export interface Board {
   id: string;
@@ -2015,6 +2016,15 @@ export const BOARDS: Board[] = [
       await page.getByRole('dialog', { name: 'Factory reset this device?' }).getByRole('textbox').fill('Heltec Mesh');
     },
   },
+  // Task 7.5: Heltec MeshCore's packet monitor, Info and Automations, and the Athens MeshCore feed.
+  { id: '8-12-packet-detail', size: 'desktop', path: '/source/src-heltec/packets', fixtures: MESHCORE(), setup: openMcDecode },
+  { id: '8-29-packet-detail', size: 'phone', path: '/source/src-heltec/packets', fixtures: MESHCORE(), setup: openMcDecode },
+  { id: '8-13-info', size: 'desktop', path: '/source/src-heltec/info', fixtures: MESHCORE(), setup: (page) => page.getByText('Heltec V3').waitFor() },
+  { id: '8-30-info', size: 'phone', path: '/source/src-heltec/info', fixtures: MESHCORE(), setup: (page) => page.getByText(/Heltec V3/).waitFor() },
+  { id: '8-14-automations', size: 'desktop', path: '/source/src-heltec/automations', fixtures: MESHCORE(), setup: (page) => page.getByText('Welcome new nodes', { exact: true }).waitFor() },
+  { id: '8-31-automations', size: 'phone', path: '/source/src-heltec/automations', fixtures: MESHCORE(), setup: (page) => page.getByText('Auto-pathfinding', { exact: true }).waitFor() },
+  { id: '8-15-mqtt-region-feed', size: 'desktop', path: '/source/src-af', fixtures: REGION_FEED(), setup: (page) => page.getByText('Lycabettus Repeater').first().waitFor() },
+  { id: '8-23-region-feed', size: 'phone', path: '/source/src-af', fixtures: REGION_FEED(), setup: (page) => page.getByText('Lycabettus Repeater').first().waitFor() },
 ];
 
 /** 8-06 / 8-07: the board draws the Mac hint in the settings list. */
@@ -2054,6 +2064,19 @@ async function groupByRole(page: Page) {
 async function discoverRepeaters(page: Page) {
   await page.getByRole('button', { name: /Discover Repeaters/ }).click();
   await page.getByText(/4 contacts returned/).waitFor();
+}
+
+/** 8-12 / 8-29: Grouped, and the #athens frame decoded with a key from another source. */
+async function openMcDecode(page: Page) {
+  await page.getByRole('button', { name: 'Grouped' }).click();
+  await page.getByTestId('mc-packet-row').first().click();
+  await page.getByText('#athens · key from source Athens MQTT').waitFor();
+  await page.locator('[data-observer]', { hasText: 'Lycabettus Repeater' }).waitFor();
+}
+
+/** 8-15 / 8-23: Heltec MeshCore's data and the Athens MeshCore feed (added to the strip). */
+function REGION_FEED(): Board['fixtures'] {
+  return { ...meshcoreFixtures({ writes: [] }), ...regionFeedFixtures() };
 }
 
 /** Heltec MeshCore's section 8 data, a fresh log per board. */

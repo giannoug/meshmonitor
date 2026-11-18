@@ -14,7 +14,7 @@
     "RTC drift vs server",
     "Sync",
     "History",
-    "Add to Dashboard"
+    "Add to favorites"
   ],
   "absent": [],
   "source": "checks/s08.json"

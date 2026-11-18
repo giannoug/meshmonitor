@@ -27,7 +27,12 @@
  *   repeater's or room server's Settings and Console with `?node=<key>` (the
  *   node page's Log in and Console links, Task 7.3); today's Device
  *   Configuration URLs (`configuration[#<section>]`, `#configuration`) open
- *   the page that holds them. Every other view stays re-hosted.
+ *   the page that holds them. Info (`info`), the packet monitor (`packets`) and
+ *   Automations (`automations[/<built-in>]`) are native too (Task 7.5). Every
+ *   other view stays re-hosted.
+ * - A MeshCore MQTT region feed: its Overview (the source URL) and its Nodes,
+ *   Channels, Packets and Notifications tabs are the Workspace's RegionFeedPage
+ *   (Task 7.5); any other URL keeps today's page.
  * - An unknown source shows the Overview with a "not found" note.
  */
 import { lazy, useCallback } from 'react';
@@ -108,6 +113,13 @@ const MC_DM_PATH = /^dm\/([^/]+)\/?$/;
 const MC_NODES_PATH = /^nodes\/?$/;
 /** The MeshCore node page's tabs besides Overview (Task 7.2). */
 const MC_NODE_TABS: readonly string[] = ['telemetry', 'links', 'position', 'admin', 'neighbours'];
+/** Info, the packet monitor and Automations (Task 7.5); `automations/<built-in>` is one built-in's page. */
+const MC_INFO_PATH = /^info\/?$/;
+const MC_PACKETS_PATH = /^packets\/?$/;
+const MC_AUTOMATIONS_PATH = /^automations(?:\/([^/]+))?\/?$/;
+/** A region feed (Task 7.5): its Overview at the source URL, and its tabs. */
+const RegionFeedPage = lazy(() => import('../meshcore/RegionFeedPage.tsx'));
+const FEED_PATH = /^(nodes|channels|packets|notifications)?\/?$/;
 /** The URL of a MeshCore view: the re-hosted Nodes view (list and map) lives at `map`. */
 const mcViewPath = (view: MeshCoreView) => (view === 'nodes' ? 'map' : view);
 
@@ -149,6 +161,7 @@ export default function WorkspaceSource() {
     const channel = splat.match(MC_CHANNEL_PATH);
     const room = splat.match(MC_ROOM_PATH);
     const node = splat.match(NODE_PATH);
+    const automations = splat.match(MC_AUTOMATIONS_PATH);
     // An unknown node tab shows the Overview, and the URL follows.
     const nodeTabKnown = !node?.[2] || MC_NODE_TABS.includes(node[2]);
     const screen: MeshCoreScreenKind | null =
@@ -156,6 +169,12 @@ export default function WorkspaceSource() {
         ? { kind: 'channel', idx: Number(channel[1]) }
         : room && visible.includes('rooms')
           ? { kind: 'room', key: room[1] }
+          : MC_INFO_PATH.test(splat) && visible.includes('info')
+            ? { kind: 'info' }
+          : MC_PACKETS_PATH.test(splat) && visible.includes('packets')
+            ? { kind: 'packets' }
+          : automations && visible.includes('automations')
+            ? { kind: 'automations', builtin: automations[1] ?? null }
           : MC_NODES_PATH.test(splat)
             ? { kind: 'nodes' }
             : node
@@ -220,7 +239,18 @@ export default function WorkspaceSource() {
     );
   }
 
-  if (source?.type === 'meshcore_mqtt') return <Rehost>{renderSourceApp(PAGES, sourceId, source, splat)}</Rehost>;
+  if (source?.type === 'meshcore_mqtt') {
+    // The region feed (Task 7.5): its Overview and tabs are native; any other URL shows today's page.
+    const feed = !location.hash && splat.match(FEED_PATH);
+    if (feed) {
+      return (
+        <Rehost>
+          <RegionFeedPage key={sourceId} sourceId={sourceId} source={source} tab={(feed[1] as 'nodes' | 'channels' | 'packets' | 'notifications' | undefined) ?? 'overview'} />
+        </Rehost>
+      );
+    }
+    return <Rehost>{renderSourceApp(PAGES, sourceId, source, splat)}</Rehost>;
+  }
 
   // Device settings, with the remote target (`?node=`, Task 5.9). A Classic settings URL is fixed up
   // beside the frame, which already shows its category.

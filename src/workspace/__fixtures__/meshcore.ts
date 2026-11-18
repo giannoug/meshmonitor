@@ -10,24 +10,12 @@
  */
 import { SOURCE_IDS } from './athens';
 import type { FixtureHandler } from './fixtureApi';
+import { MC } from './meshcoreKeys';
+import { meshcoreToolFixtures } from './meshcoreTools';
 import type { MeshCoreMessage, MeshCoreNode } from '../../components/MeshCore/hooks/useMeshCore';
 import type { MeshCoreContact } from '../../utils/meshcoreHelpers';
 
-const key = (seed: string) => (seed + '0'.repeat(64)).slice(0, 64);
-
-export const MC = {
-  self: key('c0ffee11'),
-  lycabettus: key('3fa1aa22'),
-  penteli: key('a7f1bb33'),
-  parnitha: key('9b02cc44'),
-  athensRoom: key('7c22dd55'),
-  kifisia: key('3c90ee66'),
-  psychiko: key('51d0ff77'),
-  glyfada: key('6a1b0188'),
-  nikos: key('b44e0299'),
-  marousi: key('d81303aa'),
-  weather: key('91de0abb'),
-} as const;
+export { MC };
 
 const NOW = Date.now();
 const clock = (h: number, m: number) => {
@@ -184,6 +172,8 @@ export function meshcoreFixtures(log: MeshCoreLog = { writes: [] }, opts: MeshCo
   const only = (h: FixtureHandler): FixtureHandler => (u, init) => (isHeltec(u) ? h(u, init) : undefined);
   const sessions = new Map<string, number>();
   return {
+    // Info, the packet monitor and the built-in automations (Task 7.5).
+    ...meshcoreToolFixtures(log),
     'GET /api/sources/:id/status': (u) =>
       isHeltec(u)
         ? { sourceId: SOURCE_IDS.heltec, sourceName: 'Heltec MeshCore', sourceType: 'meshcore', connected, nodeCount: 22, activeNodeCount: 9 }
