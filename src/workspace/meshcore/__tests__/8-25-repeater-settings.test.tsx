@@ -15,6 +15,12 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('./m
 
 const route = `${HELTEC}/settings/node-settings?node=${MC.lycabettus}`;
 
+// A click on a disabled stepper is dropped silently; wait until the user could press it.
+async function increase() {
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Increase' })).toBeEnabled());
+  fireEvent.click(screen.getByRole('button', { name: 'Increase' }));
+}
+
 describe('8-25-repeater-settings', () => {
   it('8-25-repeater-settings shows the board', async () => {
     const { container } = renderMeshCore(route, { phone: true, meshcore: { adminSession: true } });
@@ -22,7 +28,7 @@ describe('8-25-repeater-settings', () => {
     fireEvent.click(await screen.findByRole('button', { name: /^Read$/ }));
     await screen.findByRole('button', { name: /Read again/ });
     // The hop limit and the field sheets are the phone's 44 px steppers and sheets (kit).
-    fireEvent.click(screen.getByRole('button', { name: 'Increase' }));
+    await increase();
     expect(await screen.findByText('1 change · Lycabettus Repeater')).toBeInTheDocument();
     expectBoard('8-25-repeater-settings', container);
   });
@@ -32,8 +38,11 @@ describe('8-25-repeater-settings', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Resume session' }));
     fireEvent.click(await screen.findByRole('button', { name: /^Read$/ }));
     await screen.findByRole('button', { name: /Read again/ });
-    fireEvent.click(screen.getByRole('button', { name: 'Increase' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Send to node' }));
+    await increase();
+    // The button exists (disabled) before the draft lands; wait for what the user sees first.
+    expect(await screen.findByText('1 change · Lycabettus Repeater')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Send to node' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Send to node' }));
     await waitFor(() => expect(log.writes.filter((w) => w.method === 'PATCH')).toHaveLength(1));
     expect(log.writes.find((w) => w.method === 'PATCH')!.body).toEqual({ floodMax: 9 });
     expect(screen.getByRole('button', { name: 'Discard' })).toBeInTheDocument();

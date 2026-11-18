@@ -89,6 +89,8 @@ describe('8-07-repeater-settings', () => {
     const { log } = renderMeshCore(route, { meshcore: { adminSession: true } });
     await readAll();
     const hop = screen.getByRole('group', { name: 'Adverts & forwarding' });
+    // A click on a disabled stepper is dropped silently; wait until it can be pressed.
+    await waitFor(() => expect(within(hop).getByRole('button', { name: 'Increase' })).toBeEnabled());
     fireEvent.click(within(hop).getByRole('button', { name: 'Increase' }));
     expect(await screen.findByText('was 8 hops')).toBeInTheDocument();
     expect(screen.getByText('Sends 1 message over the mesh')).toBeInTheDocument();
