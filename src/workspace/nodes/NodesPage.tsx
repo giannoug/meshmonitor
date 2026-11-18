@@ -10,7 +10,7 @@
  * a timer: Add node from URL writes a row on the server only.
  */
 import { useCallback, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { UiIcon } from '../../components/icons';
@@ -41,6 +41,7 @@ import { parseNodeId } from '../../utils/nodeHelpers';
 import { MESHTASTIC_SORT_OPTIONS, orderFavoritesFirst, sortNodesByField } from '../../utils/nodeSort';
 import ChatProviders from '../chat/ChatProviders';
 import { isHeardRecently } from '../chat/channelLabel';
+import { isLowBattery, isNewToday, tileTitle } from '../dashboard/healthTiles';
 import { useChatRuntime } from '../chat/useChatRuntime';
 import { MapSearch } from '../map/MapToolbar';
 import { themeColors } from '../map/themeColors';
@@ -70,7 +71,10 @@ export default function NodesRoute({ sourceId, source }: NodesRouteProps) {
   );
 }
 
-type Scope = 'all' | 'online' | 'favorites' | 'direct';
+type Scope = 'all' | 'online' | 'favorites' | 'direct' | 'low-battery' | 'new-today';
+const SCOPES: readonly Scope[] = ['all', 'online', 'favorites', 'direct', 'low-battery', 'new-today'];
+/** Scopes only a Dashboard health tile opens (`?show=`, Task 8.1): shown as a chip while on. */
+const TILE_SCOPES: Partial<Record<Scope, 'lowBattery' | 'newToday' | 'direct'>> = { 'low-battery': 'lowBattery', 'new-today': 'newToday', direct: 'direct' };
 type Traceroutes = Parameters<typeof getEffectiveHops>[2];
 const noop = () => {};
 const EXPORT_COLUMNS = NODE_EXPORT_COLUMNS.map((c) => ({ key: c.key, label: c.label, value: (row: NodeExportRow) => row[c.key] }));
@@ -90,7 +94,9 @@ function Nodes({ sourceId, deviceName }: { sourceId: string; deviceName: string 
   const ui = useUI();
   const [nodeFilters, setNodeFilters] = usePersistedNodeFilters('nodeFilters');
   const [columns, setColumns] = useNodeColumns();
-  const [scope, setScope] = useState<Scope>('all');
+  const [params] = useSearchParams();
+  // A Dashboard health tile opens the list on its scope (`?show=online`, Task 8.1).
+  const [scope, setScope] = useState<Scope>(() => SCOPES.find((x) => x === params.get('show')) ?? 'all');
   const [importOpen, setImportOpen] = useState(false);
 
   const authFetch = useCallback((url: string, init?: RequestInit) => csrfFetch(url, init), [csrfFetch]);
@@ -136,6 +142,8 @@ function Nodes({ sourceId, deviceName }: { sourceId: string; deviceName: string 
       online,
       favorites: listed.filter((n) => !!n.isFavorite),
       direct: listed.filter((n) => hopsOf(n) === 0),
+      'low-battery': listed.filter(isLowBattery),
+      'new-today': listed.filter((n) => isNewToday(n, now)),
     } satisfies Record<Scope, DeviceInfo[]>;
   }, [listed, hopsOf]);
   const shown = scoped[scope];
@@ -191,6 +199,14 @@ function Nodes({ sourceId, deviceName }: { sourceId: string; deviceName: string 
       {count !== undefined && <span className={styles.chipCount}>{count}</span>}
     </button>
   );
+  // The phone has a Direct chip of its own.
+  const tileScope = scope === 'direct' && isPhone ? undefined : TILE_SCOPES[scope];
+  const tileChip = tileScope && (
+    <button type="button" className={styles.chip} aria-pressed onClick={() => setScope('all')}>
+      {tileTitle(t, tileScope)}
+      <span className={styles.chipCount}>{shown.length}</span>
+    </button>
+  );
   // Today's quick age window sits beside the count, as on Classic's Nodes header.
   const age = <NodeQuickAgeFilter settingsHours={settings.maxNodeAgeHours} />;
   const body = !view.shouldShowData() && !isLoading && nodes.length === 0
@@ -223,6 +239,7 @@ function Nodes({ sourceId, deviceName }: { sourceId: string; deviceName: string 
               {chip('online', t('workspace.nodes.online'), countOf('online'))}
               {chip('favorites', t('node_filter.favorites'))}
               {chip('direct', t('workspace.chat.direct'))}
+              {tileChip}
               <button type="button" className={styles.chip} aria-expanded={filtersOn} onClick={openFilters}>
                 <UiIcon name="filter" size={16} />
                 {t('common.filters')}
@@ -261,6 +278,7 @@ function Nodes({ sourceId, deviceName }: { sourceId: string; deviceName: string 
             {chip('all', t('common.all'), listed.length)}
             {chip('online', t('workspace.nodes.online'), countOf('online'))}
             {chip('favorites', t('node_filter.favorites'), countOf('favorites'))}
+            {tileChip}
             <button type="button" className={styles.chip} aria-expanded={filtersOn} onClick={openFilters}>
               <UiIcon name="filter" size={16} />
               {t('workspace.map.more_filters')}

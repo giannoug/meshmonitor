@@ -5,13 +5,13 @@
     "Choose tiles",
     "Nodes online",
     "Channel util.",
-    "Watched nodes",
-    "Live mesh activity",
+    "Node Status",
+    "Live Mesh Activity",
     "Add widget",
     "Telemetry chart",
     "Traceroute",
     "Distance",
-    "Hops × distance",
+    "Hop/Distance Heatmap",
     "Widgets offered depend on the device"
   ],
   "absent": [

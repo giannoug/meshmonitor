@@ -31,6 +31,8 @@ interface TracerouteWidgetProps {
   currentNodeId: string | null;
   nodes: Map<string, NodeInfo>;
   onRemove: () => void;
+  /** Workspace board (Task 8.1): the body only, without the card, drag handle, title and remove button. */
+  bare?: boolean;
   onSelectNode: (nodeId: string) => void;
   /** Source protocol; decides where the trace comes from. Default meshtastic. */
   sourceKind?: 'meshtastic' | 'meshcore' | 'reticulum';
@@ -43,6 +45,7 @@ const TracerouteWidget: React.FC<TracerouteWidgetProps> = ({
   currentNodeId,
   nodes,
   onRemove,
+  bare = false,
   onSelectNode,
   sourceKind = 'meshtastic',
   canEdit = true,
@@ -204,19 +207,21 @@ const TracerouteWidget: React.FC<TracerouteWidgetProps> = ({
     : null;
 
   return (
-    <div ref={setNodeRef} style={style} className="dashboard-chart-container traceroute-widget">
-      <div className="dashboard-chart-header">
-        <span className="dashboard-drag-handle" {...attributes} {...listeners}>
-          ⋮⋮
-        </span>
-        <h3 className="dashboard-chart-title">
-          {t('dashboard.widget.traceroute.title')}
-          {targetNodeName ? `: ${targetNodeName}` : ''}
-        </h3>
-        <button className="dashboard-remove-btn" onClick={onRemove} title={t('dashboard.remove_widget')} aria-label={t('dashboard.remove_widget')}>
-          ×
-        </button>
-      </div>
+    <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? 'traceroute-widget' : 'dashboard-chart-container traceroute-widget'}>
+      {!bare && (
+        <div className="dashboard-chart-header">
+          <span className="dashboard-drag-handle" {...attributes} {...listeners}>
+            ⋮⋮
+          </span>
+          <h3 className="dashboard-chart-title">
+            {t('dashboard.widget.traceroute.title')}
+            {targetNodeName ? `: ${targetNodeName}` : ''}
+          </h3>
+          <button className="dashboard-remove-btn" onClick={onRemove} title={t('dashboard.remove_widget')} aria-label={t('dashboard.remove_widget')}>
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="traceroute-content">
         {/* Node selection - only show if user can edit */}

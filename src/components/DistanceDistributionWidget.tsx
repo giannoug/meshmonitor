@@ -21,6 +21,8 @@ interface DistanceDistributionWidgetProps {
   currentNodeId: string | null;
   distanceUnit: 'km' | 'mi';
   onRemove: () => void;
+  /** Workspace board (Task 8.1): the body only, without the card, drag handle, title and remove button. */
+  bare?: boolean;
   onBucketSizeChange: (size: number) => void;
   canEdit?: boolean;
 }
@@ -38,6 +40,7 @@ const DistanceDistributionWidget: React.FC<DistanceDistributionWidgetProps> = ({
   currentNodeId,
   distanceUnit,
   onRemove,
+  bare = false,
   onBucketSizeChange,
   canEdit = true,
 }) => {
@@ -138,33 +141,37 @@ const DistanceDistributionWidget: React.FC<DistanceDistributionWidgetProps> = ({
   const hasHomePosition = homeNode?.position?.latitude != null && homeNode?.position?.longitude != null;
 
   return (
-    <div ref={setNodeRef} style={style} className="dashboard-chart-container distance-distribution-widget">
-      <div className="dashboard-chart-header">
-        <span className="dashboard-drag-handle" {...attributes} {...listeners}>
-          ⋮⋮
-        </span>
-        <h3 className="dashboard-chart-title">
-          {t('dashboard.widget.distance_distribution.title')}
-          <span className="distance-unit-badge">{unitLabel}</span>
-        </h3>
-        <div className="distance-header-actions">
-          {canEdit && (
-            <button
-              className="distance-settings-btn"
-              onClick={() => setShowSettings(!showSettings)}
-              title={t('dashboard.widget.distance_distribution.settings')}
-              aria-label={t('dashboard.widget.distance_distribution.settings')}
-            >
-              <UiIcon name="settings" size={15} />
-            </button>
+    <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? 'distance-distribution-widget' : 'dashboard-chart-container distance-distribution-widget'}>
+      {(!bare || canEdit) && (
+        <div className="dashboard-chart-header">
+          {!bare && (
+            <span className="dashboard-drag-handle" {...attributes} {...listeners}>
+              ⋮⋮
+            </span>
           )}
-          {canEdit && (
-            <button className="dashboard-remove-btn" onClick={onRemove} title={t('dashboard.remove_widget')} aria-label={t('dashboard.remove_widget')}>
-              <UiIcon name="close" size={15} />
-            </button>
-          )}
+          {!bare && <h3 className="dashboard-chart-title">
+            {t('dashboard.widget.distance_distribution.title')}
+            <span className="distance-unit-badge">{unitLabel}</span>
+          </h3>}
+          <div className="distance-header-actions">
+            {canEdit && (
+              <button
+                className="distance-settings-btn"
+                onClick={() => setShowSettings(!showSettings)}
+                title={t('dashboard.widget.distance_distribution.settings')}
+                aria-label={t('dashboard.widget.distance_distribution.settings')}
+              >
+                <UiIcon name="settings" size={15} />
+              </button>
+            )}
+            {canEdit && !bare && (
+              <button className="dashboard-remove-btn" onClick={onRemove} title={t('dashboard.remove_widget')} aria-label={t('dashboard.remove_widget')}>
+                <UiIcon name="close" size={15} />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Settings dropdown */}
       {showSettings && (

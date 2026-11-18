@@ -56,6 +56,44 @@ export const dashboardQueryKeys = {
   nodes: (sourceId: string | null) => ['dashboard', 'nodes', sourceId] as const,
 };
 
+/** A source's dashboard settings, parsed (`GET /api/settings?sourceId=`); shared with the Workspace board (Task 8.1). */
+export interface DashboardSettings {
+  favorites: FavoriteChart[];
+  customOrder: string[];
+  widgets: CustomWidget[];
+  solarVisibility: Record<string, boolean>;
+  chartYRanges: Record<string, ChartYRange>;
+}
+
+export async function fetchDashboardSettings(sourceId: string | null): Promise<DashboardSettings> {
+  const sourceQuery = sourceId ? `?sourceId=${encodeURIComponent(sourceId)}` : '';
+  const settings = await api.get<SettingsResponse>(`/api/settings${sourceQuery}`);
+
+  const favoritesArray: FavoriteChart[] = settings.telemetryFavorites
+    ? JSON.parse(settings.telemetryFavorites)
+    : [];
+
+  const serverCustomOrder: string[] = settings.telemetryCustomOrder
+    ? JSON.parse(settings.telemetryCustomOrder)
+    : [];
+
+  const widgetsArray: CustomWidget[] = settings.dashboardWidgets
+    ? JSON.parse(settings.dashboardWidgets)
+    : [];
+
+  const solarVisibilityObj: Record<string, boolean> = settings.dashboardSolarVisibility
+    ? JSON.parse(settings.dashboardSolarVisibility)
+    : {};
+
+  return {
+    favorites: favoritesArray,
+    customOrder: serverCustomOrder,
+    widgets: widgetsArray,
+    solarVisibility: solarVisibilityObj,
+    chartYRanges: parseChartYRangeMap(settings.dashboardChartYRange),
+  };
+}
+
 /**
  * Hook for fetching and managing dashboard data (favorites, nodes, widgets)
  * Uses TanStack Query for caching, automatic refetching, and background updates
@@ -68,7 +106,6 @@ export function useDashboardData(options?: UseDashboardDataOptions): UseDashboar
   } = options ?? {};
   const queryClient = useQueryClient();
   const { sourceId } = useSource();
-  const sourceQuery = sourceId ? `?sourceId=${encodeURIComponent(sourceId)}` : '';
 
   // Local state for user modifications (before saving to server)
   const [localFavorites, setLocalFavorites] = useState<FavoriteChart[] | null>(null);
@@ -80,39 +117,7 @@ export function useDashboardData(options?: UseDashboardDataOptions): UseDashboar
   // Fetch settings (favorites, custom order, widgets, solar visibility)
   const settingsQuery = useQuery({
     queryKey: dashboardQueryKeys.settings(sourceId),
-    queryFn: async (): Promise<{
-      favorites: FavoriteChart[];
-      customOrder: string[];
-      widgets: CustomWidget[];
-      solarVisibility: Record<string, boolean>;
-      chartYRanges: Record<string, ChartYRange>;
-    }> => {
-      const settings = await api.get<SettingsResponse>(`/api/settings${sourceQuery}`);
-
-      const favoritesArray: FavoriteChart[] = settings.telemetryFavorites
-        ? JSON.parse(settings.telemetryFavorites)
-        : [];
-
-      const serverCustomOrder: string[] = settings.telemetryCustomOrder
-        ? JSON.parse(settings.telemetryCustomOrder)
-        : [];
-
-      const widgetsArray: CustomWidget[] = settings.dashboardWidgets
-        ? JSON.parse(settings.dashboardWidgets)
-        : [];
-
-      const solarVisibilityObj: Record<string, boolean> = settings.dashboardSolarVisibility
-        ? JSON.parse(settings.dashboardSolarVisibility)
-        : {};
-
-      return {
-        favorites: favoritesArray,
-        customOrder: serverCustomOrder,
-        widgets: widgetsArray,
-        solarVisibility: solarVisibilityObj,
-        chartYRanges: parseChartYRangeMap(settings.dashboardChartYRange),
-      };
-    },
+    queryFn: () => fetchDashboardSettings(sourceId),
     enabled,
     staleTime: 10 * 1000, // 10 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes

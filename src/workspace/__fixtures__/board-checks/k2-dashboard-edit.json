@@ -2,10 +2,10 @@
   "must": [
     "Edit dashboard",
     "Health tiles",
-    "YOUR BOARD · TOP TO BOTTOM",
-    "Telemetry chart · battery",
-    "Watched nodes",
-    "Live mesh activity",
+    "Your board · top to bottom",
+    "Telemetry chart · Battery Level",
+    "Node Status",
+    "Live Mesh Activity",
     "Add widget",
     "Saved to your account, so the same board shows",
     "Drag by the handle, or use the arrows."

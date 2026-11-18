@@ -8,7 +8,8 @@
  *   channel (`channel/<n>[/beacons]`) is the Workspace's own ChannelThread,
  *   a DM (`dm/<nodeId>`) its own DmConversation, the DM inbox (`dms`) its
  *   DmInbox, Activity (`activity`) its ActivityFeed (Task 2.8), the device map
- *   (`map`) its DeviceMap (Task 3.1), Nodes (`nodes`) its NodesPage (Task 3.3), an MQTT
+ *   (`map`) its DeviceMap (Task 3.1), Nodes (`nodes`) its NodesPage (Task 3.3), the
+ *   Dashboard (`dashboard`) its DeviceDashboard (Task 8.1), an MQTT
  *   source's packet monitor (`packetmonitor`) its MqttReceptions (Task 4.7), and the bare
  *   source URL on a phone its PhoneHome (Task 2.6), and device settings
  *   (`settings[/…]`, and the Classic URLs that redirect there) its
@@ -28,8 +29,9 @@
  *   node page's Log in and Console links, Task 7.3); today's Device
  *   Configuration URLs (`configuration[#<section>]`, `#configuration`) open
  *   the page that holds them. Info (`info`), the packet monitor (`packets`) and
- *   Automations (`automations[/<built-in>]`) are native too (Task 7.5). Every
- *   other view stays re-hosted.
+ *   Automations (`automations[/<built-in>]`) are native too (Task 7.5), and so
+ *   is the Dashboard (today's `telemetry` view, Task 8.1). Every other view
+ *   stays re-hosted.
  * - Reticulum (Task 7.6): every view is the Workspace's ReticulumScreen (the
  *   phone's bare device URL its Home; desktop's goes to Destinations, as
  *   today), and device settings (`settings[/…]`, and today's `configuration`,
@@ -101,6 +103,9 @@ const NODES_PATH = /^nodes\/?$/;
 const NodePage = lazy(() => import('../node-page/NodePage.tsx'));
 const NODE_PATH = /^node\/([^/]+)(?:\/([^/]+))?\/?$/;
 const NODE_TABS: readonly string[] = ['telemetry', 'links', 'position', 'admin'];
+/** `dashboard`: the Workspace Dashboard (Task 8.1). */
+const MeshtasticDashboard = lazy(() => import('../dashboard/DeviceDashboard.tsx'));
+const DASHBOARD_PATH = /^dashboard\/?$/;
 /** `packetmonitor` on an MQTT source: the Workspace receptions page (Task 4.7); other sources keep today's until Task 8.5. */
 const MqttReceptions = lazy(() => import('../tools/MqttReceptions.tsx'));
 const PACKETS_PATH = /^packetmonitor\/?$/;
@@ -120,6 +125,8 @@ const MC_NODE_TABS: readonly string[] = ['telemetry', 'links', 'position', 'admi
 const MC_INFO_PATH = /^info\/?$/;
 const MC_PACKETS_PATH = /^packets\/?$/;
 const MC_AUTOMATIONS_PATH = /^automations(?:\/([^/]+))?\/?$/;
+/** Today's Dashboard view (`telemetry`): the Workspace Dashboard (Task 8.1). */
+const MC_DASHBOARD_PATH = /^telemetry\/?$/;
 /** Every Reticulum view (Task 7.6): the device screen, with today's page not mounted. */
 const ReticulumScreen = lazy(() => import('../reticulum/ReticulumScreen.tsx'));
 /** A region feed (Task 7.5): its Overview at the source URL, and its tabs. */
@@ -180,6 +187,8 @@ export default function WorkspaceSource() {
             ? { kind: 'packets' }
           : automations && visible.includes('automations')
             ? { kind: 'automations', builtin: automations[1] ?? null }
+          : MC_DASHBOARD_PATH.test(splat) && visible.includes('telemetry')
+            ? { kind: 'dashboard' }
           : MC_NODES_PATH.test(splat)
             ? { kind: 'nodes' }
             : node
@@ -324,6 +333,14 @@ export default function WorkspaceSource() {
     return (
       <Rehost>
         <DeviceMap key={sourceId} sourceId={sourceId} source={source} />
+      </Rehost>
+    );
+  }
+
+  if (source && DASHBOARD_PATH.test(splat)) {
+    return (
+      <Rehost>
+        <MeshtasticDashboard key={sourceId} sourceId={sourceId} source={source} />
       </Rehost>
     );
   }

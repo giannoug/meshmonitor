@@ -23,6 +23,8 @@ interface NodeStatusWidgetProps {
   nodes: Map<string, NodeInfo>;
   baseUrl: string;
   onRemove: () => void;
+  /** Workspace board (Task 8.1): the body only, without the card, drag handle, title and remove button. */
+  bare?: boolean;
   onAddNode: (nodeId: string) => void;
   onRemoveNode: (nodeId: string) => void;
   onOpenNodeDetails?: (nodeId: string) => void;
@@ -57,6 +59,7 @@ const NodeStatusWidget: React.FC<NodeStatusWidgetProps> = ({
   nodes,
   baseUrl,
   onRemove,
+  bare = false,
   onAddNode,
   onRemoveNode,
   onOpenNodeDetails,
@@ -184,16 +187,18 @@ const NodeStatusWidget: React.FC<NodeStatusWidgetProps> = ({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="dashboard-chart-container node-status-widget">
-      <div className="dashboard-chart-header">
-        <span className="dashboard-drag-handle" {...attributes} {...listeners}>
-          ⋮⋮
-        </span>
-        <h3 className="dashboard-chart-title">{t('dashboard.widget.node_status.title')}</h3>
-        <button className="dashboard-remove-btn" onClick={onRemove} title={t('dashboard.remove_widget')} aria-label={t('dashboard.remove_widget')}>
-          ×
-        </button>
-      </div>
+    <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? 'node-status-widget' : 'dashboard-chart-container node-status-widget'}>
+      {!bare && (
+        <div className="dashboard-chart-header">
+          <span className="dashboard-drag-handle" {...attributes} {...listeners}>
+            ⋮⋮
+          </span>
+          <h3 className="dashboard-chart-title">{t('dashboard.widget.node_status.title')}</h3>
+          <button className="dashboard-remove-btn" onClick={onRemove} title={t('dashboard.remove_widget')} aria-label={t('dashboard.remove_widget')}>
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="node-status-content">
         {/* Add node search - only show if user can edit */}

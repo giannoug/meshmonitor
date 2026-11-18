@@ -1,0 +1,526 @@
+/*
+ * A device's Dashboard (Task 8.1, boards j1, j2, k1, k2, k3): the Mesh health
+ * strip, then the user's board; edit mode's rows; the Add widget and Health
+ * tiles sheets. The page fills the page column and scrolls (inside a device
+ * screen that already frames it, `data-contained`).
+ */
+.page {
+  position: fixed;
+  top: var(--app-header-height);
+  right: 0;
+  bottom: var(--app-nav-bar-height);
+  left: var(--sidebar-width);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 16px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* The column scrolls: its parts keep their height. */
+.page > * {
+  flex-shrink: 0;
+}
+
+.page[data-contained] {
+  position: static;
+  flex: 1;
+  min-height: 0;
+}
+
+.page[data-phone] {
+  padding: 0 12px 24px;
+  gap: 12px;
+}
+
+/* Header controls */
+.button,
+.textButton {
+  box-sizing: border-box;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:disabled,
+.textButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.primary {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.textButton {
+  border-color: transparent;
+  background: none;
+  color: var(--color-accent);
+}
+
+.page[data-phone] .button,
+.page[data-phone] .textButton,
+.phoneEdit .button,
+.phoneEdit .textButton {
+  min-height: 44px;
+  font-size: 17px;
+}
+
+.range {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.rangeButton {
+  min-width: 52px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: none;
+  background: var(--color-bg-raised);
+  color: var(--color-text-subtle);
+  font: inherit;
+  cursor: pointer;
+}
+
+.rangeButton[aria-pressed='true'] {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.page[data-phone] .range {
+  align-self: flex-start;
+}
+
+.page[data-phone] .rangeButton {
+  min-height: 44px;
+}
+
+/* The phone's edit bar: Cancel · Edit dashboard · Done */
+.phoneEdit {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 -12px;
+  padding: 0 8px;
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  border-bottom: 1px solid var(--color-surface);
+  background: var(--color-bg);
+}
+
+.phoneEdit > :first-child {
+  justify-self: start;
+}
+
+.phoneEdit > :last-child {
+  justify-self: end;
+}
+
+.phoneEditTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Mesh health strip */
+.label {
+  margin: 8px 0 0;
+  color: var(--color-text-subtle);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.strip {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 12px;
+}
+
+.page[data-phone] .strip {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tileItem {
+  display: flex;
+  min-width: 0;
+}
+
+.tile {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-surface);
+  border-radius: 14px;
+  background: var(--color-bg-sunken);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.tileLink:hover,
+.tileLink:focus-visible {
+  border-color: var(--color-accent);
+}
+
+.tile[data-amber] {
+  border-color: var(--color-warning);
+}
+
+.tileTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}
+
+.tileValue {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.tile[data-amber] .tileValue {
+  color: var(--color-warning);
+}
+
+.tileSub {
+  color: var(--color-text-subtle);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+/* The board */
+.board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.card {
+  box-sizing: border-box;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--color-surface);
+  border-radius: 14px;
+  background: var(--color-bg-sunken);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+}
+
+.cardTitle {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.muted {
+  margin-left: 6px;
+  color: var(--color-text-subtle);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.cardBody {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+/* Edit mode */
+.tilesBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--color-text-subtle);
+}
+
+.tilesRow {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid var(--color-surface);
+  border-radius: 14px;
+  background: var(--color-bg-sunken);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.tilesRowCount {
+  margin-left: auto;
+  color: var(--color-text-subtle);
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.row {
+  box-sizing: border-box;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: 14px;
+  background: var(--color-bg-sunken);
+}
+
+.row[data-dragging] {
+  position: relative;
+  z-index: 1;
+  border-color: var(--color-accent);
+}
+
+.page[data-phone] .rows {
+  gap: 0;
+  border: 1px solid var(--color-surface);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.page[data-phone] .row {
+  min-height: 60px;
+  border: none;
+  border-bottom: 1px solid var(--color-surface);
+  border-radius: 0;
+}
+
+.page[data-phone] .row:last-child {
+  border-bottom: none;
+}
+
+.rowText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 8px;
+}
+
+.page[data-phone] .rowText {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.rowTitle {
+  max-width: 100%;
+  font-size: 17px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowSub {
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}
+
+.iconButton,
+.handle {
+  box-sizing: border-box;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.iconButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.handle {
+  color: var(--color-text-subtle);
+  cursor: grab;
+  touch-action: none;
+}
+
+.page[data-phone] .iconButton,
+.page[data-phone] .handle {
+  width: 44px;
+  height: 44px;
+}
+
+.addRow {
+  box-sizing: border-box;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed var(--color-border);
+  border-radius: 14px;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.note {
+  margin: 0;
+  color: var(--color-text-subtle);
+  line-height: 1.5;
+}
+
+/* Sheets (portalled: they carry their own data-phone) */
+.options {
+  margin: 0 -16px;
+  padding: 0;
+  list-style: none;
+}
+
+.option {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 1px solid var(--color-surface);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option:hover,
+.option:focus-visible {
+  background: var(--color-surface-hover);
+}
+
+.optionIcon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.optionText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.optionTitle {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.optionDesc {
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}
+
+.optionAdd {
+  flex: none;
+  color: var(--color-accent);
+}
+
+.steps {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  line-height: 1.5;
+}
+
+.check {
+  box-sizing: border-box;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--color-surface);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-accent);
+}
+
+.sheetBody[data-phone] .option {
+  min-height: 72px;
+}

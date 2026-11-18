@@ -4,55 +4,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { UiIcon, type UiIconName } from './icons';
+import { UiIcon } from './icons';
+import { WIDGET_OPTIONS, type WidgetType } from './widgetOptions';
 
-export type WidgetType = 'nodeStatus' | 'traceroute' | 'hopDistribution' | 'distanceDistribution' | 'hopDistanceHeatmap' | 'liveMeshActivity';
-
-interface WidgetOption {
-  type: WidgetType;
-  titleKey: string;
-  descriptionKey: string;
-  icon: UiIconName;
-}
-
-const WIDGET_OPTIONS: WidgetOption[] = [
-  {
-    type: 'nodeStatus',
-    titleKey: 'dashboard.widget.node_status.title',
-    descriptionKey: 'dashboard.widget.node_status.description',
-    icon: 'telemetry',
-  },
-  {
-    type: 'traceroute',
-    titleKey: 'dashboard.widget.traceroute.title',
-    descriptionKey: 'dashboard.widget.traceroute.description',
-    icon: 'route',
-  },
-  {
-    type: 'hopDistribution',
-    titleKey: 'dashboard.widget.hop_distribution.title',
-    descriptionKey: 'dashboard.widget.hop_distribution.description',
-    icon: 'wifi',
-  },
-  {
-    type: 'distanceDistribution',
-    titleKey: 'dashboard.widget.distance_distribution.title',
-    descriptionKey: 'dashboard.widget.distance_distribution.description',
-    icon: 'ruler',
-  },
-  {
-    type: 'hopDistanceHeatmap',
-    titleKey: 'dashboard.widget.hop_distance_heatmap.title',
-    descriptionKey: 'dashboard.widget.hop_distance_heatmap.description',
-    icon: 'map',
-  },
-  {
-    type: 'liveMeshActivity',
-    titleKey: 'dashboard.widget.live_mesh_activity.title',
-    descriptionKey: 'dashboard.widget.live_mesh_activity.description',
-    icon: 'activity',
-  },
-];
+export type { WidgetType } from './widgetOptions';
 
 interface AddWidgetModalProps {
   isOpen: boolean;

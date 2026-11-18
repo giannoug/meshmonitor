@@ -29,6 +29,8 @@ interface SmartHopsChartProps {
   baseUrl: string;
   globalTimeRange: [number, number] | null;
   onRemove: (nodeId: string, telemetryType: string) => void;
+  /** Workspace board (Task 8.1): the body only, without the card, drag handle, title and remove button. */
+  bare?: boolean;
 }
 
 // Hop metrics configuration
@@ -83,6 +85,7 @@ const SmartHopsChart: React.FC<SmartHopsChartProps> = ({
   baseUrl,
   globalTimeRange,
   onRemove,
+  bare = false,
 }) => {
   const { t } = useTranslation();
 
@@ -142,21 +145,23 @@ const SmartHopsChart: React.FC<SmartHopsChartProps> = ({
 
   if (isLoading) {
     return (
-      <div ref={setNodeRef} style={style} className="dashboard-chart-container">
-        <div className="dashboard-chart-header">
-          <div className="dashboard-drag-handle" {...attributes} {...listeners}>
-            ⋮⋮
+      <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? undefined : 'dashboard-chart-container'}>
+        {!bare && (
+          <div className="dashboard-chart-header">
+            <div className="dashboard-drag-handle" {...attributes} {...listeners}>
+              ⋮⋮
+            </div>
+            <h3 className="dashboard-chart-title" title={label}>
+              {label}
+            </h3>
+            <button
+              className="dashboard-remove-btn"
+              onClick={handleRemoveClick}
+              aria-label={t('dashboard.remove_from_dashboard')}
+            >
+              <UiIcon name="close" size={15} />          </button>
           </div>
-          <h3 className="dashboard-chart-title" title={label}>
-            {label}
-          </h3>
-          <button
-            className="dashboard-remove-btn"
-            onClick={handleRemoveClick}
-            aria-label={t('dashboard.remove_from_dashboard')}
-          >
-            <UiIcon name="close" size={15} />          </button>
-        </div>
+        )}
         <div className="dashboard-loading-chart">{t('dashboard.loading_chart')}</div>
       </div>
     );
@@ -164,21 +169,23 @@ const SmartHopsChart: React.FC<SmartHopsChartProps> = ({
 
   if (error) {
     return (
-      <div ref={setNodeRef} style={style} className="dashboard-chart-container">
-        <div className="dashboard-chart-header">
-          <div className="dashboard-drag-handle" {...attributes} {...listeners}>
-            ⋮⋮
+      <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? undefined : 'dashboard-chart-container'}>
+        {!bare && (
+          <div className="dashboard-chart-header">
+            <div className="dashboard-drag-handle" {...attributes} {...listeners}>
+              ⋮⋮
+            </div>
+            <h3 className="dashboard-chart-title" title={label}>
+              {label}
+            </h3>
+            <button
+              className="dashboard-remove-btn"
+              onClick={handleRemoveClick}
+              aria-label={t('dashboard.remove_from_dashboard')}
+            >
+              <UiIcon name="close" size={15} />          </button>
           </div>
-          <h3 className="dashboard-chart-title" title={label}>
-            {label}
-          </h3>
-          <button
-            className="dashboard-remove-btn"
-            onClick={handleRemoveClick}
-            aria-label={t('dashboard.remove_from_dashboard')}
-          >
-            <UiIcon name="close" size={15} />          </button>
-        </div>
+        )}
         <div className="dashboard-error-chart">{t('dashboard.error_chart')}</div>
       </div>
     );
@@ -186,7 +193,31 @@ const SmartHopsChart: React.FC<SmartHopsChartProps> = ({
 
   if (chartData.length === 0) {
     return (
-      <div ref={setNodeRef} style={style} className="dashboard-chart-container">
+      <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? undefined : 'dashboard-chart-container'}>
+        {!bare && (
+          <div className="dashboard-chart-header">
+            <div className="dashboard-drag-handle" {...attributes} {...listeners}>
+              ⋮⋮
+            </div>
+            <h3 className="dashboard-chart-title" title={label}>
+              {label}
+            </h3>
+            <button
+              className="dashboard-remove-btn"
+              onClick={handleRemoveClick}
+              aria-label={t('dashboard.remove_from_dashboard')}
+            >
+              <UiIcon name="close" size={15} />          </button>
+          </div>
+        )}
+        <div className="dashboard-no-data">{t('info.smart_hops_no_data')}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? undefined : 'dashboard-chart-container'}>
+      {!bare && (
         <div className="dashboard-chart-header">
           <div className="dashboard-drag-handle" {...attributes} {...listeners}>
             ⋮⋮
@@ -199,29 +230,9 @@ const SmartHopsChart: React.FC<SmartHopsChartProps> = ({
             onClick={handleRemoveClick}
             aria-label={t('dashboard.remove_from_dashboard')}
           >
-            <UiIcon name="close" size={15} />          </button>
+            <UiIcon name="close" size={15} />        </button>
         </div>
-        <div className="dashboard-no-data">{t('info.smart_hops_no_data')}</div>
-      </div>
-    );
-  }
-
-  return (
-    <div ref={setNodeRef} style={style} className="dashboard-chart-container">
-      <div className="dashboard-chart-header">
-        <div className="dashboard-drag-handle" {...attributes} {...listeners}>
-          ⋮⋮
-        </div>
-        <h3 className="dashboard-chart-title" title={label}>
-          {label}
-        </h3>
-        <button
-          className="dashboard-remove-btn"
-          onClick={handleRemoveClick}
-          aria-label={t('dashboard.remove_from_dashboard')}
-        >
-          <UiIcon name="close" size={15} />        </button>
-      </div>
+      )}
       <ResponsiveContainer width="100%" height={200}>
         <ComposedChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />

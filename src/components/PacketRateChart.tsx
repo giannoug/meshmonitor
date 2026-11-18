@@ -31,6 +31,8 @@ interface PacketRateChartProps {
   baseUrl: string;
   globalTimeRange: [number, number] | null;
   onRemove: (nodeId: string, telemetryType: string) => void;
+  /** Workspace board (Task 8.1): the body only, without the card, drag handle, title and remove button. */
+  bare?: boolean;
 }
 
 // RX metrics configuration
@@ -123,6 +125,7 @@ const PacketRateChart: React.FC<PacketRateChartProps> = ({
   baseUrl,
   globalTimeRange,
   onRemove,
+  bare = false,
 }) => {
   const { t } = useTranslation();
   const { sourceId } = useSource();
@@ -190,21 +193,23 @@ const PacketRateChart: React.FC<PacketRateChartProps> = ({
 
   if (isLoading) {
     return (
-      <div ref={setNodeRef} style={style} className="dashboard-chart-container">
-        <div className="dashboard-chart-header">
-          <div className="dashboard-drag-handle" {...attributes} {...listeners}>
-            ⋮⋮
+      <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? undefined : 'dashboard-chart-container'}>
+        {!bare && (
+          <div className="dashboard-chart-header">
+            <div className="dashboard-drag-handle" {...attributes} {...listeners}>
+              ⋮⋮
+            </div>
+            <h3 className="dashboard-chart-title" title={label}>
+              {label}
+            </h3>
+            <button
+              className="dashboard-remove-btn"
+              onClick={handleRemoveClick}
+              aria-label={t('dashboard.remove_from_dashboard')}
+            >
+              <UiIcon name="close" size={15} />          </button>
           </div>
-          <h3 className="dashboard-chart-title" title={label}>
-            {label}
-          </h3>
-          <button
-            className="dashboard-remove-btn"
-            onClick={handleRemoveClick}
-            aria-label={t('dashboard.remove_from_dashboard')}
-          >
-            <UiIcon name="close" size={15} />          </button>
-        </div>
+        )}
         <div className="dashboard-loading-chart">{t('dashboard.loading_chart')}</div>
       </div>
     );
@@ -212,21 +217,23 @@ const PacketRateChart: React.FC<PacketRateChartProps> = ({
 
   if (error) {
     return (
-      <div ref={setNodeRef} style={style} className="dashboard-chart-container">
-        <div className="dashboard-chart-header">
-          <div className="dashboard-drag-handle" {...attributes} {...listeners}>
-            ⋮⋮
+      <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? undefined : 'dashboard-chart-container'}>
+        {!bare && (
+          <div className="dashboard-chart-header">
+            <div className="dashboard-drag-handle" {...attributes} {...listeners}>
+              ⋮⋮
+            </div>
+            <h3 className="dashboard-chart-title" title={label}>
+              {label}
+            </h3>
+            <button
+              className="dashboard-remove-btn"
+              onClick={handleRemoveClick}
+              aria-label={t('dashboard.remove_from_dashboard')}
+            >
+              <UiIcon name="close" size={15} />          </button>
           </div>
-          <h3 className="dashboard-chart-title" title={label}>
-            {label}
-          </h3>
-          <button
-            className="dashboard-remove-btn"
-            onClick={handleRemoveClick}
-            aria-label={t('dashboard.remove_from_dashboard')}
-          >
-            <UiIcon name="close" size={15} />          </button>
-        </div>
+        )}
         <div className="dashboard-error-chart">{t('dashboard.error_chart')}</div>
       </div>
     );
@@ -234,7 +241,31 @@ const PacketRateChart: React.FC<PacketRateChartProps> = ({
 
   if (chartData.length === 0) {
     return (
-      <div ref={setNodeRef} style={style} className="dashboard-chart-container">
+      <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? undefined : 'dashboard-chart-container'}>
+        {!bare && (
+          <div className="dashboard-chart-header">
+            <div className="dashboard-drag-handle" {...attributes} {...listeners}>
+              ⋮⋮
+            </div>
+            <h3 className="dashboard-chart-title" title={label}>
+              {label}
+            </h3>
+            <button
+              className="dashboard-remove-btn"
+              onClick={handleRemoveClick}
+              aria-label={t('dashboard.remove_from_dashboard')}
+            >
+              <UiIcon name="close" size={15} />          </button>
+          </div>
+        )}
+        <div className="dashboard-no-data">{t('info.no_rate_data')}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? undefined : 'dashboard-chart-container'}>
+      {!bare && (
         <div className="dashboard-chart-header">
           <div className="dashboard-drag-handle" {...attributes} {...listeners}>
             ⋮⋮
@@ -247,29 +278,9 @@ const PacketRateChart: React.FC<PacketRateChartProps> = ({
             onClick={handleRemoveClick}
             aria-label={t('dashboard.remove_from_dashboard')}
           >
-            <UiIcon name="close" size={15} />          </button>
+            <UiIcon name="close" size={15} />        </button>
         </div>
-        <div className="dashboard-no-data">{t('info.no_rate_data')}</div>
-      </div>
-    );
-  }
-
-  return (
-    <div ref={setNodeRef} style={style} className="dashboard-chart-container">
-      <div className="dashboard-chart-header">
-        <div className="dashboard-drag-handle" {...attributes} {...listeners}>
-          ⋮⋮
-        </div>
-        <h3 className="dashboard-chart-title" title={label}>
-          {label}
-        </h3>
-        <button
-          className="dashboard-remove-btn"
-          onClick={handleRemoveClick}
-          aria-label={t('dashboard.remove_from_dashboard')}
-        >
-          <UiIcon name="close" size={15} />        </button>
-      </div>
+      )}
       <DeviceCounterNote text={t('telemetry.device_counter_note')} />
       <ResponsiveContainer width="100%" height={200}>
         <ComposedChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>

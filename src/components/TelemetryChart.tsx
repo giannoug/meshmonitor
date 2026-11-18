@@ -57,6 +57,8 @@ interface TelemetryChartProps {
   globalMinTime: number | undefined;
   solarEstimates: Map<number, number>;
   onRemove: (nodeId: string, telemetryType: string) => void;
+  /** Workspace board (Task 8.1): the body only, without the card, drag handle, title and remove button. */
+  bare?: boolean;
   onDataLoaded?: (key: string, data: TelemetryData[]) => void;
   showSolar?: boolean;
   onToggleSolar?: (nodeId: string, telemetryType: string, show: boolean) => void;
@@ -435,6 +437,7 @@ const TelemetryChart: React.FC<TelemetryChartProps> = React.memo(
     globalMinTime,
     solarEstimates,
     onRemove,
+    bare = false,
     onDataLoaded,
     showSolar = true,
     onToggleSolar,
@@ -575,21 +578,23 @@ const TelemetryChart: React.FC<TelemetryChartProps> = React.memo(
     // Loading state
     if (isLoading) {
       return (
-        <div ref={setNodeRef} style={style} className="dashboard-chart-container">
-          <div className="dashboard-chart-header">
-            <div className="dashboard-drag-handle" {...attributes} {...listeners}>
-              ⋮⋮
+        <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? undefined : 'dashboard-chart-container'}>
+          {!bare && (
+            <div className="dashboard-chart-header">
+              <div className="dashboard-drag-handle" {...attributes} {...listeners}>
+                ⋮⋮
+              </div>
+              <h3 className="dashboard-chart-title" title={`${nodeName} - ${label}`}>
+                {nodeName} - {label}
+              </h3>
+              <button
+                className="dashboard-remove-btn"
+                onClick={handleRemoveClick}
+                aria-label={t('dashboard.remove_from_dashboard')}
+              >
+                <UiIcon name="close" size={15} />            </button>
             </div>
-            <h3 className="dashboard-chart-title" title={`${nodeName} - ${label}`}>
-              {nodeName} - {label}
-            </h3>
-            <button
-              className="dashboard-remove-btn"
-              onClick={handleRemoveClick}
-              aria-label={t('dashboard.remove_from_dashboard')}
-            >
-              <UiIcon name="close" size={15} />            </button>
-          </div>
+          )}
           <div className="dashboard-loading-chart">{t('dashboard.loading_chart')}</div>
         </div>
       );
@@ -598,21 +603,23 @@ const TelemetryChart: React.FC<TelemetryChartProps> = React.memo(
     // Error state
     if (error) {
       return (
-        <div ref={setNodeRef} style={style} className="dashboard-chart-container">
-          <div className="dashboard-chart-header">
-            <div className="dashboard-drag-handle" {...attributes} {...listeners}>
-              ⋮⋮
+        <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? undefined : 'dashboard-chart-container'}>
+          {!bare && (
+            <div className="dashboard-chart-header">
+              <div className="dashboard-drag-handle" {...attributes} {...listeners}>
+                ⋮⋮
+              </div>
+              <h3 className="dashboard-chart-title" title={`${nodeName} - ${label}`}>
+                {nodeName} - {label}
+              </h3>
+              <button
+                className="dashboard-remove-btn"
+                onClick={handleRemoveClick}
+                aria-label={t('dashboard.remove_from_dashboard')}
+              >
+                <UiIcon name="close" size={15} />            </button>
             </div>
-            <h3 className="dashboard-chart-title" title={`${nodeName} - ${label}`}>
-              {nodeName} - {label}
-            </h3>
-            <button
-              className="dashboard-remove-btn"
-              onClick={handleRemoveClick}
-              aria-label={t('dashboard.remove_from_dashboard')}
-            >
-              <UiIcon name="close" size={15} />            </button>
-          </div>
+          )}
           <div className="dashboard-error-chart">{t('dashboard.error_chart')}</div>
         </div>
       );
@@ -621,21 +628,23 @@ const TelemetryChart: React.FC<TelemetryChartProps> = React.memo(
     // No data state
     if (telemetryData.length === 0) {
       return (
-        <div ref={setNodeRef} style={style} className="dashboard-chart-container">
-          <div className="dashboard-chart-header">
-            <div className="dashboard-drag-handle" {...attributes} {...listeners}>
-              ⋮⋮
+        <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? undefined : 'dashboard-chart-container'}>
+          {!bare && (
+            <div className="dashboard-chart-header">
+              <div className="dashboard-drag-handle" {...attributes} {...listeners}>
+                ⋮⋮
+              </div>
+              <h3 className="dashboard-chart-title" title={`${nodeName} - ${label}`}>
+                {nodeName} - {label}
+              </h3>
+              <button
+                className="dashboard-remove-btn"
+                onClick={handleRemoveClick}
+                aria-label={t('dashboard.remove_from_dashboard')}
+              >
+                <UiIcon name="close" size={15} />            </button>
             </div>
-            <h3 className="dashboard-chart-title" title={`${nodeName} - ${label}`}>
-              {nodeName} - {label}
-            </h3>
-            <button
-              className="dashboard-remove-btn"
-              onClick={handleRemoveClick}
-              aria-label={t('dashboard.remove_from_dashboard')}
-            >
-              <UiIcon name="close" size={15} />            </button>
-          </div>
+          )}
           <div className="dashboard-no-data">{t('dashboard.no_chart_data')}</div>
         </div>
       );
@@ -707,14 +716,18 @@ const TelemetryChart: React.FC<TelemetryChartProps> = React.memo(
     const uptimeFormatter = display.formatValue;
 
     return (
-      <div ref={setNodeRef} style={style} className="dashboard-chart-container">
+      <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? undefined : 'dashboard-chart-container'}>
         <div className="dashboard-chart-header">
-          <div className="dashboard-drag-handle" {...attributes} {...listeners}>
-            ⋮⋮
-          </div>
-          <h3 className="dashboard-chart-title" title={`${nodeName} - ${label} ${unit ? `(${unit})` : ''}`}>
-            {nodeName} - {label} {unit && `(${unit})`}
-          </h3>
+          {!bare && (
+            <div className="dashboard-drag-handle" {...attributes} {...listeners}>
+              ⋮⋮
+            </div>
+          )}
+          {!bare && (
+            <h3 className="dashboard-chart-title" title={`${nodeName} - ${label} ${unit ? `(${unit})` : ''}`}>
+              {nodeName} - {label} {unit && `(${unit})`}
+            </h3>
+          )}
           <div className="dashboard-chart-actions">
             <div className="mode-toggle-group" role="group" aria-label="Display mode">
               <button
@@ -772,12 +785,14 @@ const TelemetryChart: React.FC<TelemetryChartProps> = React.memo(
             >
               <UiIcon name="downloadData" size={15} />
             </button>
-            <button
-              className="dashboard-remove-btn"
-              onClick={handleRemoveClick}
-              aria-label={t('dashboard.remove_from_dashboard')}
-            >
-              <UiIcon name="close" size={15} />            </button>
+            {!bare && (
+              <button
+                className="dashboard-remove-btn"
+                onClick={handleRemoveClick}
+                aria-label={t('dashboard.remove_from_dashboard')}
+              >
+                <UiIcon name="close" size={15} />            </button>
+            )}
           </div>
         </div>
 

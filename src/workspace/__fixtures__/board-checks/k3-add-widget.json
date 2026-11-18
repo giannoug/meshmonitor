@@ -2,11 +2,11 @@
   "must": [
     "Add widget",
     "Telemetry chart",
-    "Watched nodes",
+    "Node Status",
     "Traceroute",
     "Distance",
-    "Hops × distance",
-    "Live mesh activity",
+    "Hop/Distance Heatmap",
+    "Live Mesh Activity",
     "Edit dashboard"
   ],
   "absent": [

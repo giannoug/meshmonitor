@@ -17,6 +17,8 @@ interface HopDistributionWidgetProps {
   id: string;
   nodes: Map<string, NodeInfo>;
   onRemove: () => void;
+  /** Workspace board (Task 8.1): the body only, without the card, drag handle, title and remove button. */
+  bare?: boolean;
   canEdit?: boolean;
 }
 
@@ -32,6 +34,7 @@ const HopDistributionWidget: React.FC<HopDistributionWidgetProps> = ({
   id,
   nodes,
   onRemove,
+  bare = false,
   canEdit = true,
 }) => {
   const { t } = useTranslation();
@@ -96,18 +99,20 @@ const HopDistributionWidget: React.FC<HopDistributionWidgetProps> = ({
       : getHopColor(hop, overlayColors.hopColors);
 
   return (
-    <div ref={setNodeRef} style={style} className="dashboard-chart-container hop-distribution-widget">
-      <div className="dashboard-chart-header">
-        <span className="dashboard-drag-handle" {...attributes} {...listeners}>
-          ⋮⋮
-        </span>
-        <h3 className="dashboard-chart-title">{t('dashboard.widget.hop_distribution.title')}</h3>
-        {canEdit && (
-          <button className="dashboard-remove-btn" onClick={onRemove} title={t('dashboard.remove_widget')} aria-label={t('dashboard.remove_widget')}>
-            ×
-          </button>
-        )}
-      </div>
+    <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? 'hop-distribution-widget' : 'dashboard-chart-container hop-distribution-widget'}>
+      {!bare && (
+        <div className="dashboard-chart-header">
+          <span className="dashboard-drag-handle" {...attributes} {...listeners}>
+            ⋮⋮
+          </span>
+          <h3 className="dashboard-chart-title">{t('dashboard.widget.hop_distribution.title')}</h3>
+          {canEdit && (
+            <button className="dashboard-remove-btn" onClick={onRemove} title={t('dashboard.remove_widget')} aria-label={t('dashboard.remove_widget')}>
+              ×
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="hop-distribution-content">
         {/* Summary stats */}

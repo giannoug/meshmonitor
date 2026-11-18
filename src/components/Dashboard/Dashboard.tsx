@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { arrayMove } from '@dnd-kit/sortable';
 import { DragEndEvent } from '@dnd-kit/core';
@@ -6,15 +6,14 @@ import '../Dashboard.css';
 import { logger } from '../../utils/logger';
 import { useCsrfFetch } from '../../hooks/useCsrfFetch';
 import { useSolarEstimatesLatest } from '../../hooks/useTelemetry';
-import { type TelemetryData } from '../../hooks/useTelemetry';
 import AddWidgetModal from '../AddWidgetModal';
 import { DashboardHeader, DashboardFilters, DashboardGrid } from './components';
 import { useDashboardData, useDashboardFilters, useCustomWidgets } from './hooks';
+import { useChartSettings, useGlobalTimeRange } from './hooks/useChartSettings';
 import { type DashboardProps } from './types';
 import { meshtasticDashboardSource } from './dataSources';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useSource } from '../../contexts/SourceContext';
-import { CHART_Y_RANGE_SETTING, withChartYRange, type ChartYRange } from '../../utils/chartYRange';
 import { SourceNotConnectedNotice } from '../common/SourceNotConnectedNotice';
 
 const Dashboard: React.FC<DashboardProps> = React.memo(
@@ -37,9 +36,6 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
     // Modal state
     const [showAddWidgetModal, setShowAddWidgetModal] = useState(false);
 
-    // Track telemetry data from charts for global time range calculation
-    const [telemetryDataMap, setTelemetryDataMap] = useState<Map<string, TelemetryData[]>>(new Map());
-
     // Data fetching hook
     const {
       favorites,
@@ -58,60 +54,14 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
       notConnected,
     } = useDashboardData({ dataSource });
 
-    // Get solar visibility for a specific chart (uses type-based default if not set)
-    const getSolarVisibility = useCallback((nodeId: string, telemetryType: string): boolean => {
-      const key = `${nodeId}-${telemetryType}`;
-      if (key in solarVisibility) {
-        return solarVisibility[key];
-      }
-      // Default based on telemetry type (per-source — Meshtastic and MeshCore
-      // each carry their own default-on type lists).
-      return dataSource.solarDefaultTypes.has(telemetryType);
-    }, [solarVisibility, dataSource]);
-
-    // Toggle solar visibility for a specific chart and save to server
-    const handleToggleSolar = useCallback(async (nodeId: string, telemetryType: string, show: boolean) => {
-      const key = `${nodeId}-${telemetryType}`;
-      const newSolarVisibility = {
-        ...solarVisibility,
-        [key]: show,
-      };
-
-      // Update local state immediately
-      setSolarVisibility(newSolarVisibility);
-
-      // Save to server
-      try {
-        await csrfFetch(`${baseUrl}/api/settings${sourceQuery}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dashboardSolarVisibility: JSON.stringify(newSolarVisibility) }),
-        });
-      } catch (err) {
-        logger.error('Error saving solar visibility:', err);
-      }
-    }, [solarVisibility, setSolarVisibility, csrfFetch, baseUrl, sourceQuery]);
-
-    // Fixed Y-axis range per chart widget (#6348), keyed like solar visibility.
-    const getYRange = useCallback(
-      (nodeId: string, telemetryType: string): ChartYRange | null =>
-        chartYRanges[`${nodeId}-${telemetryType}`] ?? null,
-      [chartYRanges],
-    );
-
-    const handleYRangeChange = useCallback(async (nodeId: string, telemetryType: string, range: ChartYRange | null) => {
-      const next = withChartYRange(chartYRanges, `${nodeId}-${telemetryType}`, range);
-      setChartYRanges(next);
-      try {
-        await csrfFetch(`${baseUrl}/api/settings${sourceQuery}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ [CHART_Y_RANGE_SETTING]: JSON.stringify(next) }),
-        });
-      } catch (err) {
-        logger.error('Error saving chart Y-axis range:', err);
-      }
-    }, [chartYRanges, setChartYRanges, csrfFetch, baseUrl, sourceQuery]);
+    const { getSolarVisibility, handleToggleSolar, getYRange, handleYRangeChange } = useChartSettings({
+      baseUrl,
+      dataSource,
+      solarVisibility,
+      setSolarVisibility,
+      chartYRanges,
+      setChartYRanges,
+    });
 
     // Filters hook
     const {
@@ -157,35 +107,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
       enabled: true,
     });
 
-    // Callback for charts to report their data (for global time range)
-    const handleDataLoaded = useCallback((key: string, data: TelemetryData[]) => {
-      setTelemetryDataMap(prev => {
-        const next = new Map(prev);
-        next.set(key, data);
-        return next;
-      });
-    }, []);
-
-    // Calculate global time range across all telemetry data
-    const globalTimeRange = useMemo((): [number, number] | null => {
-      let minTime = Infinity;
-      let maxTime = -Infinity;
-
-      telemetryDataMap.forEach(data => {
-        data.forEach(item => {
-          if (item.timestamp < minTime) minTime = item.timestamp;
-          if (item.timestamp > maxTime) maxTime = item.timestamp;
-        });
-      });
-
-      if (minTime === Infinity || maxTime === -Infinity) {
-        return null;
-      }
-
-      return [minTime, maxTime];
-    }, [telemetryDataMap]);
-
-    const globalMinTime = globalTimeRange ? globalTimeRange[0] : undefined;
+    const { handleDataLoaded, forgetChart, globalTimeRange, globalMinTime } = useGlobalTimeRange();
 
     // Handle drag end
     const handleDragEnd = useCallback(
@@ -234,12 +156,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
           setFavorites(newFavorites);
 
           // Remove from telemetry data map
-          const key = `${nodeId}-${telemetryType}`;
-          setTelemetryDataMap(prev => {
-            const next = new Map(prev);
-            next.delete(key);
-            return next;
-          });
+          forgetChart(`${nodeId}-${telemetryType}`);
 
           // Save to server
           await csrfFetch(`${baseUrl}/api/settings${sourceQuery}`, {
@@ -253,7 +170,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
           window.location.reload();
         }
       },
-      [favorites, setFavorites, baseUrl, csrfFetch, sourceQuery]
+      [favorites, setFavorites, forgetChart, baseUrl, csrfFetch, sourceQuery]
     );
 
     if (loading) {

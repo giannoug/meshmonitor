@@ -33,6 +33,8 @@ interface TransportSeriesChartProps {
   baseUrl: string;
   globalTimeRange: [number, number] | null;
   onRemove: (nodeId: string, telemetryType: string) => void;
+  /** Workspace board (Task 8.1): the body only, without the card, drag handle, title and remove button. */
+  bare?: boolean;
 }
 
 const TransportSeriesChart: React.FC<TransportSeriesChartProps> = ({
@@ -43,6 +45,7 @@ const TransportSeriesChart: React.FC<TransportSeriesChartProps> = ({
   baseUrl,
   globalTimeRange,
   onRemove,
+  bare = false,
 }) => {
   const { t } = useTranslation();
   const { sourceId } = useSource();
@@ -103,8 +106,8 @@ const TransportSeriesChart: React.FC<TransportSeriesChartProps> = ({
 
   if (isLoading) {
     return (
-      <div ref={setNodeRef} style={style} className="dashboard-chart-container">
-        {header}
+      <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? undefined : 'dashboard-chart-container'}>
+        {!bare && header}
         <div className="dashboard-loading-chart">{t('dashboard.loading_chart')}</div>
       </div>
     );
@@ -112,8 +115,8 @@ const TransportSeriesChart: React.FC<TransportSeriesChartProps> = ({
 
   if (error) {
     return (
-      <div ref={setNodeRef} style={style} className="dashboard-chart-container">
-        {header}
+      <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? undefined : 'dashboard-chart-container'}>
+        {!bare && header}
         <div className="dashboard-error-chart">{t('dashboard.error_chart')}</div>
       </div>
     );
@@ -121,16 +124,16 @@ const TransportSeriesChart: React.FC<TransportSeriesChartProps> = ({
 
   if (!hasData) {
     return (
-      <div ref={setNodeRef} style={style} className="dashboard-chart-container">
-        {header}
+      <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? undefined : 'dashboard-chart-container'}>
+        {!bare && header}
         <div className="dashboard-no-data">{t('info.transport_series_empty')}</div>
       </div>
     );
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="dashboard-chart-container">
-      {header}
+    <div ref={bare ? undefined : setNodeRef} style={bare ? undefined : style} className={bare ? undefined : 'dashboard-chart-container'}>
+      {!bare && header}
       <TransportSeriesPlot rows={rows} kind={kind} averaged={averaged} timeRange={globalTimeRange} />
     </div>
   );

@@ -10,6 +10,8 @@ interface UseCustomWidgetsOptions {
   baseUrl: string;
   customWidgets: CustomWidget[];
   setCustomWidgets: React.Dispatch<React.SetStateAction<CustomWidget[]>>;
+  /** Where a changed list is saved; default: today's install-wide `dashboardWidgets` (the Workspace board saves per user). */
+  saveWidgets?: (widgets: CustomWidget[]) => void | Promise<void>;
 }
 
 interface UseCustomWidgetsResult {
@@ -21,6 +23,17 @@ interface UseCustomWidgetsResult {
   updateWidgetConfig: (widgetId: string, updates: Record<string, unknown>) => void;
 }
 
+/** A new widget of `type` with today's defaults. */
+export function createWidget(type: WidgetType): CustomWidget {
+  const id = `widget-${Date.now()}`;
+  if (type === 'nodeStatus') return { id, type: 'nodeStatus', nodeIds: [] };
+  if (type === 'traceroute') return { id, type: 'traceroute', targetNodeId: null };
+  if (type === 'hopDistribution') return { id, type: 'hopDistribution' };
+  if (type === 'distanceDistribution') return { id, type: 'distanceDistribution', bucketSize: 5 };
+  if (type === 'liveMeshActivity') return { id, type: 'liveMeshActivity', windowMinutes: NODE_ACTIVITY_DEFAULT_WINDOW };
+  return { id, type: 'hopDistanceHeatmap', bucketSize: 5 };
+}
+
 /**
  * Hook for managing custom dashboard widgets (NodeStatus, Traceroute)
  */
@@ -28,6 +41,7 @@ export function useCustomWidgets({
   baseUrl,
   customWidgets,
   setCustomWidgets,
+  saveWidgets: saveOverride,
 }: UseCustomWidgetsOptions): UseCustomWidgetsResult {
   const csrfFetch = useCsrfFetch();
   const { sourceId } = useSource();
@@ -35,6 +49,7 @@ export function useCustomWidgets({
 
   // Save widgets to server
   const saveWidgets = useCallback(async (widgets: CustomWidget[]) => {
+    if (saveOverride) return saveOverride(widgets);
     try {
       await csrfFetch(`${baseUrl}/api/settings${sourceQuery}`, {
         method: 'POST',
@@ -44,26 +59,11 @@ export function useCustomWidgets({
     } catch (error) {
       logger.error('Error saving widgets:', error);
     }
-  }, [baseUrl, csrfFetch, sourceQuery]);
+  }, [baseUrl, csrfFetch, sourceQuery, saveOverride]);
 
   // Add a new widget
   const addWidget = useCallback((type: WidgetType) => {
-    const id = `widget-${Date.now()}`;
-    let newWidget: CustomWidget;
-
-    if (type === 'nodeStatus') {
-      newWidget = { id, type: 'nodeStatus', nodeIds: [] };
-    } else if (type === 'traceroute') {
-      newWidget = { id, type: 'traceroute', targetNodeId: null };
-    } else if (type === 'hopDistribution') {
-      newWidget = { id, type: 'hopDistribution' };
-    } else if (type === 'distanceDistribution') {
-      newWidget = { id, type: 'distanceDistribution', bucketSize: 5 };
-    } else if (type === 'liveMeshActivity') {
-      newWidget = { id, type: 'liveMeshActivity', windowMinutes: NODE_ACTIVITY_DEFAULT_WINDOW };
-    } else {
-      newWidget = { id, type: 'hopDistanceHeatmap', bucketSize: 5 };
-    }
+    const newWidget = createWidget(type);
 
     const newWidgets = [...customWidgets, newWidget];
     setCustomWidgets(newWidgets);

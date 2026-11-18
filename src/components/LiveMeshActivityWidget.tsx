@@ -34,6 +34,8 @@ interface LiveMeshActivityWidgetProps {
   windowMinutes: number;
   onWindowChange: (windowMinutes: number) => void;
   onRemove: () => void;
+  /** Workspace board (Task 8.1): the body only, without the card, drag handle, title and remove button. */
+  bare?: boolean;
   onOpenNodeDetails?: (nodeId: string) => void;
   canEdit?: boolean;
 }
@@ -56,6 +58,7 @@ const LiveMeshActivityWidget: React.FC<LiveMeshActivityWidgetProps> = ({
   windowMinutes,
   onWindowChange,
   onRemove,
+  bare = false,
   onOpenNodeDetails,
   canEdit = true,
 }) => {
@@ -262,21 +265,23 @@ const LiveMeshActivityWidget: React.FC<LiveMeshActivityWidgetProps> = ({
 
   return (
     <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
-      className="dashboard-chart-container live-mesh-activity-widget"
+      ref={bare ? undefined : setNodeRef}
+      style={bare ? undefined : { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
+      className={bare ? 'live-mesh-activity-widget' : 'dashboard-chart-container live-mesh-activity-widget'}
     >
-      <div className="dashboard-chart-header">
-        <span className="dashboard-drag-handle" {...attributes} {...listeners}>
-          <UiIcon name="dragHandle" size={14} />
-        </span>
-        <h3 className="dashboard-chart-title">{t('dashboard.widget.live_mesh_activity.title')}</h3>
-        {canEdit && (
-          <button className="dashboard-remove-btn" onClick={onRemove} title={t('dashboard.remove_widget')} aria-label={t('dashboard.remove_widget')}>
-            <UiIcon name="close" size={14} />
-          </button>
-        )}
-      </div>
+      {!bare && (
+        <div className="dashboard-chart-header">
+          <span className="dashboard-drag-handle" {...attributes} {...listeners}>
+            <UiIcon name="dragHandle" size={14} />
+          </span>
+          <h3 className="dashboard-chart-title">{t('dashboard.widget.live_mesh_activity.title')}</h3>
+          {canEdit && (
+            <button className="dashboard-remove-btn" onClick={onRemove} title={t('dashboard.remove_widget')} aria-label={t('dashboard.remove_widget')}>
+              <UiIcon name="close" size={14} />
+            </button>
+          )}
+        </div>
+      )}
 
       <div className={styles.controls}>
         <label className={styles.control}>

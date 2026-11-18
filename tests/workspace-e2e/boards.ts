@@ -2,7 +2,7 @@
  * Boards screenshotted by `npm run test:workspace-e2e`. Each task that builds a
  * board adds its entry here (board protocol step BP6).
  */
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { athensFixture } from '../../src/workspace/__fixtures__/athens';
 import { renumberedFixtures } from '../../src/workspace/node-page/__tests__/nodePageFixtures';
 import { captureOn } from '../../src/workspace/__fixtures__/packets';
@@ -22,6 +22,7 @@ import { devicesFixtures, type DevicesFixtureOptions } from '../../src/workspace
 import { MC, meshcoreFixtures, type MeshCoreFixtureOptions } from '../../src/workspace/__fixtures__/meshcore';
 import { regionFeedFixtures } from '../../src/workspace/__fixtures__/meshcoreTools';
 import { RNS, reticulumFixtures, type ReticulumFixtureOptions } from '../../src/workspace/__fixtures__/reticulum';
+import { dashboardFixtures, phoneBoard, savedBoard } from '../../src/workspace/__fixtures__/dashboard';
 
 export interface Board {
   id: string;
@@ -2043,7 +2044,38 @@ export const BOARDS: Board[] = [
   { id: '9-14-map-connections', size: 'phone', path: '/source/src-rns/map', fixtures: RETICULUM(), setup: rnsConnections },
   { id: '9-15-settings-identity', size: 'phone', path: '/source/src-rns/settings/lxmf-identity', fixtures: RETICULUM({ cooldownRemainingSeconds: 42 }), setup: (page) => page.getByText(/Announce now \(\d+ s\)/).waitFor() },
   { id: '9-16-info', size: 'phone', path: '/source/src-rns/info', fixtures: RETICULUM(), setup: (page) => page.getByText('0.9.6').waitFor() },
+  // Task 8.1: Station G2's Dashboard, the user's saved board (j1's order; k1/k2 the phone board's).
+  { id: 'j1-dashboard', size: 'desktop', path: '/source/src-g2/dashboard', fixtures: DASHBOARD(savedBoard), setup: dashboardLoaded },
+  { id: 'j2-dashboard-edit', size: 'desktop', path: '/source/src-g2/dashboard', fixtures: DASHBOARD(savedBoard), setup: (page) => editDashboard(page, true) },
+  { id: 'k1-dashboard', size: 'phone', path: '/source/src-g2/dashboard', fixtures: DASHBOARD(phoneBoard), setup: dashboardLoaded },
+  { id: 'k2-dashboard-edit', size: 'phone', path: '/source/src-g2/dashboard', fixtures: DASHBOARD(phoneBoard), setup: (page) => editDashboard(page, false) },
+  { id: 'k3-add-widget', size: 'phone', path: '/source/src-g2/dashboard', fixtures: DASHBOARD(phoneBoard), setup: (page) => editDashboard(page, true) },
 ];
+
+/** Station G2's Dashboard with the user's saved board, a fresh log per board. */
+function DASHBOARD(saved: unknown): Board['fixtures'] {
+  return dashboardFixtures({ writes: [] }, { saved });
+}
+
+/** The strip and the board's first chart have drawn. */
+async function dashboardLoaded(page: Page): Promise<void> {
+  await page.getByText('Nodes online').waitFor();
+  await page.locator('.recharts-surface').first().waitFor();
+}
+
+/** Edit mode (j2, k2), then the Add widget sheet when asked (j2, k3). */
+async function editDashboard(page: Page, add: boolean): Promise<void> {
+  await dashboardLoaded(page);
+  const edit = page.getByRole('button', { name: 'Edit', exact: true });
+  // A click on a disabled button is dropped silently: wait until the user could press it.
+  await expect(edit).toBeEnabled();
+  await edit.click();
+  await page.getByRole('list', { name: 'Your board' }).waitFor();
+  if (!add) return;
+  await page.getByRole('button', { name: 'Add widget' }).click();
+  await page.getByRole('dialog', { name: 'Add widget' }).waitFor();
+}
+
 
 /** Reticulum node's section 9 data, a fresh log per board. */
 function RETICULUM(opts?: ReticulumFixtureOptions): Board['fixtures'] {
