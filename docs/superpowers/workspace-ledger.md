@@ -1341,3 +1341,24 @@ Ruling: 7.4 all — an unknown MeshCore role offers only the pages every role ha
 Ruling: 7.4 all — Purge all messages checks `messages:write` on this source, narrower than today's sourceless check (HO) — why: CLAUDE.md requires per-source permission checks on a route that acts on a `sourceId` — cost if wrong: a user with `messages:write` only on another source loses Purge here. FINAL REPORT ITEM.
 Ruling: 7.4 all — `AclManager` takes `run(command)` and its `sends` text, and `HistoryPanel` takes a history target string. This lets 7.3's pieces serve this radio's console without a fork — cost if wrong: none (7.3's callers pass the same values; its boards and tests are green).
 Ruling: 7.4 all — the one-sweep guard is a per-source store (`sweepStore.ts`), not runtime state — why: it must outlive the page and be read by both pages — cost if wrong: none.
+
+## Task 7.5 — MeshCore packets, info, automations, region feed
+
+Ruling: 7.5 HP — fix I1–I5. The dock line is accurate per built-in: where today's server runs or re-arms on save, say so in today's terms; otherwise say saving sends nothing. This is wording, not a limit, so no user decision is needed; the re-arm behaviour itself stays a FINAL REPORT ITEM. Use today's meshcore.advert.flood_automated_warning, shown for flood only (D9b). The region feed's Nodes and Channels reuse 7.2's MeshCoreNodesTable and 7.1's channel thread, read-only, per s8n5.
+Ruling: 7.5 HQ — promote minors:
+Ruling: 7.5 HR — MeshCore map, the channels/rooms/dms list views, telemetry, notifications and security stay re-hosted. No board in Section 8 draws them as pages (the review confirmed this), so building them would be design without a canvas. FINAL REPORT ITEM: the plan gap.
+Ruling: 7.5 8-12/8-29 — titles "Packet Monitor" / "Packet Decode" (today's en.json); must lists edited — why: D9b — cost if wrong: case.
+Ruling: 7.5 8-13 — "Add to favorites" (today's favourite, which puts the graph on the Dashboard) for the board's "Add to Dashboard"; must list edited — why: D9b — cost if wrong: two words.
+Ruling: 7.5 8-14 — titles in en.json win (Auto Ping, Auto Delete by Distance, Time Sync, Remote Telemetry, Auto Favorite, Auto Welcome); the hard-coded ones take the board's words (Auto-pathfinding, Auto-ack, Auto-announce, Auto-responder, Timer triggers); must list edited — why: D9b, ledger 3.1/4.8 precedent — cost if wrong: string swaps.
+Ruling: 7.5 8-12 — Decrypt is a label, not a button: today decrypts once when a group frame opens; the board's "Decrypt" shows next to the result — why: D9d, same single request — cost if wrong: one click.
+Ruling: 7.5 8-12 — a grouped row's observers come from today's `packets/receptions` route (once per open) — why: the board lists them; today's view only shows the count — cost if wrong: one read per open.
+Ruling: 7.5 8-12 — default view All (today), Grouped one click away; Size and Path columns kept; the time-window select kept — why: GR/D9d — cost if wrong: the board's default.
+Ruling: 7.5 8-14 — Timer triggers, Time Sync and Remote Telemetry have no overview switch (on/off per trigger or node today); they show On/Off — why: no such switch today — cost if wrong: three switches.
+Ruling: 7.5 8-14 — engine rules switch at once (today's engine page), built-ins queue in the dock — why: today's two behaviours — cost if wrong: one more dock.
+Ruling: 7.5 all — the twelve built-in pages are drawn on the row kit from one table (builtins.ts), lists edit in a sheet; script management stays in Server › Scripts; the token reference is a hint line — why: HK — cost if wrong: the responder's script panel one hop away.
+Ruling: 7.5 all — Auto Delete by Distance's Run now asks first (ConfirmSheet with today's description) — why: a destructive control (global constraint), today has no confirm words — cost if wrong: one extra press.
+Ruling: 7.5 8-15/8-23 — the feed's Overview reads nodes, messages and (desktop) two packets on open — why: the board draws them — cost if wrong: three reads per open, no poll.
+Ruling: 7.5 8-12/8-13 — More tools… stays a menu (7.1) rather than the board's expanded sub-list — why: 7.1 Ruling and its test — cost if wrong: a sidebar disclosure.
+Ruling: 7.5 8-13 — graphs are sparklines (SVG title shows the last value) rather than recharts with axes and tooltips — why: board; module tokens — cost if wrong: hover values.
+Ruling: 7.5 HR — MeshCore `map`, the `channels`/`rooms`/`dms` list views, `telemetry`, `notifications` and `security` stay re-hosted — why: no Section 8 board draws them as pages (review confirmed) — cost if wrong: a later task builds them.
+Ruling: 7.5 I2 — the feed's Channels tab uses 6.7's receive-only line as is; its text ("… Open a Meshtastic source to send.") names Meshtastic — why: the shared line, no new copy — cost if wrong: one sentence.
