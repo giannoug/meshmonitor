@@ -261,6 +261,21 @@ export function useSourceStatuses(sourceIds: string[]): Map<string, SourceStatus
 }
 
 /**
+ * One source's status as the polls above last read it, for a page that sits
+ * beside them (the Workspace Dashboard, Task 8.1): the same query, with no
+ * fetch and no timer of its own, so it adds no request.
+ */
+export function useCachedSourceStatus(sourceId: string): SourceStatus | null {
+  const { isAuthenticated } = useDashboardAuthGate();
+  const { data } = useQuery({
+    queryKey: ['dashboard', 'status', sourceId, isAuthenticated],
+    queryFn: () => fetchJson<SourceStatus>(`${appBasename}/api/sources/${sourceId}/status`),
+    enabled: false,
+  });
+  return data ?? null;
+}
+
+/**
  * Aggregate status returned by GET /api/unified/status — a deduped count of
  * nodes across every readable source plus a flag indicating whether at least
  * one source is currently connected.

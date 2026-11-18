@@ -26,7 +26,11 @@ export interface UserBoardValue {
 }
 
 export interface UserBoard extends UserBoardValue {
-  /** The settings read the seed comes from has landed (always, for the Overview). */
+  /**
+   * The user's preferences have loaded, and so has the settings read the seed
+   * comes from (the Overview has none). Until then nothing may save: a seed
+   * written over a saved board would lose it.
+   */
   ready: boolean;
   setWidgets(widgets: CustomWidget[]): Promise<void>;
   setOrder(order: string[]): Promise<void>;
@@ -49,7 +53,7 @@ export function seedBoard(settings: DashboardSettings | undefined): UserBoardVal
 
 export function useUserBoard(id: string): UserBoard {
   const key = `dashboard.${id}`;
-  const { prefs, setPref } = useUserPreferences();
+  const { prefs, setPref, isSuccess: prefsLoaded } = useUserPreferences();
   const overview = id === 'overview';
   const seed = useQuery({
     queryKey: dashboardQueryKeys.settings(id),
@@ -64,7 +68,7 @@ export function useUserBoard(id: string): UserBoard {
   const setWidgets = useCallback((widgets: CustomWidget[]) => setBoard({ ...board, widgets }), [setBoard, board]);
   const setOrder = useCallback((order: string[]) => setBoard({ ...board, order }), [setBoard, board]);
 
-  return { ...board, ready: overview || seed.isSuccess || isBoard(saved), setWidgets, setOrder, setBoard };
+  return { ...board, ready: prefsLoaded && (overview || seed.isSuccess || isBoard(saved)), setWidgets, setOrder, setBoard };
 }
 
 export type BoardItem =

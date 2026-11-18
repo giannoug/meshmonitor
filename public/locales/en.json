@@ -8873,6 +8873,8 @@
   "workspace.dashboard.nodes_count_one": "{{count}} node",
   "workspace.dashboard.nodes_count_other": "{{count}} nodes",
   "workspace.dashboard.drag": "Drag {{name}}",
+  "workspace.dashboard.chart_shared": "Shared star: removing it unstars it for everyone",
+  "workspace.dashboard.no_match": "No charts match the filters",
   "workspace.dashboard.remove_named": "Remove {{name}}",
   "workspace.dashboard.add_named": "Add {{name}}",
   "workspace.dashboard.card_menu": "{{name}} options",

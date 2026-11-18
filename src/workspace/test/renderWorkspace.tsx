@@ -80,7 +80,7 @@ function mediaMatches(query: string, width: number): boolean {
   );
 }
 
-export function renderWorkspace(ui: ReactElement, opts: RenderWorkspaceOptions = {}): RenderResult & { rerenderWorkspace(): void } {
+export function renderWorkspace(ui: ReactElement, opts: RenderWorkspaceOptions = {}): RenderResult & { rerenderWorkspace(): void; queryClient: QueryClient } {
   const route = opts.route ?? '/';
   const authStatus = authStatusFor(opts);
   const api = fixtureApi({ 'GET /api/auth/status': () => authStatus, ...opts.fixtures });
@@ -142,7 +142,7 @@ export function renderWorkspace(ui: ReactElement, opts: RenderWorkspaceOptions =
   const result = render(tree(ui));
   // Re-render the same tree with fresh elements all the way down, so no component bails out on an
   // unchanged element: a real re-render of everything mounted, with its state kept.
-  return Object.assign(result, { rerenderWorkspace: () => result.rerender(tree(fresh(ui) as ReactElement)) });
+  return Object.assign(result, { rerenderWorkspace: () => result.rerender(tree(fresh(ui) as ReactElement)), queryClient });
 }
 
 /** A copy of an element tree whose elements (children and element-valued props, e.g. Route's `element`) are all new objects. */

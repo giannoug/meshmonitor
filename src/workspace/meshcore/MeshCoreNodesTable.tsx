@@ -11,7 +11,7 @@
  * over its link and sends nothing on the mesh; the star is today's favourite.
  */
 import { useCallback, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import type { NodeFilterFeature } from '../../components/AdvancedNodeFilterPopup/AdvancedNodeFilterPopup';
@@ -45,6 +45,7 @@ import {
 import { orderFavoritesFirst, sortByKey } from '../../utils/nodeSort';
 import { NODE_TYPE_CATEGORY_META } from '../../utils/nodeTypeCategory';
 import { isHeardRecently } from '../chat/channelLabel';
+import { tileTitle } from '../dashboard/healthTiles';
 import NodeFiltersSheet from '../nodes/NodeFiltersSheet';
 import nodesStyles from '../nodes/NodesTable.module.css';
 import ConfirmSheet from '../patterns/ConfirmSheet';
@@ -88,6 +89,17 @@ export interface MeshCoreNodesTableProps {
   feed?: boolean;
 }
 
+const TILE_SCOPES = ['online', 'direct', 'favorites'] as const;
+type TileScope = (typeof TILE_SCOPES)[number];
+const TILE_TITLES = { online: 'nodesOnline', direct: 'direct', favorites: 'favorites' } as const;
+
+/** The Dashboard tiles' predicates (healthTiles): heard lately, no hops, a favourite. */
+function inTileScope(r: MeshCoreNodeRow, scope: TileScope): boolean {
+  if (scope === 'online') return isHeardRecently(r.lastHeard ? r.lastHeard / 1000 : undefined);
+  if (scope === 'direct') return r.pathLen === 0;
+  return !!r.isFavorite;
+}
+
 export default function MeshCoreNodesTable({ feed = false }: MeshCoreNodesTableProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
@@ -114,6 +126,9 @@ export default function MeshCoreNodesTable({ feed = false }: MeshCoreNodesTableP
   const [importing, setImporting] = useState(false);
   const [newKeys, setNewKeys] = useState<Set<string>>(() => new Set());
   const [favBusy, setFavBusy] = useState<string | null>(null);
+  const [params] = useSearchParams();
+  // A Dashboard health tile opens the list on its scope (`?show=`, Task 8.1), shown as a chip while on.
+  const [tileScope, setTileScope] = useState<TileScope | null>(() => (feed ? null : TILE_SCOPES.find((x) => x === params.get('show')) ?? null));
 
   const merged = useMemo(() => mergeNodesAndContacts(nodes, contacts, hidden), [nodes, contacts, hidden]);
   const aged = useMemo(
@@ -125,8 +140,14 @@ export default function MeshCoreNodesTable({ feed = false }: MeshCoreNodesTableP
     [merged, quickAgeHours, display.maxNodeAgeHours, display.maxInfraNodeAgeHours, display.hideIncompleteNodes],
   );
   const filtered = useMemo(
-    () => aged.filter((r) => passesNodeFilters(toMeshCoreFilterSubject(r), nodeFilters, { securityFilter }) && (!favouritesOnly || r.isFavorite)),
-    [aged, nodeFilters, securityFilter, favouritesOnly],
+    () =>
+      aged.filter(
+        (r) =>
+          passesNodeFilters(toMeshCoreFilterSubject(r), nodeFilters, { securityFilter }) &&
+          (!favouritesOnly || r.isFavorite) &&
+          (!tileScope || inTileScope(r, tileScope)),
+      ),
+    [aged, nodeFilters, securityFilter, favouritesOnly, tileScope],
   );
   const searched = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -139,6 +160,11 @@ export default function MeshCoreNodesTable({ feed = false }: MeshCoreNodesTableP
   const flat = useMemo(() => orderRows(searched), [orderRows, searched]);
   const { items, toggleCollapsed } = useNodeRoleGrouping(searched, orderRows, groupByRole, flat);
   const online = useMemo(() => merged.filter((r) => isHeardRecently(r.lastHeard ? r.lastHeard / 1000 : undefined)).length, [merged]);
+  const tileChip = tileScope && (
+    <button type="button" className={nodesStyles.chip} aria-pressed onClick={() => setTileScope(null)}>
+      {tileTitle(t, TILE_TITLES[tileScope])}
+    </button>
+  );
   const filtersActive = JSON.stringify(nodeFilters) !== JSON.stringify(DEFAULT_NODE_FILTERS) || securityFilter !== 'all';
 
   const base = `/source/${encodeURIComponent(sourceId)}`;
@@ -410,6 +436,7 @@ export default function MeshCoreNodesTable({ feed = false }: MeshCoreNodesTableP
               <button type="button" className={nodesStyles.chip} aria-pressed={favouritesOnly} onClick={() => setFavouritesOnly((v) => !v)}>
                 {t('node_filter.favorites')}
               </button>
+              {tileChip}
               {filtersChip(t('common.filters'))}
             </div>
             {discover}
@@ -442,6 +469,7 @@ export default function MeshCoreNodesTable({ feed = false }: MeshCoreNodesTableP
             {sort}
             {filtersChip(t('workspace.map.more_filters'))}
             {groupChip}
+            {tileChip}
             <span className={nodesStyles.spacer} />
             {exportMenu}
             {importButton}

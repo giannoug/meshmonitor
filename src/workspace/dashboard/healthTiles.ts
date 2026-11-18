@@ -42,9 +42,12 @@ export interface HealthInput {
   nodes: HealthNode[];
   /** This device's own node id (`!xxxxxxxx`, or a MeshCore key), when known. */
   localId: string | null;
-  /** From the device's status: nodes heard lately, and every node it knows. */
-  activeNodeCount?: number;
+  /** Every node the device knows, from its status. */
   nodeCount?: number;
+  /** A node's hops, as the Nodes view the Direct tile opens counts them. */
+  hopsOf(node: HealthNode): number | undefined;
+  /** The source's nodes carry its favourite flag (Meshtastic); MeshCore's dashboard read does not. */
+  reportsFavorites: boolean;
   now?: number;
 }
 
@@ -53,28 +56,34 @@ export interface HealthValues {
   total: number;
   channelUtil: number | null;
   airtimeTx: number | null;
-  lowBattery: HealthNode[];
+  /** null: no node reports a battery level. */
+  lowBattery: HealthNode[] | null;
   newToday: number | null;
   direct: number;
-  favorites: number;
+  favorites: number | null;
   battery: number | null;
   uptime: number | null;
 }
 
-export function healthValues({ nodes, localId, activeNodeCount, nodeCount, now = Date.now() }: HealthInput): HealthValues {
+/**
+ * The tiles' values over every node, the device's own included, with the
+ * predicates the views they open use (Nodes: `isHeardRecently`, its hops, its
+ * favourite flag), so a tile's count is the length of the list it opens.
+ */
+export function healthValues({ nodes, localId, nodeCount, hopsOf, reportsFavorites, now = Date.now() }: HealthInput): HealthValues {
   const local = localId ? nodes.find((n) => n.user?.id === localId) : undefined;
-  const others = nodes.filter((n) => n !== local);
   const m = local?.deviceMetrics;
   return {
-    online: activeNodeCount ?? nodes.filter((n) => isHeardRecently(n.lastHeard, now)).length,
+    online: nodes.filter((n) => isHeardRecently(n.lastHeard, now)).length,
     total: nodeCount ?? nodes.length,
     channelUtil: m?.channelUtilization ?? null,
     airtimeTx: m?.airUtilTx ?? null,
-    lowBattery: others.filter(isLowBattery),
-    // A source whose nodes carry no first-heard time (MeshCore) has no answer.
-    newToday: nodes.some((n) => n.firstHeard !== undefined) ? others.filter((n) => isNewToday(n, now)).length : null,
-    direct: others.filter((n) => n.hopsAway === 0).length,
-    favorites: others.filter((n) => n.isFavorite).length,
+    // A source whose nodes carry no battery level (MeshCore reports volts) has no answer.
+    lowBattery: nodes.some((n) => n.deviceMetrics?.batteryLevel !== undefined) ? nodes.filter(isLowBattery) : null,
+    // Likewise for a first-heard time.
+    newToday: nodes.some((n) => n.firstHeard !== undefined) ? nodes.filter((n) => isNewToday(n, now)).length : null,
+    direct: nodes.filter((n) => hopsOf(n) === 0).length,
+    favorites: reportsFavorites ? nodes.filter((n) => n.isFavorite).length : null,
     battery: m?.batteryLevel ?? null,
     uptime: m?.uptimeSeconds ?? null,
   };

@@ -2,7 +2,7 @@
  * The Mesh health strip (boards j1, k1, note ds8): the tiles the user picked
  * (six of the nine by default), each opening the filtered view behind it.
  * Values come from `healthValues` (the page's own reads); a value this device
- * does not report shows "—". Channel utilisation goes amber above 25 %.
+ * does not report shows "—" and "Not reported", and opens nothing. Channel utilisation goes amber above 25 %.
  * In edit mode (j2) the tiles are drawn but do not navigate.
  */
 import { Link } from 'react-router-dom';
@@ -28,7 +28,8 @@ interface Tile {
   title: string;
   value: string;
   sub: string;
-  to: string;
+  /** Where the tile opens; none when the device does not report the value. */
+  to?: string;
   amber?: boolean;
 }
 
@@ -38,7 +39,7 @@ export default function HealthStrip({ values: v, tiles, deviceName, base, localI
   const { t } = useTranslation();
   const none = t('workspace.dashboard.tile.not_reported');
   const ownTelemetry = localId ? `${base}/node/${encodeURIComponent(localId)}/telemetry` : `${base}/nodes`;
-  const low = [...v.lowBattery].map((n) => n.user?.longName || n.user?.shortName || n.user?.id || '').sort((a, b) => a.localeCompare(b));
+  const low = (v.lowBattery ?? []).map((n) => n.user?.longName || n.user?.shortName || n.user?.id || '').sort((a, b) => a.localeCompare(b));
   const amber = v.channelUtil !== null && v.channelUtil > CHANNEL_UTIL_AMBER;
 
   const all: Record<HealthTileId, Tile> = {
@@ -47,39 +48,55 @@ export default function HealthStrip({ values: v, tiles, deviceName, base, localI
       title: tileTitle(t, 'channelUtil'),
       value: pct(v.channelUtil) ?? '—',
       sub: v.channelUtil === null ? none : amber ? t('workspace.dashboard.tile.above', { device: deviceName, pct: CHANNEL_UTIL_AMBER }) : deviceName,
-      to: ownTelemetry,
+      to: v.channelUtil === null ? undefined : ownTelemetry,
       amber,
     },
-    airtimeTx: { title: tileTitle(t, 'airtimeTx'), value: pct(v.airtimeTx) ?? '—', sub: v.airtimeTx === null ? none : deviceName, to: ownTelemetry },
+    airtimeTx: { title: tileTitle(t, 'airtimeTx'), value: pct(v.airtimeTx) ?? '—', sub: v.airtimeTx === null ? none : deviceName, to: v.airtimeTx === null ? undefined : ownTelemetry },
     lowBattery: {
       title: tileTitle(t, 'lowBattery'),
-      value: String(low.length),
-      sub: low.length === 0
+      value: v.lowBattery === null ? '—' : String(low.length),
+      sub: v.lowBattery === null ? none : low.length === 0
         ? t('workspace.dashboard.tile.none_below', { pct: LOW_BATTERY_PCT })
         : low.length > 2 ? t('workspace.dashboard.tile.names_more', { names: low.slice(0, 2).join(', '), count: low.length - 2 }) : low.join(', '),
-      to: `${base}/nodes?show=low-battery`,
+      to: v.lowBattery === null ? undefined : `${base}/nodes?show=low-battery`,
     },
-    newToday: { title: tileTitle(t, 'newToday'), value: v.newToday === null ? '—' : String(v.newToday), sub: v.newToday === null ? none : t('workspace.dashboard.tile.first_seen'), to: `${base}/nodes?show=new-today` },
+    newToday: {
+      title: tileTitle(t, 'newToday'),
+      value: v.newToday === null ? '—' : String(v.newToday),
+      sub: v.newToday === null ? none : t('workspace.dashboard.tile.first_seen'),
+      to: v.newToday === null ? undefined : `${base}/nodes?show=new-today`,
+    },
     direct: { title: tileTitle(t, 'direct'), value: String(v.direct), sub: t('workspace.dashboard.tile.no_hops'), to: `${base}/nodes?show=direct` },
-    favorites: { title: tileTitle(t, 'favorites'), value: String(v.favorites), sub: t('workspace.dashboard.tile.favorite_nodes'), to: `${base}/nodes?show=favorites` },
+    favorites: {
+      title: tileTitle(t, 'favorites'),
+      value: v.favorites === null ? '—' : String(v.favorites),
+      sub: v.favorites === null ? none : t('workspace.dashboard.tile.favorite_nodes'),
+      to: v.favorites === null ? undefined : `${base}/nodes?show=favorites`,
+    },
     battery: {
       title: tileTitle(t, 'battery'),
       value: v.battery === null ? '—' : v.battery > 100 ? t('workspace.dashboard.tile.powered') : `${v.battery}%`,
       sub: v.battery === null ? none : deviceName,
-      to: ownTelemetry,
+      to: v.battery === null ? undefined : ownTelemetry,
     },
-    uptime: { title: tileTitle(t, 'uptime'), value: v.uptime === null ? '—' : formatDuration(v.uptime), sub: v.uptime === null ? none : deviceName, to: `${base}/info` },
+    uptime: {
+      title: tileTitle(t, 'uptime'),
+      value: v.uptime === null ? '—' : formatDuration(v.uptime),
+      sub: v.uptime === null ? none : deviceName,
+      to: v.uptime === null ? undefined : `${base}/info`,
+    },
   };
 
   return (
     <ul className={styles.strip} aria-label={t('workspace.dashboard.health')}>
       {tiles.map((id) => {
         const tile = all[id];
+        const link = !inert && tile.to;
         const body = (
           <>
             <span className={styles.tileTitle}>
               {tile.title}
-              {!inert && <UiIcon name="chevronRight" size={16} />}
+              {link && <UiIcon name="chevronRight" size={16} />}
             </span>
             <span className={styles.tileValue}>{tile.value}</span>
             <span className={styles.tileSub}>{tile.sub}</span>
@@ -87,10 +104,10 @@ export default function HealthStrip({ values: v, tiles, deviceName, base, localI
         );
         return (
           <li key={id} className={styles.tileItem}>
-            {inert ? (
-              <div className={styles.tile} data-amber={tile.amber || undefined}>{body}</div>
+            {link ? (
+              <Link className={`${styles.tile} ${styles.tileLink}`} to={link} data-amber={tile.amber || undefined}>{body}</Link>
             ) : (
-              <Link className={`${styles.tile} ${styles.tileLink}`} to={tile.to} data-amber={tile.amber || undefined}>{body}</Link>
+              <div className={styles.tile} data-amber={tile.amber || undefined}>{body}</div>
             )}
           </li>
         );

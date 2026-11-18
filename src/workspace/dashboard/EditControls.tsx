@@ -29,6 +29,8 @@ import styles from './Dashboard.module.css';
 export interface ItemLabel {
   title: string;
   sub?: string;
+  /** Edit mode only: a starred chart is shared (D19). */
+  note?: string;
 }
 
 export interface EditRowsProps {
@@ -98,6 +100,7 @@ function EditRow({ item, label, first, last, onMove, onRemove }: EditRowProps) {
       <span className={styles.rowText}>
         <span className={styles.rowTitle} data-testid="row-title">{name}</span>
         {label.sub && <span className={styles.rowSub}>{label.sub}</span>}
+        {label.note && <span className={styles.rowNote}>{label.note}</span>}
       </span>
       <button type="button" className={styles.iconButton} aria-label={t('workspace.devices.move_up', { name })} disabled={first} onClick={() => onMove(-1)}>
         <UiIcon name="chevronUp" size={20} />

@@ -40,7 +40,8 @@ describe('j1-dashboard', () => {
     await boardLoaded();
     const strip = screen.getByRole('list', { name: 'Mesh health' });
     const tile = (name: string) => within(strip).getByRole('link', { name: new RegExp(`^${name}`) });
-    expect(tile('Nodes online')).toHaveTextContent('12');
+    // Heard in the last hour, as the Nodes view's Online chip counts them.
+    expect(tile('Nodes online')).toHaveTextContent('9');
     expect(tile('Nodes online')).toHaveTextContent('of 47');
     expect(tile('Nodes online')).toHaveAttribute('href', `${G2}/nodes?show=online`);
     // Station G2's own channel utilisation, amber over 25 %.

@@ -46,7 +46,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { SettingsProvider, useSettings } from '../../contexts/SettingsContext';
 import { SourceProvider } from '../../contexts/SourceContext';
 import { useCsrfFetch } from '../../hooks/useCsrfFetch';
-import { useSourceStatuses, type DashboardSource } from '../../hooks/useDashboardData';
+import { useCachedSourceStatus, type DashboardSource } from '../../hooks/useDashboardData';
+import { useDashboardFilters } from '../../components/Dashboard/hooks/useDashboardFilters';
+import type { DeviceInfo } from '../../types/device';
+import { getEffectiveHops } from '../../utils/nodeHops';
+import { FiltersButton, FiltersSheet } from './BoardFilters';
 import { useSolarEstimatesLatest } from '../../hooks/useTelemetry';
 import { appBasename } from '../../init';
 import ToolHead from '../meshcore/ToolHead';
@@ -118,6 +122,8 @@ function Page({ contained, children }: { contained?: boolean; children: ReactNod
 interface Draft {
   items: BoardItem[];
   tiles: HealthTileId[];
+  /** The board as the edit found it: Done measures its changes and removals against this. */
+  start: { items: BoardItem[]; widgets: CustomWidget[]; tiles: HealthTileId[] };
 }
 
 function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isPhone }: DeviceDashboardProps & { isPhone: boolean }) {
@@ -126,14 +132,15 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
   const { showToast } = useToast();
   const csrfFetch = useCsrfFetch();
   const { authStatus, hasPermission } = useAuth();
-  const { temperatureUnit, favoriteTelemetryStorageDays, solarMonitoringEnabled, distanceUnit } = useSettings();
+  const { temperatureUnit, favoriteTelemetryStorageDays, solarMonitoringEnabled, distanceUnit, nodeHopsCalculation } = useSettings();
   const base = `/source/${encodeURIComponent(sourceId)}`;
   const sourceQuery = `?sourceId=${encodeURIComponent(sourceId)}`;
 
   const data = useDashboardData({ dataSource });
   const { favorites, setFavorites, nodes } = data;
   const board = useUserBoard(sourceId);
-  const status = useSourceStatuses([sourceId]).get(sourceId) ?? null;
+  // The shell polls the device's status; this reads its answer and adds no timer (N/DM).
+  const status = useCachedSourceStatus(sourceId);
   const localId = currentNodeId !== undefined ? currentNodeId : status?.nodeNum !== undefined ? `!${status.nodeNum.toString(16).padStart(8, '0')}` : null;
   const { getSolarVisibility, handleToggleSolar, getYRange, handleYRangeChange } = useChartSettings({
     baseUrl: appBasename,
@@ -143,7 +150,9 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
     chartYRanges: data.chartYRanges,
     setChartYRanges: data.setChartYRanges,
   });
-  const { handleDataLoaded, globalTimeRange, globalMinTime } = useGlobalTimeRange();
+  const { handleDataLoaded, forgetChart, globalTimeRange, globalMinTime } = useGlobalTimeRange();
+  // Today's filters over the starred charts (Ruling 8.1 HV); the board's own order replaces sort.
+  const filters = useDashboardFilters({ favorites, nodes, customOrder: [], favoriteTelemetryStorageDays, defaultSortOption: 'custom', dataSource });
   const { data: solarEstimates } = useSolarEstimatesLatest({ baseUrl: appBasename, limit: 500, enabled: true });
 
   const canEdit = hasPermission('dashboard', 'write', { sourceId });
@@ -155,16 +164,28 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
 
   const [hours, setHours] = useState(24);
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [sheet, setSheet] = useState<'add' | 'tiles' | null>(null);
+  const [sheet, setSheet] = useState<'add' | 'tiles' | 'filters' | null>(null);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
 
   const tiles = board.tiles ?? [...DEFAULT_TILES];
   const items = useMemo(() => boardItems(board.widgets, favorites, board.order), [board.widgets, favorites, board.order]);
+  const localNum = status?.nodeNum ?? null;
   const health = useMemo(
-    () => healthValues({ nodes: [...nodes.values()] as HealthNode[], localId, activeNodeCount: status?.activeNodeCount, nodeCount: status?.nodeCount }),
-    [nodes, localId, status?.activeNodeCount, status?.nodeCount],
+    () =>
+      healthValues({
+        nodes: [...nodes.values()] as HealthNode[],
+        localId,
+        nodeCount: status?.nodeCount,
+        // Nodes' own hop count (NodesPage hopsOf): the device itself is direct. No traceroutes are read here.
+        hopsOf: (n) =>
+          dataSource.kind !== 'meshtastic' ? n.hopsAway : n.user?.id === localId ? 0 : getEffectiveHops(n as DeviceInfo, nodeHopsCalculation, undefined, localNum),
+        reportsFavorites: dataSource.kind === 'meshtastic',
+      }),
+    [nodes, localId, localNum, status?.nodeCount, dataSource.kind, nodeHopsCalculation],
   );
+  const visibleCharts = useMemo(() => new Set(filters.filteredAndSortedFavorites.map(chartKey)), [filters.filteredAndSortedFavorites]);
+  const shownItems = useMemo(() => items.filter((i) => i.kind === 'widget' || visibleCharts.has(i.key)), [items, visibleCharts]);
 
   // A widget's own settings (a node added to Node Status, a window, a bucket size) save to the user's board.
   const saveWidgets = useCallback(
@@ -176,7 +197,11 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
   const nodeName = (id: string) => dataSource.getDisplayName(nodes.get(id) as NodeInfo | undefined, id);
   const label = (item: BoardItem): ItemLabel => {
     if (item.kind === 'chart') {
-      return { title: nodeName(item.favorite.nodeId), sub: t('workspace.dashboard.chart_sub', { metric: getTelemetryLabel(item.favorite.telemetryType) }) };
+      return {
+        title: nodeName(item.favorite.nodeId),
+        sub: t('workspace.dashboard.chart_sub', { metric: getTelemetryLabel(item.favorite.telemetryType) }),
+        note: t('workspace.dashboard.chart_shared'),
+      };
     }
     const w = item.widget;
     const sub = w.type === 'nodeStatus' ? t('workspace.dashboard.nodes_count', { count: w.nodeIds.length })
@@ -186,7 +211,7 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
   };
   const openNode = hasNodePages ? (id: string) => void navigate(`${base}/node/${encodeURIComponent(id)}`) : undefined;
 
-  const startEdit = () => setDraft({ items, tiles: [...tiles] });
+  const startEdit = () => setDraft({ items, tiles: [...tiles], start: { items, widgets: board.widgets, tiles: [...tiles] } });
   const cancel = () => {
     setSheet(null);
     setDraft(null);
@@ -197,12 +222,15 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
     if (!draft || savingRef.current) return;
     const widgets = draft.items.flatMap((i) => (i.kind === 'widget' ? [i.widget] : []));
     const order = draft.items.map((i) => i.key);
+    // Only the charts this edit took off are unstarred: a star that arrived meanwhile stays (D19).
     const kept = new Set(order);
-    const remaining = favorites.filter((f) => kept.has(chartKey(f)));
+    const removed = new Set(draft.start.items.flatMap((i) => (i.kind === 'chart' && !kept.has(i.key) ? [i.key] : [])));
+    const remaining = favorites.filter((f) => !removed.has(chartKey(f)));
+    const { start } = draft;
     const changed =
-      JSON.stringify(order) !== JSON.stringify(items.map((i) => i.key)) ||
-      JSON.stringify(widgets) !== JSON.stringify(board.widgets) ||
-      JSON.stringify(draft.tiles) !== JSON.stringify(tiles);
+      JSON.stringify(order) !== JSON.stringify(start.items.map((i) => i.key)) ||
+      JSON.stringify(widgets) !== JSON.stringify(start.widgets) ||
+      JSON.stringify(draft.tiles) !== JSON.stringify(start.tiles);
     if (!changed) {
       setDraft(null);
       return;
@@ -218,6 +246,7 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         setFavorites(remaining);
+        removed.forEach(forgetChart);
       }
       await board.setBoard({ widgets, order, tiles: draft.tiles });
       setSheet(null);
@@ -244,7 +273,7 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
     </button>
   );
   const maxDays = Math.max(1, Math.min(7, favoriteTelemetryStorageDays || 7));
-  const ranges = [1, 24, maxDays * 24];
+  const ranges = [...new Set([1, 24, maxDays * 24])];
   const range = (
     <div className={styles.range} role="group" aria-label={t('workspace.dashboard.range')}>
       {ranges.map((h) => (
@@ -254,6 +283,7 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
       ))}
     </div>
   );
+  const filterButton = favorites.length > 0 && <FiltersButton filters={filters} onOpen={() => setSheet('filters')} />;
   const cancelButton = (
     <button type="button" className={styles.textButton} onClick={cancel} disabled={saving}>
       {t('common.cancel')}
@@ -285,7 +315,7 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
       title={t('nav.dashboard')}
       subtitle={t('workspace.dashboard.subtitle', { device: deviceName })}
       back={{ label: t('workspace.tabs.home'), to: base }}
-      actions={<>{range}{editButton}</>}
+      actions={<>{range}{filterButton}{editButton}</>}
       phoneActions={editButton}
     />
   );
@@ -382,7 +412,8 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
     );
   };
   const widget = (w: CustomWidget): ReactNode => {
-    const common = { id: w.id, nodes, onRemove: noop, canEdit, bare: true };
+    // A widget's settings save to the user's board: offered only where that save can happen.
+    const common = { id: w.id, nodes, onRemove: noop, canEdit: canEditBoard, bare: true };
     switch (w.type) {
       case 'nodeStatus':
         return (
@@ -445,12 +476,19 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
       {head}
       {showHealth && isPhone && <p className={styles.label}>{t('workspace.dashboard.health_label', { device: deviceName })}</p>}
       {strip}
-      {isPhone && range}
+      {isPhone && (
+        <div className={styles.tools}>
+          {range}
+          {filterButton}
+        </div>
+      )}
       {items.length === 0 ? (
         <StateView kind="empty" title={t('workspace.dashboard.empty_title')} detail={t('workspace.dashboard.empty_detail')} />
+      ) : shownItems.length === 0 ? (
+        <StateView kind="empty" title={t('workspace.dashboard.no_match')} />
       ) : (
         <div className={styles.board}>
-          {items.map((item) => {
+          {shownItems.map((item) => {
             const l = label(item);
             const menu = [
               ...(canEditBoard ? [{ key: 'edit', label: t('workspace.dashboard.edit_title'), icon: 'edit' as const, onSelect: startEdit }] : []),
@@ -474,6 +512,7 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
           })}
         </div>
       )}
+      <FiltersSheet open={sheet === 'filters'} onClose={() => setSheet(null)} filters={filters} showRoles={dataSource.showRoleFilter} />
     </Page>
   );
 }

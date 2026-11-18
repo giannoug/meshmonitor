@@ -284,6 +284,8 @@ export function meshcoreFixtures(log: MeshCoreLog = { writes: [] }, opts: MeshCo
     'DELETE /api/sources/:id/meshcore/contacts/:pk': only(write()),
     'POST /api/sources/:id/meshcore/contacts/import': only(write()),
     'POST /api/sources/:id/meshcore/contacts/refresh': only(write(() => ok(mcContacts))),
+    // The Dashboard's node read (meshcoreDashboardSource, Task 8.1).
+    'GET /api/sources/:id/meshcore/nodes': only(() => ok(mcNodes)),
     'POST /api/sources/:id/meshcore/nodes/:pk/favorite': only(write()),
     'POST /api/sources/:id/meshcore/nodes/:pk/remote-cli': only(write()),
     'POST /api/sources/:id/meshcore/discover': only(write((_u, b) => ({
