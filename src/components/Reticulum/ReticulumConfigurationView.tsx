@@ -17,9 +17,8 @@
  *   GET     /api/sources/:id/reticulum/device-info
  * Both use the ok() envelope, so responses are read via `.data`.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { UiIcon } from '../icons';
 import styles from './ReticulumConfigurationView.module.css';
@@ -27,26 +26,7 @@ import { NumberInput } from '../common/NumberInput';
 import { NumberInputScope } from '../common/NumberInputScope';
 import { useNumberInputScope } from '../common/numberInputScopeContext';
 import { ReticulumIdentitySection } from './ReticulumIdentitySection';
-
-interface RadioConfig {
-  frequency: number | null;
-  bandwidth: number | null;
-  spreadingFactor: number | null;
-  codingRate: number | null;
-  txPower: number | null;
-  stAlock: number | null;
-  ltAlock: number | null;
-  radioState: boolean | null;
-}
-
-interface DeviceInfo {
-  firmwareVersion?: string | null;
-  mcu?: string | null;
-  platform?: string | null;
-  chipTemp?: number | null;
-  csma?: Record<string, unknown> | null;
-  phy?: Record<string, unknown> | null;
-}
+import { useReticulumRadioConfig } from './hooks/useReticulumRadioConfig';
 
 interface ReticulumConfigurationViewProps {
   sourceId: string;
@@ -54,80 +34,18 @@ interface ReticulumConfigurationViewProps {
   showRadio?: boolean;
 }
 
-const EMPTY: RadioConfig = {
-  frequency: null, bandwidth: null, spreadingFactor: null, codingRate: null,
-  txPower: null, stAlock: null, ltAlock: null, radioState: null,
-};
-
-function unwrap<T>(res: unknown): T | null {
-  if (res && typeof res === 'object' && 'data' in (res as Record<string, unknown>)) {
-    return (res as { data: T }).data;
-  }
-  return (res as T) ?? null;
-}
-
 export const ReticulumConfigurationView: React.FC<ReticulumConfigurationViewProps> = ({ sourceId, showRadio = true }) => {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission('configuration', 'write', { sourceId });
 
-  const [config, setConfig] = useState<RadioConfig>(EMPTY);
-  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
-  const [loading, setLoading] = useState(showRadio);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
+  const { config, setConfig, setField, deviceInfo, loading, saving, error, status, apply } = useReticulumRadioConfig(sourceId, showRadio);
   const numberScope = useNumberInputScope();
-
-  const base = `/api/sources/${encodeURIComponent(sourceId)}/reticulum`;
-
-  const load = useCallback(async () => {
-    if (!showRadio) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [cfgRes, devRes] = await Promise.all([
-        api.get<unknown>(`${base}/radio-config`),
-        api.get<unknown>(`${base}/device-info`).catch(() => null),
-      ]);
-      const cfg = unwrap<RadioConfig>(cfgRes);
-      // The bridge reports radioState as a boolean; coerce defensively.
-      if (cfg) setConfig({ ...EMPTY, ...cfg, radioState: cfg.radioState == null ? null : Boolean(cfg.radioState) });
-      const dev = devRes ? unwrap<DeviceInfo>(devRes) : null;
-      setDeviceInfo(dev);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t('reticulum.config.loadError', 'Failed to load radio configuration'));
-    } finally {
-      setLoading(false);
-    }
-  }, [base, t, showRadio]);
-
-  useEffect(() => { void load(); }, [load]);
-
-  // Blank is legal here: a null field is left out of the patch (#5649: the
-  // field emits null for blank and never emits out-of-range text).
-  const setField = (key: keyof RadioConfig, value: number | null) => {
-    setConfig(prev => ({ ...prev, [key]: value }));
-  };
 
   const save = async () => {
     // A value outside a field's range must never reach the RNode.
     if (numberScope.invalid) return;
-    setSaving(true);
-    setError(null);
-    setStatus(null);
-    try {
-      // PUT is the server's verb; null (blank) fields are left out of the
-      // patch, as the server rejects a null value.
-      const patch = Object.fromEntries(Object.entries(config).filter(([, v]) => v !== null && v !== undefined));
-      await api.put(`${base}/radio-config`, patch);
-      setStatus(t('reticulum.config.saved', 'Radio configuration applied'));
-      void load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t('reticulum.config.saveError', 'Failed to apply radio configuration'));
-    } finally {
-      setSaving(false);
-    }
+    await apply();
   };
 
   const disabled = !canWrite || saving;

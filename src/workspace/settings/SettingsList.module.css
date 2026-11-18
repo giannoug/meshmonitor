@@ -393,3 +393,29 @@
 .sessionStatus[data-on] {
   color: var(--color-success);
 }
+
+/* A Reticulum device's "own mode" tag on RNode radio (9-06, Task 7.6). */
+.tag {
+  flex: none;
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* A group's note on the phone list page (9-13, Task 7.6). */
+.note {
+  display: flex;
+  gap: 8px;
+  margin: 8px 8px 0;
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}
+
+.note > svg {
+  flex: none;
+  margin-top: 2px;
+}

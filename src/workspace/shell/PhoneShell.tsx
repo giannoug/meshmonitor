@@ -80,10 +80,13 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
       !!matchPath('/source/:id/info', pathname) ||
       !!matchPath('/source/:id/packets', pathname) ||
       !!matchPath('/source/:id/automations/*', pathname));
+  // Every Reticulum view draws its own: Home its device header, the rest their bar with Back (9-09 … 9-16, Task 7.6).
+  const reticulumOwn = source?.type === 'reticulum';
   // A region feed draws its own device header and tiles (8-23, Task 7.5).
   const feedOwn = source?.type === 'meshcore_mqtt' && !hash && /^\/source\/[^/]+(\/(nodes|channels|packets|notifications))?\/?$/.test(pathname);
   const ownHeader =
     meshcoreOwn ||
+    reticulumOwn ||
     feedOwn ||
     (!!source &&
     isMeshtasticFamily(source.type) &&

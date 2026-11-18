@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ConnectionStatus } from '../../types/ui';
 import { UiIcon, batteryIconName } from '../icons';
+import { useRotatingFace } from './useRotatingFace';
 
 /** Local-node telemetry the badge can surface (all optional). */
 export interface LocalNodeMetrics {
@@ -23,9 +24,6 @@ interface CyclingConnectionStatusProps {
 }
 
 type Face = 'status' | 'battery' | 'airtime';
-
-/** How long each face is shown before rotating to the next. */
-const ROTATE_MS = 5000;
 
 /** Firmware reports batteryLevel 101 for a mains-powered / plugged-in node. */
 const PLUGGED_IN_LEVEL = 101;
@@ -64,21 +62,7 @@ export const CyclingConnectionStatus: React.FC<CyclingConnectionStatusProps> = (
     return list;
   }, [connectionStatus, metrics]);
 
-  const [index, setIndex] = useState(0);
-
-  // Restart the rotation whenever the set of available faces changes, and stop
-  // it entirely when there's nothing to rotate through.
-  useEffect(() => {
-    setIndex(0);
-    if (faces.length <= 1) return;
-    const id = setInterval(() => {
-      setIndex(i => (i + 1) % faces.length);
-    }, ROTATE_MS);
-    return () => clearInterval(id);
-  }, [faces.length]);
-
-  // Guard against a transient out-of-range index if faces shrank this render.
-  const face = faces[Math.min(index, faces.length - 1)];
+  const face = useRotatingFace(faces);
 
   const renderFace = (): React.ReactNode => {
     if (face === 'battery' && metrics) {

@@ -21,6 +21,7 @@ import { newServerLog, serverFixtures } from '../../src/workspace/__fixtures__/s
 import { devicesFixtures, type DevicesFixtureOptions } from '../../src/workspace/__fixtures__/devices';
 import { MC, meshcoreFixtures, type MeshCoreFixtureOptions } from '../../src/workspace/__fixtures__/meshcore';
 import { regionFeedFixtures } from '../../src/workspace/__fixtures__/meshcoreTools';
+import { RNS, reticulumFixtures, type ReticulumFixtureOptions } from '../../src/workspace/__fixtures__/reticulum';
 
 export interface Board {
   id: string;
@@ -2025,7 +2026,83 @@ export const BOARDS: Board[] = [
   { id: '8-31-automations', size: 'phone', path: '/source/src-heltec/automations', fixtures: MESHCORE(), setup: (page) => page.getByText('Auto-pathfinding', { exact: true }).waitFor() },
   { id: '8-15-mqtt-region-feed', size: 'desktop', path: '/source/src-af', fixtures: REGION_FEED(), setup: feedTabsVisible },
   { id: '8-23-region-feed', size: 'phone', path: '/source/src-af', fixtures: REGION_FEED(), setup: (page) => page.getByText('Lycabettus Repeater').first().waitFor() },
+  // Task 7.6: Reticulum node, every view native.
+  { id: '9-01-reticulum-shell', size: 'desktop', path: `/source/src-rns/dm/${RNS.kifisia}`, fixtures: RETICULUM(), setup: (page) => page.getByText('Bringing water either way').waitFor() },
+  { id: '9-02-destinations', size: 'desktop', path: '/source/src-rns/destinations', fixtures: RETICULUM(), setup: openRnsDestination },
+  { id: '9-03-interfaces', size: 'desktop', path: '/source/src-rns/interfaces', fixtures: RETICULUM(), setup: rnsRates },
+  { id: '9-04-paths', size: 'desktop', path: '/source/src-rns/paths', fixtures: RETICULUM(), setup: rnsProbes },
+  { id: '9-05-map-connections', size: 'desktop', path: '/source/src-rns/map', fixtures: RETICULUM(), setup: rnsConnections },
+  { id: '9-06-settings-identity', size: 'desktop', path: '/source/src-rns/settings/lxmf-identity', fixtures: RETICULUM({ cooldownRemainingSeconds: 42 }), init: macPlatform, setup: (page) => page.getByText(/Announce now \(\d+ s\)/).waitFor() },
+  { id: '9-07-settings-rnode', size: 'desktop', path: '/source/src-rns/settings/rnode', fixtures: RETICULUM(), init: macPlatform, setup: rnsRadioEdit },
+  { id: '9-08-info', size: 'desktop', path: '/source/src-rns/info', fixtures: RETICULUM(), setup: (page) => page.getByText('0.9.6').waitFor() },
+  { id: '9-09-reticulum-home', size: 'phone', path: '/source/src-rns', fixtures: RETICULUM(), setup: (page) => page.getByText('Trail attached, see you at the top').waitFor() },
+  { id: '9-10-lxmf-thread', size: 'phone', path: `/source/src-rns/dm/${RNS.kifisia}`, fixtures: RETICULUM(), setup: (page) => page.getByText('Bringing water either way').waitFor() },
+  { id: '9-11-destinations', size: 'phone', path: '/source/src-rns/destinations', fixtures: RETICULUM(), setup: (page) => page.getByText('Athens Rover').waitFor() },
+  { id: '9-12-interfaces-paths', size: 'phone', path: '/source/src-rns/paths', fixtures: RETICULUM(), setup: rnsProbes },
+  { id: '9-13-settings-list', size: 'phone', path: '/source/src-rns/settings', fixtures: RETICULUM(), setup: (page) => page.getByRole('link', { name: 'Global Settings' }).waitFor() },
+  { id: '9-14-map-connections', size: 'phone', path: '/source/src-rns/map', fixtures: RETICULUM(), setup: rnsConnections },
+  { id: '9-15-settings-identity', size: 'phone', path: '/source/src-rns/settings/lxmf-identity', fixtures: RETICULUM({ cooldownRemainingSeconds: 42 }), setup: (page) => page.getByText(/Announce now \(\d+ s\)/).waitFor() },
+  { id: '9-16-info', size: 'phone', path: '/source/src-rns/info', fixtures: RETICULUM(), setup: (page) => page.getByText('0.9.6').waitFor() },
 ];
+
+/** Reticulum node's section 9 data, a fresh log per board. */
+function RETICULUM(opts?: ReticulumFixtureOptions): Board['fixtures'] {
+  return reticulumFixtures({ reads: [], writes: [] }, opts);
+}
+
+/** 9-02: Kifisia Sideband's details beside the table. */
+async function openRnsDestination(page: Page) {
+  await page.getByText('Kifisia Sideband', { exact: true }).first().waitFor();
+  await page.locator('tr', { hasText: 'Kifisia Sideband' }).click();
+  await page.getByRole('complementary', { name: 'Kifisia Sideband' }).waitFor();
+}
+
+/** 9-03: a second poll (Refresh), so today's live rates show. */
+async function rnsRates(page: Page) {
+  await page.getByText('RX rate').waitFor();
+  // Playwright's click waits for the button to be enabled (the first poll done).
+  await page.getByRole('button', { name: 'Refresh', disabled: false }).click();
+  await page.getByText(/TX \d/).first().waitFor();
+}
+
+/** 9-04 / 9-12: probes answered (Kifisia, Glyfada), one in flight (Psychiko), and a Remote Fleet answer. */
+async function rnsProbes(page: Page) {
+  await page.route('**/reticulum/paths/probe', async (route) => {
+    if ((route.request().postData() ?? '').includes(RNS.psychiko)) return;
+    await route.fallback();
+  });
+  await page.getByText('Glyfada Propagation').first().waitFor();
+  const rowOf = (name: string) => page.locator('tr, li', { hasText: name }).filter({ has: page.getByRole('button', { name: 'Probe' }) }).first();
+  for (const name of ['Kifisia Sideband', 'Glyfada Propagation', 'Psychiko NomadNet']) {
+    const row = rowOf(name);
+    if ((await row.count()) === 0) continue;
+    const probe = row.getByRole('button', { name: 'Probe' });
+    await probe.scrollIntoViewIfNeeded();
+    await probe.click();
+  }
+  await page.getByText('No reply').first().waitFor();
+  await page.getByRole('textbox', { name: 'Destination hash…' }).fill(RNS.halandriT);
+  const query = page.getByRole('button', { name: 'Query' });
+  await query.click();
+  await page.getByText(/is reachable/).waitFor();
+  await page.getByText('Remote Fleet').first().scrollIntoViewIfNeeded();
+}
+
+/** 9-05 / 9-14: Connections, with Kifisia Sideband's details open. */
+async function rnsConnections(page: Page) {
+  await page.getByRole('tab', { name: 'Connections' }).click();
+  await page.getByRole('button', { name: 'Kifisia Sideband' }).click();
+  await page.getByText('Next hop').first().waitFor();
+}
+
+/** 9-07: one edit queued (bandwidth), so the dock shows. */
+async function rnsRadioEdit(page: Page) {
+  await page.getByText('ESP32-S3').waitFor();
+  const field = page.locator('[data-setting-id="reticulum.bandwidth"] input');
+  await field.fill('125000');
+  await field.blur();
+  await page.getByText(/1 change in RNode radio/).waitFor();
+}
 
 /** 8-06 / 8-07: the board draws the Mac hint in the settings list. */
 async function macPlatform(page: Page) {

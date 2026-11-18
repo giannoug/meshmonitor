@@ -72,7 +72,9 @@ export default function CategoryPage({ def, group, sub = '', categories, sourceI
   // A remote node's page is not pinned.
   const pinnable = !!def && def.remote !== 'only' && !mcRemote;
   const [slot, setSlot] = useState<HTMLElement | null>(null);
-  const scope = ownScope ?? t(def?.scope === 'meshmonitor' ? 'workspace.settings.in_meshmonitor' : 'workspace.settings.on_radio');
+  // A Reticulum device's pages are "On this node" (board 9-06).
+  const onDevice = def?.sourceTypes.includes('reticulum') ? 'workspace.reticulum.settings.on_node' : 'workspace.settings.on_radio';
+  const scope = ownScope ?? t(def?.scope === 'meshmonitor' ? 'workspace.settings.in_meshmonitor' : onDevice);
   const viewOnly = readOnly && <span className={styles.viewOnly}>{t('workspace.settings.view_only')}</span>;
   // What saving does on this firmware (configRebootRules), as the save bar's words say it (Task 5.3).
   const config = useSharedDeviceConfig();

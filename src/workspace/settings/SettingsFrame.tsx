@@ -67,6 +67,8 @@ const LOCAL: CategoryTarget = { kind: 'local' };
 
 /** A MeshCore device's settings run in its screen's one useMeshCore (Task 7.3, Ruling AD). */
 const MeshCoreScreen = lazy(() => import('../meshcore/MeshCoreScreen.tsx'));
+/** A Reticulum device's LXMF identity and RNode radio (Task 7.6). */
+const ReticulumSettingsFrame = lazy(() => import('../reticulum/settings/ReticulumSettingsFrame.tsx'));
 
 export interface SettingsFrameProps {
   sourceId: string;
@@ -78,6 +80,7 @@ export interface SettingsFrameProps {
 export default function SettingsFrame({ sourceId, source, path }: SettingsFrameProps) {
   // A MeshCore device: its remote targets (Task 7.3), on the shared list, pages and categories.
   if (source.type === 'meshcore') return <MeshCoreScreen sourceId={sourceId} source={source} screen={{ kind: 'settings', path }} />;
+  if (source.type === 'reticulum') return <ReticulumSettingsFrame sourceId={sourceId} source={source} path={path} />;
   return (
     <SourceProvider sourceId={sourceId} sourceName={source.name} sourceType={source.type}>
       <SettingsProvider baseUrl={appBasename}>

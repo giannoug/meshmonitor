@@ -36,8 +36,8 @@ import type { DeviceConfigState } from '../../hooks/deviceConfig/useDeviceConfig
 import { configurationNavItems, settingsNavItems } from '../../components/search/configSections';
 import { isCoverageMqttSourceType } from '../../utils/coverage';
 
-/** The device types the settings frame serves (Classic serves them with App), and MeshCore's remote targets (Task 7.3). */
-export type SourceType = 'meshtastic_tcp' | 'mqtt_broker' | 'mqtt_bridge' | 'meshcore';
+/** The device types the settings frame serves (Classic serves them with App), MeshCore (Tasks 7.3, 7.4) and Reticulum (Task 7.6). */
+export type SourceType = 'meshtastic_tcp' | 'mqtt_broker' | 'mqtt_bridge' | 'meshcore' | 'reticulum';
 
 export interface GateCtx {
   sourceId: string;
@@ -51,6 +51,19 @@ export interface GateCtx {
   hasPermission: ReturnType<typeof useAuth>['hasPermission'];
   /** A MeshCore device's role, as its status reports it; unknown reads as a Companion. */
   meshcore?: MeshCoreDeviceFacts;
+  /** A Reticulum device's configured mode (its source config; the server's default is attach). */
+  reticulum?: ReticulumDeviceFacts;
+}
+
+/** What a Reticulum device's pages depend on: RNode radio exists in own mode only (today's showRadio). */
+export interface ReticulumDeviceFacts {
+  mode?: string;
+}
+
+/** A Reticulum source's mode from its config; the server reads a missing or unknown one as attach. */
+export function reticulumFacts(config: Record<string, unknown> | undefined): ReticulumDeviceFacts {
+  const mode = config?.mode;
+  return { mode: mode === 'own' || mode === 'tcp_peer' ? mode : 'attach' };
 }
 
 /** What a MeshCore device's pages depend on: `deviceType` (status) and the local node's `advType`. */
@@ -209,6 +222,26 @@ export const MESHCORE_CATEGORIES: CategoryDef[] = [
   mcSettings('notifications', 'nav.notifications', mcPage(mcMeshMonitor, 'NotificationsCategory')),
 ];
 
+/**
+ * A Reticulum device's pages (Task 7.6, boards 9-06, 9-07, 9-13): today's
+ * Configuration view split in two, behind its `configuration:read`. RNode
+ * radio shows in own mode only, as today. Its In MeshMonitor group is one
+ * link to Global Settings (today's Settings view), drawn by SettingsList.
+ */
+const rnsPage = (id: string, labelKey: string, component: CategoryDef['component'], when?: (c: GateCtx) => boolean): CategoryDef => ({
+  id,
+  scope: 'radio',
+  labelKey,
+  sourceTypes: ['reticulum'],
+  component,
+  gate: (c) => canReadConfig(c) && (when?.(c) ?? true),
+});
+
+export const RETICULUM_CATEGORIES: CategoryDef[] = [
+  rnsPage('lxmf-identity', 'workspace.reticulum.settings.identity', lazy(() => import('../reticulum/settings/IdentityCategory.tsx'))),
+  rnsPage('rnode', 'workspace.reticulum.settings.rnode', lazy(() => import('../reticulum/settings/RNodeCategory.tsx')), (c) => c.reticulum?.mode === 'own'),
+];
+
 export const CATEGORIES: CategoryDef[] = [
   radio('identity', 'configuration.node_identity', lazy(() => import('./categories/IdentityCategory.tsx')), { saveSection: 'owner', remote: 'yes' }),
   radio('lora', 'workspace.settings.label.lora', lazy(() => import('./LoraCategory.tsx')), { saveSection: 'lora', remote: 'yes' }),
@@ -276,6 +309,7 @@ export const CATEGORIES: CategoryDef[] = [
       canReadSettings(c) && isCoverageMqttSourceType(c.sourceType) && c.hasPermission('settings', 'write', { sourceId: c.sourceId }),
   }),
   ...MESHCORE_CATEGORIES,
+  ...RETICULUM_CATEGORIES,
 ];
 
 /**

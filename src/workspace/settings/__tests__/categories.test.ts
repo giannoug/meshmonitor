@@ -26,7 +26,7 @@ import { g2DeviceConfig } from '../../__fixtures__/deviceConfig';
 import { MESHCORE_SECTION_TO_CATEGORY } from '../../meshcore/settings/meshcoreSearch';
 
 // The Meshtastic family's pages; a MeshCore page may share an id with one (Task 7.4).
-const MESHTASTIC = CATEGORIES.filter((c) => !c.sourceTypes.includes('meshcore'));
+const MESHTASTIC = CATEGORIES.filter((c) => !c.sourceTypes.includes('meshcore') && !c.sourceTypes.includes('reticulum'));
 
 const keyOnly = ((key: string) => key) as unknown as TFunction;
 const en = JSON.parse(
@@ -116,6 +116,13 @@ describe('categories', () => {
     // The remote-only pages hold Admin Commands' sections, which these catalogues do not list (Task 5.9).
     expect(MESHTASTIC.filter((c) => !held.has(c.id) && c.remote !== 'only').map((c) => c.id)).toEqual([]);
     expect(CATEGORIES.filter((c) => c.remote === 'only').map((c) => c.id)).toEqual(['node-management', 'remote-console', 'node-settings']);
+  });
+
+  it('a Reticulum node has LXMF identity, and RNode radio in own mode only (Task 7.6)', () => {
+    const rns = (mode: string) => visibleCategories(ctx({ sourceType: 'reticulum', reticulum: { mode } })).map((c) => c.id);
+    expect(rns('own')).toEqual(['lxmf-identity', 'rnode']);
+    expect(rns('attach')).toEqual(['lxmf-identity']);
+    expect(rns('tcp_peer')).toEqual(['lxmf-identity']);
   });
 
   it('every label has an English string', () => {

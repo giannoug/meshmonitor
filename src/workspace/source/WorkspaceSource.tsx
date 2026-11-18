@@ -15,7 +15,7 @@
  *   SettingsFrame (Task 5.2), with App not mounted (Ruling AD: one owner of
  *   the message state per screen), the remote target (`settings?node=`) too (Task 5.9).
  *   A desktop bare source URL keeps the re-hosted App.
- * - MeshCore / Reticulum: the view comes from the URL and view changes
+ * - MeshCore: the view comes from the URL and view changes
  *   navigate. A MeshCore view the viewer may not open is replaced in the URL
  *   by the one the page shows. A MeshCore channel (`channel/<idx>`), room
  *   (`room/<key>`) and the phone's bare device URL are the Workspace's own
@@ -30,6 +30,10 @@
  *   the page that holds them. Info (`info`), the packet monitor (`packets`) and
  *   Automations (`automations[/<built-in>]`) are native too (Task 7.5). Every
  *   other view stays re-hosted.
+ * - Reticulum (Task 7.6): every view is the Workspace's ReticulumScreen (the
+ *   phone's bare device URL its Home; desktop's goes to Destinations, as
+ *   today), and device settings (`settings[/…]`, and today's `configuration`,
+ *   which redirects there) the settings frame. Today's page is not mounted.
  * - A MeshCore MQTT region feed: its Overview (the source URL) and its Nodes,
  *   Channels, Packets and Notifications tabs are the Workspace's RegionFeedPage
  *   (Task 7.5); any other URL keeps today's page.
@@ -48,15 +52,15 @@ import {
   visibleMeshCoreViews,
   type MeshCoreView,
 } from '../../components/MeshCore/meshCoreViewAccess';
-import type { ReticulumView } from '../../types/reticulum';
 import { renderSourceApp, type SourcePages } from '../../sourceDispatch';
 import {
   classicSourceLocation,
   MESHCORE_SETTINGS,
   meshcoreSettingsRedirect,
   meshcoreViewForPath,
-  RETICULUM_DEFAULT_VIEW,
-  reticulumViewForPath,
+  RETICULUM_CONFIGURATION,
+  RETICULUM_SETTINGS,
+  reticulumScreenForPath,
   workspaceRedirect,
 } from '../routes';
 import { OverviewRehost, Redirect, Rehost } from '../rehost/pages';
@@ -117,6 +121,8 @@ const MC_NODE_TABS: readonly string[] = ['telemetry', 'links', 'position', 'admi
 const MC_INFO_PATH = /^info\/?$/;
 const MC_PACKETS_PATH = /^packets\/?$/;
 const MC_AUTOMATIONS_PATH = /^automations(?:\/([^/]+))?\/?$/;
+/** Every Reticulum view (Task 7.6): the device screen, with today's page not mounted. */
+const ReticulumScreen = lazy(() => import('../reticulum/ReticulumScreen.tsx'));
 /** A region feed (Task 7.5): its Overview at the source URL, and its tabs. */
 const RegionFeedPage = lazy(() => import('../meshcore/RegionFeedPage.tsx'));
 const FEED_PATH = /^(nodes|channels|packets|notifications)?\/?$/;
@@ -229,12 +235,25 @@ export default function WorkspaceSource() {
   }
 
   if (source?.type === 'reticulum') {
-    const requested = reticulumViewForPath(splat);
-    const view = requested ?? RETICULUM_DEFAULT_VIEW;
-    const onViewChange = (next: ReticulumView) => next !== view && goToView(next);
+    // Device settings (LXMF identity, RNode radio); today's Configuration view opens them.
+    const configuration = RETICULUM_CONFIGURATION.test(splat);
+    if (configuration || RETICULUM_SETTINGS.test(splat)) {
+      const path = configuration ? '' : splat.replace(/^settings\/?/, '').replace(/\/$/, '');
+      return (
+        <Redirect to={configuration ? `${base}/settings` : null}>
+          <Rehost>
+            <SettingsFrame key={sourceId} sourceId={sourceId} source={source} path={path} />
+          </Rehost>
+        </Redirect>
+      );
+    }
+    // Every other URL is the one device screen, so moving between views keeps its one poll.
+    const { screen, fix } = reticulumScreenForPath(splat, isPhone);
     return (
-      <Redirect to={requested ? null : `${base}/${view}`}>
-        <Rehost>{renderSourceApp(PAGES, sourceId, source, splat, { reticulum: { view, onViewChange } })}</Rehost>
+      <Redirect to={fix ? `${base}/${fix}` : null}>
+        <Rehost>
+          <ReticulumScreen key={sourceId} sourceId={sourceId} source={source} screen={screen} />
+        </Rehost>
       </Redirect>
     );
   }

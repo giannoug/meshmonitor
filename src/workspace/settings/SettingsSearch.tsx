@@ -42,14 +42,15 @@ import { PREF_FIELDS, PREF_PAGE_LABELS } from '../you/preferences/prefFields';
 import { SERVER_FIELDS } from '../server/serverFields';
 import { SERVER_ALIASES, useServerAccess } from '../server/serverEntries';
 import type { WorkspaceSource } from '../shell/useWorkspaceSources';
-import { SECTION_TO_CATEGORY, visibleCategories, type CategoryDef } from './categories';
+import { SECTION_TO_CATEGORY, reticulumFacts, visibleCategories, type CategoryDef } from './categories';
 import { isMac, settingAnchor, useFieldRegistry } from './kit/useFieldRegistry';
 import { remoteEntry } from './remote/remoteTargetStore';
 import { MESHCORE_FIELDS, MESHCORE_SECTION_TO_CATEGORY } from '../meshcore/settings/meshcoreSearch';
+import { RETICULUM_FIELDS } from '../reticulum/settings/reticulumSearch';
 import styles from './SettingsSearch.module.css';
 
 /** The device types the settings frame serves (a MeshCore device since Task 7.4). */
-const FRAME_TYPES = ['meshtastic_tcp', 'mqtt_broker', 'mqtt_bridge', 'meshcore'];
+const FRAME_TYPES = ['meshtastic_tcp', 'mqtt_broker', 'mqtt_bridge', 'meshcore', 'reticulum'];
 const MESHCORE_FIELD_IDS = new Set(MESHCORE_FIELDS.map((f) => f.id));
 /** Cap on shown results, as today's palette: a query that matches everything is not a useful list. */
 const MAX_HITS = 40;
@@ -113,16 +114,19 @@ export default function SettingsSearch({ sources, openId, phone, initialQuery, o
           remote: d.id === openId && remoteEntry(d.id).node !== null,
           // A MeshCore device's pages follow its role, as its settings frame last read it (Task 7.4).
           meshcore: remoteEntry(d.id).device ?? undefined,
+          // A Reticulum device's RNode radio exists in own mode only (Task 7.6).
+          reticulum: d.type === 'reticulum' ? reticulumFacts(d.config) : undefined,
         }).map((c) => [c.id, c]),
       );
       const meshcore = d.type === 'meshcore';
       const base = `/source/${encodeURIComponent(d.id)}/settings`;
-      const scopeOf = (c: CategoryDef) => t(c.scope === 'radio' ? 'workspace.settings.on_radio' : 'workspace.settings.in_meshmonitor');
+      const scopeOf = (c: CategoryDef) =>
+        t(c.scope === 'radio' ? (d.type === 'reticulum' ? 'workspace.reticulum.settings.on_node' : 'workspace.settings.on_radio') : 'workspace.settings.in_meshmonitor');
       const hits: Hit[] = [];
       if (d.id === openId) {
         for (const f of fields) {
-          // A MeshCore page's rows are listed below, mounted or not.
-          if (meshcore && MESHCORE_FIELD_IDS.has(f.id)) continue;
+          // A MeshCore or Reticulum page's rows are listed below, mounted or not.
+          if ((meshcore && MESHCORE_FIELD_IDS.has(f.id)) || (d.type === 'reticulum' && f.id.startsWith('reticulum.'))) continue;
           const c = categories.get(f.categoryId);
           if (!c || !matchesQuery(`${f.label} ${f.keywords.join(' ')}`, tokens)) continue;
           hits.push({
@@ -133,6 +137,28 @@ export default function SettingsSearch({ sources, openId, phone, initialQuery, o
             rank: matchRank(f.label, tokens),
           });
         }
+      }
+      if (d.type === 'reticulum') {
+        // Every Reticulum row (RETICULUM_FIELDS), mounted or not, and each page by name.
+        for (const f of RETICULUM_FIELDS) {
+          const c = categories.get(f.categoryId);
+          const label = t(f.labelKey, f.fallback);
+          if (!c || !matchesQuery(label, tokens)) continue;
+          hits.push({
+            to: `${base}/${c.id}#${settingAnchor(f.id)}`,
+            label,
+            where: t('workspace.settings.search.where', { scope: scopeOf(c), category: t(c.labelKey) }),
+            kind: 'setting',
+            rank: matchRank(label, tokens),
+          });
+        }
+        for (const c of categories.values()) {
+          const label = t(c.labelKey);
+          if (!matchesQuery(label, tokens)) continue;
+          hits.push({ to: `${base}/${c.id}`, label, where: scopeOf(c), kind: 'section', rank: matchRank(label, tokens) });
+        }
+        if (hits.length) out.push({ key: d.id, title: d.name, hits: hits.sort(byRank) });
+        continue;
       }
       if (meshcore) {
         // Every MeshCore row (MESHCORE_FIELDS), today's Device Configuration sections, and each page by name.

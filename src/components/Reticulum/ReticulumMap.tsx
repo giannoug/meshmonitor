@@ -29,21 +29,17 @@ import { useBaseMapSettings } from '../map/useBaseMapSettings';
 import { BaseMap } from '../map/BaseMap';
 import { MapLoadingOverlay } from '../map/MapLoadingOverlay';
 import { NodeMarkersLayer, type NodeMarkerDescriptor } from '../map/layers/NodeMarkersLayer';
-import { NeighborLinksLayer, type NeighborLinkDescriptor } from '../map/layers/NeighborLinksLayer';
+import { NeighborLinksLayer } from '../map/layers/NeighborLinksLayer';
 import { createNodeIcon } from '../map/markerIcons';
-import { shouldDiscardPosition } from '../../utils/nullIsland';
-import { getDiscardInvalidPositions } from '../../utils/positionDisplayConfig';
 import type { ReticulumDestinationRow, ReticulumPathRow } from '../../types/reticulum';
 import { ReticulumConnectionsGraph } from './ReticulumConnectionsGraph';
 import { ReticulumDestinationDetail } from './ReticulumDestinationDetail';
+import { RETICULUM_COLOR, useReticulumMapData } from './useReticulumMapData';
 import { UiIcon } from '../icons';
 import styles from './ReticulumMap.module.css';
 
 type ReticulumMapMode = 'locations' | 'connections';
 
-const RETICULUM_COLOR = '#94e2d5';
-const DEFAULT_CENTER: [number, number] = [0, 0];
-const DEFAULT_ZOOM = 2;
 
 interface ReticulumMapProps {
   /** Announced destinations; those carrying a shared Sideband position render. */
@@ -70,13 +66,7 @@ export const ReticulumMap: React.FC<ReticulumMapProps> = ({ destinations, paths,
   const baseMapSettings = useBaseMapSettings();
   const [mode, setMode] = useState<ReticulumMapMode>('locations');
 
-  const positioned = useMemo(
-    () => destinations.filter(d =>
-      typeof d.latitude === 'number' && isFinite(d.latitude)
-      && typeof d.longitude === 'number' && isFinite(d.longitude)
-      && !shouldDiscardPosition(d.latitude, d.longitude, undefined, getDiscardInvalidPositions())),
-    [destinations],
-  );
+  const { positioned, pathLinks, center, zoom } = useReticulumMapData(destinations, paths);
 
   const markers: NodeMarkerDescriptor[] = useMemo(
     () => positioned.map(d => {
@@ -106,39 +96,6 @@ export const ReticulumMap: React.FC<ReticulumMapProps> = ({ destinations, paths,
     }),
     [positioned],
   );
-
-  const positionByHash = useMemo(() => {
-    const map = new Map<string, [number, number]>();
-    for (const d of positioned) {
-      map.set(d.destinationHash, [d.latitude as number, d.longitude as number]);
-    }
-    return map;
-  }, [positioned]);
-
-  const pathLinks: NeighborLinkDescriptor[] = useMemo(() => {
-    if (!paths || paths.length === 0) return [];
-    const links: NeighborLinkDescriptor[] = [];
-    for (const p of paths) {
-      if (!p.viaHash) continue; // zero-hop / directly reachable — no edge to draw
-      const destPos = positionByHash.get(p.destinationHash);
-      const viaPos = positionByHash.get(p.viaHash);
-      if (!destPos || !viaPos) continue; // both endpoints must be positioned
-      links.push({
-        key: `${p.destinationHash}-${p.viaHash}`,
-        positions: [destPos, viaPos],
-        pathOptions: { color: RETICULUM_COLOR, weight: 2, opacity: 0.55, dashArray: '4 4' },
-      });
-    }
-    return links;
-  }, [paths, positionByHash]);
-
-  const { center, zoom } = useMemo(() => {
-    if (positioned.length > 0) {
-      const d = positioned[0];
-      return { center: [d.latitude as number, d.longitude as number] as [number, number], zoom: 10 };
-    }
-    return { center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM };
-  }, [positioned]);
 
   return (
     <div className={styles.mapPane}>

@@ -29,8 +29,8 @@ export interface ReticulumDestinationsViewProps {
   loading?: boolean;
 }
 
-type SortField = 'name' | 'lastSeen';
-type SortDirection = 'asc' | 'desc';
+export type SortField = 'name' | 'lastSeen';
+export type SortDirection = 'asc' | 'desc';
 
 /**
  * Raw announce rate in announces/second, per the build spec §2 formula.
@@ -77,7 +77,8 @@ function renderNullable(value: number | null | undefined, digits = 0): string {
   return digits > 0 ? value.toFixed(digits) : String(value);
 }
 
-function sortRows(
+// eslint-disable-next-line react-refresh/only-export-components -- #6365 pure helper shared with the Workspace Destinations page; not a component
+export function sortRows(
   rows: ReticulumDestinationRow[],
   field: SortField,
   direction: SortDirection,

@@ -1,0 +1,1295 @@
+/*
+ * A Reticulum device's native screens (Task 7.6, boards 9-01 … 9-16): the
+ * screen frame with the desktop status line, the tool pages (Destinations,
+ * Interfaces, Paths, Map, Info), the LXMF conversation, the destination panel
+ * and the two settings pages' extras. Phone targets are 44 px, rows 52 px.
+ */
+.screen {
+  position: fixed;
+  top: var(--app-header-height);
+  right: 0;
+  bottom: var(--app-nav-bar-height);
+  left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.note {
+  margin: 24px;
+  color: var(--color-text-subtle);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* The status line (9-01, s9n0). */
+.statusLine {
+  flex: none;
+  min-height: 52px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 6px 24px;
+  border-bottom: 1px solid var(--color-surface);
+  font-size: 14px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-text-faint);
+}
+
+.dot[data-on] {
+  background: var(--color-success);
+}
+
+.statusText {
+  font-weight: 600;
+}
+
+.statusMeta {
+  color: var(--color-text-subtle);
+}
+
+.statusError {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-error);
+}
+
+.statusEnd {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chip {
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.errorBar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--color-surface);
+}
+
+/* Buttons. */
+.button,
+.plainButton,
+.primary,
+.iconButton,
+.segmentButton {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.button {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+}
+
+.plainButton {
+  border: 0;
+  background: transparent;
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.primary {
+  border: 0;
+  background: var(--color-accent);
+  color: var(--color-bg-sunken);
+  font-weight: 600;
+}
+
+.iconButton {
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-subtle);
+}
+
+.button:hover,
+.iconButton:hover {
+  background: var(--color-surface-hover);
+}
+
+.button:disabled,
+.plainButton:disabled,
+.primary:disabled,
+.iconButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button:focus-visible,
+.plainButton:focus-visible,
+.primary:focus-visible,
+.iconButton:focus-visible,
+.segmentButton:focus-visible,
+.segment:focus-visible,
+.convo:focus-visible,
+.cardMain:focus-visible,
+.clickRow:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.screen[data-phone] .button,
+.screen[data-phone] .plainButton,
+.screen[data-phone] .primary,
+.screen[data-phone] .segmentButton {
+  min-height: 44px;
+}
+
+.screen[data-phone] .iconButton {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* A tool page: its column scrolls; tables scroll sideways. */
+.page {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 16px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page[data-phone] {
+  padding: 0 12px 24px;
+  gap: 12px;
+}
+
+.split {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.muted {
+  margin: 0;
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}
+
+.good {
+  color: var(--color-success);
+}
+
+.empty {
+  margin: 24px 0;
+  text-align: center;
+  color: var(--color-text-subtle);
+}
+
+.mono {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionTitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+/* Sidebar sub-tools under More tools… (9-03). */
+.subTools {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.subTool {
+  padding-left: 36px;
+}
+
+/* An LXMF conversation row (sidebar, Home, the `dms` page). */
+.convo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.convo:hover {
+  background: var(--color-surface);
+}
+
+.convoOn,
+.convoOn:hover {
+  background: var(--color-accent);
+  color: var(--color-bg-sunken);
+}
+
+.convoLarge {
+  min-height: 64px;
+}
+
+.convoText {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.convoTop {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.convoName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.convoTime {
+  flex: none;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.convoPreview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.avatar,
+.avatarLarge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--device-6);
+  color: var(--color-bg-sunken);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+}
+
+.avatarLarge {
+  width: 48px;
+  height: 48px;
+  font-size: 15px;
+}
+
+.avatar[data-tone='1'],
+.avatarLarge[data-tone='1'] {
+  background: var(--device-1);
+}
+
+.avatar[data-tone='2'],
+.avatarLarge[data-tone='2'] {
+  background: var(--device-2);
+}
+
+.avatar[data-tone='3'],
+.avatarLarge[data-tone='3'] {
+  background: var(--device-3);
+}
+
+.avatar[data-tone='4'],
+.avatarLarge[data-tone='4'] {
+  background: var(--device-4);
+}
+
+.avatar[data-tone='5'],
+.avatarLarge[data-tone='5'] {
+  background: var(--device-5);
+}
+
+.avatar[data-tone='6'],
+.avatarLarge[data-tone='6'] {
+  background: var(--device-6);
+}
+
+.avatar[data-tone='7'],
+.avatarLarge[data-tone='7'] {
+  background: var(--device-7);
+}
+
+.avatar[data-tone='8'],
+.avatarLarge[data-tone='8'] {
+  background: var(--device-8);
+}
+
+.avatar[data-anon],
+.avatarLarge[data-anon] {
+  background: var(--color-surface);
+  color: var(--color-text-subtle);
+}
+
+/* The conversation (9-01, 9-10). */
+.thread {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.identityNote {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 24px 0;
+  padding: 10px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.screen[data-phone] .identityNote {
+  margin: 8px 12px 0;
+}
+
+.marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.msgTitle {
+  margin: 2px 0;
+  font-weight: 600;
+}
+
+.attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.attachmentText {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}
+
+.attachmentText strong {
+  color: var(--color-text);
+}
+
+.reaction {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.state[data-state='delivered'] {
+  color: var(--color-success);
+}
+
+.state[data-state='failed'] {
+  color: var(--color-error);
+}
+
+/* Destinations (9-02, 9-11). */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.search,
+.select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}
+
+.search {
+  flex: 0 1 360px;
+}
+
+.page[data-phone] .search {
+  flex: 1 1 100%;
+  min-height: 44px;
+}
+
+.page[data-phone] .select {
+  min-height: 44px;
+}
+
+.searchInput,
+.select select {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  outline: none;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-sunken);
+  color: var(--color-text);
+}
+
+.page[data-phone] .input {
+  min-height: 44px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th {
+  padding: 8px 6px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table td {
+  padding: 6px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--color-surface);
+  vertical-align: middle;
+}
+
+.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.table th.num {
+  text-align: right;
+}
+
+.clickRow {
+  cursor: pointer;
+}
+
+.clickRow:hover,
+.clickRow[aria-selected='true'] {
+  background: var(--color-surface);
+}
+
+.nameCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table .avatar {
+  width: 30px;
+  height: 30px;
+  font-size: 12px;
+}
+
+.hashLine {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.star {
+  min-width: 32px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-faint);
+  cursor: pointer;
+}
+
+.star[data-on] {
+  color: var(--color-warning);
+}
+
+.star:disabled {
+  cursor: not-allowed;
+}
+
+.page[data-phone] .star {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.cardRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 8px 12px;
+}
+
+.cardRow + .cardRow {
+  border-top: 1px solid var(--color-surface);
+}
+
+.cardMain {
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The destination panel (9-02, 9-05). */
+.panel {
+  flex: none;
+  width: 280px;
+  overflow-y: auto;
+  box-sizing: border-box;
+  border-left: 1px solid var(--color-border);
+  background: var(--color-bg-raised);
+}
+
+.panel[data-embedded] {
+  width: auto;
+  border: 0;
+  background: transparent;
+}
+
+.panelHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.panelTitles {
+  flex: 1;
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.panelName {
+  margin: 0;
+  font-size: 18px;
+}
+
+.panelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.panelHash {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.facts {
+  margin: 0;
+}
+
+.fact {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+  align-items: center;
+  padding: 4px 16px;
+  border-bottom: 1px solid var(--color-surface);
+}
+
+.fact dt {
+  color: var(--color-text-subtle);
+}
+
+.fact dd {
+  margin: 0;
+  text-align: right;
+}
+
+.page[data-phone] .fact,
+.panel[data-embedded] .fact {
+  min-height: 52px;
+}
+
+/* Interfaces (9-03, 9-12) and the rate history. */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.page[data-phone] .cardGrid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cardTitle {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 17px;
+}
+
+.cardMeta {
+  margin: 0;
+  color: var(--color-text-subtle);
+  font-size: 14px;
+}
+
+.swatch,
+.legendSwatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--device-1);
+}
+
+.legendSwatch {
+  height: 3px;
+  width: 14px;
+}
+
+.swatch[data-tone='1'],
+.legendSwatch[data-tone='1'] {
+  background: var(--device-2);
+}
+
+.swatch[data-tone='2'],
+.legendSwatch[data-tone='2'] {
+  background: var(--device-3);
+}
+
+.swatch[data-tone='3'],
+.legendSwatch[data-tone='3'] {
+  background: var(--device-4);
+}
+
+.swatch[data-tone='4'],
+.legendSwatch[data-tone='4'] {
+  background: var(--device-5);
+}
+
+.swatch[data-tone='5'],
+.legendSwatch[data-tone='5'] {
+  background: var(--device-6);
+}
+
+.swatch[data-off] {
+  background: var(--color-text-faint);
+}
+
+.pill {
+  flex: none;
+  padding: 2px 10px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pill[data-on] {
+  background: var(--color-success);
+  color: var(--color-bg-sunken);
+}
+
+.stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.stats dt {
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}
+
+.stats dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.rateLine {
+  margin: 0;
+  padding-top: 8px;
+  display: flex;
+  gap: 16px;
+  border-top: 1px solid var(--color-border);
+  font-weight: 600;
+}
+
+.rateLine > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart {
+  position: relative;
+  padding: 0 40px 20px 0;
+}
+
+.chartSvg {
+  display: block;
+  width: 100%;
+  height: 180px;
+}
+
+.grid {
+  stroke: var(--color-surface);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.series {
+  fill: none;
+  stroke: var(--device-1);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.series[data-tone='1'] {
+  stroke: var(--device-2);
+}
+
+.series[data-tone='2'] {
+  stroke: var(--device-3);
+}
+
+.series[data-tone='3'] {
+  stroke: var(--device-4);
+}
+
+.series[data-tone='4'] {
+  stroke: var(--device-5);
+}
+
+.series[data-tone='5'] {
+  stroke: var(--device-6);
+}
+
+.axisY {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-text-subtle);
+}
+
+.axisX {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-text-subtle);
+}
+
+/* Paths (9-04, 9-12). */
+.probeCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.probe {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-subtle);
+}
+
+.probe[data-ok] {
+  color: var(--color-success);
+}
+
+.probe[data-fail] {
+  color: var(--color-error);
+}
+
+.remoteForm {
+  display: flex;
+  gap: 8px;
+}
+
+.result {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border: 1px solid var(--color-error);
+  border-radius: 8px;
+  color: var(--color-error);
+}
+
+.result[data-ok] {
+  border-color: var(--color-success);
+  color: var(--color-text);
+}
+
+/* The phone's Interfaces / Paths segment (9-12) and the map's switch (9-05). */
+.segments,
+.segmentGroup {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.segment,
+.segmentButton {
+  flex: 1;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.segment[aria-current='page'],
+.segmentButton[aria-selected='true'] {
+  background: var(--color-accent);
+  color: var(--color-bg-sunken);
+}
+
+/* The map (9-05, 9-14). */
+.mapLegend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.mapLegend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legendLine {
+  width: 22px;
+  border-top: 2px solid var(--color-text-subtle);
+}
+
+.legendLine[data-relay] {
+  border-top-style: dashed;
+}
+
+.legendDiamond {
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+  background: var(--device-6);
+}
+
+.graph {
+  flex: 1;
+  min-height: 360px;
+  width: 100%;
+}
+
+.ring {
+  fill: none;
+  stroke: var(--color-surface);
+  stroke-dasharray: 3 5;
+}
+
+.edge {
+  stroke: var(--color-text-subtle);
+  stroke-width: 2;
+}
+
+.edge[data-relay] {
+  stroke-dasharray: 6 5;
+}
+
+.gNode {
+  cursor: default;
+}
+
+.gNode[role='button'] {
+  cursor: pointer;
+}
+
+.gNode:focus {
+  outline: none;
+}
+
+.gNode:focus-visible .gShape {
+  stroke: var(--color-accent);
+  stroke-width: 3;
+}
+
+.gShape {
+  fill: var(--device-3);
+  stroke: var(--color-bg);
+  stroke-width: 2;
+}
+
+.gNode[data-kind='local'] .gShape,
+.gNode[data-kind='relay'] .gShape {
+  fill: var(--device-6);
+}
+
+.gNode[data-on] .gShape {
+  stroke: var(--color-accent);
+  stroke-width: 4;
+}
+
+.gMark {
+  fill: var(--color-bg-sunken);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.gLabel {
+  fill: var(--color-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mapBox {
+  position: relative;
+  flex: 1;
+  min-height: 360px;
+}
+
+.mapEmpty {
+  position: absolute;
+  inset: auto 16px 16px;
+  z-index: 500;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--color-bg-raised);
+  color: var(--color-text-subtle);
+}
+
+/* Info (9-08, 9-16). */
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.page[data-phone] .infoGrid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.infoGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.factsCard {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+  overflow: hidden;
+}
+
+.ifaceHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 4px 16px;
+  border-bottom: 1px solid var(--color-surface);
+}
+
+.ifaceHead .pill {
+  margin-left: auto;
+}
+
+.factsCard > .muted {
+  padding: 10px 16px;
+}
+
+/* The settings pages (9-06, 9-07, 9-15). */
+.readOnly {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+}
+
+.errorText {
+  margin: 0;
+  color: var(--color-error);
+}
+
+.hashValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.hashValue .mono {
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  box-sizing: border-box;
+  padding: 8px 16px;
+  border-top: 1px solid var(--color-surface);
+}
+
+.saveRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.announce {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+}
+
+.rnodeGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.rnodeGrid[data-phone],
+.screen[data-phone] .rnodeGrid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* The phone Home's Refresh, beside the gear (9-09). */
+.headIcon {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.headIcon:disabled {
+  opacity: 0.5;
+}
+
+.headIcon:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}

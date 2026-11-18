@@ -109,3 +109,32 @@ export function reticulumViewForPath(splat: string): ReticulumView | null {
   if (segment === 'dm') return 'dms';
   return (RETICULUM_VIEWS as readonly string[]).includes(segment) ? (segment as ReticulumView) : null;
 }
+
+/** Today's Reticulum views that are native screens now (Task 7.6), plus the Dashboard, by URL segment. */
+const RNS_SCREENS = ['destinations', 'interfaces', 'paths', 'map', 'dashboard', 'dms', 'info'] as const;
+
+/** A Reticulum device's settings (Task 7.6), the part of a source URL after `/source/:id/`. */
+export const RETICULUM_SETTINGS = /^settings(\/|$)/;
+
+/** Today's Configuration view, which the settings frame holds now (Task 7.6). */
+export const RETICULUM_CONFIGURATION = /^configuration\/?$/;
+
+export type ReticulumScreenRoute =
+  | { kind: 'home' }
+  | { kind: (typeof RNS_SCREENS)[number] }
+  | { kind: 'dm'; peer: string };
+
+/**
+ * The native Reticulum screen a source URL asks for (Task 7.6), and the view
+ * segment the URL should become when it names none or one Reticulum has no
+ * view for: the bare URL is the phone's Home and, on desktop, today's default
+ * view (Destinations); `dm/<peer>` is that conversation, and a bare `dm` today's
+ * Messages view.
+ */
+export function reticulumScreenForPath(splat: string, isPhone: boolean): { screen: ReticulumScreenRoute; fix: string | null } {
+  const parts = splat.split('/').filter(Boolean);
+  if (parts.length === 0) return isPhone ? { screen: { kind: 'home' }, fix: null } : { screen: { kind: RETICULUM_DEFAULT_VIEW as 'destinations' }, fix: RETICULUM_DEFAULT_VIEW };
+  if (parts[0] === 'dm') return parts[1] ? { screen: { kind: 'dm', peer: decodeURIComponent(parts[1]) }, fix: null } : { screen: { kind: 'dms' }, fix: null };
+  const view = (RNS_SCREENS as readonly string[]).find((v) => v === parts[0]);
+  return view ? { screen: { kind: view as (typeof RNS_SCREENS)[number] }, fix: null } : { screen: { kind: 'destinations' }, fix: RETICULUM_DEFAULT_VIEW };
+}

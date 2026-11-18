@@ -1,6 +1,5 @@
 {
   "must": [
-    "Search destinations",
     "Sort by",
     "Last heard",
     "lxmf.delivery",

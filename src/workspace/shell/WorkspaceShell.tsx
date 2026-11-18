@@ -62,8 +62,8 @@ function modeOf(pathname: string, sourceType: string | undefined): SidebarMode {
   if (matchPath('/source/:id/settings/*', pathname) && !['meshcore', 'reticulum', 'meshcore_mqtt'].includes(sourceType ?? '')) {
     return 'settings';
   }
-  // A MeshCore device's settings, its remote targets' too (Tasks 7.3, 7.4).
-  if (sourceType === 'meshcore' && matchPath('/source/:id/settings/*', pathname)) return 'settings';
+  // A MeshCore device's settings, its remote targets' too (Tasks 7.3, 7.4), and a Reticulum device's (Task 7.6).
+  if ((sourceType === 'meshcore' || sourceType === 'reticulum') && matchPath('/source/:id/settings/*', pathname)) return 'settings';
   if (pathname.startsWith('/source/')) return 'device';
   if (/^\/server(\/|$)/.test(pathname)) return 'server';
   if (/^\/(you|preferences)(\/|$)/.test(pathname)) return 'you';

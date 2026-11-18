@@ -1,7 +1,7 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useHealth } from '../../hooks/useHealth';
 import { appBasename } from '../../init';
-import { RADIO, visibleCategories, type CategoryDef, type MeshCoreDeviceFacts } from './categories';
+import { RADIO, visibleCategories, type CategoryDef, type MeshCoreDeviceFacts, type ReticulumDeviceFacts } from './categories';
 
 /**
  * The categories this viewer may open on a device, once the grants (and, for
@@ -13,6 +13,7 @@ export function useVisibleCategories(
   sourceType: string,
   remote = false,
   meshcore?: MeshCoreDeviceFacts,
+  reticulum?: ReticulumDeviceFacts,
 ): { ready: boolean; categories: CategoryDef[] } {
   const { authStatus, loading, hasPermission } = useAuth();
   const isAdmin = authStatus?.user?.isAdmin === true;
@@ -29,6 +30,7 @@ export function useVisibleCategories(
     hasPermission,
     remote,
     meshcore,
+    reticulum,
   });
   return { ready, categories };
 }

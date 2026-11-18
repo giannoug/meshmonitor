@@ -36,6 +36,8 @@ vi.mock('../../pages/MeshCoreIngestSourcePage', async () => ({ default: (await i
 vi.mock('../../pages/ReticulumSourcePage', async () => ({ default: (await import('./pageStub')).pageStub('reticulum') }));
 // A MeshCore channel, room and phone Home are the Workspace's own (Task 7.1); their tests live in meshcore/__tests__.
 vi.mock('../meshcore/MeshCoreScreen', async () => ({ default: (await import('./pageStub')).pageStub('meshcore-screen') }));
+// Every Reticulum view is the Workspace's own screen (Task 7.6); its tests live in reticulum/__tests__.
+vi.mock('../reticulum/ReticulumScreen', async () => ({ default: (await import('./pageStub')).pageStub('reticulum-screen') }));
 vi.mock('../chat/ChannelThread', async () => ({ default: (await import('./pageStub')).pageStub('channel-thread') }));
 vi.mock('../chat/DmConversation', async () => ({ default: (await import('./pageStub')).pageStub('dm-conversation') }));
 vi.mock('../chat/DmInbox', async () => ({ default: (await import('./pageStub')).pageStub('dm-inbox') }));
@@ -141,7 +143,7 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     // A MeshCore channel and room are the Workspace's own screens (Task 7.1); every other view stays re-hosted.
     [`${heltec}/room/r1`, 'meshcore-screen'],
     [`${heltec}/channel/1`, 'meshcore-screen'],
-    [`${rns}/interfaces`, 'reticulum'],
+    [`${rns}/interfaces`, 'reticulum-screen'],
   ])('%s re-hosts %s', async (route, page) => {
     renderAt(route);
     await expectPage(page);
@@ -444,8 +446,28 @@ describe('MeshCore and Reticulum views come from the URL', () => {
 
   it('Reticulum takes its view from the URL', async () => {
     renderAt(`${rns}/paths`);
-    await expectPage('reticulum');
+    await expectPage('reticulum-screen');
     expect(screen.getByTestId('view')).toHaveTextContent('paths');
+  });
+
+  it("Reticulum's views are one screen: moving between them keeps it mounted (Task 7.6)", async () => {
+    renderAt(`${rns}/paths`);
+    await expectPage('reticulum-screen');
+    for (const view of ['destinations', 'interfaces', 'map', 'info', 'dashboard', 'dms', 'dm/abcd']) {
+      goTo(`${rns}/${view}`);
+      await waitFor(() => expect(screen.getByTestId('view')).toHaveTextContent(view === 'dm/abcd' ? 'dm' : view));
+    }
+    expect(mounts['reticulum-screen']).toBe(1);
+    expect(mounts.reticulum).toBeUndefined();
+  });
+
+  it("today's Reticulum Configuration and Settings views are the settings frame (Task 7.6)", async () => {
+    renderAt(`${rns}/configuration`);
+    await expectPage('settings-frame');
+    await waitFor(() => expect(realUrl()).toBe(`${rns}/settings`));
+    goTo(`${rns}/settings/rnode`);
+    await expectPage('settings-frame');
+    expect(mounts.reticulum).toBeUndefined();
   });
 
 
@@ -464,7 +486,6 @@ describe('sockets (Ruling N)', () => {
   it.each([
     [`${g2}/channels`, 'app'],
     [`${heltec}/map`, 'meshcore'],
-    [`${rns}/destinations`, 'reticulum'],
     ['/overview/reports', 'reports-route'],
     ['/', 'overview-map'],
     ['/source/no-such-device/nodes', 'dashboard'],
@@ -507,6 +528,6 @@ describe('re-hosted pages stay mounted while the URL is fixed up', () => {
     renderAt(`${rns}/nodes`);
     await waitFor(() => expect(realUrl()).toBe(`${rns}/destinations`));
     expect(screen.getByTestId('view')).toHaveTextContent('destinations');
-    expect(mounts.reticulum).toBe(1);
+    expect(mounts['reticulum-screen']).toBe(1);
   });
 });

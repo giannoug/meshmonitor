@@ -26,6 +26,7 @@ import { UiIcon, type UiIconName } from '../../components/icons';
 import { deviceConfigurationNav, mapNav } from '../../components/nav/sourceNavEntries';
 import SidebarSection from './SidebarSection';
 import SettingsList from '../settings/SettingsList';
+import { reticulumFacts } from '../settings/categories';
 import { canReadMessages, isMeshtasticFamily, statusLabel, useDeviceTab } from './deviceTabs';
 import ActivityPanel from '../activity/ActivityPanel';
 import ChannelList from '../chat/ChannelList';
@@ -39,6 +40,8 @@ import styles from './DeviceSidebar.module.css';
 const MeshCoreSidebar = lazy(() => import('../meshcore/MeshCoreSidebar.tsx'));
 // A region feed's own list (Task 7.5).
 const RegionFeedSidebar = lazy(() => import('../meshcore/RegionFeedSidebar.tsx'));
+// A Reticulum device's tools and LXMF conversations (Task 7.6).
+const ReticulumSidebar = lazy(() => import('../reticulum/ReticulumSidebar.tsx'));
 
 export type SidebarMode = 'device' | 'overview' | 'settings' | 'server' | 'you';
 
@@ -93,6 +96,16 @@ export default function DeviceSidebar({ mode, source, onNavigate, onSearch }: De
       <Frame title={source.name} header={header}>
         <Suspense fallback={null}>
           <MeshCoreSidebar key={source.id} source={source} onNavigate={onNavigate} />
+        </Suspense>
+      </Frame>
+    );
+  }
+
+  if (source.type === 'reticulum') {
+    return (
+      <Frame title={source.name} header={header}>
+        <Suspense fallback={null}>
+          <ReticulumSidebar key={source.id} source={source} onNavigate={onNavigate} />
         </Suspense>
       </Frame>
     );
@@ -175,14 +188,22 @@ function DeviceHeader({ source }: { source: WorkspaceSource }) {
   const bell = isMeshtasticFamily(source.type) && canReadMessages(hasPermission, source.id);
   // A MeshCore device's gear: today's Settings tab (board 8-01).
   const gear =
-    source.type === 'meshcore' &&
-    visibleMeshCoreViews({
-      canRead: (resource) => hasPermission(resource, 'read', { sourceId: source.id }),
-      isAuthenticated: authStatus?.authenticated ?? false,
-    }).includes('settings');
+    (source.type === 'meshcore' &&
+      visibleMeshCoreViews({
+        canRead: (resource) => hasPermission(resource, 'read', { sourceId: source.id }),
+        isAuthenticated: authStatus?.authenticated ?? false,
+      }).includes('settings')) ||
+    // A Reticulum device's gear: its LXMF identity and RNode radio (configuration:read, board 9-01).
+    (source.type === 'reticulum' && hasPermission('configuration', 'read', { sourceId: source.id }));
   const label = statusLabel(t, source.status);
   const nodeNum = source.live?.nodeNum;
-  const line = nodeNum !== undefined && source.status === 'connected' ? `${label} · !${nodeNum.toString(16).padStart(8, '0')}` : label;
+  // A Reticulum device's raw mode follows its state: "Connected · own" (9-01).
+  const mode = source.type === 'reticulum' && source.status === 'connected' ? reticulumFacts(source.config).mode : null;
+  const line = mode
+    ? `${label} · ${mode}`
+    : nodeNum !== undefined && source.status === 'connected'
+      ? `${label} · !${nodeNum.toString(16).padStart(8, '0')}`
+      : label;
   const [cardOpen, setCardOpen] = useState(false);
   return (
     <div className={styles.head}>

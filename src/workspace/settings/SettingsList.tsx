@@ -34,6 +34,7 @@ import {
   categoryById,
   categoryIndex,
   readOnlyFor,
+  reticulumFacts,
   resolveSettingsPath,
   type CategoryDef,
 } from './categories';
@@ -79,6 +80,9 @@ const ICONS: Record<string, UiIconName> = {
   regions: 'globe',
   display: 'visibility',
   filters: 'filter',
+  // A Reticulum device's pages (Task 7.6, board 9-13).
+  'lxmf-identity': 'identity',
+  rnode: 'radio',
 };
 
 interface Row {
@@ -96,6 +100,10 @@ interface Row {
   status?: { text: string; tone: string };
   /** What the page holds now (a MeshCore device's list page, 8-22). */
   summary?: string;
+  /** A short tag after the label (a Reticulum device's "own mode", 9-06). */
+  tag?: string;
+  /** Leaves the device's settings (a Reticulum device's Global Settings, 9-13). */
+  external?: boolean;
 }
 
 export interface SettingsListProps {
@@ -114,8 +122,12 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
   const remote = useRemoteEntry(sourceId);
   // Today's remote admin: an admin on a Meshtastic radio; remote_admin:write on a MeshCore device (Task 7.3).
   const meshcore = sourceType === 'meshcore';
+  // A Reticulum device (Task 7.6): its two pages, RNode radio in own mode only, and one Global Settings link.
+  const reticulum = sourceType === 'reticulum';
+  const { sources } = useShellDevices();
+  const rnsFacts = reticulum ? reticulumFacts(sources.find((s) => s.id === sourceId)?.config) : undefined;
   // A MeshCore device's pages follow its role, which its settings frame reads (Task 7.4).
-  const { categories } = useVisibleCategories(sourceId, sourceType, !!remote.node, meshcore ? remote.device ?? undefined : undefined);
+  const { categories } = useVisibleCategories(sourceId, sourceType, !!remote.node, meshcore ? remote.device ?? undefined : undefined, rnsFacts);
   const canPick = meshcore
     ? hasPermission('remote_admin', 'write', { sourceId })
     : authStatus?.user?.isAdmin === true && sourceType === 'meshtastic_tcp';
@@ -156,6 +168,7 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
     readOnly: meshcore && remote.node ? !canRemote : readOnlyFor(c, hasPermission, sourceId),
     status: remote.sent[c.id] ? { text: t(SENT[remote.sent[c.id]]), tone: remote.sent[c.id] } : undefined,
     summary: meshcore && !remote.node ? remote.device?.summaries[c.id] : undefined,
+    tag: reticulum && c.id === 'rnode' ? t('workspace.reticulum.settings.own_mode') : undefined,
   });
 
   const pinned: Row[] = pins
@@ -181,7 +194,9 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
     const openChild = children.find((c) => c.id === open.categoryId);
     if (variant === 'sidebar' && openGroup === g && openChild) radio.push(row(openChild, 'device', true));
   }
-  const meshmonitor = categories.filter((c) => c.scope === 'meshmonitor').map((c) => row(c, 'meshmonitor'));
+  const meshmonitor: Row[] = reticulum
+    ? [{ key: 'global', to: '/server/general', label: t('nav.global_settings'), icon: 'settings', tone: 'meshmonitor', active: false, chevron: false, readOnly: false, external: true }]
+    : categories.filter((c) => c.scope === 'meshmonitor').map((c) => row(c, 'meshmonitor'));
   const remoteOnly = meshcore ? [] : categories.filter((c) => c.remote === 'only').map((c) => row(c, 'radio'));
   // Maintenance › closes the list on a remote node, as b-set-d6 draws it.
   const maintenance = remote.node ? radio.findIndex((r) => r.key === 'maintenance') : -1;
@@ -259,14 +274,26 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
           <>
             <Section title={t('workspace.settings.pinned')} rows={pinned} sidebar={sidebar} onNavigate={onNavigate} />
             <Section
-              title={remote.node ? t('workspace.settings.remote.on_node', { name: remote.node.longName }) : t('workspace.settings.on_radio')}
+              title={
+                remote.node
+                  ? t('workspace.settings.remote.on_node', { name: remote.node.longName })
+                  : t(reticulum ? 'workspace.reticulum.settings.on_node' : 'workspace.settings.on_radio')
+              }
               rows={radio}
               sidebar={sidebar}
-              count={meshcore && !remote.node}
+              count={(meshcore || reticulum) && !remote.node}
+              note={reticulum && !sidebar ? t('workspace.reticulum.settings.rnode_note') : undefined}
               onNavigate={onNavigate}
             />
             <Section title={t('workspace.settings.remote.remote_only')} rows={[...remoteOnly, ...radioTail]} sidebar={sidebar} onNavigate={onNavigate} />
-            <Section title={t('workspace.settings.in_meshmonitor')} rows={meshmonitor} sidebar={sidebar} count={meshcore} onNavigate={onNavigate} />
+            <Section
+              title={t('workspace.settings.in_meshmonitor')}
+              rows={meshmonitor}
+              sidebar={sidebar}
+              count={meshcore}
+              note={reticulum && !sidebar ? t('workspace.reticulum.settings.global_note') : undefined}
+              onNavigate={onNavigate}
+            />
             {remote.session && (
               // A MeshCore target's admin session (board 8-06).
               <section className={styles.section}>
@@ -289,7 +316,7 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
  * "View only" beside the group when the viewer may only look at all of it, else beside each such row.
  * `count`: the phone list page says how many pages the group holds (8-22: "On the radio · 12").
  */
-function Section({ title, rows, sidebar, count, onNavigate }: { title: string; rows: Row[]; sidebar: boolean; count?: boolean; onNavigate?: () => void }) {
+function Section({ title, rows, sidebar, count, note, onNavigate }: { title: string; rows: Row[]; sidebar: boolean; count?: boolean; note?: string; onNavigate?: () => void }) {
   const { t } = useTranslation();
   const id = useId();
   if (rows.length === 0) return null;
@@ -317,14 +344,22 @@ function Section({ title, rows, sidebar, count, onNavigate }: { title: string; r
               )}
               {sidebar && r.tone === 'pin' && <UiIcon name="favorite" size={14} />}
               <span className={styles.label}>{r.label}</span>
+              {r.tag && <span className={styles.tag}>{r.tag}</span>}
               {r.summary && !sidebar && <span className={styles.summary}>{r.summary}</span>}
               {r.status && <span className={styles.status} data-tone={r.status.tone}>{r.status.text}</span>}
               {!viewOnly && r.readOnly && <span className={styles.viewOnly}>{t('workspace.settings.view_only')}</span>}
+              {r.external && <UiIcon name="link" size={16} />}
               {(r.chevron || !sidebar) && <UiIcon name="chevronRight" size={sidebar ? 16 : 20} />}
             </Link>
           </li>
         ))}
       </ul>
+      {note && (
+        <p className={styles.note}>
+          <UiIcon name="info" size={16} />
+          <span>{note}</span>
+        </p>
+      )}
     </section>
   );
 }

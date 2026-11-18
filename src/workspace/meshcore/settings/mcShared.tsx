@@ -3,13 +3,13 @@
  * screen's one useMeshCore holds it, today's grants for it, and the page's
  * own save dock (s8n4: each page saves with its own bar, as Radio on 8-08).
  */
-import type { ReactNode } from 'react';
+import { useContext, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import SendsLine from '../../patterns/SendsLine';
 import LeaveGuard from '../../settings/LeaveGuard';
 import { useIsPhone } from '../../shell/useIsPhone';
-import { useMeshCoreRuntime } from '../runtime';
+import { RuntimeContext } from '../runtime';
 import { useMcDevice } from './useMcDevice';
 import bar from '../../settings/RadioSaveBar.module.css';
 import styles from './McSettings.module.css';
@@ -49,6 +49,8 @@ export interface McDockProps {
   error?: string | null;
   onSave(): void;
   onDiscard(): void;
+  /** The device, outside a MeshCore screen (a Reticulum page, Task 7.6). */
+  sourceId?: string;
 }
 
 /**
@@ -56,10 +58,11 @@ export interface McDockProps {
  * Sends line, Discard and the page's own Save. One press, one save. While it
  * holds changes, a link out of the page asks first (LeaveGuard).
  */
-export function McDock({ changes, page, sends, saveLabel, saving, blocked, error, onSave, onDiscard }: McDockProps) {
+export function McDock({ changes, page, sends, saveLabel, saving, blocked, error, onSave, onDiscard, sourceId: device }: McDockProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
-  const { sourceId } = useMeshCoreRuntime();
+  const runtime = useContext(RuntimeContext);
+  const sourceId = device ?? runtime?.sourceId ?? '';
   const { pathname } = useLocation();
   const count = changes.length;
   const base = `/source/${encodeURIComponent(sourceId)}/settings`;

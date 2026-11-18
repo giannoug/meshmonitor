@@ -14,8 +14,9 @@
  * truncated hash. `nodeForViaHash` therefore never requires a destination row.
  *
  * This module is intentionally free of React/DOM so the graph shape (the part
- * the issue asks to test) can be unit-tested as a plain function. Visual
- * layout (radial positioning) lives in `ReticulumConnectionsGraph.tsx`.
+ * the issue asks to test) can be unit-tested as a plain function. The radial
+ * layout (`placeReticulumGraph`) is here too, shared by today's
+ * `ReticulumConnectionsGraph.tsx` and the Workspace map (#6365).
  */
 import type { ReticulumDestinationRow, ReticulumPathRow } from '../../types/reticulum';
 
@@ -158,4 +159,41 @@ export function buildReticulumConnectionGraph(
   }
 
   return { nodes, edges };
+}
+
+export const RETICULUM_GRAPH_VIEW = 600; // SVG viewBox square (user units)
+const CENTER = RETICULUM_GRAPH_VIEW / 2;
+const RELAY_RADIUS = RETICULUM_GRAPH_VIEW * 0.24;
+const DEST_RADIUS = RETICULUM_GRAPH_VIEW * 0.42;
+
+export interface PlacedReticulumNode {
+  node: ReticulumGraphNode;
+  x: number;
+  y: number;
+}
+
+/** Evenly place `n` nodes on a ring, starting at the top (-90°). */
+function ringPosition(index: number, count: number, radius: number, offset = 0): { x: number; y: number } {
+  const angle = (index / Math.max(1, count)) * Math.PI * 2 - Math.PI / 2 + offset;
+  return { x: CENTER + radius * Math.cos(angle), y: CENTER + radius * Math.sin(angle) };
+}
+
+/**
+ * The deterministic two-ring radial layout: the local instance at the centre,
+ * relays on an inner ring, destinations on the outer ring.
+ */
+export function placeReticulumGraph(graph: ReticulumConnectionGraph): Map<string, PlacedReticulumNode> {
+  const map = new Map<string, PlacedReticulumNode>();
+  map.set(LOCAL_NODE_ID, { node: graph.nodes[0] ?? { id: LOCAL_NODE_ID, kind: 'local', hash: null, label: '', destination: null }, x: CENTER, y: CENTER });
+  const relays = graph.nodes.filter(n => n.kind === 'relay');
+  const dests = graph.nodes.filter(n => n.kind === 'destination');
+  relays.forEach((node, i) => {
+    const { x, y } = ringPosition(i, relays.length, RELAY_RADIUS, Math.PI / relays.length);
+    map.set(node.id, { node, x, y });
+  });
+  dests.forEach((node, i) => {
+    const { x, y } = ringPosition(i, dests.length, DEST_RADIUS);
+    map.set(node.id, { node, x, y });
+  });
+  return map;
 }

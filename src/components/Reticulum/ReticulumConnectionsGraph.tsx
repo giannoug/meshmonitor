@@ -19,7 +19,8 @@ import { useTranslation } from 'react-i18next';
 import type { ReticulumDestinationRow, ReticulumPathRow } from '../../types/reticulum';
 import {
   buildReticulumConnectionGraph,
-  LOCAL_NODE_ID,
+  placeReticulumGraph,
+  RETICULUM_GRAPH_VIEW as VIEW,
   type ReticulumGraphNode,
 } from './reticulumConnectionGraph';
 import { ReticulumDestinationDetail } from './ReticulumDestinationDetail';
@@ -30,23 +31,6 @@ export interface ReticulumConnectionsGraphProps {
   paths: ReticulumPathRow[];
   destinations: ReticulumDestinationRow[];
   loading?: boolean;
-}
-
-const VIEW = 600; // SVG viewBox square (user units)
-const CENTER = VIEW / 2;
-const RELAY_RADIUS = VIEW * 0.24;
-const DEST_RADIUS = VIEW * 0.42;
-
-interface Placed {
-  node: ReticulumGraphNode;
-  x: number;
-  y: number;
-}
-
-/** Evenly place `n` nodes on a ring, starting at the top (-90°). */
-function ringPosition(index: number, count: number, radius: number, offset = 0): { x: number; y: number } {
-  const angle = (index / Math.max(1, count)) * Math.PI * 2 - Math.PI / 2 + offset;
-  return { x: CENTER + radius * Math.cos(angle), y: CENTER + radius * Math.sin(angle) };
 }
 
 export const ReticulumConnectionsGraph: React.FC<ReticulumConnectionsGraphProps> = ({
@@ -64,21 +48,7 @@ export const ReticulumConnectionsGraph: React.FC<ReticulumConnectionsGraphProps>
     [paths, destinations, t],
   );
 
-  const placedById = useMemo(() => {
-    const map = new Map<string, Placed>();
-    map.set(LOCAL_NODE_ID, { node: graph.nodes[0] ?? { id: LOCAL_NODE_ID, kind: 'local', hash: null, label: '', destination: null }, x: CENTER, y: CENTER });
-    const relays = graph.nodes.filter(n => n.kind === 'relay');
-    const dests = graph.nodes.filter(n => n.kind === 'destination');
-    relays.forEach((node, i) => {
-      const { x, y } = ringPosition(i, relays.length, RELAY_RADIUS, Math.PI / relays.length);
-      map.set(node.id, { node, x, y });
-    });
-    dests.forEach((node, i) => {
-      const { x, y } = ringPosition(i, dests.length, DEST_RADIUS);
-      map.set(node.id, { node, x, y });
-    });
-    return map;
-  }, [graph]);
+  const placedById = useMemo(() => placeReticulumGraph(graph), [graph]);
 
   const isEmpty = graph.nodes.length === 0;
 
