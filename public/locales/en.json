@@ -9824,7 +9824,6 @@
   "workspace.meshcore.auto.open": "Open {{name}}",
   "workspace.meshcore.auto.more_one": "{{count}} more built-in",
   "workspace.meshcore.auto.more_other": "{{count}} more built-ins",
-  "workspace.meshcore.auto.dock_sends": "Saving sends nothing on the mesh; while on it sends {{sends}}",
   "workspace.meshcore.auto.pathfinding": "Auto-pathfinding",
   "workspace.meshcore.auto.pf_companions": "Paths for companions",
   "workspace.meshcore.auto.pf_repeaters": "neighbours for repeaters",
@@ -9847,7 +9846,6 @@
   "workspace.meshcore.auto.announce_sends_other": "{{count}} messages{{advert}} {{when}}",
   "workspace.meshcore.auto.send_now_sends_one": "Sends {{count}} message now, to the saved channel",
   "workspace.meshcore.auto.send_now_sends_other": "Sends {{count}} messages now, one per saved channel",
-  "workspace.meshcore.auto.flood_warning": "A flood advert is repeated by every repeater in reach and uses shared airtime for the whole mesh.",
   "workspace.meshcore.auto.tokens_hint": "Supports message tokens such as {NODE_NAME}, {HOPS} and {TIME}.",
   "workspace.meshcore.auto.responder": "Auto-responder",
   "workspace.meshcore.auto.responder_description": "Reply to messages that match a trigger, with text or a script.",
@@ -9880,5 +9878,11 @@
   "workspace.meshcore.auto.favorite_run_sends": "Sends nothing on the mesh: favourites are set on the radio",
   "workspace.meshcore.auto.welcome_dm": "DM on first sighting",
   "workspace.meshcore.auto.welcome_channel": "Post on {{channel}} on first sighting",
-  "workspace.meshcore.auto.welcome_sends": "At most {{max}} welcomes an hour, 1 per new node"
+  "workspace.meshcore.auto.welcome_sends": "At most {{max}} welcomes an hour, 1 per new node",
+  "workspace.meshcore.auto.save_nothing": "Saving sends nothing on the mesh",
+  "workspace.meshcore.auto.save_pathfinding": "Saving queues a run within 5 minutes and restarts the cycle",
+  "workspace.meshcore.auto.save_announce": "Saving sends nothing now; the schedule restarts from the save",
+  "workspace.meshcore.auto.save_timers": "Saving sends nothing now; each interval timer restarts from the save",
+  "workspace.meshcore.auto.save_distance": "Saving queues a purge in 2 minutes; sends nothing on the mesh",
+  "workspace.meshcore.auto.save_favorite": "Saving queues a sweep in 2 minutes; sends nothing on the mesh"
 }

@@ -78,4 +78,20 @@ describe('8-12-packet-detail', () => {
     await screen.findAllByTestId('mc-packet-row');
     expect(screen.getAllByText(/capture is server-side/i).length).toBeGreaterThan(0);
   });
+
+  it('the phone list pages as today: Load older reads the next page once per press', async () => {
+    const page = (cursor: string | null) => ({
+      packets: cursor ? [{ id: 99, timestamp: 1, payloadType: 4, payloadTypeName: 'ADVERT', routeType: 1, rawHex: '1100', advertName: 'Older Node', senderPubKey: 'aa'.repeat(32) }] : [
+        { id: 100, timestamp: 2, payloadType: 4, payloadTypeName: 'ADVERT', routeType: 1, rawHex: '1100', advertName: 'Newer Node', senderPubKey: 'bb'.repeat(32) }],
+      total: 2, hasMore: !cursor, nextCursor: cursor ? null : 'c1', enabled: true, maxCount: 1000, maxAgeHours: 24, isIngestSource: false,
+    });
+    renderMeshCore(`${HELTEC}/packets`, { phone: true, fixtures: { 'GET /api/sources/:id/meshcore/packets': (u: URL) => page(u.searchParams.get('cursor')) } });
+    await screen.findByText('Newer Node');
+    const pages = () => vi.mocked(fetch).mock.calls.filter(([u]) => String(u).includes('/meshcore/packets?') && String(u).includes('cursor=c1')).length;
+    expect(pages()).toBe(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Load older' }));
+    expect(await screen.findByText('Older Node')).toBeInTheDocument();
+    await act(async () => new Promise((r) => setTimeout(r, 50)));
+    expect(pages()).toBe(1);
+  });
 });

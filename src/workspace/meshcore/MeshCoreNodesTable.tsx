@@ -79,7 +79,16 @@ const DEVICE_COLOURS = 8;
 const avatarStyle = (key: string) => ({ background: `var(--device-${((parseInt(key.slice(0, 8), 16) || 0) % DEVICE_COLOURS) + 1})` });
 const dash = '—';
 
-export default function MeshCoreNodesTable() {
+export interface MeshCoreNodesTableProps {
+  /**
+   * A region feed's Nodes tab (Task 7.5, s8n5): the 8-11 table read-only, inside
+   * the feed's page: no header, no Discover, Import contact or star, no node
+   * page links, and only the advert columns (name, role, last heard, position, key).
+   */
+  feed?: boolean;
+}
+
+export default function MeshCoreNodesTable({ feed = false }: MeshCoreNodesTableProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const { showToast } = useToast();
@@ -134,7 +143,7 @@ export default function MeshCoreNodesTable() {
 
   const base = `/source/${encodeURIComponent(sourceId)}`;
   const nodeUrl = (key: string) => `${base}/node/${encodeURIComponent(key)}`;
-  const canDiscover = (status?.connected ?? false) && status?.deviceType === 1;
+  const canDiscover = !feed && (status?.connected ?? false) && status?.deviceType === 1;
   const isRepeaterSource = status?.deviceType === 2;
   const canFavourite = hasPermission('nodes', 'write', { sourceId });
 
@@ -202,7 +211,7 @@ export default function MeshCoreNodesTable() {
   };
 
   const importLabel = t('workspace.meshcore.import_contact');
-  const importButton = (
+  const importButton = !feed && (
     <button type="button" className={`${nodesStyles.button} ${styles.tall}`} data-phone={isPhone || undefined} onClick={() => setImportOpen(true)}>
       <UiIcon name="plus" size={18} />
       {importLabel}
@@ -288,7 +297,7 @@ export default function MeshCoreNodesTable() {
           ) : (
             <li key={item.node.publicKey}>
               <TwoLineRow
-                to={nodeUrl(item.node.publicKey)}
+                to={feed ? undefined : nodeUrl(item.node.publicKey)}
                 leading={avatar(item.node)}
                 title={
                   <span className={nodesStyles.rowTitle}>
@@ -297,13 +306,13 @@ export default function MeshCoreNodesTable() {
                     {tags(item.node)}
                   </span>
                 }
-                subtitle={[
+                subtitle={(feed ? [role(item.node)] : [
                   typeof item.node.pathLen === 'number' && item.node.pathLen >= 0
                     ? (item.node.pathLen === 0 ? t('node_details.direct', 'Direct') : t('workspace.meshcore.hops', { count: item.node.pathLen }))
                     : null,
                   typeof item.node.snr === 'number' ? `${item.node.snr.toFixed(1)} dB` : null,
                   volts(item.node),
-                ].filter(Boolean).join(' · ') || undefined}
+                ]).filter(Boolean).join(' · ') || undefined}
                 trailing={heard(item.node) ? <span className={nodesStyles.time}>{heard(item.node)}</span> : undefined}
               />
             </li>
@@ -316,16 +325,21 @@ export default function MeshCoreNodesTable() {
       <table className={nodesStyles.table}>
         <thead>
           <tr>
-            <th scope="col" className={nodesStyles.star}><span className={nodesStyles.srOnly}>{t('node_filter.favorites')}</span></th>
+            {!feed && <th scope="col" className={nodesStyles.star}><span className={nodesStyles.srOnly}>{t('node_filter.favorites')}</span></th>}
             <th scope="col">{t('nodes.node')}</th>
-            <th scope="col">{t('workspace.map.rssi')}</th>
-            <th scope="col">{t('node_popup.snr')}</th>
-            <th scope="col">{t('nodes.voltage')}</th>
-            <th scope="col">{t('nodes.hops')}</th>
+            {feed && <th scope="col">{t('workspace.meshcore.feed_role')}</th>}
+            {!feed && (
+              <>
+                <th scope="col">{t('workspace.map.rssi')}</th>
+                <th scope="col">{t('node_popup.snr')}</th>
+                <th scope="col">{t('nodes.voltage')}</th>
+                <th scope="col">{t('nodes.hops')}</th>
+              </>
+            )}
             <th scope="col">{t('nodes.last_heard')}</th>
             <th scope="col">{t('node_details.position')}</th>
             <th scope="col">{t('meshcore.discover.col_key', 'Key')}</th>
-            <th scope="col"><span className={nodesStyles.srOnly}>{t('meshcore.node_row.details', 'More details')}</span></th>
+            {!feed && <th scope="col"><span className={nodesStyles.srOnly}>{t('meshcore.node_row.details', 'More details')}</span></th>}
           </tr>
         </thead>
         <tbody>
@@ -333,32 +347,37 @@ export default function MeshCoreNodesTable() {
             if (item.type === 'header') {
               return (
                 <tr key={`g-${item.category}`} className={styles.groupRow}>
-                  <td colSpan={10}>{groupHeader(item.category, item.count, item.collapsed)}</td>
+                  <td colSpan={feed ? 5 : 10}>{groupHeader(item.category, item.count, item.collapsed)}</td>
                 </tr>
               );
             }
             const r = item.node;
             return (
               <tr key={r.publicKey} data-stale={!r.lastHeard || undefined}>
-                <td className={nodesStyles.star}>{star(r)}</td>
+                {!feed && <td className={nodesStyles.star}>{star(r)}</td>}
                 <td>
                   <span className={nodesStyles.node}>
                     {avatar(r)}
                     <span className={nodesStyles.names}>
-                      <Link className={nodesStyles.name} to={nodeUrl(r.publicKey)}>{r.name}</Link>
+                      {feed ? <strong className={nodesStyles.name}>{r.name}</strong> : <Link className={nodesStyles.name} to={nodeUrl(r.publicKey)}>{r.name}</Link>}
                       {tags(r)}
-                      <span className={nodesStyles.id}>{role(r)}</span>
+                      {!feed && <span className={nodesStyles.id}>{role(r)}</span>}
                     </span>
                   </span>
                 </td>
-                <td>{typeof r.rssi === 'number' ? r.rssi : dash}</td>
-                <td>{typeof r.snr === 'number' ? r.snr.toFixed(1) : dash}</td>
-                <td>{volts(r) ?? dash}</td>
-                <td>{hops(r)}</td>
+                {feed && <td>{role(r)}</td>}
+                {!feed && (
+                  <>
+                    <td>{typeof r.rssi === 'number' ? r.rssi : dash}</td>
+                    <td>{typeof r.snr === 'number' ? r.snr.toFixed(1) : dash}</td>
+                    <td>{volts(r) ?? dash}</td>
+                    <td>{hops(r)}</td>
+                  </>
+                )}
                 <td>{heard(r) ?? dash}</td>
                 <td>{r.hasPosition && typeof r.latitude === 'number' && typeof r.longitude === 'number' ? `${r.latitude.toFixed(2)}, ${r.longitude.toFixed(2)}` : dash}</td>
                 <td><code className={nodesStyles.key}>{r.publicKey.slice(0, 4)}</code></td>
-                <td><Link className={styles.details} to={nodeUrl(r.publicKey)}>{t('meshcore.node_row.details', 'More details')}</Link></td>
+                {!feed && <td><Link className={styles.details} to={nodeUrl(r.publicKey)}>{t('meshcore.node_row.details', 'More details')}</Link></td>}
               </tr>
             );
           })}
@@ -368,10 +387,10 @@ export default function MeshCoreNodesTable() {
   );
 
   return (
-    <div className={nodesStyles.page} data-phone={isPhone || undefined}>
+    <div className={feed ? styles.feed : nodesStyles.page} data-phone={isPhone || undefined}>
       {isPhone ? (
         <>
-          <header className={nodesStyles.header}>
+          {!feed && <header className={nodesStyles.header}>
             <Link className={nodesStyles.iconButton} to={base}>
               <UiIcon name="back" size={22} />
               <span className={nodesStyles.srOnly}>{t('common.back')}</span>
@@ -380,7 +399,7 @@ export default function MeshCoreNodesTable() {
             <Link className={nodesStyles.iconButton} to={`${base}/map`} aria-label={t('node_popup.show_on_map')} title={t('node_popup.show_on_map')}>
               <UiIcon name="map" size={22} />
             </Link>
-          </header>
+          </header>}
           <div className={nodesStyles.toolbar}>
             <div className={styles.line}>
               {searchBox}
@@ -405,15 +424,19 @@ export default function MeshCoreNodesTable() {
         </>
       ) : (
         <>
-          <header className={nodesStyles.header}>
-            <div className={nodesStyles.titles}>
-              <h1 className={nodesStyles.title}>{t('nodes.title')}</h1>
-              <p className={nodesStyles.subtitle}>
-                {t('workspace.meshcore.nodes_subtitle', { known: merged.length, online, device: deviceName })}
-                {age}
-              </p>
-            </div>
-          </header>
+          {feed ? (
+            <p className={nodesStyles.subtitle}>{t('workspace.meshcore.feed_nodes', { count: merged.length })}{age}</p>
+          ) : (
+            <header className={nodesStyles.header}>
+              <div className={nodesStyles.titles}>
+                <h1 className={nodesStyles.title}>{t('nodes.title')}</h1>
+                <p className={nodesStyles.subtitle}>
+                  {t('workspace.meshcore.nodes_subtitle', { known: merged.length, online, device: deviceName })}
+                  {age}
+                </p>
+              </div>
+            </header>
+          )}
           <div className={nodesStyles.toolbar}>
             {searchBox}
             {sort}

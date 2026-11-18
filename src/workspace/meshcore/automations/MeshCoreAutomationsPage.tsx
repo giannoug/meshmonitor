@@ -24,6 +24,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import apiService from '../../../services/api';
 import { UiIcon } from '../../../components/icons';
+import { useToast } from '../../../components/ToastContainer';
 import SendsLine from '../../patterns/SendsLine';
 import StateView from '../../patterns/StateView';
 import { useIsPhone } from '../../shell/useIsPhone';
@@ -90,6 +91,7 @@ function Overview({ table, results, setSaved }: ReturnType<typeof useBuiltins>) 
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const { sourceId, deviceName, receiveOnly } = useMeshCoreRuntime();
   const { hasPermission, authStatus } = useAuth();
   const canWrite = hasPermission('automation', 'write', { sourceId });
@@ -119,7 +121,6 @@ function Overview({ table, results, setSaved }: ReturnType<typeof useBuiltins>) 
   const sends = rows.filter((r) => r.b.transmits);
   const shown = filter === 'on' ? on : filter === 'sends' ? sends : rows;
   const changed = rows.filter((r) => r.saved && r.b.enabledKey && r.b.id in edits && edits[r.b.id] !== r.saved[r.b.enabledKey]);
-  const turnedOn = changed.filter((r) => edits[r.b.id] && r.b.transmits);
 
   const save = async () => {
     setSaving(true);
@@ -142,7 +143,11 @@ function Overview({ table, results, setSaved }: ReturnType<typeof useBuiltins>) 
     }
   };
   const toggleRule = async (r: EngineRule) => {
-    await apiService.post(`/api/automations/${encodeURIComponent(r.id)}/${r.enabled ? 'disable' : 'enable'}`);
+    try {
+      await apiService.post(`/api/automations/${encodeURIComponent(r.id)}/${r.enabled ? 'disable' : 'enable'}`);
+    } catch (err) {
+      showToast(err instanceof Error && err.message ? err.message : t('automation.settings_save_failed', 'Failed to save settings'), 'error');
+    }
     void queryClient.invalidateQueries({ queryKey: ['workspace', 'automations', 'rules'] });
   };
 
@@ -228,7 +233,7 @@ function Overview({ table, results, setSaved }: ReturnType<typeof useBuiltins>) 
     <McDock
       changes={changed.map((r) => r.b.title)}
       page={t('workspace.meshcore.auto.title')}
-      sends={turnedOn.length ? turnedOn.map((r) => `${r.b.title}: ${sendsText(r.b, valueOf(r.b, r.saved!))}`).join(' · ') : t('workspace.settings.savebar.sends_nothing')}
+      sends={changed.length ? changed.map((r) => `${r.b.title}: ${r.b.saveEffect(valueOf(r.b, r.saved!))}`).join(' · ') : t('workspace.meshcore.auto.save_nothing')}
       saveLabel={t('common.save', 'Save')}
       saving={saving}
       blocked={!canWrite}

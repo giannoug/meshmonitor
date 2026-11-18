@@ -59,4 +59,46 @@ describe('8-15-mqtt-region-feed', () => {
     fireEvent.click(nodes);
     expect(await screen.findByText('Glyfada Beach')).toBeInTheDocument();
   });
+
+  it('offline: 6.7\'s banner with the listen-only line, and the Channels tab has the receive-only line, not a composer', async () => {
+    const offline = { ...regionFeedFixtures(), 'GET /api/sources/:id/status': (u: URL) =>
+      (u.pathname.split('/')[3] === REGION_FEED_ID ? { sourceId: REGION_FEED_ID, sourceName: 'Athens MeshCore feed', sourceType: 'meshcore_mqtt', connected: false } : undefined) };
+    renderMeshCore(FEED, { fixtures: offline });
+    expect(await screen.findByText('Athens MeshCore feed is offline. History stays here.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('link', { name: 'Channels' }));
+    expect(await screen.findByText(/Morning, anyone on the coast road\?/)).toBeInTheDocument();
+    expect(screen.getByText("This MQTT source has no radio of its own, so it cannot send. Open a Meshtastic source to send.")).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /message/i })).toBeNull();
+  });
+
+  it('re-reads nodes and messages each time their tab opens, as today; no poll', async () => {
+    const nodes = `/api/sources/${REGION_FEED_ID}/meshcore/ingest/nodes`;
+    const messages = `/api/sources/${REGION_FEED_ID}/meshcore/ingest/messages`;
+    renderMeshCore(`${FEED}/nodes`, { fixtures: regionFeedFixtures() });
+    expect(await screen.findByText('Glyfada Beach')).toBeInTheDocument();
+    await act(async () => new Promise((r) => setTimeout(r, 50)));
+    expect(requests('GET', nodes)).toBe(1);
+    // The sidebar's channel counts read the messages once.
+    expect(requests('GET', messages)).toBe(1);
+    fireEvent.click(screen.getByRole('link', { name: 'Channels' }));
+    await screen.findByText(/Morning, anyone on the coast road\?/);
+    await act(async () => new Promise((r) => setTimeout(r, 50)));
+    expect(requests('GET', messages)).toBe(2);
+    expect(requests('GET', nodes)).toBe(1);
+    fireEvent.click(screen.getByRole('link', { name: 'Nodes' }));
+    await screen.findByText('Glyfada Beach');
+    await act(async () => new Promise((r) => setTimeout(r, 50)));
+    expect(requests('GET', nodes)).toBe(2);
+    expect(requests('GET', messages)).toBe(2);
+  });
+
+  it('the Nodes tab is the 8-11 table with the advert columns only, read-only', async () => {
+    renderMeshCore(`${FEED}/nodes`, { fixtures: regionFeedFixtures() });
+    await screen.findByText('Glyfada Beach');
+    const heads = screen.getAllByRole('columnheader').map((h) => h.textContent);
+    expect(heads).toEqual(expect.arrayContaining(['Role', 'Key']));
+    expect(screen.queryByRole('button', { name: /Import contact/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Add to favorites/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Glyfada Beach' })).toBeNull();
+  });
 });

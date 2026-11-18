@@ -777,3 +777,19 @@
   gap: 6px;
   color: var(--color-text-subtle);
 }
+
+/* The page column scrolls: its parts keep their height (a scroller's own min-height would collapse to 0). */
+.page > * {
+  flex-shrink: 0;
+}
+
+.thread {
+  height: min(60vh, 560px);
+  display: flex;
+  flex-direction: column;
+}
+
+.senderSelect {
+  display: inline-block;
+  min-width: 180px;
+}

@@ -138,4 +138,57 @@ describe('8-14-automations', () => {
       unmount();
     }
   });
+
+  it('Auto-pathfinding: the dock says a save queues a run within 5 minutes; a save sends one request, none to the filter', async () => {
+    const { log } = renderMeshCore(`${HELTEC}/automations/auto-pathfinding`);
+    const repeat = await screen.findByLabelText('Repeat every (hours)');
+    fireEvent.change(repeat, { target: { value: '12' } });
+    fireEvent.blur(repeat);
+    expect(await screen.findByText('Saving queues a run within 5 minutes and restarts the cycle')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(posts(log, '/automation/pathfinding')).toHaveLength(1));
+    expect(posts(log, '/automation/pathfinding')[0].body).toEqual({ enabled: true, pathDiscoveryEnabled: true, neighborsEnabled: true, intervalMinutes: 5, repeatHours: 12 });
+    await settle();
+    expect(posts(log, '/pathfinding/filter')).toHaveLength(0);
+    expect(log.writes).toHaveLength(1);
+  });
+
+  it('the overview dock says what a save does per built-in', async () => {
+    renderMeshCore(`${HELTEC}/automations`);
+    await screen.findByText('Remote Telemetry');
+    fireEvent.click(screen.getByRole('switch', { name: 'Auto Welcome' }));
+    expect(await screen.findByText('Auto Welcome: Saving sends nothing on the mesh')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Auto Favorite' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Auto Favorite' }));
+    expect(screen.queryByText(/changes? in Automations/)).toBeNull();
+  });
+
+  it('the flood warning is today\'s, and only for flood', async () => {
+    renderMeshCore(`${HELTEC}/automations/auto-announce`);
+    const reach = await screen.findByLabelText('Advert reach');
+    expect(screen.getByText(/Automated flood adverts run at most once per hour per source/)).toBeInTheDocument();
+    fireEvent.change(reach, { target: { value: 'zero_hop' } });
+    expect(screen.queryByText(/Automated flood adverts run at most once per hour per source/)).toBeNull();
+  });
+
+  it('a timer trigger\'s Run now that sends a flood advert asks first; Enter does not send', async () => {
+    const timers = { success: true, data: { triggers: [{ id: 't9', name: 'Hourly advert', enabled: true, scheduleType: 'interval', intervalMinutes: 60, responseType: 'advert', advertMode: 'flood' }] } };
+    const { log } = renderMeshCore(`${HELTEC}/automations/timer-triggers`, { fixtures: { 'GET /api/sources/:id/meshcore/automation/timers': () => timers } });
+    fireEvent.click(await screen.findByRole('button', { name: 'Run now' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Run now' });
+    expect(within(sheet).getByText(/asks first/)).toBeInTheDocument();
+    fireEvent.submit(sheet.querySelector('form') ?? sheet);
+    await settle();
+    expect(posts(log, '/timers/t9/run')).toHaveLength(0);
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Run now' }));
+    await waitFor(() => expect(posts(log, '/timers/t9/run')).toHaveLength(1));
+  });
+
+  it('an engine rule switch that fails shows the error, as a toast', async () => {
+    renderMeshCore(`${HELTEC}/automations`, { fixtures: { 'POST /api/automations/:aid/:verb': () => new Response(JSON.stringify({ error: 'Nope' }), { status: 500 }) } });
+    await screen.findByText('Welcome new nodes');
+    fireEvent.click(screen.getByRole('switch', { name: 'Welcome new nodes' }));
+    expect(await screen.findByText('Nope')).toBeInTheDocument();
+  });
 });

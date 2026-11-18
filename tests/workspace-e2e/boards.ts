@@ -2023,7 +2023,7 @@ export const BOARDS: Board[] = [
   { id: '8-30-info', size: 'phone', path: '/source/src-heltec/info', fixtures: MESHCORE(), setup: (page) => page.getByText(/Heltec V3/).waitFor() },
   { id: '8-14-automations', size: 'desktop', path: '/source/src-heltec/automations', fixtures: MESHCORE(), setup: (page) => page.getByText('Welcome new nodes', { exact: true }).waitFor() },
   { id: '8-31-automations', size: 'phone', path: '/source/src-heltec/automations', fixtures: MESHCORE(), setup: (page) => page.getByText('Auto-pathfinding', { exact: true }).waitFor() },
-  { id: '8-15-mqtt-region-feed', size: 'desktop', path: '/source/src-af', fixtures: REGION_FEED(), setup: (page) => page.getByText('Lycabettus Repeater').first().waitFor() },
+  { id: '8-15-mqtt-region-feed', size: 'desktop', path: '/source/src-af', fixtures: REGION_FEED(), setup: feedTabsVisible },
   { id: '8-23-region-feed', size: 'phone', path: '/source/src-af', fixtures: REGION_FEED(), setup: (page) => page.getByText('Lycabettus Repeater').first().waitFor() },
 ];
 
@@ -2072,6 +2072,15 @@ async function openMcDecode(page: Page) {
   await page.getByTestId('mc-packet-row').first().click();
   await page.getByText('#athens · key from source Athens MQTT').waitFor();
   await page.locator('[data-observer]', { hasText: 'Lycabettus Repeater' }).waitFor();
+}
+
+/** 8-15: the feed's tabs are drawn at full height (the review's I1: the bar once collapsed to its border). */
+async function feedTabsVisible(page: Page) {
+  await page.getByText('Lycabettus Repeater').first().waitFor();
+  const nav = page.getByRole('navigation', { name: 'Athens MeshCore feed' });
+  for (const name of ['Overview', 'Nodes', 'Channels', 'Packets', 'Notifications']) await nav.getByRole('link', { name, exact: true }).waitFor();
+  const box = await nav.boundingBox();
+  if (!box || box.height < 30) throw new Error(`region feed tabs collapsed: ${JSON.stringify(box)}`);
 }
 
 /** 8-15 / 8-23: Heltec MeshCore's data and the Athens MeshCore feed (added to the strip). */

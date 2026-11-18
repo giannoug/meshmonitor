@@ -29,13 +29,13 @@ import { appBasename } from '../../init';
 import apiService from '../../services/api';
 import { UiIcon } from '../../components/icons';
 import { NumberInput } from '../../components/common/NumberInput';
+import SearchableSelect, { type SearchableSelectOption } from '../../components/common/SearchableSelect';
 import PacketSearchInput from '../../components/packets/PacketSearchInput';
 import TimeWindowSelect from '../../components/packets/TimeWindowSelect';
 import { windowToSince, type TimeWindowKey } from '../../components/packets/timeWindow';
 import { toChartEntries } from '../../components/packetStatsChartData';
 import { formatTime, observerLabel, payloadLabel, resolvePacketFrom, routeLabel, validHash } from '../../components/MeshCore/meshcorePacketRows';
-import { RouteHopRows } from '../../components/MeshCore/MeshCoreRouteHops';
-import { useResolvedRouteHops } from '../../components/MeshCore/useResolvedRouteHops';
+import { candidatesTitle, hopText, useResolvedRouteHops } from '../../components/MeshCore/useResolvedRouteHops';
 import { isSourceNotConnectedError } from '../../utils/sourceNotConnected';
 import { openPacketMonitorPopout } from '../../utils/packetMonitorPopout';
 import { decodeMeshCorePacket, MESHCORE_PAYLOAD_TYPES, MESHCORE_ROUTE_TYPES } from '../../utils/meshcorePacketDecode';
@@ -46,7 +46,6 @@ import Sheet from '../patterns/Sheet';
 import StateView from '../patterns/StateView';
 import { useIsPhone } from '../shell/useIsPhone';
 import ToolHead from './ToolHead';
-import '../../components/MeshCore/MeshCorePacketMonitor.css';
 import styles from './McTools.module.css';
 
 const PacketStatsChart = lazy(() => import('../../components/PacketStatsChart'));
@@ -132,6 +131,11 @@ export default function MeshCorePacketsPage({ sourceId, contacts = NO_CONTACTS, 
   );
   const contactByKey = useMemo(() => new Map(contactOptions.map((o) => [o.publicKey.toLowerCase(), o])), [contactOptions]);
   const from = (p: Row) => resolvePacketFrom(p, { canSeeNames, contactByKey, contactOptions });
+  // Today's searchable sender list (SearchableSelect), by name.
+  const senderOptions = useMemo<SearchableSelectOption[]>(
+    () => contactOptions.map((o) => ({ value: o.publicKey, label: o.name, keywords: o.publicKey })).sort((a, b) => a.label.localeCompare(b.label)),
+    [contactOptions],
+  );
 
   const distParams = meshCoreFilterParams(filters).toString();
   const { data: distribution } = useQuery({
@@ -260,10 +264,16 @@ export default function MeshCorePacketsPage({ sourceId, contacts = NO_CONTACTS, 
       <TimeWindowSelect className={styles.select} value={timeWindow} onChange={setTimeWindow} />
       {select(t('meshcore.packets.payloadType', 'Payload'), payloadFilter, setPayloadFilter, MESHCORE_PAYLOAD_TYPES)}
       {select(t('meshcore.packets.routeType', 'Route'), routeFilter, setRouteFilter, MESHCORE_ROUTE_TYPES)}
-      <select className={styles.select} aria-label={t('meshcore.packets.sender', 'Sender')} value={senderFilter} onChange={(e) => setSenderFilter(e.target.value)}>
-        <option value="">{t('meshcore.packets.anySender', 'Any sender')}</option>
-        {[...contactOptions].sort((a, b) => a.name.localeCompare(b.name)).map((o) => <option key={o.publicKey} value={o.publicKey}>{o.name}</option>)}
-      </select>
+      <span className={styles.senderSelect}>
+        <SearchableSelect
+          value={senderFilter}
+          onChange={setSenderFilter}
+          options={senderOptions}
+          emptyLabel={t('meshcore.packets.anySender', 'Any sender')}
+          placeholder={t('meshcore.packets.sender', 'Sender')}
+          ariaLabel={t('meshcore.packets.sender', 'Sender')}
+        />
+      </span>
       <label className={styles.hashField} title={t('meshcore.packets.srcHashHelp', 'Sender hash, 2 to 6 hex digits')}>
         <span>{t('meshcore.packets.srcHash', 'Src hash')}</span>
         <input className={`${styles.input} ${styles.hashInput}`} value={srcHashInput} maxLength={6} onChange={(e) => setSrcHashInput(e.target.value.trim())} placeholder="2f" />
@@ -308,7 +318,14 @@ export default function MeshCorePacketsPage({ sourceId, contacts = NO_CONTACTS, 
   const obs = (p: Row) => observerLabel(Number(p.observerCount ?? 0), t('meshcore.packets.observersLocal', 'Local'));
   const n = (v: number | null | undefined, digits?: number) => (typeof v === 'number' ? (digits === undefined ? String(v) : v.toFixed(digits)) : '—');
 
+  // Today's paging (useMeshCorePackets): one page per press, on the phone and desktop alike.
+  const older = m.hasMore && (
+    <button type="button" className={styles.button} disabled={m.loadingMore} onClick={() => void m.loadMore()}>
+      {m.loadingMore ? t('common.loading', 'Loading…') : t('workspace.meshcore.load_older')}
+    </button>
+  );
   const list = isPhone ? (
+    <>
     <div className={styles.card}>
       {packets.map((p, i) => (
         <button key={keyOf(p, i)} type="button" className={styles.rowButton} data-testid="mc-packet-row" onClick={() => setSelectedKey(keyOf(p, i))}>
@@ -324,6 +341,8 @@ export default function MeshCorePacketsPage({ sourceId, contacts = NO_CONTACTS, 
         </button>
       ))}
     </div>
+    {older}
+    </>
   ) : (
     <div className={styles.tableWrap}>
       <table className={styles.table}>
@@ -363,11 +382,7 @@ export default function MeshCorePacketsPage({ sourceId, contacts = NO_CONTACTS, 
           })}
         </tbody>
       </table>
-      {m.hasMore && (
-        <button type="button" className={styles.button} disabled={m.loadingMore} onClick={() => void m.loadMore()}>
-          {m.loadingMore ? t('common.loading', 'Loading…') : t('workspace.meshcore.load_older')}
-        </button>
-      )}
+      {older}
     </div>
   );
 
@@ -610,7 +625,15 @@ function Decode({ packet, sourceId, contacts, grouped, nameOf }: {
         <>
           {row(t('meshcore.packets.path', 'Path'), decoded.path.hops.join(' → ') || '—', true)}
           {row(t('meshcore.packets.hashWidth', 'Hash width'), `${decoded.path.hashSize} B · ${t('workspace.meshcore.hops', { count: decoded.path.hopCount })}`, true)}
-          <RouteHopRows rows={relayRows} />
+          {relayRows.map((r, i) => (
+            <div key={`${r.byte}-${i}`} className={styles.decodeRow} title={candidatesTitle(r)}>
+              <span className={styles.kvLabel}>#{i + 1}</span>
+              <span className={`${styles.kvValue} ${styles.mono}`}>
+                {r.byte} → {r.origin === 'none' ? t('meshcore.route_detail_unknown', 'unknown repeater') : hopText(r)}
+                {r.origin === 'other' && r.via?.sourceName ? ` (${t('meshcore.route_detail_via', 'via {{source}}', { source: r.via.sourceName })})` : ''}
+              </span>
+            </div>
+          ))}
         </>
       )}
       {title(`${t('meshcore.packets.payload', 'Payload')} · ${decoded.payload.sizeBytes} B`)}

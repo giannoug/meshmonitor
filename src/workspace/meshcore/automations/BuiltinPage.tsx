@@ -21,6 +21,7 @@ import { UiIcon } from '../../../components/icons';
 import { useToast } from '../../../components/ToastContainer';
 import { isTxDisabledBody } from '../../../utils/txDisabled';
 import { FORWARDED_MARKER, FORWARDING_MAX_PER_WINDOW, FORWARDING_MAX_TEXT_CHARS } from '../../../types/forwarding';
+import { LEGACY_MESHCORE_ADVERT_MODE } from '../../../types/meshcoreAdvert';
 import ConfirmSheet from '../../patterns/ConfirmSheet';
 import SendsLine from '../../patterns/SendsLine';
 import Sheet from '../../patterns/Sheet';
@@ -137,7 +138,7 @@ export default function BuiltinPage({ b, result, onSaved, reload }: BuiltinPageP
       <McDock
         changes={changes}
         page={b.title}
-        sends={sends ? t('workspace.meshcore.auto.dock_sends', { sends }) : t('workspace.settings.savebar.sends_nothing')}
+        sends={b.saveEffect(value)}
         saveLabel={t('common.save', 'Save')}
         saving={saving}
         blocked={!canWrite || !!invalid}
@@ -229,7 +230,7 @@ function FieldRow({ field: f, id, values, readOnly, onChange, savedItems }: {
   return (
     <SettingRow id={id} label={f.label} help={f.help} stacked={f.kind === 'textarea' || f.kind === 'multi'}>
       {control}
-      {f.warn && <Warn>{f.warn}</Warn>}
+      {f.warn && (!f.warnIf || f.warnIf(values)) && <Warn>{f.warn}</Warn>}
     </SettingRow>
   );
 }
@@ -414,8 +415,11 @@ function TimersExtra({ saved, dirty, canWrite }: ExtraProps) {
   const { sourceId, receiveOnly } = useMeshCoreRuntime();
   const fail = useRunFailure();
   const [running, setRunning] = useState<string | null>(null);
+  // s8n1: a flood advert asks first (stricter than today's Run now, Ruling 7.5 HQ).
+  const [confirmFlood, setConfirmFlood] = useState<Values | null>(null);
   const triggers = (Array.isArray(saved.triggers) ? saved.triggers : []) as Values[];
   if (triggers.length === 0) return null;
+  const floods = (tr: Values) => tr.responseType === 'advert' && (tr.advertMode ?? LEGACY_MESHCORE_ADVERT_MODE) === 'flood';
   const run = async (id: string) => {
     setRunning(id);
     try {
@@ -437,12 +441,31 @@ function TimersExtra({ saved, dirty, canWrite }: ExtraProps) {
           </span>
           <button type="button" className={styles.button} disabled={!canWrite || dirty || receiveOnly || running !== null}
             title={dirty ? t('meshcore.automation.timers.save_before_run', 'Save your changes before running this trigger.') : undefined}
-            onClick={() => void run(String(tr.id))}>
+            onClick={() => (floods(tr) ? setConfirmFlood(tr) : void run(String(tr.id)))}>
             {running === tr.id ? t('meshcore.automation.timers.running', 'Running…') : t('meshcore.automation.timers.run_now', 'Run now')}
           </button>
         </div>
       ))}
       <SendsLine>{t('workspace.meshcore.auto.run_timer_sends')}</SendsLine>
+      <ConfirmSheet
+        open={!!confirmFlood}
+        title={t('meshcore.automation.timers.run_now', 'Run now')}
+        body={
+          <>
+            <p>{t('meshcore.advert.flood_automated_warning')}</p>
+            <SendsLine>{t('workspace.meshcore.sends_flood')}</SendsLine>
+          </>
+        }
+        confirmLabel={t('meshcore.automation.timers.run_now', 'Run now')}
+        busy={running !== null}
+        submitOnEnter={false}
+        onCancel={() => setConfirmFlood(null)}
+        onConfirm={async () => {
+          const id = String(confirmFlood?.id);
+          setConfirmFlood(null);
+          await run(id);
+        }}
+      />
     </section>
   );
 }

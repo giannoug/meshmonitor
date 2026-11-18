@@ -22,6 +22,7 @@ import {
   type MeshCoreTimerTrigger,
 } from '../../../components/MeshCore/meshcoreTimerModel';
 import { newTriggerId } from '../../../components/shared/automation/triggerList';
+import { DEFAULT_MESHCORE_ADVERT_MODE, isMeshCoreAdvertMode, LEGACY_MESHCORE_ADVERT_MODE } from '../../../types/meshcoreAdvert';
 
 export type Values = Record<string, unknown>;
 
@@ -38,8 +39,9 @@ export interface Field {
   key: string;
   label: string;
   help?: string;
-  /** Today's warning, shown next to the input. */
+  /** Today's warning, shown next to the input (only while `warnIf` holds, when given). */
   warn?: string;
+  warnIf?(v: Values): boolean;
   showIf?(v: Values): boolean;
   min?: number;
   max?: number;
@@ -83,6 +85,11 @@ export interface Builtin {
   summary(v: Values): string;
   /** What it sends when it runs, in today's words where they exist; null: nothing on the mesh. */
   sends(v: Values): string | null;
+  /**
+   * What a save does now, from today's server (Task 7.5 HP): a route that
+   * re-arms its scheduler and runs soon says so; otherwise saving sends nothing.
+   */
+  saveEffect(v: Values): string;
   fields(v: Values): Field[];
   validate?(v: Values, saved: Values): string | null;
   extra?: Extra;
@@ -131,6 +138,7 @@ function regexError(pattern: string): string | null {
 // ── the table ─────────────────────────────────────────────────────────────────
 
 export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
+  const saveNothing = () => t('workspace.meshcore.auto.save_nothing');
   const channelOptions: Option[] = ctx.channels.map((c) => ({ value: String(c.id), label: c.name || t('forwarding.channel_n', { index: c.id }) }));
   const channelName = (id: number) => ctx.channels.find((c) => c.id === id)?.name || t('forwarding.channel_n', { index: id });
   const channelNames = (ids: number[]) => ids.map(channelName).join(', ');
@@ -147,6 +155,8 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
     { kind: 'text', key: `${prefix}scopeName`, label: t('workspace.meshcore.auto.scope_name'), maxLength: 30, showIf: (v) => getPath(v, `${prefix}scopeMode`) === 'named' },
   ];
   const splitHelp = t('automation.split_long.help', 'Split a long message into up to 3 marked parts instead of cutting it. Each part is a separate transmission.');
+  // Today's warning (MeshCoreAdvertModeField), shown for flood only.
+  const floodWarning = t('meshcore.advert.flood_automated_warning');
   const advertModes: Option[] = [
     { value: 'zero_hop', label: t('meshcore.advert.mode_zero_hop', 'Zero-hop (nearby nodes only)') },
     { value: 'flood', label: t('meshcore.advert.mode_flood', 'Flood (whole mesh, costly)') },
@@ -182,6 +192,7 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
       summary: (v) =>
         [b(v, 'pathDiscoveryEnabled') && t('workspace.meshcore.auto.pf_companions'), b(v, 'neighborsEnabled') && t('workspace.meshcore.auto.pf_repeaters')]
           .filter(Boolean).join(', ') || t('workspace.meshcore.auto.pf_none'),
+      saveEffect: (v) => (b(v, 'enabled') && (b(v, 'pathDiscoveryEnabled') || b(v, 'neighborsEnabled')) ? t('workspace.meshcore.auto.save_pathfinding') : saveNothing()),
       sends: (v) => t('workspace.meshcore.auto.pf_sends', { minutes: n(v, 'intervalMinutes'), hours: n(v, 'repeatHours') }),
       validate: (v) => (b(v, 'filter.regexEnabled') && regexError(s(v, 'filter.nameRegex')) ? t('meshcore.automation.pathfinding.filter.regex_invalid', 'Invalid regular expression') : null),
       fields: () => [
@@ -245,6 +256,7 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
           .filter(Boolean).join(' · ');
         return t('workspace.meshcore.auto.ack_summary', { regex: s(v, 'regex'), where: where || '—' });
       },
+      saveEffect: saveNothing,
       sends: () => t('workspace.meshcore.auto.ack_sends'),
       validate: (v) => {
         const err = regexError(s(v, 'regex'));
@@ -282,7 +294,9 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
         return {
           enabled: !!d.enabled, intervalHours: d.intervalHours ?? 6, message: d.message || '', channelIndexes: Array.isArray(d.channelIndexes) ? d.channelIndexes : [0],
           splitLongMessages: d.splitLongMessages === true, announceOnStart: !!d.announceOnStart, useSchedule: !!d.useSchedule, schedule: d.schedule || '0 */6 * * *',
-          advertEnabled: !!d.advertEnabled, advertDelaySeconds: d.advertDelaySeconds ?? 30, advertMode: d.advertMode || 'zero_hop',
+          advertEnabled: !!d.advertEnabled, advertDelaySeconds: d.advertDelaySeconds ?? 30,
+          // An older server omits advertMode; its enabled bursts flood (MeshCoreAutoAnnounceSection).
+          advertMode: isMeshCoreAdvertMode(d.advertMode) ? d.advertMode : d.advertEnabled ? LEGACY_MESHCORE_ADVERT_MODE : DEFAULT_MESHCORE_ADVERT_MODE,
           scopeMode: d.scopeMode || 'inherit', scopeName: d.scopeName || '', lastRunAt: d.lastRunAt ?? null,
         };
       },
@@ -293,6 +307,7 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
         return [channelNames(list<number>(v, 'channelIndexes')), when, b(v, 'advertEnabled') ? t('workspace.meshcore.auto.with_advert', { mode: s(v, 'advertMode') === 'flood' ? t('workspace.meshcore.flood').toLowerCase() : t('workspace.meshcore.auto.zero_hop') }) : '']
           .filter(Boolean).join(' · ');
       },
+      saveEffect: (v) => (b(v, 'enabled') ? t('workspace.meshcore.auto.save_announce') : saveNothing()),
       sends: (v) => {
         const when = b(v, 'useSchedule') ? t('workspace.meshcore.auto.on_schedule', { cron: s(v, 'schedule') }) : t('workspace.meshcore.auto.every_hours', { count: n(v, 'intervalHours') });
         const count = list(v, 'channelIndexes').length || 1;
@@ -313,7 +328,7 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
         ...scopeFields(t('meshcore.automation.announce.scope_label', 'Scope'), false),
         { kind: 'toggle', key: 'advertEnabled', label: t('meshcore.automation.announce.advert_enabled', 'Send advert after each announcement') },
         { kind: 'select', key: 'advertMode', label: t('meshcore.advert.mode_label', 'Advert reach'), options: advertModes, showIf: (v) => b(v, 'advertEnabled'),
-          warn: t('workspace.meshcore.auto.flood_warning') },
+          warn: floodWarning, warnIf: (v) => v.advertMode === 'flood' },
         { kind: 'number', key: 'advertDelaySeconds', label: t('meshcore.automation.announce.advert_delay', 'seconds delay (0–600)'), min: 0, max: 600, showIf: (v) => b(v, 'advertEnabled') },
       ],
     },
@@ -335,6 +350,7 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
         return [t('automation.trigger_count', { count: triggers.length, defaultValue: '{{count}} triggers' }), scripts ? t('workspace.meshcore.auto.scripts', { count: scripts }) : '']
           .filter(Boolean).join(' · ');
       },
+      saveEffect: saveNothing,
       sends: () => t('workspace.meshcore.auto.responder_sends'),
       fields: () => {
         return [
@@ -394,6 +410,7 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
       },
       isOn: (v) => b(v, 'autoPingEnabled'),
       summary: (v) => t('workspace.meshcore.auto.ping_summary', { max: n(v, 'autoPingMaxPings'), seconds: n(v, 'autoPingIntervalSeconds') }),
+      saveEffect: saveNothing,
       sends: (v) => t('workspace.meshcore.auto.ping_sends', { max: n(v, 'autoPingMaxPings') }),
       fields: () => [
         { kind: 'toggle', key: 'autoPingEnabled', label: t('automation.auto_ping.title', 'Auto Ping'), warn: t('meshcore.automation.autoping.airtime_warning') },
@@ -431,6 +448,7 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
       },
       isOn: (v) => b(v, 'enabled') && list(v, 'rules').some((r) => r.enabled === true),
       summary: (v) => t('forwarding.count', { count: list(v, 'rules').length }),
+      saveEffect: saveNothing,
       sends: () => t('workspace.meshcore.auto.forwarding_sends'),
       fields: () => [
         { kind: 'toggle', key: 'enabled', label: t('forwarding.master_label', 'Forwarding on for this source') },
@@ -486,6 +504,7 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
           ...triggers.slice(0, 2).map((tr) => (tr.scheduleType === 'cron' ? tr.cronExpression : t('meshcore.automation.timers.every_minutes', { count: tr.intervalMinutes, defaultValue: 'every {{count}} min' })))]
           .filter(Boolean).join(' · ');
       },
+      saveEffect: (v) => (list(v, 'triggers').some((tr) => tr.enabled === true) ? t('workspace.meshcore.auto.save_timers') : saveNothing()),
       sends: () => t('workspace.meshcore.auto.timers_sends'),
       fields: () => [
         {
@@ -511,7 +530,7 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
               { value: 'text', label: t('meshcore.automation.timers.response_text', 'Send text') }, { value: 'advert', label: t('meshcore.automation.timers.response_advert', 'Send advert') },
               { value: 'script', label: t('meshcore.automation.timers.response_script', 'Run script') }] },
             { kind: 'select', key: 'advertMode', label: t('meshcore.advert.mode_label', 'Advert reach'), options: advertModes, showIf: (x) => x.responseType === 'advert',
-              warn: t('workspace.meshcore.auto.flood_warning') },
+              warn: floodWarning, warnIf: (x) => (x.advertMode ?? LEGACY_MESHCORE_ADVERT_MODE) === 'flood' },
             { kind: 'textarea', key: 'response', label: t('meshcore.automation.timers.response_message', 'Message (token expansion supported)'), maxLength: 500, showIf: (x) => x.responseType === 'text' },
             { kind: 'select', key: 'scriptPath', label: t('meshcore.automation.timers.script', 'Script'),
               options: [{ value: '', label: t('meshcore.automation.timers.select_script', '(select script)') }, ...scriptOptions], showIf: (x) => x.responseType === 'script' },
@@ -545,6 +564,7 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
       },
       isOn: (v) => b(v, 'enabled'),
       summary: (v) => t('workspace.meshcore.auto.distance_summary', { km: n(v, 'thresholdKm'), hours: n(v, 'intervalHours') }),
+      saveEffect: (v) => (b(v, 'enabled') ? t('workspace.meshcore.auto.save_distance') : saveNothing()),
       sends: () => null,
       fields: () => [
         { kind: 'toggle', key: 'enabled', label: t('meshcore.automation.delete_distance.title', 'Auto Delete by Distance') },
@@ -570,6 +590,7 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
       save: async () => {},
       isOn: (v) => list(v, 'nodes').length > 0,
       summary: (v) => t('workspace.meshcore.auto.nodes_count', { count: list(v, 'nodes').length }),
+      saveEffect: saveNothing,
       sends: () => t('workspace.meshcore.auto.time_sync_sends'),
       fields: () => [],
     },
@@ -584,6 +605,7 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
       save: async () => {},
       isOn: (v) => list(v, 'nodes').length > 0,
       summary: (v) => t('workspace.meshcore.auto.nodes_count', { count: list(v, 'nodes').length }),
+      saveEffect: saveNothing,
       sends: () => t('workspace.meshcore.auto.telemetry_sends'),
       fields: () => [],
     },
@@ -601,6 +623,7 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
       save: async (sourceId, v) => { await apiService.post(auto(sourceId, 'auto-favorite'), pick(v, ['enabled', 'intervalHours', 'staleHours'])); },
       isOn: (v) => b(v, 'enabled'),
       summary: (v) => t('workspace.meshcore.auto.favorite_summary', { hours: n(v, 'intervalHours'), stale: n(v, 'staleHours') }),
+      saveEffect: (v) => (b(v, 'enabled') ? t('workspace.meshcore.auto.save_favorite') : saveNothing()),
       sends: () => null,
       fields: () => [
         { kind: 'toggle', key: 'enabled', label: t('meshcore.automation.auto_favorite.title', 'Auto Favorite') },
@@ -625,6 +648,7 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
       },
       isOn: (v) => b(v, 'enabled'),
       summary: (v) => (s(v, 'target') === 'dm' ? t('workspace.meshcore.auto.welcome_dm') : t('workspace.meshcore.auto.welcome_channel', { channel: channelName(n(v, 'target')) })),
+      saveEffect: saveNothing,
       sends: (v) => t('workspace.meshcore.auto.welcome_sends', { max: n(v, 'maxPerHour') }),
       fields: () => [
         { kind: 'toggle', key: 'enabled', label: t('meshcore.automation.auto_welcome.title', 'Auto Welcome') },
