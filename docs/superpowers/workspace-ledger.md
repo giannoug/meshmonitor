@@ -1396,3 +1396,44 @@ Ruling: 7.6 all — `dms` (today's Messages view) is a list page; desktop no lon
 Ruling: 7.6 all — Today's `configuration` URL redirects to `settings`, and today's `settings` URL is now the frame — why: GR — cost if wrong: none.
 Ruling: 7.6 HU — The Reticulum Dashboard page (`ReticulumDashboardPage`) mounts the shared Dashboard grid whole until Task 8.1, which owns its redraw; 8.1's brief names `reticulumDashboardSource` — why: the grid is the shared Dashboard component, not a Reticulum view — cost if wrong: a Classic-styled grid until 8.1.
 Ruling: 7.6 HU — The Dashboard page's `canEdit` checks `dashboard:write` on this source, narrower than today's sourceless check (as HO) — why: CLAUDE.md's per-source rule — cost if wrong: a user with `dashboard:write` only on another source cannot edit this device's Dashboard. FINAL REPORT ITEM.
+
+## Phase 7 summary (gate)
+- Commits ffdbb08..fbd49e4 cover tasks 7.1–7.6: 20 commits, including one test-only deflake (fee5b0b).
+  - Every task was reviewed.
+  - 7.1, 7.2, 7.3, 7.5 and 7.6 each needed one fix round. 7.4 needed two.
+  - 7.3 and 7.4 were sent back to redraw pages that had mounted today's Classic forms. Rulings HH, HK and HN made the boards win on layout.
+- Boards accepted: 48 (Sections 8 and 9: MeshCore 8-01 to 8-31, g6, and Reticulum 9-01 to 9-16). No `staged` board strings remain.
+- Contact sheet (private artifact): https://claude.ai/artifact/Y4ck1jPT9whNUwxjGkz1Q9. Its screenshots were re-encoded as JPEG to fit the 16 MB limit; the canonical PNGs come from `npm run test:workspace-e2e`.
+- CI has not run on this fork (Actions off). The gate was verified locally at 00c54cd:
+  - lint:ci filter: 0 FAIL lines
+  - tsc: client and server both clean
+  - full Vitest (`--maxWorkers=4`, PG and MySQL up): 41,225 total, 41,095 passed, 0 failed, 109 pending
+  - build and bundle check: pass
+  - Playwright: 306 passed
+- Backend changes this phase: none. No `src/server` file was touched.
+- Classic changes: extractions only, under Rule X. Classic DOM and tests are unchanged.
+  - Optional props: `dmContact`, `dmRequest`, `mapNode`, `onDangerCommand`, `ActionCommand.label`, `showByteCounter`. `sourceDispatch`'s `ReticulumSourcePage` is optional.
+  - Hooks and helpers: `useMeshCoreRemoteSession`, `useRemoteRepeaterSettings`, `useRepeaterSettingsDraft`, `useRemoteStats`, `useCliHistory`, `useMeshCoreContactSync`, `meshcorePacketRows`, `localConsoleCatalog`, `filterMeshCoreRowsByAge`, `routeFlowPoints`.
+- Re-hosted views:
+  - MeshCore keeps today's views for the DM thread, map, the channels/rooms/dms list views, telemetry, notifications and security. No board draws them (HR).
+  - Reticulum has no re-hosted views. Its dashboard mounts today's grid until Task 8.1 (HU).
+- Mesh impact this phase:
+  - No new automatic sends, retries or timers. Today's polls moved verbatim, once per device screen.
+  - Every transmitting control sends once per press, behind a SendsLine.
+  - Floods, danger commands and purges sit behind a ConfirmSheet with `submitOnEnter={false}`, keeping today's typed word where today asks (HI).
+  - Today's one-sweep-at-a-time discovery guard is kept per source (HN).
+  - Remote Fleet's Enter is guarded against repeats (HT).
+  - A timer trigger's flood Run now asks first (HQ).
+- FINAL REPORT ITEMs raised this phase:
+  - **Server re-arms on save (today's behaviour, unchanged):**
+    - Auto-pathfinding queues a run 0–5 min after a save, and its last-run time lives in memory.
+    - Auto-announce and timer triggers restart their intervals from the save.
+    - Auto Delete by Distance and Auto Favorite run 2 min after a save.
+    - The dock lines now say so.
+  - **Canvas note s8n2** misstates today's console reboot guard (HI). The 8-06 reboot bullet also contradicts the firmware notes.
+  - **Narrower per-source checks:** Purge messages (`messages:write`, HO) and the Reticulum dashboard `canEdit` (`dashboard:write`, HU).
+  - **Channel keys:** the channel slot list shows 4+4 hex of a channel key to writers. Today's list shows none (HM).
+  - **Re-hosted MeshCore views** with no boards (HR).
+  - **Build memory (pre-existing):** `tsc` needs more than a 2 GB heap on the base too. The build needs `NODE_OPTIONS` of at least 4 GB.
+  - **Container restarts:** the container restarted twice during this phase. No work was lost.
+- No PR created (requester's instruction).
