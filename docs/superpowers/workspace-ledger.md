@@ -1441,7 +1441,18 @@ Ruling: 7.6 HU — The Dashboard page's `canEdit` checks `dashboard:write` on th
 ## Task 8.1 — Device dashboard, per-user board
 
 Ruling: 8.1 HV — the dashboard filters come back as a compact control reusing useDashboardFilters (search, node, type, role) over the board items. Sort is replaced by the user's own order, which is the board's model (D12); FINAL REPORT ITEM. Fix I1–I4:
+  - Remove only the chart keys the draft removed; `changed` is measured against the snapshot. Test a star arriving mid-edit.
+  - Read status from the shell or the cache, with no polling observer.
+  - lowBattery is null ("—") without battery data. MeshCore Nodes reads ?show= so the tiles filter.
+  - Phone 44 px element rules under the module class, inside card bodies.
 Ruling: 8.1 HW — promote these minors:
+  - M1: chart rows say removing unstars for everyone.
+  - M2: `ready` waits for the prefs query, so a failed or late read never lets the seed overwrite a saved board (data-loss guard).
+  - M4: tile counts use the same predicates as the views they open.
+  - M5: dedupe the range buttons.
+  - M6: forgetChart on removal.
+  - M7: widget-body controls are gated on canEditBoard.
+  Accepted: M3 (last write wins across tabs; noted in the storage table). M8 is process only.
 Ruling: 8.1 j1/k1 — Packets / h is not a tile, and the board checks drop "Packets / h" — why: no read the Dashboard makes returns packet counts (the dispatch's no-new-request rule) — cost if wrong: a packet-stats read per device.
 Ruling: 8.1 all — the nine tiles are Nodes online, Channel util., Airtime TX, Low battery, New today, Direct (default six), plus Favorites, Battery, Uptime; all from the nodes read and the status poll — why: the board draws six and says "6 of 9"; the other three are not drawn — cost if wrong: tile swaps.
 Ruling: 8.1 j1/k1 — no sparklines, no "+2 vs yesterday", no channel name, no "limit 10%" on tiles — why: no history, channel or limit in the reads — cost if wrong: extra reads.
