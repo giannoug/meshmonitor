@@ -801,7 +801,10 @@ export function builtinTable(t: TFunction, ctx: MeshtasticCtx): MeshtasticBuilti
         await postSettings(sourceId, body);
       },
       isOn: (v) => builtinIsOn('auto-delete-by-distance', v),
-      summary: (v) => t('workspace.meshcore.auto.distance_summary', { km: n(v, 'autoDeleteByDistanceThresholdKm'), hours: n(v, 'autoDeleteByDistanceIntervalHours') }),
+      // In the viewer's unit, as the threshold field (today's Delete by Distance).
+      summary: (v) => t('workspace.automations.distance_summary', {
+        distance: Math.round(toUnit(n(v, 'autoDeleteByDistanceThresholdKm'))), unit: miles ? 'mi' : 'km', hours: n(v, 'autoDeleteByDistanceIntervalHours'),
+      }),
       sends: sends('auto-delete-by-distance'),
       // Today's distanceDeleteScheduler: every save while on re-arms it with a first run 2 minutes later.
       saveEffect: (v) => (b(v, 'autoDeleteByDistanceEnabled') ? t('workspace.automations.save.distance') : nothing()),

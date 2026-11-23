@@ -32,7 +32,7 @@ export const SENDS_NOTHING: ReadonlySet<BuiltinId> = new Set<BuiltinId>([
   'airtime-cutoff', 'auto-favorite', 'auto-heap-management', 'auto-delete-by-distance', 'ignored-nodes',
 ]);
 
-/** Whether the built-in is on, from its own settings (Ignored nodes is a list, never off). */
+/** Whether the built-in is on, from its own settings. Ignored nodes is a list with no on state: never on (as its On count). */
 export function builtinIsOn(id: BuiltinId, v: V): boolean {
   switch (id) {
     case 'auto-acknowledge': return bool(v, 'autoAckEnabled');
@@ -52,7 +52,7 @@ export function builtinIsOn(id: BuiltinId, v: V): boolean {
     case 'auto-localstats': return bool(v, 'enabled');
     case 'remote-admin-scanner': return bool(v, 'enabled');
     case 'auto-delete-by-distance': return bool(v, 'autoDeleteByDistanceEnabled');
-    case 'ignored-nodes': return true;
+    case 'ignored-nodes': return false;
   }
 }
 

@@ -33,6 +33,24 @@ export const nodesKey = (sourceId: string) => ['workspace', 'automation', 'nodes
 const NEEDS_NODES = new Set(['auto-traceroute', 'auto-localstats', 'auto-time-sync', 'remote-admin-scanner']);
 const NEEDS_SCRIPTS = new Set(['auto-responder', 'timer-triggers', 'geofence-triggers']);
 
+/**
+ * Today's `/api/scripts` read (the pickers, the responder's Scripts card), one
+ * options object for every observer, so a refresh after Import re-reads it.
+ */
+export const scriptsQuery = {
+  queryKey: ['workspace', 'automation', 'scripts'] as const,
+  queryFn: async () => {
+    const raw = await apiService.get<unknown>('/api/scripts');
+    const list = Array.isArray(raw) ? raw : Array.isArray((raw as { scripts?: unknown })?.scripts) ? (raw as { scripts: unknown[] }).scripts : [];
+    return (list as Array<string | { path?: string; filename?: string; name?: string }>)
+      .map((s) => (typeof s === 'string' ? { path: s, filename: s.split('/').pop() } : s))
+      .filter((s): s is { path: string; filename?: string; name?: string } => typeof s.path === 'string')
+      .map((s) => ({ path: s.path, name: s.name || s.filename || s.path }));
+  },
+  staleTime: Infinity,
+  refetchOnWindowFocus: false,
+};
+
 export interface ApiNode {
   nodeNum: number;
   user?: { id?: string; longName?: string; shortName?: string; hwModel?: number; role?: number | string };
@@ -68,20 +86,7 @@ export function useBuiltins(sourceId: string, page: string | null) {
     refetchInterval: () =>
       page === 'remote-admin-scanner' && queryClient.getQueryData<Values>(builtinKey(sourceId, 'remote-admin-scanner'))?.enabled === true ? 30_000 : false,
   });
-  const { data: scriptRows = [] } = useQuery({
-    queryKey: ['workspace', 'automation', 'scripts'],
-    enabled: !!page && NEEDS_SCRIPTS.has(page),
-    queryFn: async () => {
-      const raw = await apiService.get<unknown>('/api/scripts');
-      const list = Array.isArray(raw) ? raw : Array.isArray((raw as { scripts?: unknown })?.scripts) ? (raw as { scripts: unknown[] }).scripts : [];
-      return (list as Array<string | { path?: string; filename?: string; name?: string }>)
-        .map((s) => (typeof s === 'string' ? { path: s, filename: s.split('/').pop() } : s))
-        .filter((s): s is { path: string; filename?: string; name?: string } => typeof s.path === 'string')
-        .map((s) => ({ path: s.path, name: s.name || s.filename || s.path }));
-    },
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
-  });
+  const { data: scriptRows = [] } = useQuery({ ...scriptsQuery, enabled: !!page && NEEDS_SCRIPTS.has(page) });
   const { data: candidateRows = [] } = useQuery({
     queryKey: ['workspace', 'automation', 'airtime-candidates', sourceId],
     enabled: page === 'airtime-cutoff',

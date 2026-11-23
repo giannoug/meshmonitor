@@ -28,7 +28,10 @@ describe('14-06-auto-responder', () => {
     const { container } = renderAutomations(PAGE);
     await loaded();
     const sheet = await openWeather();
-    fireEvent.click(within(sheet).getByRole('button', { name: /Run Test/ }));
+    fireEvent.change(within(sheet).getByLabelText('Test Message'), { target: { value: 'weather marousi' } });
+    const run = within(sheet).getByRole('button', { name: /Run Test/ });
+    await waitFor(() => expect(run).toBeEnabled());
+    fireEvent.click(run);
     await within(sheet).findByText('Marousi 17 °C, wind 9 km/h N, clear');
     expectBoard('14-06-auto-responder', joined(container, sheet));
   });

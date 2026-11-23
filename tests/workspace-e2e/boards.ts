@@ -2080,6 +2080,8 @@ async function openTrigger(page: Page, i: number, test: boolean): Promise<void> 
   const sheet = page.getByRole('dialog');
   await sheet.waitFor();
   if (test) {
+    // Today's script test waits for a message.
+    await sheet.getByLabel('Test Message', { exact: true }).fill('weather marousi');
     await sheet.getByRole('button', { name: /Run Test/ }).click();
     await sheet.getByText('Marousi 17 °C, wind 9 km/h N, clear').waitFor();
   }

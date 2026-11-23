@@ -10239,5 +10239,7 @@
   "workspace.automations.remove_geofence_title": "Remove Geofence Trigger",
   "workspace.automations.remove_geofence_message": "Are you sure you want to remove \"{{name}}\"?",
   "workspace.automations.saved_and_failed": "Saved: {{saved}}. Not saved: {{failed}}.",
-  "workspace.automations.failed": "Not saved: {{failed}}."
+  "workspace.automations.failed": "Not saved: {{failed}}.",
+  "workspace.automations.extracted_params": "Extracted Parameters",
+  "workspace.automations.distance_summary": "Nodes over {{distance}} {{unit}} · every {{hours}} h"
 }

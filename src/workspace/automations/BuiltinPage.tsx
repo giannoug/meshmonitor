@@ -18,7 +18,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
-import { skipToken, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { Cron } from 'croner';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -36,6 +36,7 @@ import { scriptTestEnvironment } from '../../utils/scriptTestEnvironment';
 import { COMMAND_EXAMPLES, PATTERN_GROUPS } from '../../components/auto-responder/patternExamplesData';
 import { ROLE_NAMES, DeviceRole } from '../../constants';
 import { useCsrfFetch } from '../../hooks/useCsrfFetch';
+import { airtimeStatusView, type AirtimeStatus as AirtimeStatusData } from '../../components/airtimeCutoffStatus';
 import { HOP_COUNT_EMOJIS } from '../../utils/hopEmoji';
 import { FORWARDED_MARKER, FORWARDING_MAX_PER_WINDOW, FORWARDING_MAX_TEXT_CHARS } from '../../types/forwarding';
 import { matchAutoResponderTrigger, renderSampleResponse, finalizeTrigger } from '../../components/auto-responder/triggerModel';
@@ -48,7 +49,7 @@ import { useIsPhone } from '../shell/useIsPhone';
 import { BuiltinView, type BuiltinPartProps } from '../meshcore/automations/BuiltinPage';
 import type { Field, Values } from '../meshcore/automations/builtins';
 import type { MeshtasticBuiltin } from './builtins';
-import { nodeName, type ApiNode } from './useBuiltins';
+import { nodeName, scriptsQuery, type ApiNode } from './useBuiltins';
 import kit from '../settings/kit/kit.module.css';
 import styles from '../meshcore/McTools.module.css';
 import mine from './DeviceAutomations.module.css';
@@ -563,9 +564,14 @@ function ScriptTest({ triggerType, scriptPath, scriptArgs, trigger, geofenceName
   const [eventType, setEventType] = useState<'entry' | 'exit' | 'while_inside'>('entry');
   const [busy, setBusy] = useState(false);
   const [showEnv, setShowEnv] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; stdout?: string; stderr?: string; wouldSendMessages?: string[]; executionTimeMs?: number; error?: string } | null>(null);
+  const [result, setResult] = useState<{
+    success: boolean; stdout?: string; stderr?: string; wouldSendMessages?: string[]; executionTimeMs?: number; error?: string;
+    extractedParams?: Record<string, string>; matchedPattern?: string;
+  } | null>(null);
+  // Today's: a responder test needs a message (ScriptTestModal).
+  const needsMessage = triggerType === 'auto-responder' && !testMessage.trim();
   const run = async () => {
-    if (busy) return;
+    if (busy || needsMessage) return;
     setBusy(true);
     setResult(null);
     // Today's request body (ScriptTestModal runTest).
@@ -634,7 +640,7 @@ function ScriptTest({ triggerType, scriptPath, scriptArgs, trigger, geofenceName
         )}
       </div>
       <div className={styles.actions}>
-        <button type="button" className={styles.button} disabled={busy} onClick={() => void run()}>
+        <button type="button" className={styles.button} disabled={busy || needsMessage} onClick={() => void run()}>
           <UiIcon name="play" size={14} /> {busy ? t('script_test.running') : t('script_test.run_test')}
         </button>
       </div>
@@ -651,6 +657,22 @@ function ScriptTest({ triggerType, scriptPath, scriptArgs, trigger, geofenceName
             ? result.wouldSendMessages!.map((m, i) => <p key={i} className={styles.quote}>{m}</p>)
             : <p className={styles.muted}>{t('script_test.no_messages')}</p>}
           <p className={styles.muted}>{t('script_test.would_send_note')}</p>
+          {triggerType === 'auto-responder' && result.matchedPattern && (
+            <p className={styles.muted}>{t('workspace.automations.matched', { pattern: result.matchedPattern })}</p>
+          )}
+          {triggerType === 'auto-responder' && result.extractedParams && Object.keys(result.extractedParams).length > 0 && (
+            <>
+              <p className={styles.kvLabel}>{t('workspace.automations.extracted_params')}</p>
+              <dl className={styles.kv}>
+                {Object.entries(result.extractedParams).map(([key, value]) => (
+                  <div key={key} className={styles.kvRow}>
+                    <dt className={`${styles.kvLabel} ${styles.mono}`}>PARAM_{key}</dt>
+                    <dd className={`${styles.kvValue} ${styles.mono}`}>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </>
+          )}
         </>
       )}
       <button type="button" className={mine.disclosure} aria-expanded={showEnv} onClick={() => setShowEnv((x) => !x)}>
@@ -727,10 +749,12 @@ function ResponderScripts({ p }: ExtraProps) {
   const file = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<'import' | 'export' | null>(null);
   const [exporting, setExporting] = useState(false);
+  // Today's export selection (ScriptManagement): none picked exports them all.
+  const [picked, setPicked] = useState<string[]>([]);
   const queryClient = useQueryClient();
-  // The page's script list (useBuiltins reads it on this page); read here without fetching.
-  const { data: scripts = [] } = useQuery<Array<{ path: string; name: string }>>({ queryKey: ['workspace', 'automation', 'scripts'], queryFn: skipToken });
-  const refetch = () => queryClient.invalidateQueries({ queryKey: ['workspace', 'automation', 'scripts'] });
+  // The page's script list: the same query as the pickers (one read per visit), re-read after an import.
+  const { data: scripts = [] } = useQuery(scriptsQuery);
+  const refetch = () => queryClient.invalidateQueries({ queryKey: scriptsQuery.queryKey });
   const used = [...new Set((Array.isArray(p.values.autoResponderTriggers) ? p.values.autoResponderTriggers as AutoResponderTrigger[] : [])
     .filter((tr) => tr.responseType === 'script' && tr.response).map((tr) => tr.response))];
   const importFile = async (f: File) => {
@@ -750,12 +774,13 @@ function ResponderScripts({ p }: ExtraProps) {
       if (file.current) file.current.value = '';
     }
   };
+  const chosen = picked.length > 0 ? picked : scripts.map((sc) => sc.path);
   const exportAll = async () => {
     if (busy) return;
     setBusy('export');
     try {
       const res = await csrfFetch(`${appBasename}/api/scripts/export`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scripts: scripts.map((sc) => sc.path) }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scripts: chosen }),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || t('auto_responder.script_export_failed'));
       const url = window.URL.createObjectURL(await res.blob());
@@ -766,8 +791,9 @@ function ResponderScripts({ p }: ExtraProps) {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      showToast(t('auto_responder.scripts_exported', { count: scripts.length }), 'success');
+      showToast(t('auto_responder.scripts_exported', { count: chosen.length }), 'success');
       setExporting(false);
+      setPicked([]);
     } catch (err) {
       showToast(err instanceof Error && err.message ? err.message : t('auto_responder.script_export_failed'), 'error');
     } finally {
@@ -778,8 +804,8 @@ function ResponderScripts({ p }: ExtraProps) {
     <section className={styles.section} aria-label={t('workspace.automations.scripts')}>
       <h2 className={styles.sectionTitle}>{t('workspace.automations.scripts_count', { count: used.length })}</h2>
       {used.length > 0 && <ul className={`${styles.card} ${mine.column}`}>{used.map((path) => <li key={path} className={`${styles.listRow} ${styles.mono}`}>{path.split('/').pop()}</li>)}</ul>}
-      {isAdmin && (
-        <div className={styles.actions}>
+      {/* Shown as today's Auto Responder shows them; the server gates import (admins) and export (settings:read). */}
+      <div className={styles.actions}>
           <input ref={file} type="file" accept=".js,.mjs,.py,.sh" className={styles.srOnly} aria-label={t('auto_responder.import_script')}
             onChange={(e) => { const f = e.target.files?.[0]; if (f) void importFile(f); }} />
           <button type="button" className={styles.button} disabled={busy !== null} title={t('auto_responder.import_script_description')} onClick={() => file.current?.click()}>
@@ -788,14 +814,26 @@ function ResponderScripts({ p }: ExtraProps) {
           <button type="button" className={styles.button} disabled={busy !== null || scripts.length === 0} onClick={() => setExporting(true)}>
             <UiIcon name="download" size={16} /> {t('auto_responder.export_scripts')}
           </button>
-        </div>
-      )}
+      </div>
       <p className={styles.muted}>{t('workspace.automations.scripts_test_hint')}</p>
       {isAdmin && <Link className={styles.link} to="/server/scripts">{t('workspace.automations.scripts_manage')}</Link>}
       <ConfirmSheet
         open={exporting}
         title={t('auto_responder.export_scripts')}
-        body={t('auto_responder.export_all_confirm', { count: scripts.length })}
+        body={
+          <>
+            <p>{picked.length > 0 ? t('auto_responder.export_selected_confirm', { count: picked.length }) : t('auto_responder.export_all_confirm', { count: scripts.length })}</p>
+            <div className={mine.nodeChecks}>
+              {scripts.map((sc) => (
+                <label key={sc.path}>
+                  <input type="checkbox" checked={picked.includes(sc.path)}
+                    onChange={(e) => setPicked((x) => (e.target.checked ? [...x, sc.path] : x.filter((y) => y !== sc.path)))} />
+                  {sc.name}
+                </label>
+              ))}
+            </div>
+          </>
+        }
         confirmLabel={busy === 'export' ? t('auto_responder.exporting') : t('auto_responder.export_scripts')}
         busy={busy === 'export'}
         submitOnEnter={false}
@@ -998,16 +1036,8 @@ function ForwardingLimits() {
   return <p className={styles.note}>{t('forwarding.limits', { max: FORWARDING_MAX_PER_WINDOW, chars: FORWARDING_MAX_TEXT_CHARS, marker: FORWARDED_MARKER })}</p>;
 }
 
-interface AirtimeNode { nodeNum: number | null; nodeId: string | null; longName: string | null; shortName: string | null }
-interface AirtimeStatusData {
-  threshold: number; source: string; neighborMaxHops?: number; channelUtilization: number | null; gated: boolean; sampleCount: number;
-  contributors?: Array<AirtimeNode & { rssi: number | null; channelUtilization: number }>;
-  targetCount?: number; neighborAverage?: number | null; localChannelUtilization?: number | null;
-  localUsed?: 'no_neighbors' | 'higher_than_neighbors' | null; skipped?: Array<AirtimeNode & { reason: string }>;
-}
-
-/** Today's status (AirtimeCutoffSection): the line, how the gap was filled, who was skipped and who is in the average; re-read every 15 s as today. */
-function AirtimeStatus({ sourceId }: ExtraProps) {
+/** Today's status (AirtimeCutoffSection's words, shared: airtimeCutoffStatus); re-read every 15 s as today. */
+function AirtimeStatus({ sourceId, p }: ExtraProps) {
   const { t } = useTranslation();
   const { data: s } = useQuery({
     queryKey: ['workspace', 'automation', 'airtime-status', sourceId],
@@ -1016,75 +1046,27 @@ function AirtimeStatus({ sourceId }: ExtraProps) {
     refetchOnWindowFocus: false,
   });
   if (!s) return null;
-  const pct = (v: number) => parseFloat(v.toFixed(2));
-  const disabled = s.threshold <= 0;
-  const neighbors = s.source === 'neighbors';
-  const localUsed = neighbors ? (s.localUsed ?? null) : null;
-  const sampleCount = s.sampleCount ?? 0;
-  const target = s.targetCount ?? sampleCount;
-  const label = neighbors && !localUsed ? t('automation.airtime_cutoff.source_neighbors_label', 'neighbour-averaged') : t('automation.airtime_cutoff.source_local_label', 'local');
-  const util = s.channelUtilization == null ? null : pct(s.channelUtilization);
-  const name = (n: AirtimeNode) => n.longName || n.shortName || n.nodeId || (n.nodeNum != null ? `!${n.nodeNum.toString(16).padStart(8, '0')}` : '?');
-  const skipReason = (r: string) =>
-    r === 'mqtt' ? t('automation.airtime_cutoff.skip_mqtt', 'heard over MQTT')
-      : r === 'not_infrastructure' ? t('automation.airtime_cutoff.skip_not_infrastructure', 'no longer an infrastructure role')
-        : r === 'not_found' ? t('automation.airtime_cutoff.skip_not_found', 'not heard in the last day')
-          : t('automation.airtime_cutoff.skip_stale', 'no fresh Channel Utilization');
-  let fill: string | null = null;
-  if (!disabled && neighbors) {
-    const local = s.localChannelUtilization;
-    const avg = s.neighborAverage;
-    if (localUsed === 'no_neighbors' && local != null) {
-      fill = t('automation.airtime_cutoff.fill_no_neighbors', { target, local: pct(local), defaultValue: '0 of {{target}} infrastructure nodes qualify; using local {{local}}%.' });
-    } else if (localUsed === 'higher_than_neighbors' && local != null && avg != null) {
-      fill = t('automation.airtime_cutoff.fill_local_higher', { count: sampleCount, target, local: pct(local), avg: pct(avg),
-        defaultValue: '{{count}} of {{target}} infrastructure nodes qualify; using local {{local}}% (higher than their average {{avg}}%).' });
-    } else if (sampleCount > 0 && sampleCount < target && avg != null) {
-      fill = local != null
-        ? t('automation.airtime_cutoff.fill_local_lower', { count: sampleCount, target, local: pct(local), avg: pct(avg),
-          defaultValue: '{{count}} of {{target}} infrastructure nodes qualify; local {{local}}% is lower, so their average {{avg}}% is used.' })
-        : t('automation.airtime_cutoff.fill_local_unknown', { count: sampleCount, target,
-          defaultValue: '{{count}} of {{target}} infrastructure nodes qualify; local Channel Utilization is not known yet.' });
-    }
-  }
-  const hops = s.neighborMaxHops ?? 0;
-  const contributors = !disabled && neighbors ? (s.contributors ?? []) : [];
-  const skipped = !disabled && neighbors ? (s.skipped ?? []) : [];
+  const view = airtimeStatusView(t, s, {
+    threshold: Number(p.values.automationAirtimeCutoffThreshold ?? 0),
+    source: p.values.automationAirtimeCutoffSource === 'neighbors' ? 'neighbors' : 'local',
+    maxHops: Number(p.values.automationAirtimeCutoffNeighborMaxHops ?? 0),
+  });
   return (
     <section className={styles.section} aria-label={t('workspace.automations.airtime_status')}>
       <p className={styles.banner} role="status">
-        <UiIcon name={disabled ? 'info' : s.gated ? 'pause' : 'check'} size={16} />
-        <span>
-          {disabled
-            ? t('automation.airtime_cutoff.status_disabled', 'Airtime cutoff is disabled (threshold 0).')
-            : util == null
-              ? (neighbors
-                  ? (hops > 0
-                      ? t('automation.airtime_cutoff.status_unknown_neighbors_hops', { hops, defaultValue: 'Waiting for infrastructure (router) neighbours within {{hops}} hop(s) to report Channel Utilization…' })
-                      : t('automation.airtime_cutoff.status_unknown_neighbors', 'Waiting for 0-hop infrastructure (router) neighbours to report Channel Utilization…'))
-                  : t('automation.airtime_cutoff.status_unknown', 'Waiting for the connected node to report Channel Utilization…'))
-              : s.gated
-                ? t('automation.airtime_cutoff.status_paused', { source: label, util, threshold: s.threshold })
-                : t('automation.airtime_cutoff.status_active', { source: label, util, threshold: s.threshold })}
-          {!disabled && util != null && neighbors && !localUsed && ` ${t('automation.airtime_cutoff.status_neighbors_suffix', { count: sampleCount, defaultValue: '(averaged from {{count}} infrastructure node(s))' })}`}
-        </span>
+        <UiIcon name={view.disabled ? 'info' : view.gated ? 'pause' : 'check'} size={16} />
+        <span>{view.line}{view.suffix && ` ${view.suffix}`}</span>
       </p>
-      {fill && <p className={styles.muted}>{fill}</p>}
-      {skipped.length > 0 && (
-        <p className={styles.muted}>{t('automation.airtime_cutoff.skipped_line', { list: skipped.map((n) => `${name(n)} (${skipReason(n.reason)})`).join(', '), defaultValue: 'Skipped: {{list}}' })}</p>
-      )}
-      {contributors.length > 0 && (
+      {view.fillLine && <p className={styles.muted}>{view.fillLine}</p>}
+      {view.skippedLine && <p className={styles.muted}>{view.skippedLine}</p>}
+      {view.contributors.length > 0 && (
         <>
           <p className={styles.kvLabel}>{t('automation.airtime_cutoff.contributors_label', 'Infrastructure nodes in calculation')}</p>
           <ul className={`${styles.card} ${mine.column}`}>
-            {contributors.map((n, i) => (
-              <li key={n.nodeId ?? n.nodeNum ?? i} className={styles.listRow}>
-                <span className={styles.rowTitle}>{name(n)}</span>
-                <span className={styles.rowSub}>
-                  {n.rssi != null
-                    ? t('automation.airtime_cutoff.contributor_detail', { util: pct(n.channelUtilization), rssi: n.rssi, defaultValue: '{{util}}% · {{rssi}} dBm' })
-                    : t('automation.airtime_cutoff.contributor_detail_no_rssi', { util: pct(n.channelUtilization), defaultValue: '{{util}}%' })}
-                </span>
+            {view.contributors.map((n) => (
+              <li key={n.key} className={styles.listRow}>
+                <span className={styles.rowTitle}>{n.name}</span>
+                <span className={styles.rowSub}>{n.detail}</span>
               </li>
             ))}
           </ul>
@@ -1222,7 +1204,9 @@ function MatchCount({ p, nodes }: ExtraProps) {
       <p className={styles.kvLabel}>
         {t('automation.auto_traceroute.matching_nodes', { count: matching.length })} / {nodes.length} {t('common.total')}
       </p>
-      {matching.length > 0 && <p className={styles.muted}>{matching.map(nodeName).join(', ')}</p>}
+      {matching.length > 0
+        ? <p className={styles.muted}>{matching.map(nodeName).join(', ')}</p>
+        : <p className={styles.muted}>{t('automation.auto_traceroute.no_nodes_match_filters')}</p>}
     </section>
   );
 }
