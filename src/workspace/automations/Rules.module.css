@@ -1,0 +1,995 @@
+/* The Automation Engine's rules, variables, templates and a rule's tabs (Task 8.4). Tokens only. */
+
+.column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.withPanel,
+.withTest {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.75fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── rules list ── */
+
+.ruleRow,
+.varRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--color-border);
+}
+
+.ruleRow:first-child,
+.varRow:first-child {
+  border-top: 0;
+}
+
+.ruleRow[data-phone],
+.varRow[data-phone] {
+  min-height: 52px;
+  padding: 12px 14px;
+}
+
+.ruleText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ruleTitle,
+.ruleSub {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ruleName {
+  font-size: 17px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.ruleSub {
+  color: var(--color-text-subtle);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-subtle);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.enabled {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-subtle);
+}
+
+.rowButtons {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rowActions {
+  flex-basis: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dangerButton {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.switchTabs {
+  flex: 1;
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.switchTab {
+  flex: 1;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-subtle);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.switchTab[aria-current='page'] {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.phoneTabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── sheets and forms ── */
+
+.sheetButtons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.form,
+.fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Today's field renderer (AutomationBuilder's FieldInput) on the kit: its controls, scoped here. */
+.fields label {
+  display: block;
+  color: var(--color-text-subtle);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fields input:not([type='checkbox']):not([type='radio']),
+.fields select,
+.fields textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.fields textarea {
+  min-height: 84px;
+}
+
+.fields button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.stepSheet[data-phone] .fields input:not([type='checkbox']):not([type='radio']),
+.stepSheet[data-phone] .fields select {
+  min-height: 44px;
+}
+
+.error {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--color-error);
+  border-radius: 10px;
+  color: var(--color-error);
+  list-style-position: inside;
+}
+
+.confirmLead {
+  margin: 0;
+}
+
+.formCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.formHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.formCard[data-phone] .formGrid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.formCard[data-phone] input,
+.formCard[data-phone] select {
+  min-height: 44px;
+}
+
+.formFoot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+
+.linkButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 80px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.code {
+  min-height: 360px;
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+}
+
+.help dl {
+  margin: 0 0 12px;
+}
+
+.help dl div {
+  padding: 6px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.help dt {
+  font-weight: 700;
+}
+
+.help dd {
+  margin: 0;
+  color: var(--color-text-subtle);
+}
+
+.panelBody {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.panelFoot {
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.bullets {
+  margin: 0;
+  padding-left: 20px;
+}
+
+/* ── templates ── */
+
+.templateGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.templateCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+}
+
+.templateCard[data-selected] {
+  border-color: var(--color-accent);
+}
+
+.templateName,
+.templateTitle {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.templateTitle {
+  font-size: 24px;
+}
+
+.templateIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-accent);
+}
+
+.templateText {
+  margin: 0;
+  color: var(--color-text-subtle);
+}
+
+.tags {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wizard {
+  display: flex;
+  flex-direction: column;
+}
+
+.crumbs {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-subtle);
+}
+
+.paramGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.wizard .paramGrid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.disclosure {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.outcomes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.outcomes li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-error);
+}
+
+.outcomes li[data-ok] {
+  color: var(--color-success);
+}
+
+.phoneDock {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 10px;
+  padding: 12px 0;
+  background: var(--color-bg);
+}
+
+.phoneDock > * {
+  flex: 1;
+  min-height: 48px;
+}
+
+/* ── pickers ── */
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text-subtle);
+}
+
+.search input {
+  flex: 1;
+  min-height: 44px;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+}
+
+.pickList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pickRow {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pickRow:hover,
+.pickRow:focus-visible {
+  background: var(--color-surface-hover);
+}
+
+.pickIcon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--color-surface);
+}
+
+.pickText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pickText span {
+  color: var(--color-text-subtle);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── steps ── */
+
+.stepsView {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.step,
+.limits {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-raised);
+}
+
+.stepButton {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stepWord {
+  flex: none;
+  width: 64px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.step[data-tone='when'] .stepWord {
+  color: var(--color-accent);
+}
+
+.step[data-tone='if'] .stepWord {
+  color: var(--color-warning);
+}
+
+.step[data-tone='then'] .stepWord,
+.step[data-tone='finally'] .stepWord {
+  color: var(--color-success);
+}
+
+.stepText {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.stepExtra {
+  padding: 0 16px 12px 96px;
+}
+
+.stepsView[data-phone] .stepButton {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.stepsView[data-phone] .stepWord {
+  width: 100%;
+}
+
+.stepsView[data-phone] .stepExtra {
+  padding-left: 16px;
+}
+
+.limits {
+  display: flex;
+  gap: 16px;
+  padding: 14px 16px;
+  border-style: dashed;
+  border-color: var(--color-warning);
+}
+
+.limits .stepWord {
+  color: var(--color-warning);
+}
+
+.stepsView[data-phone] .limits {
+  flex-direction: column;
+  gap: 6px;
+}
+
+.limitsBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.limitsBody p {
+  margin: 0;
+}
+
+.limitsButtons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.limitButton {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--color-warning);
+  color: var(--color-bg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.limitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ruleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ruleGroupHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.addRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.addButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 6px;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.stepsView[data-phone] .addButton {
+  min-height: 44px;
+}
+
+.stepSheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.whenExtra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.phoneTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ── test ── */
+
+.test {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.testHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.testHead .cardTitle {
+  flex: 1;
+}
+
+.testGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.testResult {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.check {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-error);
+}
+
+.check[data-ok] {
+  color: var(--color-text);
+}
+
+.check[data-ok] svg {
+  color: var(--color-success);
+}
+
+.sentBox {
+  margin: 4px 0 0;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  overflow-wrap: anywhere;
+}
+
+.would {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wouldHead {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── runs and trace ── */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.result {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-subtle);
+}
+
+.result[data-kind='sent'],
+.result[data-kind='done'] {
+  color: var(--color-success);
+}
+
+.result[data-kind='failed'] {
+  color: var(--color-error);
+}
+
+.result[data-kind='listening'] {
+  color: var(--color-accent);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.runDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 4px;
+  white-space: normal;
+}
+
+.runRow {
+  border-top: 1px solid var(--color-border);
+}
+
+.runRow:first-child {
+  border-top: 0;
+}
+
+.runButton {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.runWho {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.runRow .runDetail {
+  padding: 0 14px 12px;
+}
+
+.stepLines {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+}
+
+.stepLines dt {
+  color: var(--color-text-subtle);
+  font-weight: 700;
+}
+
+.stepLines dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.raw {
+  margin: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--color-bg-sunken);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.payload summary {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.trace {
+  display: flex;
+  flex-direction: column;
+}
+
+.traceHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.traceHead > span:nth-child(2) {
+  flex: 1;
+  min-width: 160px;
+}
+
+.liveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-weight: 600;
+}
+
+.liveBadge[data-status='live'] {
+  color: var(--color-success);
+}
+
+.liveBadge[data-status='error'] {
+  color: var(--color-error);
+}
+
+.traceButtons {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.traceNote {
+  margin: 0;
+  padding: 14px 16px;
+  color: var(--color-text-subtle);
+}
+
+.traceFeed {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.traceEntry {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.traceEntry p {
+  margin: 0;
+}
+
+.traceLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.traceLine strong {
+  flex: 1;
+  min-width: 0;
+}

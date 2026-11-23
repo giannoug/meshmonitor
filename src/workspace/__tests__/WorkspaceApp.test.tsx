@@ -56,6 +56,8 @@ vi.mock('../node-page/NodePage', async () => ({ default: (await import('./pageSt
 vi.mock('../overview/OverviewMap', async () => ({ default: (await import('./pageStub')).pageStub('overview-map') }));
 // Reports are the Workspace's own list and report pages (Task 4.4); their tests live in reports/__tests__.
 vi.mock('../reports/ReportsRoute', async () => ({ default: (await import('./pageStub')).pageStub('reports-route') }));
+vi.mock('../automations/RulesList', async () => ({ default: (await import('./pageStub')).pageStub('rules-list') }));
+vi.mock('../automations/RulePage', async () => ({ default: (await import('./pageStub')).pageStub('rule-page') }));
 vi.mock('../dashboard/OverviewDashboard', async () => ({ default: (await import('./pageStub')).pageStub('overview-dashboard') }));
 vi.mock('../overview/OverviewHome', async () => ({ default: (await import('./pageStub')).pageStub('overview-home') }));
 // Overview › Messages and its export are the Workspace's own (Task 4.6); their tests live in overview/__tests__.
@@ -108,11 +110,6 @@ const rns = `/source/${SOURCE_IDS.rns}`;
 
 describe('WorkspaceApp routes (spec §5.5)', () => {
   it.each([
-    ['/overview/automations', 'automations'],
-    ['/automations', 'automations'],
-    ['/automations/12', 'automations'],
-    ['/automations/12/runs', 'automations'],
-    ['/automations/12/trace', 'automations'],
     // Nodes is the Workspace's own table and list, with App not mounted (Task 3.3, Ruling AD).
     [`${g2}/nodes`, 'nodes'],
     // Device settings are the Workspace's own frame, with App not mounted (Task 5.2, Ruling AD), the remote target too (Task 5.9).
@@ -223,6 +220,22 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     expect(screen.queryByTestId('page-dashboard')).toBeNull();
     expect(screen.queryByTestId('page-analysis')).toBeNull();
     expect(realUrl()).toBe(route);
+  });
+
+  it.each([
+    ['/overview/automations', 'rules-list', '/overview/automations'],
+    ['/overview/automations/variables', 'rules-list', '/overview/automations/variables'],
+    ['/overview/automations/templates', 'rules-list', '/overview/automations/templates'],
+    // Today's Automation Engine URL is the rules list (Task 8.4).
+    ['/automations', 'rules-list', '/overview/automations'],
+    ['/automations/12', 'rule-page', '/automations/12'],
+    ['/automations/12/runs', 'rule-page', '/automations/12/runs'],
+    ['/automations/12/trace', 'rule-page', '/automations/12/trace'],
+  ])('%s shows the Workspace %s (Task 8.4), not today\'s Automation Engine', async (route, page, url) => {
+    renderAt(route);
+    expect(await screen.findByTestId(`page-${page}`)).toHaveAttribute('data-embedded', 'false');
+    expect(screen.queryByTestId('page-automations')).toBeNull();
+    await waitFor(() => expect(realUrl()).toBe(url));
   });
 
   it.each(['/overview/reports', '/overview/reports/coverage', '/reports', '/reports/mesh-issues'])(

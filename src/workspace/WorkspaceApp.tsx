@@ -27,7 +27,7 @@ import YouHome from './you/YouHome';
 import SignInPage from './auth/SignInPage';
 import LayoutPage from './you/LayoutPage';
 import { workspaceRedirect } from './routes';
-import { AutomationsRehost, OverviewRehost } from './rehost/pages';
+import { OverviewRehost } from './rehost/pages';
 import { ServerRoutes } from './server/ServerRoutes';
 import { PreferencesRoutes } from './you/preferences/PreferencesRoutes';
 
@@ -46,6 +46,8 @@ const YouSecurity = lazy(() => import('./you/SecurityPage.tsx'));
 const YouToken = lazy(() => import('./you/ApiTokenPage.tsx'));
 const YouPassword = lazy(() => import('./you/ChangePasswordPage.tsx'));
 const YouHelp = lazy(() => import('./you/preferences/HelpAboutPage.tsx'));
+const RulesList = lazy(() => import('./automations/RulesList.tsx'));
+const RulePage = lazy(() => import('./automations/RulePage.tsx'));
 
 /**
  * `/`, `/overview`, `/overview/map`, `/analysis` and `/overview/analysis`: the
@@ -96,7 +98,8 @@ function WorkspaceRoutes() {
           <Route path="overview/analysis" element={<OverviewIndex />} />
           {/* Reports (Task 4.4): the list, Mesh Issues, Coverage; the other reports re-hosted until 4.5. */}
           <Route path="overview/reports/:report?" element={<ReportsRoute />} />
-          <Route path="overview/automations" element={<AutomationsRehost />} />
+          {/* The Automation Engine (Task 8.4): rules, Variables and Templates, with no Classic page mounted. */}
+          <Route path="overview/automations/*" element={<RulesList />} />
           {/* Users and Audit log (Task 4.8), with no Classic page mounted (Ruling AD). */}
           <Route path="overview/users" element={<UsersPage />} />
           <Route path="overview/audit" element={<AuditPage />} />
@@ -106,7 +109,9 @@ function WorkspaceRoutes() {
           <Route path="unified/packets" element={<OverviewPackets />} />
           <Route path="analysis" element={<OverviewIndex />} />
           <Route path="reports/:report?" element={<ReportsRoute />} />
-          <Route path="automations/*" element={<AutomationsRehost />} />
+          {/* Today's /automations is the rules list; a rule is /automations/:ruleId[/runs|/trace] (Task 8.4). */}
+          <Route path="automations" element={<Navigate replace to="/overview/automations" />} />
+          <Route path="automations/:ruleId/*" element={<RulePage />} />
           <Route path="users" element={<UsersPage />} />
 
           {/* You › Preferences (Task 6.3), with no Classic page mounted (Ruling AD). */}

@@ -8,7 +8,6 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { isValidCron } from 'cron-validator';
 import apiService from '../../services/api';
 import { NumberInputScope } from '../common/NumberInputScope';
 import { useNumberInputScope } from '../common/numberInputScopeContext';
@@ -22,99 +21,13 @@ import { StepList, type TraceStep } from './outcomeMeta';
 import { summarizeTriggerEvent, parseJsonColumn } from './eventSummary';
 import { UiIcon } from '../icons';
 import { useShellEmbedded } from '../../contexts/ShellContext';
-import { compile, decompile, outputNameErrors, type WorkflowForm } from './compile';
-import { BLOCK_BY_TYPE } from './catalog';
-import { emptySendFinding } from '../../types/automation';
-import { tracePathScheduleParamErrors } from '../../types/tracePathSchedule';
+import { compile, decompile, type WorkflowForm } from './compile';
 import { scheduleStatus } from './scheduleStatus';
+import {
+  DEFAULT_FORM, VARIABLE_NAME_ERROR, VARIABLE_SCOPES, VARIABLE_TYPES, emptySendLines, isVariableName, pretty, scopeLabel,
+  triggerLabel, validateForm, variableConfig, type Automation, type Run, type Variable,
+} from './automationsPageLogic';
 import './AutomationsPage.css';
-
-/** One line per action whose text is empty (#5697), named as the builder names it. */
-function emptySendLines(config: unknown): string[] {
-  const nodes = (config as { nodes?: unknown } | null)?.nodes;
-  if (!Array.isArray(nodes)) return [];
-  const out: string[] = [];
-  for (const n of nodes as Array<{ type?: unknown; params?: Record<string, unknown> }>) {
-    if (typeof n?.type !== 'string') continue;
-    const f = emptySendFinding(n.type, n.params);
-    if (f) out.push(`${BLOCK_BY_TYPE[n.type]?.label ?? n.type}: ${f.detail}`);
-  }
-  return out;
-}
-
-interface Automation {
-  id: string; name: string; description: string | null; enabled: boolean; config: string;
-  createdAt: number; updatedAt: number;
-}
-interface Variable {
-  id: string; name: string; description: string | null;
-  type: 'string' | 'integer' | 'float' | 'boolean' | 'flag';
-  scope: 'global' | 'source' | 'node' | 'sourceNode'; readonly: boolean; config: string;
-}
-interface Run {
-  id: string; status: string; sourceId: string | null; startedAt: number; log: string | null;
-  /** JSON `ctx.fields` bag captured when the rule fired — the triggering message (#4711). */
-  triggerEvent: string | null;
-}
-
-const VARIABLE_TYPES = ['string', 'integer', 'float', 'boolean', 'flag', 'json'] as const;
-const VARIABLE_SCOPES: { value: Variable['scope']; label: string }[] = [
-  { value: 'global', label: 'Global' }, { value: 'source', label: 'Per Source' },
-  { value: 'node', label: 'Per Node' }, { value: 'sourceNode', label: 'Per Source + Node' },
-];
-
-const DEFAULT_FORM: WorkflowForm = {
-  trigger: { type: 'trigger.message', params: { textContains: 'ping' } },
-  rules: [{ conditions: [], actions: [{ type: 'action.tapback', params: { emoji: '👍' } }] }],
-  combine: null,
-};
-
-/** Builder-form validation: each rule needs an action (unless it only feeds a combine). */
-function validateForm(form: WorkflowForm): string[] {
-  const errs: string[] = [];
-  if (form.trigger.type === 'trigger.geofence') {
-    const shape = form.trigger.params.shape as { type?: string; vertices?: unknown[] } | undefined;
-    if (!shape || (shape.type === 'polygon' && (shape.vertices?.length ?? 0) < 3)) {
-      errs.push('Draw a geofence region (circle or polygon) on the map.');
-    }
-  }
-  if (form.trigger.type === 'trigger.becameMobile' || form.trigger.type === 'trigger.leftHome') {
-    const nums = form.trigger.params.nodeNums;
-    if (!Array.isArray(nums) || nums.length === 0) {
-      errs.push('Select at least one node to watch.');
-    }
-  }
-  if (form.trigger.type === 'trigger.leftHome') {
-    const thr = form.trigger.params.thresholdMeters;
-    if (thr != null && thr !== '' && !(Number(thr) > 0)) {
-      errs.push('Home-distance threshold must be greater than 0 metres.');
-    }
-  }
-  // #5723: the same limits the server enforces, said before the save round trip.
-  for (const rule of form.rules ?? []) {
-    for (const action of rule.actions ?? []) {
-      if (action.type !== 'action.tracePathSchedule') continue;
-      for (const e of tracePathScheduleParamErrors('', action.params ?? {})) {
-        errs.push(e.replace('action.tracePathSchedule "" ', 'Scheduled trace paths: '));
-      }
-    }
-  }
-  if (form.trigger.type === 'trigger.schedule') {
-    const cron = String(form.trigger.params.cron ?? '').trim();
-    if (!cron || !isValidCron(cron, { seconds: false, alias: true, allowBlankDay: true })) {
-      errs.push('Enter a valid 5-field cron expression for the schedule (e.g. "0 * * * *").');
-    }
-  }
-  if (form.rules.length === 0) errs.push('Add at least one rule.');
-  form.rules.forEach((r, i) => {
-    if (r.actions.length === 0 && !(form.combine && r.conditions.length > 0)) {
-      errs.push(`Rule ${i + 1} needs at least one action.`);
-    }
-  });
-  if (form.combine && form.combine.actions.length === 0) errs.push('The FINALLY step needs at least one action.');
-  errs.push(...outputNameErrors(form));
-  return errs;
-}
 
 export default function AutomationsPage() {
   const [view, setView] = useState<'automations' | 'variables'>('automations');
@@ -249,13 +162,6 @@ function AutomationsList() {
       })}
     </div>
   );
-}
-
-function triggerLabel(a: Automation): string {
-  try {
-    const t = (JSON.parse(a.config).nodes ?? []).find((n: any) => String(n.type).startsWith('trigger.'));
-    return t ? String(t.type).replace('trigger.', '') : '';
-  } catch { return ''; }
 }
 
 function AutomationEditor({ automation, onClose }: { automation: Automation | 'new'; onClose: () => void }) {
@@ -596,13 +502,11 @@ function VariablesList() {
 
   const create = async () => {
     setError(null);
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
-      setError('Name must be a letters/digits/underscore identifier (no dots or spaces) — needed so {{ var.name.field }} can index JSON.');
+    if (!isVariableName(name)) {
+      setError(VARIABLE_NAME_ERROR);
       return;
     }
-    const config: Record<string, unknown> = {};
-    if (defaultValue !== '') config.defaultValue = (type === 'integer' || type === 'float') ? Number(defaultValue) : defaultValue;
-    if (type === 'flag' && flagDuration !== '') config.flagDurationSeconds = Number(flagDuration);
+    const config = variableConfig(type, defaultValue, flagDuration);
     try {
       await apiService.post('/api/automations/variables', { name, type, scope, readonly, config });
       setName(''); setDefaultValue(''); setFlagDuration(''); void load();
@@ -664,10 +568,6 @@ function VariablesList() {
   );
 }
 
-function scopeLabel(s: Variable['scope']): string {
-  return VARIABLE_SCOPES.find((x) => x.value === s)?.label ?? s;
-}
-
 function VariablesHelpDrawer({ onClose }: { onClose: () => void }) {
   return (
     <>
@@ -704,5 +604,3 @@ function VariablesHelpDrawer({ onClose }: { onClose: () => void }) {
     </>
   );
 }
-
-function pretty(jsonStr: string): string { try { return JSON.stringify(JSON.parse(jsonStr), null, 2); } catch { return jsonStr; } }

@@ -95,7 +95,8 @@ interface Props {
 }
 
 /** Seed a block's params with each select/fieldselect field's first option. */
-function defaultParams(type: string, triggerType: string): Record<string, unknown> {
+// eslint-disable-next-line react-refresh/only-export-components -- #6365 shared with the Workspace's rule steps
+export function defaultParams(type: string, triggerType: string): Record<string, unknown> {
   const def = BLOCK_BY_TYPE[type];
   if (!def) return {};
   const params: Record<string, unknown> = {};
@@ -581,7 +582,8 @@ interface StepOutputInfo {
   duplicates: ReadonlySet<string>;
 }
 
-function BlockFields({ block, triggerType, variables, sources, channels, scripts, regions, nodes, automations, onParams, steps, duplicateOutputNames }: {
+/** Every visible field of one block, with its empty-send note (shared with the Workspace's step sheet, #6365). */
+export function BlockFields({ block, triggerType, variables, sources, channels, scripts, regions, nodes, automations, onParams, steps, duplicateOutputNames }: {
   block: FormBlock; triggerType: string; variables: VariableOption[]; sources: SourceOption[]; channels: UnifiedChannelOption[]; scripts: ScriptOption[]; regions: string[]; nodes: NodeMultiOption[]; automations: AutomationOption[]; onParams: (p: Record<string, unknown>) => void;
   steps: StepTokenScope; duplicateOutputNames: ReadonlySet<string>;
 }) {

@@ -36,7 +36,7 @@ import { useIsPhone } from '../shell/useIsPhone';
 import { McDock } from '../meshcore/settings/mcShared';
 import ToolHead from '../meshcore/ToolHead';
 import type { Values } from '../meshcore/automations/builtins';
-import { ENGINE, readRule, TRANSMITTING, type EngineRule } from './engineRules';
+import { ENGINE, ENGINE_NEW, ENGINE_TEMPLATES, readRule, ruleUrl, rulesQuery, TRANSMITTING, type EngineRule } from './engineRules';
 import { GROUPS, transmits, type Group, type MeshtasticBuiltin } from './builtins';
 import { useBuiltins } from './useBuiltins';
 import BuiltinPage from './BuiltinPage';
@@ -115,10 +115,8 @@ function Door({ sourceId, source, list, table, results, setSaved }: { sourceId: 
   const [tokens, setTokens] = useState(false);
 
   const { data: rules = [] } = useQuery({
-    queryKey: ['workspace', 'automations', 'rules'],
+    ...rulesQuery,
     enabled: !list && canReadRules && !!authStatus?.authenticated,
-    queryFn: () => apiService.get<EngineRule[]>('/api/automations'),
-    refetchOnWindowFocus: false,
   });
   const ruleRows = rules
     .map((r) => ({ ...r, ...readRule(r.config) }))
@@ -221,7 +219,7 @@ function Door({ sourceId, source, list, table, results, setSaved }: { sourceId: 
           <SendsLine>{sends ? t('workspace.meshcore.auto.rule_sends') : t('workspace.settings.savebar.sends_nothing')}</SendsLine>
         </div>
         <input type="checkbox" role="switch" className={kit.switch} aria-label={r.name} checked={r.enabled} disabled={!canWriteRules || ruleBusy !== null} aria-busy={ruleBusy === r.id || undefined} onChange={() => void toggleRule(r)} />
-        <Link className={styles.iconButton} to={ENGINE} title={r.name}>
+        <Link className={styles.iconButton} to={ruleUrl(r.id)} title={r.name}>
           <UiIcon name="chevronRight" size={18} />
           <span className={styles.srOnly}>{t('workspace.meshcore.auto.open', { name: r.name })}</span>
         </Link>
@@ -367,8 +365,8 @@ function Door({ sourceId, source, list, table, results, setSaved }: { sourceId: 
   const engineLinks = canReadRules && (
     <>
       <Link className={styles.link} to={ENGINE}>{t('workspace.meshcore.auto.all_in_overview')}</Link>
-      <Link className={styles.button} to={ENGINE}>{t('workspace.meshcore.auto.templates')}</Link>
-      <Link className={`${styles.button} ${styles.primary}`} to={ENGINE}>
+      <Link className={styles.button} to={ENGINE_TEMPLATES}>{t('workspace.meshcore.auto.templates')}</Link>
+      <Link className={`${styles.button} ${styles.primary}`} to={ENGINE_NEW}>
         <UiIcon name="plus" size={16} />
         {t('workspace.meshcore.auto.new_rule')}
       </Link>
@@ -382,7 +380,7 @@ function Door({ sourceId, source, list, table, results, setSaved }: { sourceId: 
           title={t('workspace.meshcore.auto.title')}
           back={{ label: t('workspace.tabs.home'), to: home }}
           phoneActions={canReadRules ? (
-            <Link className={styles.iconButton} to={ENGINE} title={t('workspace.meshcore.auto.new_rule')}>
+            <Link className={styles.iconButton} to={ENGINE_NEW} title={t('workspace.meshcore.auto.new_rule')}>
               <UiIcon name="plus" size={22} />
               <span className={styles.srOnly}>{t('workspace.meshcore.auto.new_rule')}</span>
             </Link>

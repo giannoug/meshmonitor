@@ -2,16 +2,15 @@
   "must": [
     "When…",
     "Search triggers",
-    "MESSAGES",
-    "A message arrives",
-    "Someone reacts",
-    "A new node is heard",
-    "A node goes quiet",
-    "Battery drops below…",
-    "A node enters an area",
+    "Messages",
+    "A message is received",
+    "A new node is discovered",
+    "A node goes silent (heartbeat lost)",
+    "Telemetry is received",
+    "A node enters/leaves a region",
     "On a schedule",
-    "MESH",
-    "A traceroute finishes"
+    "Mesh",
+    "A repeater gains a confirmed new neighbour (MeshCore)"
   ],
   "absent": [
     "⌘K"

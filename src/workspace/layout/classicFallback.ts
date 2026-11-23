@@ -11,7 +11,7 @@ const RULES: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
   [/^\/reports\/.+$/, () => '/reports'],
   [/^\/overview\/(messages|telemetry|packets)\/?$/, (m) => `/unified/${m[1]}`],
   [/^\/overview\/messages\/export\/?$/, () => '/unified/messages'],
-  [/^\/overview\/automations\/?$/, () => '/automations'],
+  [/^\/overview\/automations(\/.*)?$/, () => '/automations'],
   [/^\/overview\/users\/?$/, () => '/users'],
   [/^\/overview\/(audit|dashboard)\/?$/, () => '/'],
   [/^\/(preferences|server)(\/.*)?$/, () => '/settings'],

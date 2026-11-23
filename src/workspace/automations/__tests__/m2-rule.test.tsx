@@ -1,0 +1,168 @@
+/**
+ * @vitest-environment jsdom
+ *
+ * Boards m2 (desktop), n2 and n3 (phone), s14n2/s14n4: a rule opens as step
+ * cards (WHEN → IF → THEN, LIMITS, Add a step, Finally…) with Rule / Runs /
+ * Live trace tabs. Test is today's dry run; Run now sits in the header and
+ * asks first with today's words. The When… picker lists today's triggers.
+ * Edits stay in a draft that the dock's Save sends once.
+ */
+import { describe, it, expect, vi } from 'vitest';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { expectBoard } from '../../test/boardChecks';
+import { BRANCHED_RULE, RULES } from '../../__fixtures__/rules';
+import { READ_ONLY, nonGet, renderRules, settle } from './renderRules';
+
+vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('./socketMock')).socketMock(orig));
+
+const WEATHER = '/automations/e3';
+const loaded = () => screen.findByRole('button', { name: /^WHEN: A message arrives in #Local/ });
+
+describe('m2-rule', () => {
+  it('m2-rule shows the board', async () => {
+    renderRules(WEATHER);
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+    const test = await screen.findByRole('region', { name: 'Test run' });
+    fireEvent.change(within(test).getByRole('textbox', { name: 'Sample message' }), { target: { value: '!wx athens' } });
+    fireEvent.click(within(test).getByRole('button', { name: 'Run test' }));
+    await within(test).findByRole('button', { name: 'Run again' });
+    expectBoard('m2-rule', document.body);
+  });
+
+  it('n2-rule shows the board', async () => {
+    renderRules(WEATHER, { phone: true });
+    await loaded();
+    expectBoard('n2-rule', document.body);
+  });
+
+  it('n3-when shows the board', async () => {
+    renderRules(WEATHER, { phone: true });
+    fireEvent.click(await loaded());
+    fireEvent.click(await screen.findByRole('button', { name: 'Change step' }));
+    await screen.findByRole('dialog', { name: 'When…' });
+    // One sheet at a time (D9c): the step sheet gave way to the picker.
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expectBoard('n3-when', document.body);
+  });
+
+  it('draws each step from the saved graph, and LIMITS reads "no limit" literally', async () => {
+    renderRules(WEATHER);
+    await loaded();
+    expect(screen.getByRole('button', { name: 'IF: Source is one of: Station G2' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'IF: Message text starts with !wx' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'THEN: Run weather.py with {{ trigger.text }}' })).toBeInTheDocument();
+    expect(screen.getByText('No rate limit or cooldown. Every matching event gets an answer, and a reply loop can flood the channel.')).toBeInTheDocument();
+  });
+
+  it('Add a limit opens the trigger\'s own Cooldown field and picks no value', async () => {
+    renderRules(WEATHER);
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'Add a limit' }));
+    const sheet = await screen.findByRole('dialog', { name: 'A message is received' });
+    expect(within(sheet).getByText('Cooldown (seconds)')).toBeInTheDocument();
+    await settle();
+    expect(nonGet()).toEqual([]);
+    expect(screen.queryByRole('region', { name: /save/i })).toBeNull();
+  });
+
+  it('a rename saves the saved graph untouched (GR): one PUT, config as stored', async () => {
+    renderRules(WEATHER);
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'More for Weather bot' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Name and description' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Name and description' });
+    fireEvent.change(within(sheet).getByRole('textbox', { name: 'Name' }), { target: { value: 'Weather bot v2' } });
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Done' }));
+    const dock = await screen.findByRole('region', { name: /save/i });
+    expect(dock).toHaveTextContent('Saving does not fire the rule; its cooldown, rate limit and schedule carry over');
+    const save = within(dock).getByRole('button', { name: 'Save' });
+    fireEvent.click(save);
+    fireEvent.click(save);
+    await waitFor(() => expect(nonGet()).toHaveLength(1));
+    expect(nonGet()[0]).toEqual({ method: 'PUT', path: '/api/automations/e3', body: { name: 'Weather bot v2', description: RULES[2].description, config: JSON.parse(RULES[2].config) } });
+  });
+
+  it('a step edit compiles the draft and saves it once', async () => {
+    renderRules(WEATHER);
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'IF: Message text starts with !wx' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Text comparison' });
+    const value = within(sheet).getByDisplayValue('!wx');
+    fireEvent.change(value, { target: { value: '!weather' } });
+    fireEvent.keyDown(sheet, { key: 'Escape' });
+    expect(await screen.findByRole('button', { name: 'IF: Message text starts with !weather' })).toBeInTheDocument();
+    fireEvent.click(within(await screen.findByRole('region', { name: /save/i })).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(nonGet()).toHaveLength(1));
+    const body = nonGet()[0].body as { config: { nodes: Array<{ type: string; params: Record<string, unknown> }> } };
+    expect(body.config.nodes.find((n) => n.type === 'condition.string')?.params.value).toBe('!weather');
+  });
+
+  it('a graph the steps cannot draw opens as JSON, and a rename keeps every key (GR)', async () => {
+    renderRules('/automations/x1', { rules: [...RULES, BRANCHED_RULE] });
+    expect(await screen.findByText(/This rule has a shape the steps do not draw/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'More for Branched rule' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Name and description' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Name and description' });
+    fireEvent.change(within(sheet).getByRole('textbox', { name: 'Description' }), { target: { value: 'Still JSON' } });
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Done' }));
+    fireEvent.click(within(await screen.findByRole('region', { name: /save/i })).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(nonGet()).toHaveLength(1));
+    expect((nonGet()[0].body as { config: unknown }).config).toEqual(JSON.parse(BRANCHED_RULE.config));
+  });
+
+  it('Test sends today\'s dry run once per press and shows what it would send', async () => {
+    renderRules(WEATHER);
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+    const test = await screen.findByRole('region', { name: 'Test run' });
+    fireEvent.change(within(test).getByRole('textbox', { name: 'Sample message' }), { target: { value: '!wx athens' } });
+    fireEvent.click(within(test).getByRole('button', { name: 'Run test' }));
+    fireEvent.click(within(test).getByRole('button', { name: 'Run test' }));
+    await within(test).findByText('Athens 18 °C, wind 12 km/h NW, clear');
+    expect(nonGet()).toHaveLength(1);
+    expect(nonGet()[0]).toMatchObject({ method: 'POST', path: '/api/automations/test', body: { event: { kind: 'message', text: '!wx athens' } } });
+  });
+
+  it('Run now asks first with today\'s words, lists what the saved rule would send per device, and sends once', async () => {
+    renderRules('/automations/e7');
+    fireEvent.click(await screen.findByRole('button', { name: 'Run now' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Run this automation now?' });
+    expect(sheet).toHaveTextContent('This is NOT a dry run.');
+    expect(sheet).toHaveTextContent('It still respects the rule’s cooldown and rate limits, and does not change its schedule.');
+    expect(within(sheet).getAllByText('Net check-in is open on this channel until noon.')).toHaveLength(2);
+    expect(within(sheet).getByTitle('Station G2')).toBeInTheDocument();
+    expect(within(sheet).getByTitle('Heltec MeshCore')).toBeInTheDocument();
+    expect(sheet).toHaveTextContent('Sends now through 2 devices, once each');
+    fireEvent.keyDown(sheet, { key: 'Enter' });
+    await settle();
+    expect(nonGet()).toEqual([]);
+    const run = within(sheet).getByRole('button', { name: 'Run now' });
+    fireEvent.click(run);
+    fireEvent.click(run);
+    expect(await screen.findByText('Fired: completed (2 actions dispatched).')).toBeInTheDocument();
+    expect(nonGet()).toEqual([{ method: 'POST', path: '/api/automations/e7/run-now', body: undefined }]);
+  });
+
+  it('without automations:write Run now and the switch are off', async () => {
+    renderRules(WEATHER, { permissions: READ_ONLY });
+    await loaded();
+    expect(screen.getByRole('button', { name: 'Run now' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Weather bot on' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Add a step' })).toBeNull();
+  });
+
+  it('a new rule saves with today\'s POST and opens it', async () => {
+    renderRules('/automations/new');
+    const name = await screen.findByRole('textbox', { name: 'Name' });
+    fireEvent.change(name, { target: { value: 'Ping responder' } });
+    fireEvent.click(within(await screen.findByRole('region', { name: /save/i })).getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(nonGet()).toHaveLength(1));
+    expect(nonGet()[0]).toMatchObject({ method: 'POST', path: '/api/automations', body: { name: 'Ping responder', enabled: false, config: { version: 1 } } });
+  });
+
+  it('an unknown rule says so', async () => {
+    renderRules('/automations/nope');
+    expect(await screen.findByText(/not found/i)).toBeInTheDocument();
+  });
+});

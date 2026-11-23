@@ -5,7 +5,14 @@
  * MeshCore and Meshtastic Automations pages; display only.
  */
 
+import apiService from '../../services/api';
+import type { Automation } from '../../components/automations/automationsPageLogic';
+
 export const ENGINE = '/overview/automations';
+export const ENGINE_TEMPLATES = '/overview/automations/templates';
+export const ENGINE_NEW = '/automations/new';
+/** A rule's own page (Task 8.4). */
+export const ruleUrl = (id: string) => `/automations/${encodeURIComponent(id)}`;
 
 /** Engine actions that put something on the air. */
 export const TRANSMITTING = new Set(['action.tapback', 'action.sendMessage', 'action.tracePathSchedule', 'action.requestData', 'action.broadcastWaypoint', 'action.runScript']);
@@ -13,9 +20,19 @@ export const TRANSMITTING = new Set(['action.tapback', 'action.sendMessage', 'ac
 export interface EngineRule {
   id: string;
   name: string;
+  description?: string | null;
   enabled: boolean;
   config: string;
+  createdAt?: number;
+  updatedAt?: number;
 }
+
+/** Every engine rule, one query for every page that lists them (the device doors and Overview › Automations). */
+export const rulesQuery = {
+  queryKey: ['workspace', 'automations', 'rules'] as const,
+  queryFn: () => apiService.get<Automation[]>('/api/automations'),
+  refetchOnWindowFocus: false,
+};
 
 export interface ReadRule {
   /** The source ids its source filters name; null: every device. */

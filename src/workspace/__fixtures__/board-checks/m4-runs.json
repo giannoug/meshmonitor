@@ -2,9 +2,8 @@
   "must": [
     "No limit set",
     "Live trace",
-    "TRIGGERED BY",
-    "RESULT",
-    "TOOK",
+    "Triggered by",
+    "Result",
     "Skipped · IF not met",
     "Failed · script timed out",
     "Rule",

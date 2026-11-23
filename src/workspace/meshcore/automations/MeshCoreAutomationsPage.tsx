@@ -31,7 +31,7 @@ import { useIsPhone } from '../../shell/useIsPhone';
 import { useMeshCoreRuntime } from '../runtime';
 import { McDock } from '../settings/mcShared';
 import ToolHead from '../ToolHead';
-import { ENGINE, readRule, TRANSMITTING, type EngineRule } from '../../automations/engineRules';
+import { ENGINE, ENGINE_NEW, ENGINE_TEMPLATES, readRule, ruleUrl, rulesQuery, TRANSMITTING, type EngineRule } from '../../automations/engineRules';
 import type { Builtin, Values } from './builtins';
 import BuiltinPage from './BuiltinPage';
 import { useBuiltins } from './useBuiltins';
@@ -72,10 +72,8 @@ function Overview({ table, results, setSaved }: ReturnType<typeof useBuiltins>) 
   const [rulesOpen, setRulesOpen] = useState(false);
 
   const { data: rules = [] } = useQuery({
-    queryKey: ['workspace', 'automations', 'rules'],
+    ...rulesQuery,
     enabled: canReadRules && !!authStatus?.authenticated,
-    queryFn: () => apiService.get<EngineRule[]>('/api/automations'),
-    refetchOnWindowFocus: false,
   });
   const mine = rules
     .map((r) => ({ ...r, ...readRule(r.config) }))
@@ -158,7 +156,7 @@ function Overview({ table, results, setSaved }: ReturnType<typeof useBuiltins>) 
           <SendsLine>{transmits ? t('workspace.meshcore.auto.rule_sends') : t('workspace.settings.savebar.sends_nothing')}</SendsLine>
         </div>
         <input type="checkbox" role="switch" className={kit.switch} aria-label={r.name} checked={r.enabled} disabled={!canWriteRules} onChange={() => void toggleRule(r)} />
-        <Link className={styles.iconButton} to={ENGINE} title={r.name}>
+        <Link className={styles.iconButton} to={ruleUrl(r.id)} title={r.name}>
           <UiIcon name="chevronRight" size={18} />
           <span className={styles.srOnly}>{t('workspace.meshcore.auto.open', { name: r.name })}</span>
         </Link>
@@ -182,8 +180,8 @@ function Overview({ table, results, setSaved }: ReturnType<typeof useBuiltins>) 
   const rulesTitle = t('workspace.meshcore.auto.rules_title');
   const engineLinks = (
     <>
-      <Link className={styles.button} to={ENGINE}>{t('workspace.meshcore.auto.templates')}</Link>
-      <Link className={`${styles.button} ${styles.primary}`} to={ENGINE}>
+      <Link className={styles.button} to={ENGINE_TEMPLATES}>{t('workspace.meshcore.auto.templates')}</Link>
+      <Link className={`${styles.button} ${styles.primary}`} to={ENGINE_NEW}>
         <UiIcon name="plus" size={16} />
         {t('workspace.meshcore.auto.new_rule')}
       </Link>

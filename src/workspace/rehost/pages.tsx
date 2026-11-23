@@ -11,7 +11,6 @@ import { ShellContext } from '../../contexts/ShellContext';
 
 // The same chunks Classic loads (main.tsx).
 const DashboardPage = lazy(() => import('../../pages/DashboardPage.tsx'));
-const AutomationsPage = lazy(() => import('../../components/automations/AutomationsPage.tsx'));
 
 const EMBEDDED = { embedded: true };
 
@@ -60,4 +59,3 @@ export function OverviewRehost({ landing = false, notice }: { landing?: boolean;
   );
 }
 
-export const AutomationsRehost = () => <Rehost><AutomationsPage /></Rehost>;

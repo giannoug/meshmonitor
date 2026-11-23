@@ -30,6 +30,8 @@ describe('classicFallback', () => {
     ['/overview/telemetry', '/unified/telemetry'],
     ['/overview/packets', '/unified/packets'],
     ['/overview/automations', '/automations'],
+    ['/overview/automations/variables', '/automations'],
+    ['/overview/automations/templates/bridge', '/automations'],
     ['/overview/users', '/users'],
     ['/overview/audit', '/'],
     ['/overview/dashboard', '/'],

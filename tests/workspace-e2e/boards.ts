@@ -24,6 +24,7 @@ import { regionFeedFixtures } from '../../src/workspace/__fixtures__/meshcoreToo
 import { RNS, reticulumFixtures, type ReticulumFixtureOptions } from '../../src/workspace/__fixtures__/reticulum';
 import { dashboardFixtures, overviewBoard, phoneBoard, savedBoard } from '../../src/workspace/__fixtures__/dashboard';
 import { automationFixtures } from '../../src/workspace/__fixtures__/automations';
+import { rulesFixtures } from '../../src/workspace/__fixtures__/rules';
 
 export interface Board {
   id: string;
@@ -2067,7 +2068,69 @@ export const BOARDS: Board[] = [
   { id: '14-12-responder-trigger', size: 'phone', path: '/source/src-g2/automation/auto-responder', fixtures: AUTOMATIONS(), setup: (page) => openTrigger(page, 0, false) },
   { id: '14-07-geofence-trigger', size: 'desktop', path: '/source/src-g2/automation/geofence-triggers', fixtures: AUTOMATIONS(), setup: (page) => openTrigger(page, 0, false) },
   { id: '14-15-geofence-trigger', size: 'phone', path: '/source/src-g2/automation/geofence-triggers', fixtures: AUTOMATIONS(), setup: (page) => openTrigger(page, 0, false) },
+  // Overview › Automations, Variables, Templates and a rule (Task 8.4).
+  { id: '14-01-overview-automations', size: 'desktop', path: '/overview/automations', fixtures: RULES(), setup: (page) => openRuleMenu(page, false) },
+  { id: '14-09-overview-automations', size: 'phone', path: '/overview/automations', fixtures: RULES(), setup: async (page) => {
+    await openRuleMenu(page, true);
+    await page.getByRole('list', { name: 'Automations' }).getByRole('button', { name: 'Delete…' }).click();
+    await page.getByRole('dialog').waitFor();
+  } },
+  { id: '14-02-variables', size: 'desktop', path: '/overview/automations/variables', fixtures: RULES(), setup: async (page) => {
+    await page.getByText('lowBatteryThreshold').waitFor();
+    await newFlagVariable(page);
+    await page.getByRole('button', { name: 'What are types & scopes?' }).click();
+  } },
+  { id: '14-10-variables', size: 'phone', path: '/overview/automations/variables', fixtures: RULES(), setup: async (page) => {
+    await page.getByText('lowBatteryThreshold').waitFor();
+    await newFlagVariable(page);
+  } },
+  { id: '14-03-templates-wizard', size: 'desktop', path: '/overview/automations/templates/mt-mc-bridge', fixtures: RULES(), setup: (page) => page.getByRole('button', { name: 'Advanced' }).click() },
+  { id: '14-11-template-wizard', size: 'phone', path: '/overview/automations/templates/mt-mc-bridge', fixtures: RULES(), setup: (page) => page.getByRole('button', { name: 'Advanced' }).click() },
+  { id: 'm2-rule', size: 'desktop', path: '/automations/e3', fixtures: RULES(), setup: async (page) => {
+    await page.getByRole('button', { name: 'Test', exact: true }).click();
+    const test = page.getByRole('region', { name: 'Test run' });
+    await test.getByLabel('Sample message').fill('!wx athens');
+    await test.getByRole('button', { name: 'Run test' }).click();
+    await test.getByRole('button', { name: 'Run again' }).waitFor();
+  } },
+  { id: 'n2-rule', size: 'phone', path: '/automations/e3', fixtures: RULES(), setup: (page) => page.getByText('Add a limit').waitFor() },
+  { id: 'n3-when', size: 'phone', path: '/automations/e3', fixtures: RULES(), setup: async (page) => {
+    await page.getByRole('button', { name: /^WHEN:/ }).click();
+    await page.getByRole('button', { name: 'Change step' }).click();
+    await page.getByRole('dialog', { name: 'When…' }).waitFor();
+  } },
+  { id: 'm4-runs', size: 'desktop', path: '/automations/e3/runs', fixtures: RULES(), setup: (page) => page.getByRole('button', { name: 'Nikos T-Echo: “!wx marousi”' }).click() },
+  { id: '14-13-runs-trace', size: 'phone', path: '/automations/e3/runs', fixtures: RULES(), setup: async (page) => {
+    await page.getByRole('button', { name: /Nikos T-Echo: “!wx marousi”/ }).click();
+    await page.getByText('Trigger payload').click();
+  } },
+  { id: '14-04-live-trace', size: 'desktop', path: '/automations/e7/trace', fixtures: RULES(), setup: async (page) => {
+    await page.getByRole('button', { name: 'Run now' }).click();
+    await page.getByRole('dialog', { name: 'Run this automation now?' }).waitFor();
+  } },
 ];
+
+/** The Automation Engine's rules, variables and runs (Task 8.4), a fresh log per board. */
+function RULES(): Board['fixtures'] {
+  return rulesFixtures({ writes: [] });
+}
+
+/** Weather bot's ⋯: the desktop menu, or the phone's actions under the row. */
+async function openRuleMenu(page: Page, phone: boolean): Promise<void> {
+  const list = page.getByRole('list', { name: 'Automations' });
+  await list.getByText('Weather bot').waitFor();
+  await list.getByRole('button', { name: 'Actions for Weather bot' }).click();
+  if (!phone) await page.getByRole('menuitem', { name: /Duplicate/ }).waitFor();
+}
+
+/** The new-variable form as 14-02 / 14-10 draw it. */
+async function newFlagVariable(page: Page): Promise<void> {
+  await page.getByRole('textbox', { name: 'Name', exact: true }).fill('welcomedRecently');
+  await page.getByRole('combobox', { name: 'Type', exact: true }).selectOption('flag');
+  await page.getByRole('combobox', { name: 'Scope', exact: true }).selectOption('node');
+  await page.getByRole('textbox', { name: /^Default value/ }).fill('false');
+  await page.getByRole('textbox', { name: /Flag auto-clear/ }).fill('86400');
+}
 
 /** Station G2's automations (Task 8.3), a fresh log per board. */
 function AUTOMATIONS(): Board['fixtures'] {
