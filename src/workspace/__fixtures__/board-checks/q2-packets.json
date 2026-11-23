@@ -1,6 +1,6 @@
 {
   "must": [
-    "Packets",
+    "Packet Monitor",
     "NodeInfo",
     "Live · newest first",
     "Traceroute",

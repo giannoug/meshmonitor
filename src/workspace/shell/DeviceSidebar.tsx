@@ -18,8 +18,8 @@
  * lists its own tools, channels, rooms and DMs (MeshCoreSidebar, Task 7.1),
  * with a gear to today's Settings.
  */
-import { lazy, Suspense, useState, type ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { UiIcon, type UiIconName } from '../../components/icons';
@@ -34,6 +34,7 @@ import DmList from '../chat/DmList';
 import ConnectionCard from '../devices/ConnectionCard';
 import { visibleMeshCoreViews } from '../../components/MeshCore/meshCoreViewAccess';
 import type { WorkspaceSource } from './useWorkspaceSources';
+import { useDeviceTools } from '../tools/deviceTools';
 import styles from './DeviceSidebar.module.css';
 
 // Its own chunk: today's MeshCore list helpers stay out of the shell.
@@ -133,6 +134,8 @@ export default function DeviceSidebar({ mode, source, onNavigate, onSearch }: De
   ];
   const rows = tools.flatMap((r) => {
     const to = tab(r.key);
+    // A Meshtastic-family device's More tools… is a group (MoreTools, Task 8.5).
+    if (r.key === 'tools' && isMeshtasticFamily(source.type)) return [];
     return to ? [{ ...r, to }] : [];
   });
   const channels = tab('channels');
@@ -150,6 +153,7 @@ export default function DeviceSidebar({ mode, source, onNavigate, onSearch }: De
         </button>
       )}
       {list(rows)}
+      {isMeshtasticFamily(source.type) && <MoreTools source={source} onNavigate={onNavigate} />}
       {channels && (
         <SidebarSection title={t('channels.title')}>
           {isMeshtasticFamily(source.type) ? (
@@ -166,6 +170,43 @@ export default function DeviceSidebar({ mode, source, onNavigate, onSearch }: De
         </SidebarSection>
       )}
     </Frame>
+  );
+}
+
+/**
+ * More tools… (o1, o2, o3; note ds12): Info, Packet monitor and Security under
+ * one disclosure, open while one of them (or Tools) is the page.
+ */
+function MoreTools({ source, onNavigate }: { source: WorkspaceSource; onNavigate?: () => void }) {
+  const { t } = useTranslation();
+  const { pathname } = useLocation();
+  const tools = useDeviceTools(source.id, source.type);
+  const here = /^\/source\/[^/]+\/(info|packetmonitor|security|tools)(\/|$)/.test(pathname);
+  const [open, setOpen] = useState(here);
+  useEffect(() => {
+    if (here) setOpen(true);
+  }, [here]);
+  if (tools.length === 0) return null;
+  const label = t('workspace.shell.more_tools');
+  return (
+    <div>
+      <button type="button" className={`${styles.row} ${styles.groupToggle}`} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        <UiIcon name="more" size={16} />
+        <span className={styles.label}>{label}</span>
+        <UiIcon name={open ? 'chevronUp' : 'chevronDown'} size={16} />
+      </button>
+      {open && (
+        <ul className={`${styles.list} ${styles.groupRows}`} aria-label={label}>
+          {tools.map((tool) => (
+            <li key={tool.key}>
+              <NavLink to={tool.to} className={({ isActive }) => `${styles.row} ${isActive ? styles.on : ''}`} onClick={onNavigate}>
+                <span className={styles.label}>{tool.label}</span>
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

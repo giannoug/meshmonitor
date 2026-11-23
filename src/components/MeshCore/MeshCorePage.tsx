@@ -81,11 +81,13 @@ interface MeshCorePageProps {
   dmContact?: string | null;
   /** Changes on every visit to that URL (the location key), so a repeat click opens the contact again. */
   dmRequest?: string;
+  /** Pre-fills that DM's draft (the Workspace Security page's "Send a DM", #6365), as openDmWithDraft does. */
+  dmDraft?: string | null;
   /** Centres the Nodes map on this node and opens its popup (the Workspace's `map?node=<key>`, #6365): Show on Map's hand-off. */
   mapNode?: string | null;
 }
 
-export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, enabled, onStatusChange, view: viewProp, onViewChange, dmContact, dmRequest, mapNode }) => {
+export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, enabled, onStatusChange, view: viewProp, onViewChange, dmContact, dmRequest, dmDraft, mapNode }) => {
   const { t } = useTranslation();
   const { authStatus } = useAuth();
   const isAdmin = authStatus?.user?.isAdmin ?? false;
@@ -227,7 +229,8 @@ export const MeshCorePage: React.FC<MeshCorePageProps> = ({ baseUrl, sourceId, e
     if (!dmContact) return;
     setPendingDmContact(null);
     setDmHandOff(dmContact);
-  }, [dmContact, dmRequest]);
+    if (dmDraft) setPendingDmDraft(dmDraft);
+  }, [dmContact, dmRequest]); // eslint-disable-line react-hooks/exhaustive-deps -- #6365 the draft rides with this visit
   useEffect(() => {
     if (mapNode) setPendingMapNode(mapNode);
   }, [mapNode, dmRequest]);

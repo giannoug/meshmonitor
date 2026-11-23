@@ -40,6 +40,88 @@ export function relayModalNodes(nodes: DeviceInfo[], directNeighborStats: Direct
   });
 }
 
+/**
+ * Today's Last Hop guess (PacketMonitorPanel, moved for the Workspace device
+ * monitor, #6365): the relay byte matched to a relay-capable node, narrowed to
+ * plausible direct neighbours and then the closest average RSSI; with no byte,
+ * the closest direct neighbour; else the byte in hex.
+ */
+export function mostLikelyRelayName(
+  relayNode: number | undefined | null,
+  packetRssi: number | undefined | null,
+  nodes: DeviceInfo[],
+  directNeighborStats: DirectNeighborStats,
+): string | null {
+  // CLIENT_MUTE role doesn't relay
+  const CLIENT_MUTE = 4;
+  const relayCapableNodes = nodes.filter(node => {
+    const role = typeof node.user?.role === 'string' ? parseInt(node.user.role, 10) : node.user?.role;
+    return role !== CLIENT_MUTE;
+  });
+
+  // Helper to find the node with closest RSSI to the packet
+  const findClosestByRssi = (candidates: typeof nodes): typeof nodes[0] | null => {
+    if (candidates.length === 0) return null;
+    if (candidates.length === 1) return candidates[0];
+    if (packetRssi === undefined || packetRssi === null) return candidates[0];
+
+    let closest = candidates[0];
+    let closestDiff = Infinity;
+
+    for (const node of candidates) {
+      const stats = directNeighborStats[node.nodeNum];
+      if (stats?.avgRssi !== undefined) {
+        const diff = Math.abs(stats.avgRssi - packetRssi);
+        if (diff < closestDiff) {
+          closestDiff = diff;
+          closest = node;
+        }
+      }
+    }
+    return closest;
+  };
+
+  // If relay_node is 0, undefined, or null - estimate from all direct neighbors
+  if (relayNode === undefined || relayNode === null || relayNode === 0) {
+    // Get all relay-capable nodes we've heard directly
+    const directNeighbors = relayCapableNodes.filter(node => directNeighborStats[node.nodeNum] !== undefined);
+    const closest = findClosestByRssi(directNeighbors);
+    if (closest) {
+      return closest.user?.shortName || `!${closest.nodeNum.toString(16).padStart(8, '0')}`;
+    }
+    return null;
+  }
+
+  // Try exact match first
+  const exactMatch = relayCapableNodes.find(node => node.nodeNum === relayNode);
+  if (exactMatch) {
+    return exactMatch.user?.shortName || `!${relayNode.toString(16).padStart(8, '0')}`;
+  }
+
+  // Fall back to matching just the lowest byte
+  // A relay MUST be a direct neighbor, so filter to only plausible candidates
+  const byteMatches = relayCapableNodes.filter(node => (node.nodeNum & 0xFF) === relayNode);
+
+  // Filter to only direct neighbors or nodes within 1 hop - a relay must be directly connected
+  const plausibleRelays = byteMatches.filter(node =>
+    directNeighborStats[node.nodeNum] !== undefined || (node.hopsAway !== undefined && node.hopsAway <= 1)
+  );
+
+  if (plausibleRelays.length === 1) {
+    return plausibleRelays[0].user?.shortName || `!${plausibleRelays[0].nodeNum.toString(16).padStart(8, '0')}`;
+  }
+  if (plausibleRelays.length > 1) {
+    // Multiple plausible matches - pick the one with closest RSSI
+    const closest = findClosestByRssi(plausibleRelays);
+    if (closest) {
+      return closest.user?.shortName || `!${closest.nodeNum.toString(16).padStart(8, '0')}`;
+    }
+  }
+
+  // No plausible matches found - return hex byte as fallback
+  return `0x${relayNode.toString(16).padStart(2, '0').toUpperCase()}`;
+}
+
 // Full portnum filter list, derived from the shared PORTNUM_NAMES map so the
 // dropdown covers every known type (incl. NODE_STATUS and MESH_BEACON) rather
 // than a hardcoded subset (#4958). Sorted by portnum; UNKNOWN(0) and MAX(511)

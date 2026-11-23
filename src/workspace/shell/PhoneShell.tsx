@@ -23,7 +23,6 @@ import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import type { SidebarMode } from './DeviceSidebar';
 import { isMeshtasticFamily, overviewStatus, statusLabel } from './deviceTabs';
-import { isMqttOnlySourceType } from '../../utils/nodeTransport';
 import ConnectionCard from '../devices/ConnectionCard';
 import DeviceSwitcherSheet from './DeviceSwitcherSheet';
 import { ShellDevicesContext, useShellDevices } from './shellDevices';
@@ -81,7 +80,9 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
       // Info, the packet monitor and Automations have Back (8-29, 8-30, 8-31, Task 7.5).
       !!matchPath('/source/:id/info', pathname) ||
       !!matchPath('/source/:id/packets', pathname) ||
-      !!matchPath('/source/:id/automations/*', pathname));
+      !!matchPath('/source/:id/automations/*', pathname) ||
+      // Security and Quiet nodes have Back (16-02, 16-06, Task 8.5).
+      !!matchPath('/source/:id/security/*', pathname));
   // Every Reticulum view draws its own: Home its device header, the rest their bar with Back (9-09 … 9-16, Task 7.6).
   const reticulumOwn = source?.type === 'reticulum';
   // A region feed draws its own device header and tiles (8-23, Task 7.5).
@@ -101,7 +102,11 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
       !!matchPath('/source/:id/node/*', pathname) ||
       // Automations and each built-in have Back (n1, n4, 14-12 … 14-16, Task 8.3).
       !!matchPath('/source/:id/automation/*', pathname) ||
-      (isMqttOnlySourceType(source.type) && !!matchPath('/source/:id/packetmonitor', pathname)) ||
+      !!matchPath('/source/:id/packetmonitor', pathname) ||
+      // Tools, Info and Security have Back (q1, q2, 16-01, 16-02, 16-06, Task 8.5).
+      !!matchPath('/source/:id/tools', pathname) ||
+      !!matchPath('/source/:id/info/*', pathname) ||
+      !!matchPath('/source/:id/security/*', pathname) ||
       // Device settings (b-set-p1-list, 12-22): the list and each page have Back, on a remote target too (Task 5.9).
       !!matchPath('/source/:id/settings/*', pathname)));
   // The all-devices map is full screen with its own Back, as the device map (5-08); Reports (6-08 … 6-10), Messages (7-06, 7-09), Users (13-18, q4) and the Audit log (16-03) draw their own header.

@@ -1,12 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from './icons';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../services/api';
 import { TabType } from '../types/ui';
 import { getHardwareModelName } from '../utils/hardwareModel';
-import { ApiError } from '../services/api';
-import { isSourceNotConnectedError } from '../utils/sourceNotConnected';
 import { SourceNotConnectedNotice } from './common/SourceNotConnectedNotice';
 import { securityCapabilities, type SecurityDeviceType } from '../utils/securityCapabilities';
 import { securityNotificationText } from '../utils/securityNotificationText';
@@ -23,17 +20,8 @@ import { ExcessivePacketsSection } from './security/ExcessivePacketsSection';
 import { TimeOffsetSection } from './security/TimeOffsetSection';
 import { useSecurityFormat } from './security/useSecurityFormat';
 import securityStyles from './security/SecurityIssues.module.css';
-import type {
-  DeadNode,
-  DeadNodesResponse,
-  MeshcoreFindings,
-  MeshcoreFindingsResponse,
-  NotifyKind,
-  NotifyState,
-  ScannerStatus,
-  SecurityIssueView,
-  SecurityIssuesResponse,
-} from './security/securityTypes';
+import type { NotifyKind, NotifyState, SecurityIssueView } from './security/securityTypes';
+import { notifyStateOf, useSecurityData } from './security/useSecurityData';
 import { useResolvedSourceId } from '../hooks/useResolvedSourceId';
 import '../styles/SecurityTab.css';
 
@@ -77,173 +65,16 @@ export const SecurityTab: React.FC<SecurityTabProps> = ({ onOpenNode, onOpenDmWi
   const caps = securityCapabilities(sourceType, deviceType);
   const { formatDate, formatRelativeTime } = useSecurityFormat();
   const isMeshCore = !!sourceType && !caps.lowEntropy;
-  const [issues, setIssues] = useState<SecurityIssuesResponse | null>(null);
-  const [scannerStatus, setScannerStatus] = useState<ScannerStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  // No manager for this source (SOURCE_NOT_CONNECTED, #4173 N5): an empty
-  // state, not an error. The poll keeps running, so it clears on connect.
-  const [notConnected, setNotConnected] = useState(false);
-  const [scanning, setScanning] = useState(false);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
-  const [mismatchEvents, setMismatchEvents] = useState<any[]>([]);
-  const [deadNodes, setDeadNodes] = useState<DeadNode[]>([]);
-  const [deadThresholdDays, setDeadThresholdDays] = useState(isMeshCore ? 14 : 7);
-  const [deadNodesForbidden, setDeadNodesForbidden] = useState(false);
-  const [findings, setFindings] = useState<MeshcoreFindings | null>(null);
-  const [findingsForbidden, setFindingsForbidden] = useState(false);
-  const [acknowledging, setAcknowledging] = useState(false);
-  const [issuesForbidden, setIssuesForbidden] = useState(false);
+  const {
+    issues, scannerStatus, loading, error, setError, notConnected, scanning, mismatchEvents, deadNodes, deadThresholdDays,
+    deadNodesForbidden, findings, findingsForbidden, acknowledging, issuesForbidden, fetchSecurityData, triggerScan,
+    handleExport, acknowledgeOwnKey,
+  } = useSecurityData(sourceId, isMeshCore, caps);
 
   const canWrite = hasPermission('security', 'write');
   const canWriteNodes = hasPermission('nodes', 'write', { sourceId });
   const canEditSettings = hasPermission('settings', 'write');
-
-  // A 403 on a section's route means no nodes:read on this source. Remember
-  // it per section and stop asking: the 30 s poll must not retry-loop.
-  const deadNodesForbiddenRef = useRef(false);
-  const findingsForbiddenRef = useRef(false);
-  const issuesForbiddenRef = useRef(false);
-  // Bumped on every source switch; a response from an older generation is
-  // dropped so a slow request can't repaint the previous source's data.
-  const fetchGenRef = useRef(0);
-
-  const fetchDeadNodes = async (srcParam: string, gen: number) => {
-    if (deadNodesForbiddenRef.current) return;
-    try {
-      const data = await api.get<DeadNodesResponse>(`/api/security/dead-nodes${srcParam}`);
-      if (gen !== fetchGenRef.current) return;
-      setDeadNodes(data.nodes || []);
-      if (typeof data.thresholdDays === 'number') setDeadThresholdDays(data.thresholdDays);
-    } catch (err) {
-      if (gen !== fetchGenRef.current) return;
-      if (err instanceof ApiError && err.status === 403) {
-        deadNodesForbiddenRef.current = true;
-        setDeadNodesForbidden(true);
-        setDeadNodes([]);
-      } else {
-        throw err;
-      }
-    }
-  };
-
-  const fetchFindings = async (srcParam: string, gen: number) => {
-    if (findingsForbiddenRef.current) return;
-    try {
-      const res = await api.get<MeshcoreFindingsResponse>(`/api/security/meshcore/findings${srcParam}`);
-      if (gen !== fetchGenRef.current) return;
-      setFindings(res.data ?? null);
-    } catch (err) {
-      if (gen !== fetchGenRef.current) return;
-      if (err instanceof ApiError && err.status === 403) {
-        findingsForbiddenRef.current = true;
-        setFindingsForbidden(true);
-        setFindings(null);
-      } else {
-        throw err;
-      }
-    }
-  };
-
-  /** Issues + scanner status. On MeshCore a 403 (no nodes:read) is remembered and not retried. */
-  const fetchIssues = async (srcParam: string, gen: number) => {
-    if (issuesForbiddenRef.current) return;
-    try {
-      const [issuesData, statusData] = await Promise.all([
-        api.get<SecurityIssuesResponse>(`/api/security/issues${srcParam}`),
-        api.get<ScannerStatus>(`/api/security/scanner/status${srcParam}`),
-      ]);
-      if (gen !== fetchGenRef.current) return;
-      setIssues({
-        ...issuesData,
-        nodes: (issuesData.nodes ?? []).map(n => ({ ...n, nodeKey: n.nodeKey ?? `mt:${n.nodeNum}` })),
-      });
-      setScannerStatus(statusData);
-    } catch (err) {
-      if (gen !== fetchGenRef.current) return;
-      if (isMeshCore && err instanceof ApiError && err.status === 403) {
-        issuesForbiddenRef.current = true;
-        setIssuesForbidden(true);
-        setIssues(null);
-      } else {
-        throw err;
-      }
-    }
-  };
-
-  const fetchSecurityData = async () => {
-    // Defer until a sourceId resolves — the security endpoints require one.
-    if (!sourceId) return;
-    const gen = fetchGenRef.current;
-    try {
-      const srcParam = `?sourceId=${encodeURIComponent(sourceId)}`;
-      if (isMeshCore) {
-        await Promise.all([
-          caps.deadNodes ? fetchDeadNodes(srcParam, gen) : Promise.resolve(),
-          fetchFindings(srcParam, gen),
-          fetchIssues(srcParam, gen),
-        ]);
-      } else {
-        const [mismatchData] = await Promise.all([
-          api.get<{ events: any[] }>(`/api/security/key-mismatches${srcParam}`),
-          fetchIssues(srcParam, gen),
-          fetchDeadNodes(srcParam, gen),
-        ]);
-        if (gen !== fetchGenRef.current) return;
-        setMismatchEvents(mismatchData.events || []);
-      }
-      setError(null);
-      setNotConnected(false);
-    } catch (err) {
-      if (isSourceNotConnectedError(err)) {
-        setNotConnected(true);
-        setError(null);
-      } else {
-        setError(err instanceof Error ? err.message : t('security.failed_load'));
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // New source: invalidate in-flight responses and clear the previous
-    // source's lists so they never flash under the new one (#6283 review).
-    fetchGenRef.current += 1;
-    setDeadNodes([]);
-    setFindings(null);
-    setIssues(null);
-    setScannerStatus(null);
-    deadNodesForbiddenRef.current = false;
-    findingsForbiddenRef.current = false;
-    issuesForbiddenRef.current = false;
-    setDeadNodesForbidden(false);
-    setFindingsForbidden(false);
-    setIssuesForbidden(false);
-    setNotConnected(false);
-    void fetchSecurityData();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchSecurityData, 30000);
-    return () => clearInterval(interval);
-  }, [sourceId, isMeshCore]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const triggerScan = useCallback(async () => {
-    if (!sourceId) {
-      setError(t('security.failed_scan'));
-      return;
-    }
-    setScanning(true);
-    try {
-      await api.post('/api/security/scanner/scan', { sourceId });
-
-      // Wait a moment then refresh data
-      setTimeout(fetchSecurityData, 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('security.failed_scan'));
-    } finally {
-      setScanning(false);
-    }
-  }, [sourceId, t]);
 
   const groupDuplicateKeyNodes = (nodes: SecurityNode[]): DuplicateKeyGroup[] => {
     const duplicateNodes = nodes.filter(node => node.duplicateKeyDetected && node.publicKey);
@@ -269,7 +100,7 @@ export const SecurityTab: React.FC<SecurityTabProps> = ({ onOpenNode, onOpenDmWi
       return;
     }
     onOpenNode?.(nodeKey);
-  }, [onOpenNode, hasPermission, t]);
+  }, [onOpenNode, hasPermission, t, setError]);
 
   const handleOpenFindingNode = useCallback((nodeKey: string) => {
     if (!hasPermission('messages', 'read')) {
@@ -277,7 +108,7 @@ export const SecurityTab: React.FC<SecurityTabProps> = ({ onOpenNode, onOpenDmWi
       return;
     }
     onOpenNode?.(nodeKey);
-  }, [onOpenNode, hasPermission, t]);
+  }, [onOpenNode, hasPermission, t, setError]);
 
   /**
    * Open the node's DM with a pre-filled draft. The user reads it and presses
@@ -290,7 +121,7 @@ export const SecurityTab: React.FC<SecurityTabProps> = ({ onOpenNode, onOpenDmWi
       return;
     }
     onOpenDmWithDraft?.(node.nodeKey, message);
-  }, [onOpenDmWithDraft, hasPermission, sourceId, t]);
+  }, [onOpenDmWithDraft, hasPermission, sourceId, t, setError]);
 
   const handleSendNotification = useCallback((node: SecurityNode, duplicateCount?: number) => {
     if (node.keyIsLowEntropy) {
@@ -317,30 +148,11 @@ export const SecurityTab: React.FC<SecurityTabProps> = ({ onOpenNode, onOpenDmWi
    * this source. MeshCore also needs a chat contact (Repeaters and Room Servers
    * do not read DMs) that is in the radio's table, and warns when the DM would flood.
    */
-  const notifyStateFor = useCallback((node: SecurityNode): NotifyState => {
-    if (!caps.notifyDm || !onOpenDmWithDraft || !hasPermission('messages', 'write', { sourceId })) {
-      return { visible: false };
-    }
-    if (node.protocol !== 'meshcore') return { visible: true };
-    if (node.advType !== 1) return { visible: false };
-    if (node.onDevice === false) {
-      return {
-        visible: true,
-        disabled: true,
-        hint: t('security.notify_not_on_device', 'This contact is not on the radio, so it cannot receive a DM.'),
-      };
-    }
-    return { visible: true, floodWarning: node.hasKnownPath === false };
-  }, [caps.notifyDm, onOpenDmWithDraft, hasPermission, sourceId, t]);
-
-  const handleExport = useCallback(async (format: 'csv' | 'json') => {
-    try {
-      const exportUrl = `/api/security/export?format=${format}${sourceId ? `&sourceId=${encodeURIComponent(sourceId)}` : ''}`;
-      await api.download(exportUrl, { filename: `security-scan-${Date.now()}.${format}` });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('security.failed_export'));
-    }
-  }, [t, sourceId]);
+  const notifyStateFor = useCallback(
+    (node: SecurityNode): NotifyState =>
+      notifyStateOf(node, caps.notifyDm && !!onOpenDmWithDraft && hasPermission('messages', 'write', { sourceId }), t),
+    [caps.notifyDm, onOpenDmWithDraft, hasPermission, sourceId, t],
+  );
 
   const getMismatchStatusLabel = (action: string): string => {
     switch (action) {
@@ -351,19 +163,6 @@ export const SecurityTab: React.FC<SecurityTabProps> = ({ onOpenNode, onOpenDmWi
       default: return action;
     }
   };
-
-  const acknowledgeOwnKey = useCallback(async () => {
-    if (!sourceId) return;
-    setAcknowledging(true);
-    try {
-      await api.post('/api/security/own-key/acknowledge', { sourceId });
-      await fetchSecurityData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('security.failed_load'));
-    } finally {
-      setAcknowledging(false);
-    }
-  }, [sourceId, t]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (

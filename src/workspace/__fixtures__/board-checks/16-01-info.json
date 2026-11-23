@@ -8,18 +8,17 @@
     "MQTT",
     "Server",
     "Address",
-    "Connected for",
+    "Connection Status",
     "Firmware",
-    "Virtual node",
-    "Region · preset",
+    "Virtual Node Server",
+    "Region · Modem Preset",
     "Channel util.",
     "Airtime TX",
-    "Hop limit",
+    "Hop Limit",
     "Hardware",
     "Battery",
     "Uptime",
-    "Position",
-    "admins"
+    "Position"
   ],
   "absent": [],
   "source": "checks/s16.json"

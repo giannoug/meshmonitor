@@ -1,6 +1,6 @@
 {
   "must": [
-    "Security digest",
+    "Security Digest",
     "Enable daily digest",
     "Apprise URL",
     "Send at",
@@ -8,7 +8,7 @@
     "Summary",
     "Detailed",
     "Format",
-    "Plain text",
+    "Plain Text",
     "Markdown",
     "Suppress when no issues",
     "Save",

@@ -12,7 +12,7 @@ import { useShellEmbedded } from '../../contexts/ShellContext';
 export const mounts: Record<string, number> = {};
 
 export function pageStub(name: string) {
-  return function PageStub(props: { view?: string; screen?: { kind: string }; onViewChange?: (v: string) => void; dmContact?: string | null; dmRequest?: string; mapNode?: string | null }) {
+  return function PageStub(props: { view?: string; screen?: { kind: string }; onViewChange?: (v: string) => void; dmContact?: string | null; dmRequest?: string; dmDraft?: string | null; mapNode?: string | null }) {
     useEffect(() => {
       mounts[name] = (mounts[name] ?? 0) + 1;
     }, []);
@@ -26,6 +26,7 @@ export function pageStub(name: string) {
         {(props.view ?? props.screen?.kind) && <span data-testid="view">{props.view ?? props.screen?.kind}</span>}
         {props.dmContact && <span data-testid="dm-contact">{props.dmContact}</span>}
         {props.dmRequest && <span data-testid="dm-request">{props.dmRequest}</span>}
+        {props.dmDraft && <span data-testid="dm-draft">{props.dmDraft}</span>}
         {props.mapNode && <span data-testid="map-node">{props.mapNode}</span>}
         {props.onViewChange && (
           <button type="button" onClick={() => props.onViewChange?.('channels')}>

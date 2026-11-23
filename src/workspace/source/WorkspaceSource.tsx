@@ -44,7 +44,7 @@
  * - An unknown source shows the Overview with a "not found" note.
  */
 import { lazy, useCallback } from 'react';
-import { Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import RouteLoading from '../../components/RouteLoading/RouteLoading';
 import { useAuth } from '../../contexts/AuthContext';
@@ -74,6 +74,8 @@ import { useIsPhone } from '../shell/useIsPhone';
 import type { MeshCoreScreenKind } from '../meshcore/MeshCoreScreen';
 import { isMqttOnlySourceType } from '../../utils/nodeTransport';
 import { BUILTIN_IDS } from '../automations/ids';
+import { isMeshtasticFamily } from '../shell/deviceTabs';
+import { INFO_GROUPS, type InfoGroup } from '../tools/deviceTools';
 import styles from './WorkspaceSource.module.css';
 
 // The same chunks Classic loads (main.tsx); Reticulum's page is the Workspace's own (Task 7.6).
@@ -112,9 +114,19 @@ const DASHBOARD_PATH = /^dashboard\/?$/;
 /** `automation[/builtins|/<built-in>]`: the Workspace device Automations (Task 8.3); today's `automation#<built-in>` opens that built-in's page. */
 const DeviceAutomations = lazy(() => import('../automations/DeviceAutomations.tsx'));
 const AUTOMATION_PATH = /^automation(?:\/([^/]+))?\/?$/;
-/** `packetmonitor` on an MQTT source: the Workspace receptions page (Task 4.7); other sources keep today's until Task 8.5. */
+/** `packetmonitor` on an MQTT source: the Workspace receptions page (Task 4.7); a device with its own radio: the device monitor (Task 8.5). */
 const MqttReceptions = lazy(() => import('../tools/MqttReceptions.tsx'));
+const DevicePackets = lazy(() => import('../tools/DevicePackets.tsx'));
 const PACKETS_PATH = /^packetmonitor\/?$/;
+/** Tools (q1), Info (`info[/<group>]`) and Security (`security[/quiet]`) (Task 8.5). */
+const ToolsPage = lazy(() => import('../tools/ToolsPage.tsx'));
+const InfoPage = lazy(() => import('../tools/InfoPage.tsx'));
+const DeviceSecurity = lazy(() => import('../tools/DeviceSecurity.tsx'));
+const TOOLS_PATH = /^tools\/?$/;
+const INFO_PATH = /^info(?:\/([^/]+))?\/?$/;
+const SECURITY_PATH = /^security(?:\/(quiet))?\/?$/;
+/** Today's `#info`, `#security` and `#packetmonitor` anchors on the bare source URL. */
+const TOOL_ANCHOR = /^#(info|security|packetmonitor)$/;
 /** `settings[/<category>[/<sub>]]`: the Workspace device settings (Task 5.2). */
 const SettingsFrame = lazy(() => import('../settings/SettingsFrame.tsx'));
 const SETTINGS_PATH = /^settings(\/|$)/;
@@ -138,6 +150,11 @@ const ReticulumScreen = lazy(() => import('../reticulum/ReticulumScreen.tsx'));
 /** A region feed (Task 7.5): its Overview at the source URL, and its tabs. */
 const RegionFeedPage = lazy(() => import('../meshcore/RegionFeedPage.tsx'));
 const FEED_PATH = /^(nodes|channels|packets|notifications)?\/?$/;
+/** A draft handed over in the location state, if any (Security's "Send a DM"). */
+const draftOf = (state: unknown): string | null => {
+  const draft = (state as { draft?: unknown } | null)?.draft;
+  return typeof draft === 'string' ? draft : null;
+};
 /** The URL of a MeshCore view: the re-hosted Nodes view (list and map) lives at `map`. */
 const mcViewPath = (view: MeshCoreView) => (view === 'nodes' ? 'map' : view);
 
@@ -180,6 +197,7 @@ export default function WorkspaceSource() {
     const room = splat.match(MC_ROOM_PATH);
     const node = splat.match(NODE_PATH);
     const automations = splat.match(MC_AUTOMATIONS_PATH);
+    const mcSecurity = splat.match(SECURITY_PATH);
     // An unknown node tab shows the Overview, and the URL follows.
     const nodeTabKnown = !node?.[2] || MC_NODE_TABS.includes(node[2]);
     const screen: MeshCoreScreenKind | null =
@@ -193,6 +211,8 @@ export default function WorkspaceSource() {
             ? { kind: 'packets' }
           : automations && visible.includes('automations')
             ? { kind: 'automations', builtin: automations[1] ?? null }
+          : mcSecurity && visible.includes('security')
+            ? { kind: 'security', quiet: !!mcSecurity[1] }
           : MC_DASHBOARD_PATH.test(splat) && visible.includes('telemetry')
             ? { kind: 'dashboard' }
           : MC_NODES_PATH.test(splat)
@@ -240,6 +260,8 @@ export default function WorkspaceSource() {
               onViewChange,
               dmContact: view === 'dms' && dm ? dm[1] : null,
               dmRequest: location.key,
+              // Security's "Send a DM" hands its notice over in the location state (Task 8.5).
+              dmDraft: view === 'dms' && dm ? draftOf(location.state) : null,
               mapNode: splat.startsWith('map') ? query.get('node') : null,
             },
           })}
@@ -283,6 +305,48 @@ export default function WorkspaceSource() {
       );
     }
     return <Rehost>{renderSourceApp(PAGES, sourceId, source, splat)}</Rehost>;
+  }
+
+  // Today's `#info` / `#security` / `#packetmonitor` anchors open their Workspace page (Task 8.5).
+  const anchor = source && isMeshtasticFamily(source.type) && splat === '' && location.hash.match(TOOL_ANCHOR);
+  if (anchor) return <Navigate replace to={`${base}/${anchor[1]}`} />;
+
+  // Tools, Info, Security and a device's own packet monitor (Task 8.5), under today's tab gates (App.tsx
+  // tabPermissions); without the grant the URL falls through to App, which sends the viewer on as today.
+  if (source && isMeshtasticFamily(source.type)) {
+    if (TOOLS_PATH.test(splat)) {
+      return (
+        <Rehost>
+          <ToolsPage key={sourceId} sourceId={sourceId} deviceName={source.name} />
+        </Rehost>
+      );
+    }
+    const info = splat.match(INFO_PATH);
+    if (info && hasPermission('info', 'read', { sourceId })) {
+      const group = info[1] && (INFO_GROUPS as readonly string[]).includes(info[1]) ? (info[1] as InfoGroup) : null;
+      return (
+        <Redirect to={info[1] && !group ? `${base}/info` : null}>
+          <Rehost>
+            <InfoPage key={sourceId} sourceId={sourceId} source={source} group={group} />
+          </Rehost>
+        </Redirect>
+      );
+    }
+    const security = splat.match(SECURITY_PATH);
+    if (security && hasPermission('security', 'read', { sourceId })) {
+      return (
+        <Rehost>
+          <DeviceSecurity key={sourceId} sourceId={sourceId} source={source} quiet={!!security[1]} />
+        </Rehost>
+      );
+    }
+    if (!isMqttOnlySourceType(source.type) && PACKETS_PATH.test(splat) && hasPermission('packetmonitor', 'read', { sourceId })) {
+      return (
+        <Rehost>
+          <DevicePackets key={sourceId} sourceId={sourceId} source={source} />
+        </Rehost>
+      );
+    }
   }
 
   // Device settings, with the remote target (`?node=`, Task 5.9). A Classic settings URL is fixed up

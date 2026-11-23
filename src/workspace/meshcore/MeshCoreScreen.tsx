@@ -48,6 +48,8 @@ const MeshCorePacketsPage = lazy(() => import('./MeshCorePacketsPage.tsx'));
 const MeshCoreAutomationsPage = lazy(() => import('./automations/MeshCoreAutomationsPage.tsx'));
 /** The Dashboard (today's `telemetry` view, Task 8.1). */
 const MeshCoreDashboard = lazy(() => import('./MeshCoreDashboard.tsx'));
+/** Security (Task 8.5). */
+const SecurityPage = lazy(() => import('../tools/SecurityPage.tsx'));
 
 export type MeshCoreScreenKind =
   | { kind: 'home' }
@@ -62,7 +64,9 @@ export type MeshCoreScreenKind =
   | { kind: 'packets' }
   | { kind: 'automations'; builtin: string | null }
   /** The Dashboard (Task 8.1). */
-  | { kind: 'dashboard' };
+  | { kind: 'dashboard' }
+  /** Security and Quiet nodes (Task 8.5): the Workspace Security page, MeshCore's sections. */
+  | { kind: 'security'; quiet: boolean };
 
 export interface MeshCoreScreenProps {
   sourceId: string;
@@ -124,6 +128,8 @@ function Runtime({ sourceId, deviceName, screen }: { sourceId: string; deviceNam
         <MeshCoreAutomationsPage builtin={screen.builtin} />
       ) : screen.kind === 'dashboard' ? (
         <MeshCoreDashboard />
+      ) : screen.kind === 'security' ? (
+        <SecurityPage sourceId={sourceId} deviceName={deviceName} sourceType="meshcore" deviceType={meshCore.status?.deviceType} quiet={screen.quiet} />
       ) : screen.kind === 'nodes' ? (
         <MeshCoreNodesTable />
       ) : screen.kind === 'node' ? (

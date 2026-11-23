@@ -1,6 +1,6 @@
 {
   "must": [
-    "Delete 2 nodes",
+    "Delete 2 node(s)",
     "This cannot be undone",
     "This removes:",
     "node list",

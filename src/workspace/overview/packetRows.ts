@@ -28,3 +28,34 @@ const TYPE_FAMILY: Record<number, string> = {
 /** A MeshCore row's `portnum` is its payload type, not a PortNum: it stays muted, as does an encrypted packet. */
 export const packetTypeFamily = (p: PacketLog, meshcore = false): string | undefined =>
   p.encrypted || meshcore ? undefined : TYPE_FAMILY[p.portnum];
+
+/** Today's monitor columns (PacketMonitorPanel), in its order: the device monitor's column picker shows any of them (Task 8.5). */
+export const PACKET_COLUMNS = [
+  { id: 'dir', label: 'packet_monitor.column.dir' },
+  { id: 'via', label: 'packet_monitor.column.via' },
+  { id: 'date', label: 'packet_monitor.column.date' },
+  { id: 'time', label: 'packet_monitor.column.time' },
+  { id: 'from', label: 'packet_monitor.column.from' },
+  { id: 'to', label: 'packet_monitor.column.to' },
+  { id: 'type', label: 'packet_monitor.column.type' },
+  { id: 'slot', label: 'packet_monitor.column.slot' },
+  { id: 'snr', label: 'packet_monitor.column.snr' },
+  { id: 'rssi', label: 'packet_monitor.column.rssi' },
+  { id: 'hops', label: 'packet_monitor.column.hops' },
+  { id: 'last_hop', label: 'packet_monitor.column.last_hop' },
+  { id: 'size', label: 'packet_monitor.column.size' },
+  { id: 'content', label: 'packet_monitor.column.content' },
+] as const;
+
+export type PacketColumnId = (typeof PACKET_COLUMNS)[number]['id'];
+
+/** The packet with its metadata JSON expanded, as today's details modal lists it. */
+export function fullJson(p: PacketLog): string {
+  let metadata: unknown = p.metadata;
+  try {
+    if (p.metadata) metadata = JSON.parse(p.metadata);
+  } catch {
+    // Not JSON: keep the text.
+  }
+  return JSON.stringify({ ...p, metadata }, null, 2);
+}

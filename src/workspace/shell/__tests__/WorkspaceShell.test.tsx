@@ -149,10 +149,11 @@ describe('DeviceSidebar', () => {
       ['Dashboard', '/source/src-g2/dashboard'],
       ['Automation', '/source/src-g2/automation'],
       ['Device Configuration', '/source/src-g2/settings'],
-      ['More tools…', '/source/src-g2/info'],
+      // More tools… is a closed group here (Task 8.5): Info, Packet Monitor and Security inside.
       // Channels lists the device's channels from the page's poll (Task 2.3; none here).
       ['Message a node', '/source/src-g2/dms'],
     ]);
+    expect(within(side).getByRole('button', { name: 'More tools…' })).toHaveAttribute('aria-expanded', 'false');
     // Task 2.6: message search opens from the top of the device sidebar.
     expect(within(side).getByRole('button', { name: /^Search Messages/ })).toBeInTheDocument();
   });

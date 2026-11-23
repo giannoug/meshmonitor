@@ -13,15 +13,17 @@ import styles from './NodesTable.module.css';
 export interface ColumnPickerProps {
   columns: string[];
   onChange(next: string[]): void;
+  /** The optional columns and their label keys; default the Nodes table's (the device packet monitor passes its own, Task 8.5). */
+  options?: Array<{ id: string; label: string }>;
 }
 
-export default function ColumnPicker({ columns, onChange }: ColumnPickerProps) {
+export default function ColumnPicker({ columns, onChange, options = NODE_COLUMNS }: ColumnPickerProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [dragging, setDragging] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const order = [...columns, ...NODE_COLUMNS.map((c) => c.id).filter((id) => !columns.includes(id))];
-  const label = (id: string) => t(NODE_COLUMNS.find((c) => c.id === id)!.label);
+  const order = [...columns, ...options.map((c) => c.id).filter((id) => !columns.includes(id))];
+  const label = (id: string) => t(options.find((c) => c.id === id)?.label ?? id);
 
   // Close on a press outside or Escape, as today's Export menu.
   useEffect(() => {

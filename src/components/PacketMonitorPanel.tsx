@@ -26,7 +26,7 @@ import './PacketMonitorPanel.css';
 import { UiIcon } from './icons';
 import PacketHiddenChip from './PacketHiddenChip';
 import { formatAckProofStatus } from '../utils/ackProof';
-import { PORTNUM_FILTER_OPTIONS, relayModalNodes, usePacketMonitor } from './usePacketMonitor';
+import { mostLikelyRelayName, PORTNUM_FILTER_OPTIONS, relayModalNodes, usePacketMonitor } from './usePacketMonitor';
 
 interface PacketMonitorPanelProps {
   onClose: () => void;
@@ -155,76 +155,8 @@ const PacketMonitorPanel: React.FC<PacketMonitorPanelProps> = ({ onClose, onNode
 
   // Get the most likely relay node name for a packet
   // Uses RSSI proximity to estimate the relay when there are multiple candidates or unknown relay byte
-  const getMostLikelyRelayName = (relayNode: number | undefined | null, packetRssi: number | undefined | null): string | null => {
-    // CLIENT_MUTE role doesn't relay
-    const CLIENT_MUTE = 4;
-    const relayCapableNodes = nodes.filter(node => {
-      const role = typeof node.user?.role === 'string' ? parseInt(node.user.role, 10) : node.user?.role;
-      return role !== CLIENT_MUTE;
-    });
-
-    // Helper to find the node with closest RSSI to the packet
-    const findClosestByRssi = (candidates: typeof nodes): typeof nodes[0] | null => {
-      if (candidates.length === 0) return null;
-      if (candidates.length === 1) return candidates[0];
-      if (packetRssi === undefined || packetRssi === null) return candidates[0];
-
-      let closest = candidates[0];
-      let closestDiff = Infinity;
-
-      for (const node of candidates) {
-        const stats = directNeighborStats[node.nodeNum];
-        if (stats?.avgRssi !== undefined) {
-          const diff = Math.abs(stats.avgRssi - packetRssi);
-          if (diff < closestDiff) {
-            closestDiff = diff;
-            closest = node;
-          }
-        }
-      }
-      return closest;
-    };
-
-    // If relay_node is 0, undefined, or null - estimate from all direct neighbors
-    if (relayNode === undefined || relayNode === null || relayNode === 0) {
-      // Get all relay-capable nodes we've heard directly
-      const directNeighbors = relayCapableNodes.filter(node => directNeighborStats[node.nodeNum] !== undefined);
-      const closest = findClosestByRssi(directNeighbors);
-      if (closest) {
-        return closest.user?.shortName || `!${closest.nodeNum.toString(16).padStart(8, '0')}`;
-      }
-      return null;
-    }
-
-    // Try exact match first
-    const exactMatch = relayCapableNodes.find(node => node.nodeNum === relayNode);
-    if (exactMatch) {
-      return exactMatch.user?.shortName || `!${relayNode.toString(16).padStart(8, '0')}`;
-    }
-
-    // Fall back to matching just the lowest byte
-    // A relay MUST be a direct neighbor, so filter to only plausible candidates
-    const byteMatches = relayCapableNodes.filter(node => (node.nodeNum & 0xFF) === relayNode);
-
-    // Filter to only direct neighbors or nodes within 1 hop - a relay must be directly connected
-    const plausibleRelays = byteMatches.filter(node =>
-      directNeighborStats[node.nodeNum] !== undefined || (node.hopsAway !== undefined && node.hopsAway <= 1)
-    );
-
-    if (plausibleRelays.length === 1) {
-      return plausibleRelays[0].user?.shortName || `!${plausibleRelays[0].nodeNum.toString(16).padStart(8, '0')}`;
-    }
-    if (plausibleRelays.length > 1) {
-      // Multiple plausible matches - pick the one with closest RSSI
-      const closest = findClosestByRssi(plausibleRelays);
-      if (closest) {
-        return closest.user?.shortName || `!${closest.nodeNum.toString(16).padStart(8, '0')}`;
-      }
-    }
-
-    // No plausible matches found - return hex byte as fallback
-    return `0x${relayNode.toString(16).padStart(2, '0').toUpperCase()}`;
-  };
+  const getMostLikelyRelayName = (relayNode: number | undefined | null, packetRssi: number | undefined | null): string | null =>
+    mostLikelyRelayName(relayNode, packetRssi, nodes, directNeighborStats);
 
   // Pop-out to new window
   const handlePopout = () => openPacketMonitorPopout();

@@ -11,9 +11,9 @@ import { UiIcon } from '../../components/icons';
 import { useInfiniteVirtualRows } from '../../hooks/useInfiniteVirtualRows';
 import { useSettings } from '../../contexts/SettingsContext';
 import type { PacketLog } from '../../types/packet';
-import { formatPacketDateColumn, getTransportMechanismName, toMs } from '../../utils/packetFormat';
+import { formatPacketDateColumn, formatPacketTimestamp, getTransportMechanismName, toMs } from '../../utils/packetFormat';
 import DeviceTag from '../patterns/DeviceTag';
-import { packetHops, packetKey, packetSlot, packetTypeFamily } from './packetRows';
+import { PACKET_COLUMNS, packetHops, packetKey, packetSlot, packetTypeFamily, type PacketColumnId } from './packetRows';
 import styles from './PacketStream.module.css';
 
 /** A table row's height before it is measured. */
@@ -77,8 +77,14 @@ const activate = (run: () => void) => (e: KeyboardEvent) => {
 
 /** Desktop: one row per packet, the four columns right of Content behind `moreCue` and the sideways scroll. */
 export function PacketTable({
-  packets, hasMore, loadingMore, loadMore, selectedKey, onSelect, withSource = false, moreCue = false, meshcoreSourceIds,
-}: PacketStreamProps & { moreCue?: boolean }) {
+  packets, hasMore, loadingMore, loadMore, selectedKey, onSelect, withSource = false, moreCue = false, meshcoreSourceIds, columns: picked, lastHop,
+}: PacketStreamProps & {
+  moreCue?: boolean;
+  /** Only these of today's columns, in this order (the device monitor's picker); default the fixed set. */
+  columns?: readonly PacketColumnId[];
+  /** Today's Last Hop text for a packet (`mostLikelyRelayName`). */
+  lastHop?(p: PacketLog): string | null;
+}) {
   const { t } = useTranslation();
   const { timeFormat, dateFormat } = useSettings();
   const text = useRowText();
@@ -90,13 +96,41 @@ export function PacketTable({
   const top = items[0]?.start ?? 0;
   const bottom = items.length ? rows.getTotalSize() - items[items.length - 1].end : 0;
   const more = [t('packet_monitor.column.date'), t('packet_monitor.column.slot'), t('packet_monitor.column.rssi'), t('packet_monitor.column.size')];
-  const columns = 14 + (withSource ? 1 : 0);
+  const columns = picked ? picked.length + 1 : 14 + (withSource ? 1 : 0);
+  const cell = (id: PacketColumnId, p: PacketLog) => {
+    const hops = packetHops(p);
+    switch (id) {
+      case 'dir': return <Dir packet={p} />;
+      case 'via': return <span title={getTransportMechanismName(p.transport_mechanism).full}>{getTransportMechanismName(p.transport_mechanism).short}</span>;
+      case 'date': return formatPacketDateColumn(p.timestamp, dateFormat, t('packet_monitor.today', 'Today'));
+      case 'time': return <span className={styles.mono}>{formatPacketTimestamp(p.timestamp, timeFormat)}</span>;
+      case 'from': return <span className={styles.strong} title={text.from(p)}>{text.from(p)}</span>;
+      case 'to': return <span title={text.to(p)}>{text.to(p)}</span>;
+      case 'type': return <TypeBadge packet={p} />;
+      case 'slot': return packetSlot(p, text.na);
+      case 'snr': return p.snr != null ? p.snr.toFixed(1) : text.na;
+      case 'rssi': return p.rssi != null ? p.rssi.toFixed(0) : text.na;
+      case 'hops': return hops !== null ? `${hops}/${p.hop_start}` : text.na;
+      // Today's Last Hop: Direct at 0 hops, else the likely relay (or "?").
+      case 'last_hop': return hops === 0 ? t('packet_monitor.direct') : hops !== null && hops > 0 ? lastHop?.(p) || '?' : text.na;
+      case 'size': return p.payload_size ?? text.na;
+      case 'content': return <span title={text.content(p)}>{text.content(p)}</span>;
+    }
+  };
 
   return (
     <div className={styles.tableWrap}>
       <div className={styles.scroll} ref={scrollRef} data-testid="packet-table-scroll">
         <table className={styles.table} data-more={moreCue ? 'behind' : undefined}>
           <thead>
+            {picked ? (
+              <tr>
+                <th scope="col" className={styles.colNum}>#</th>
+                {picked.map((id) => (
+                  <th key={id} scope="col">{t(PACKET_COLUMNS.find((c) => c.id === id)!.label)}</th>
+                ))}
+              </tr>
+            ) : (
             <tr>
               <th scope="col" className={styles.colNum}>#</th>
               {withSource && <th scope="col" className={styles.colSource}>{t('unified.packets.column_source')}</th>}
@@ -111,6 +145,7 @@ export function PacketTable({
               <th scope="col">{t('packet_monitor.column.content')}</th>
               {more.map((label) => <th key={label} scope="col" className={styles.colMore}>{label}</th>)}
             </tr>
+            )}
           </thead>
           <tbody>
             {top > 0 && <tr aria-hidden="true"><td colSpan={columns} style={{ height: top }} /></tr>}
@@ -135,6 +170,8 @@ export function PacketTable({
                   onKeyDown={activate(select)}
                 >
                   <td className={styles.num}>{index + 1}</td>
+                  {picked ? picked.map((id) => <td key={id}>{cell(id, p)}</td>) : (
+                  <>
                   {withSource && <td>{p.sourceId && <DeviceTag sourceId={p.sourceId} />}</td>}
                   <td><Dir packet={p} /></td>
                   <td title={getTransportMechanismName(p.transport_mechanism).full}>{getTransportMechanismName(p.transport_mechanism).short}</td>
@@ -149,6 +186,8 @@ export function PacketTable({
                   <td>{packetSlot(p, text.na)}</td>
                   <td>{p.rssi != null ? p.rssi.toFixed(0) : text.na}</td>
                   <td>{p.payload_size ?? text.na}</td>
+                  </>
+                  )}
                 </tr>
               );
             })}

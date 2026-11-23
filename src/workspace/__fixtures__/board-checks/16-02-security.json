@@ -13,11 +13,11 @@
     "Weak key",
     "Medium",
     "Send a DM",
-    "Sends 1 DM",
+    "sends 1 DM",
     "Glyfada Beach",
     "Lycabettus Hiker",
-    "Sends 1 DM to Glyfada Beach",
-    "Sends 1 DM to Lycabettus Hiker"
+    "sends 1 DM to Glyfada Beach",
+    "sends 1 DM to Lycabettus Hiker"
   ],
   "absent": [
     "Message both"

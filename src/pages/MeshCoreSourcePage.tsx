@@ -41,10 +41,12 @@ interface MeshCoreSourcePageProps {
   /** The Workspace's `dm/<key>`: open this contact's DM (#6365). */
   dmContact?: string | null;
   dmRequest?: string;
+  /** A draft to pre-fill in that DM (the Workspace Security page's "Send a DM", #6365). */
+  dmDraft?: string | null;
   mapNode?: string | null;
 }
 
-function MeshCoreSourceInner({ view, onViewChange, dmContact, dmRequest, mapNode }: MeshCoreSourcePageProps) {
+function MeshCoreSourceInner({ view, onViewChange, dmContact, dmRequest, dmDraft, mapNode }: MeshCoreSourcePageProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { sourceId, sourceName } = useSource();
@@ -139,7 +141,7 @@ function MeshCoreSourceInner({ view, onViewChange, dmContact, dmRequest, mapNode
       )}
 
       {canReadConnection ? (
-        <MeshCorePage baseUrl={appBasename} sourceId={sourceId} onStatusChange={handleStatusChange} view={view} onViewChange={onViewChange} dmContact={dmContact} dmRequest={dmRequest} mapNode={mapNode} />
+        <MeshCorePage baseUrl={appBasename} sourceId={sourceId} onStatusChange={handleStatusChange} view={view} onViewChange={onViewChange} dmContact={dmContact} dmRequest={dmRequest} dmDraft={dmDraft} mapNode={mapNode} />
       ) : (
         <div className="meshcore-tab">
           <h2>{t('meshcore.title')}</h2>

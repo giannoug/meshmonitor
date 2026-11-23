@@ -19,20 +19,9 @@ import { formatPacketDateColumn, formatPacketTimestamp, getTransportMechanismNam
 import DeviceTag from '../patterns/DeviceTag';
 import Sheet from '../patterns/Sheet';
 import { useIsPhone } from '../shell/useIsPhone';
-import { packetHops, packetSlot } from './packetRows';
+import { fullJson, packetHops, packetSlot } from './packetRows';
 import { TypeBadge } from './PacketStream';
 import styles from './PacketDetailPanel.module.css';
-
-/** The packet with its metadata JSON expanded, as today's details modal lists it. */
-function fullJson(p: PacketLog): string {
-  let metadata: unknown = p.metadata;
-  try {
-    if (p.metadata) metadata = JSON.parse(p.metadata);
-  } catch {
-    // Not JSON: keep the text.
-  }
-  return JSON.stringify({ ...p, metadata }, null, 2);
-}
 
 /**
  * Today's relay estimate (RelayNodeModal) for one packet, with today's data: the device's nodes and
@@ -68,7 +57,13 @@ function RelayModal({ packet, onClose }: { packet: PacketLog; onClose(): void })
   );
 }
 
-export default function PacketDetailPanel({ packet: p, onClose, meshcore = false }: { packet: PacketLog; onClose(): void; meshcore?: boolean }) {
+export default function PacketDetailPanel({ packet: p, onClose, meshcore = false, actions }: {
+  packet: PacketLog;
+  onClose(): void;
+  meshcore?: boolean;
+  /** Buttons at the panel's foot (the device monitor's Copy JSON and Show sender, Task 8.5). */
+  actions?: ReactNode;
+}) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const { timeFormat, dateFormat } = useSettings();
@@ -164,7 +159,7 @@ export default function PacketDetailPanel({ packet: p, onClose, meshcore = false
   if (isPhone) {
     return (
       // Escape reaches every open dialog; while the relay estimate is open over this sheet, only it closes (Ruling CR).
-      <Sheet open onClose={() => (relayOpen ? setRelayOpen(false) : onClose())} title={title}>
+      <Sheet open onClose={() => (relayOpen ? setRelayOpen(false) : onClose())} title={title} footer={actions}>
         <div className={styles.sheetBody}>
           <TypeBadge packet={p} meshcore={meshcore} />
           {body}
@@ -183,6 +178,7 @@ export default function PacketDetailPanel({ packet: p, onClose, meshcore = false
         </button>
       </div>
       {body}
+      {actions}
     </aside>
   );
 }

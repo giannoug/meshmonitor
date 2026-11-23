@@ -51,7 +51,8 @@ describe('c-home-e1-home', () => {
     expect(tiles.getByRole('link', { name: 'Map' })).toHaveAttribute('href', `${g2}/map`);
     expect(tiles.getByRole('link', { name: /^Nodes · 12/ })).toHaveAttribute('href', `${g2}/nodes`);
     expect(tiles.getByRole('link', { name: 'Automation' })).toHaveAttribute('href', `${g2}/automation`);
-    expect(tiles.getByRole('link', { name: 'Tools' })).toHaveAttribute('href', `${g2}/info`);
+    // Tools is the Workspace's Tools page (q1, Task 8.5).
+    expect(tiles.getByRole('link', { name: 'Tools' })).toHaveAttribute('href', `${g2}/tools`);
   });
 
   it('lists channels with unread and the latest DMs, with All direct messages', async () => {

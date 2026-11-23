@@ -11,9 +11,9 @@ import type { ResourceType } from '../../types/permission';
 import { useChannelDatabaseEntries } from '../chat/useChannelDatabaseEntries';
 import type { WorkspaceSource } from './useWorkspaceSources';
 
-/** Tab per tool row, by source type; null: the type has no such tab. Meshtastic `dms` is the Workspace inbox (Task 2.6), `map` the Workspace device map (Task 3.1). */
+/** Tab per tool row, by source type; null: the type has no such tab. Meshtastic `dms` is the Workspace inbox (Task 2.6), `map` the Workspace device map (Task 3.1), `tools` the Tools page (Task 8.5). */
 export const TOOL_TABS: Record<'meshtastic' | 'meshcore' | 'reticulum', Record<string, string | null>> = {
-  meshtastic: { map: 'map', nodes: 'nodes', dashboard: 'dashboard', automation: 'automation', config: 'settings', tools: 'info', channels: 'channels', dms: 'dms' },
+  meshtastic: { map: 'map', nodes: 'nodes', dashboard: 'dashboard', automation: 'automation', config: 'settings', tools: 'tools', channels: 'channels', dms: 'dms' },
   meshcore: { map: 'map', nodes: 'nodes', dashboard: 'telemetry', automation: 'automations', config: 'configuration', tools: 'info', channels: 'channels', dms: 'dms' },
   reticulum: { map: 'map', nodes: 'destinations', dashboard: null, automation: null, config: 'configuration', tools: 'info', channels: null, dms: 'dms' },
 };
@@ -91,6 +91,10 @@ export function useDeviceTab(source: WorkspaceSource | null | undefined): (key: 
     if (key === 'automation' && source.type === 'mqtt_bridge') return null;
     if (key === 'config' && family === 'meshtastic' && !hasDeviceConfigurationPage(source.type)) return null;
     if (key === 'channels' && meshtastic) return anySlot || entries.length > 0 ? `${base}/channels` : null;
+    // Tools (q1, Task 8.5): Info, Packet monitor and Security, each under today's tab gate.
+    if (key === 'tools' && family === 'meshtastic') {
+      return (['info', 'packetmonitor', 'security'] as const).some((r) => hasPermission(r, 'read', { sourceId: source.id })) ? `${base}/tools` : null;
+    }
     const name = TOOL_TABS[family][key];
     return name && visible.includes(GATE[key]) ? `${base}/${name}` : null;
   };

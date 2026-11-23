@@ -7,12 +7,12 @@
     "Noisy senders",
     "Clock off",
     "Quiet nodes",
-    "NEEDS A LOOK",
+    "Needs a look",
     "Shared public key",
     "Weak key",
     "Sending a lot",
     "Send a DM",
-    "Packet monitor"
+    "Packet Monitor"
   ],
   "absent": [
     "Message both",

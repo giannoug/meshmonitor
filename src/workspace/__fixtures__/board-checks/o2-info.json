@@ -1,8 +1,8 @@
 {
   "must": [
-    "CONNECTION",
-    "RADIO",
-    "RECORDS"
+    "Connection",
+    "Radio",
+    "Records"
   ],
   "absent": [],
   "source": "checks/s04.json"

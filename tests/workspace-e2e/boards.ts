@@ -25,6 +25,7 @@ import { RNS, reticulumFixtures, type ReticulumFixtureOptions } from '../../src/
 import { dashboardFixtures, overviewBoard, phoneBoard, savedBoard } from '../../src/workspace/__fixtures__/dashboard';
 import { automationFixtures } from '../../src/workspace/__fixtures__/automations';
 import { rulesFixtures } from '../../src/workspace/__fixtures__/rules';
+import { toolsFixtures } from '../../src/workspace/__fixtures__/tools';
 
 export interface Board {
   id: string;
@@ -2108,9 +2109,39 @@ export const BOARDS: Board[] = [
     await page.getByRole('button', { name: 'Run now' }).click();
     await page.getByRole('dialog', { name: 'Run this automation now?' }).waitFor();
   } },
+  // Task 8.5: a device's More tools (packets, Info, Security, Quiet nodes).
+  { id: 'q1-tools', size: 'phone', path: '/source/src-g2/tools', fixtures: TOOLS(), setup: (page) => page.getByText('Analysis, Reports, Users, Audit log').waitFor() },
+  { id: 'o1-packets', size: 'desktop', path: '/source/src-g2/packetmonitor', fixtures: TOOLS(), setup: async (page) => {
+    await page.getByRole('row').filter({ hasText: 'Nikos T-Echo' }).first().click();
+    await page.getByRole('complementary', { name: 'Raw packet #4821' }).waitFor();
+  } },
+  { id: 'q2-packets', size: 'phone', path: '/source/src-g2/packetmonitor', fixtures: TOOLS(), setup: (page) => page.getByTestId('packet-row').first().waitFor() },
+  { id: 'q3-packet', size: 'phone', path: '/source/src-g2/packetmonitor', fixtures: TOOLS(), setup: async (page) => {
+    await page.getByTestId('packet-row').first().click();
+    await page.getByRole('dialog', { name: 'Raw packet #4821' }).waitFor();
+  } },
+  { id: 'o2-info', size: 'desktop', path: '/source/src-g2/info', fixtures: TOOLS(), setup: (page) => page.getByText('24.2 km · Keratea Hill').waitFor() },
+  { id: '16-01-info', size: 'phone', path: '/source/src-g2/info', fixtures: TOOLS(), setup: (page) => page.getByText('EU_868 · LongFast').waitFor() },
+  { id: 'o3-security', size: 'desktop', path: '/source/src-g2/security', fixtures: TOOLS(), setup: (page) => page.getByText('Shared public key').waitFor() },
+  { id: '16-02-security', size: 'phone', path: '/source/src-g2/security', fixtures: TOOLS(), setup: (page) => page.getByText('Shared public key').waitFor() },
+  { id: '16-05-security-digest', size: 'phone', path: '/source/src-g2/security', fixtures: TOOLS(), setup: async (page) => {
+    await page.getByText('Shared public key').waitFor();
+    await page.getByRole('heading', { name: 'Security Digest' }).scrollIntoViewIfNeeded();
+  } },
+  { id: '16-06-quiet-nodes', size: 'phone', path: '/source/src-g2/security/quiet', fixtures: TOOLS(), setup: tickTwoQuiet },
+  { id: '16-07-delete-nodes', size: 'phone', path: '/source/src-g2/security/quiet', fixtures: TOOLS(), setup: async (page) => {
+    await tickTwoQuiet(page);
+    await page.getByRole('button', { name: 'Delete 2 node(s)' }).click();
+    await page.getByRole('dialog').waitFor();
+  } },
 ];
 
 /** The Automation Engine's rules, variables and runs (Task 8.4), a fresh log per board. */
+/** Task 8.5: Station G2's tools, with capture on. */
+function TOOLS(): Board['fixtures'] {
+  return { ...captureOn, ...toolsFixtures() };
+}
+
 function RULES(): Board['fixtures'] {
   return rulesFixtures({ writes: [] });
 }
@@ -2511,4 +2542,10 @@ async function openTrailhead(page: Page, action: 'Edit' | 'Delete…'): Promise<
 /** A row of the Users list (desktop column or phone list). */
 async function openUserRow(page: Page, name: string): Promise<void> {
   await page.getByRole('list', { name: 'Users' }).getByRole('button', { name: new RegExp(`^${name}\\b`) }).click();
+}
+
+/** 16-06 / 16-07: the board's two ticks. */
+async function tickTwoQuiet(page: Page): Promise<void> {
+  await page.getByRole('checkbox', { name: 'Test bench T-Beam' }).check();
+  await page.getByRole('checkbox', { name: 'Lycabettus Hiker' }).check();
 }

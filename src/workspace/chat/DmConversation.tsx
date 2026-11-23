@@ -15,7 +15,7 @@
  * messages:read (a guest) the DM is not shown.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
@@ -84,7 +84,10 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
   const { view, actions, homoglyph, deviceConfig } = useChatRuntime(-1);
   const { nodes } = useNodes();
   const { currentNodeId } = useData();
-  const { setSelectedDMNode, setSelectedChannel, replyingTo, setReplyingTo } = useMessaging();
+  const { setSelectedDMNode, setSelectedChannel, replyingTo, setReplyingTo, openDmWithDraft } = useMessaging();
+  const location = useLocation();
+  // A pre-filled draft handed over in the location state (Security's "Send a DM", Task 8.5); the user still presses Send.
+  const handedDraft = (location.state as { draft?: unknown } | null)?.draft;
   const { dm: pinnedFirstUnread } = useUnreadDividerAnchors();
   const { timeFormat, dateFormat } = useSettings();
   const { isDMMuted, muteDM, unmuteDM } = useNotificationMuteSettings();
@@ -120,9 +123,15 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
   useEffect(() => {
     if (!anchorsReady) return;
     setSelectedChannel(-1);
-    setSelectedDMNode(nodeId);
+    if (typeof handedDraft === 'string') {
+      // Today's openDmWithDraft: select and pre-fill in one batch, then drop the state so a reload does not pre-fill again.
+      openDmWithDraft(nodeId, handedDraft);
+      void navigate(`/source/${encodeURIComponent(sourceId ?? '')}/dm/${encodeURIComponent(nodeId)}`, { replace: true, state: null });
+    } else {
+      setSelectedDMNode(nodeId);
+    }
     setReplyingTo(null);
-  }, [anchorsReady, nodeId, setSelectedChannel, setSelectedDMNode, setReplyingTo]);
+  }, [anchorsReady, nodeId, setSelectedChannel, setSelectedDMNode, setReplyingTo, handedDraft, openDmWithDraft, navigate, sourceId]);
 
   // MessagesTab's getDMMessages: text DMs to or from the node.
   const rows = useMemo(

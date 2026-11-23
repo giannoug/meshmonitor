@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../icons';
 import { NumberInput } from '../common/NumberInput';
-import api from '../../services/api';
 import { getHardwareModelName } from '../../utils/hardwareModel';
 import { logger } from '../../utils/logger';
 import type { DeadNode } from './securityTypes';
+import { bulkDeleteDeadNodes, formatLastHeard, saveDeadNodeDays } from './deadNodesActions';
 import styles from './DeadNodesSection.module.css';
 
 interface Props {
@@ -25,15 +25,6 @@ interface Props {
 
 const MIN_DAYS = 1;
 const MAX_DAYS = 365;
-
-function formatLastHeard(t: (k: string, d: string, o?: Record<string, unknown>) => string, lastHeard: number | null): string {
-  if (!lastHeard) return t('security.dead_nodes_never', 'Never');
-  const days = Math.floor((Math.floor(Date.now() / 1000) - lastHeard) / 86400);
-  if (days > 30) {
-    return t('security.dead_nodes_months_ago', '{{count}} month(s) ago', { count: Math.floor(days / 30) });
-  }
-  return t('security.dead_nodes_days_ago', '{{count}} day(s) ago', { count: days });
-}
 
 /**
  * Dead nodes for both protocols. Rows and selection key on `nodeKey`
@@ -78,7 +69,7 @@ export const DeadNodesSection: React.FC<Props> = ({
     setSavingDays(true);
     setMessage(null);
     try {
-      await api.post(`/api/settings?sourceId=${encodeURIComponent(sourceId)}`, { securityDeadNodeDays: String(days) });
+      await saveDeadNodeDays(sourceId, days);
       await onChanged();
     } catch (err) {
       logger.error('Error saving dead node threshold:', err);
@@ -100,11 +91,7 @@ export const DeadNodesSection: React.FC<Props> = ({
     setDeleting(true);
     setMessage(null);
     try {
-      const res = await api.post<{ results?: Array<{ deleted: boolean; error?: string }> }>(
-        '/api/security/dead-nodes/bulk-delete',
-        { sourceId, nodeKeys: Array.from(selected) },
-      );
-      const protectedCount = (res?.results ?? []).filter(r => r.error === 'PROTECTED').length;
+      const protectedCount = await bulkDeleteDeadNodes(sourceId, Array.from(selected));
       if (protectedCount > 0) {
         setMessage(t('security.mc_dead_nodes_protected', '{{count}} node(s) were kept (local node or favourite).', { count: protectedCount }));
       }

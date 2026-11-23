@@ -24,6 +24,10 @@ const RULES: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
   [/^\/source\/([^/]+)\/map\/?$/, (m) => `/source/${m[1]}/nodes`],
   [/^\/source\/([^/]+)\/(dms|activity|room)(\/.*)?$/, (m) => `/source/${m[1]}/`],
   [/^\/automations\/[^/]+(\/.*)?$/, () => '/automations'],
+  // Tools (q1) is Classic's Info tab; an Info group is Info; Quiet nodes is the Security tab's Dead nodes (Task 8.5).
+  [/^\/source\/([^/]+)\/tools\/?$/, (m) => `/source/${m[1]}/info`],
+  [/^\/source\/([^/]+)\/info\/[^/]+\/?$/, (m) => `/source/${m[1]}/info`],
+  [/^\/source\/([^/]+)\/security\/quiet\/?$/, (m) => `/source/${m[1]}/security`],
   // A Meshtastic built-in's page and the built-ins list (Task 8.3) are Classic's Automation tab.
   [/^\/source\/([^/]+)\/automation\/[^/]+\/?$/, (m) => `/source/${m[1]}/automation`],
 ];

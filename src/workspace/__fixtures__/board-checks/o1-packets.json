@@ -1,9 +1,9 @@
 {
   "must": [
-    "Packet monitor",
+    "Packet Monitor",
     "Filter packets",
     "NodeInfo",
-    "RAW",
+    "Raw packet",
     "Copy JSON",
     "Show sender",
     "Pause",

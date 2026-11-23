@@ -1,6 +1,6 @@
 {
   "must": [
-    "RAW",
+    "Raw packet",
     "Copy JSON"
   ],
   "absent": [],

@@ -33,6 +33,10 @@ vi.mock('../overview/OverviewPackets', async () => ({ default: (await import('./
 vi.mock('../overview/users/UsersPage', async () => ({ default: (await import('./pageStub')).pageStub('overview-users') }));
 vi.mock('../overview/audit/AuditPage', async () => ({ default: (await import('./pageStub')).pageStub('overview-audit') }));
 vi.mock('../tools/MqttReceptions', async () => ({ default: (await import('./pageStub')).pageStub('mqtt-receptions') }));
+vi.mock('../tools/DevicePackets', async () => ({ default: (await import('./pageStub')).pageStub('device-packets') }));
+vi.mock('../tools/InfoPage', async () => ({ default: (await import('./pageStub')).pageStub('info-page') }));
+vi.mock('../tools/DeviceSecurity', async () => ({ default: (await import('./pageStub')).pageStub('device-security') }));
+vi.mock('../tools/ToolsPage', async () => ({ default: (await import('./pageStub')).pageStub('tools-page') }));
 vi.mock('../../pages/GlobalSettingsPage', async () => ({ default: (await import('./pageStub')).pageStub('global-settings') }));
 vi.mock('../../pages/UsersPage', async () => ({ default: (await import('./pageStub')).pageStub('users') }));
 vi.mock('../../pages/MeshCoreSourcePage', async () => ({ default: (await import('./pageStub')).pageStub('meshcore') }));
@@ -289,10 +293,14 @@ describe('WorkspaceApp routes (spec §5.5)', () => {
     expect(screen.queryByTestId('page-app')).toBeNull();
   });
 
-  it('a Meshtastic device\'s packet monitor stays today\'s (Task 8.5)', async () => {
-    renderAt(`${g2}/packetmonitor`);
-    await expectPage('app');
-    expect(screen.queryByTestId('page-mqtt-receptions')).toBeNull();
+  it('a Meshtastic device\'s packet monitor, Info, Security and Tools are the Workspace\'s (Task 8.5)', async () => {
+    for (const [path, page] of [['packetmonitor', 'device-packets'], ['info', 'info-page'], ['info/radio', 'info-page'], ['security', 'device-security'], ['security/quiet', 'device-security'], ['tools', 'tools-page']]) {
+      const view = renderAt(`${g2}/${path}`);
+      await expectPage(page);
+      expect(screen.queryByTestId('page-app')).toBeNull();
+      expect(screen.queryByTestId('page-mqtt-receptions')).toBeNull();
+      view.unmount();
+    }
   });
 
   it('/overview on a phone is the Overview Home (5-07)', async () => {
