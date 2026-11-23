@@ -33,7 +33,7 @@ import { AUTOACK_CELLS, type AutoAckCellId, type AutoAckMatrix } from '../../uti
 import { autoAckSampleMessage, autoWelcomeSampleMessage } from '../../utils/autoAckSample';
 import { matchTracerouteNodes, type TracerouteMatchFilter } from '../../utils/tracerouteNodeMatch';
 import { scriptTestEnvironment } from '../../utils/scriptTestEnvironment';
-import { COMMAND_EXAMPLES, PATTERN_GROUPS } from '../../components/auto-responder/patternExamplesData';
+import { COMMAND_EXAMPLES, PATTERN_GROUPS } from '../../components/auto-responder/PatternExamples';
 import { ROLE_NAMES, DeviceRole } from '../../constants';
 import { useCsrfFetch } from '../../hooks/useCsrfFetch';
 import { airtimeStatusView, type AirtimeStatus as AirtimeStatusData } from '../../components/airtimeCutoffStatus';
