@@ -1501,3 +1501,54 @@ Ruling: 8.2 j3 — board-check edits: uppercase headers → their text ("Ch. uti
 Ruling: 8.2 all — the device picker is a Sheet before the Add widget sheet (one sheet at a time, D9c); *Change device* returns to it — cost if wrong: a combined sheet.
 Ruling: 8.2 HY — Overview board node reads are on open (and focus or revisit) with no interval; the device dashboard keeps its 30 s poll on its own page; the Overview's only timer is the bundle's existing 15 s poll — why: N/DM — cost if wrong: Overview widget data is up to one visit staler than on the device page.
 Ruling: 8.2 M3 — a readable but disabled device's widget keeps its device tag and says the device is disabled; it reads nothing for that device — cost if wrong: a disabled device's name is visible on the user's own board (it is readable).
+
+## Task 8.3 — Device automations and built-ins
+
+Ruling: 8.3 HX — the plan text for 8.3 ('each built-in renders today's section component inside BuiltinPage with its SaveBarGroup') is superseded by 7.3 HH and 7.4 HK/HN, which were made later and are binding. Built-ins are drawn on the kit with their own bar over today's state, following 7.5's MeshCore built-ins. — why: the user asked for the canvas as drawn, and reviews rejected mounted Classic sections three times — cost if wrong: more redraw work than mounting.
+Ruling: 8.3 IA — fix I1–I3. I1: draw every control a canvas note names, from today's data/calls (no new request on an interval; a preview computed client-side as today). I2: an opt-in confirm prop on the shared ListField Delete with today's words, used by responder, timer and geofence triggers. I3: Send now's confirm shows the saved message and saved channels (what the server sends); while the draft is dirty it says the unsaved edits are not sent. — why: GR and s14n* notes are spec; the confirm must show what transmits — cost if wrong: more drawn surface.
+Ruling: 8.3 IB — promote minors:
+  - M1: the MeshCore BuiltinView dirty check compares only saved keys (polled data such as Auto Ping sessions never reads as dirty) and the count counts each changed field; MeshCore behaviour as before the refactor.
+  - M2: save-count tests for Forwarding and Timer Triggers; "sends nothing" tests count every non-GET request, not only fixture writes.
+  - M3: in-flight guard on the door's rule switch.
+  - M4: the door save loop names which built-ins saved and which failed.
+  - M5: Delete by Distance follows the user's distance unit, as today.
+  - M6: Timer Triggers search, the responder type filter, Auto Favorite role_warning; the admin scanner counts re-read every 30 s on that page only, moved verbatim from today (GQ).
+  - M7: no Verify response toggle on channel responder triggers.
+  - M8: CSS: .inline input does not hit the Convert sheet checkboxes; phone matrix checkboxes and MeshCore .search reach 44 px.
+  - M9: Ignored Nodes is not counted as On unless today counts it so.
+  - M10: board items backed by today's features are drawn (14-06 Import/Export if today has them; m3 word chip and the "2 other nodes, then quiet" line from settings); only items with no data are dropped, each with a Ruling line. Sends-line text per s14n1 is accepted.
+  Accepted: M11 (process only).
+Ruling: 8.3 IC — fix I4 (one query-options object shared by every observer of the scripts query, or pass scripts + refetch down; test one import with today's headers then the list re-read; an Export test). Promote re-review minors:
+  - Import/Export shown to whoever today shows them to (the server's own gates stay the guard), not admin-only.
+  - Airtime status/fill-line logic extracted verbatim (Rule X) and shared, removing the drift (node-name fallback, hops fallback).
+  - Script test: Run disabled on an empty message; draw today's extractedParams / matchedPattern result.
+  - MatchCount shows today's "no nodes match" line at 0.
+  - Delete by Distance summary in the user's unit.
+  - builtinIsOn('ignored-nodes') and its comment agree with the On count.
+  — cost if wrong: small.
+Ruling: 8.3 all — today's en.json titles win (Auto Acknowledge, Auto Announce, Auto Responder, Timer Triggers, Auto Key Management, Auto Traceroute, Auto Welcome, Auto Ping, Geofence Triggers, Auto Time Sync, Cutoff Airtime Utilization Threshold, Auto Favorite, Auto Heap Management, Remote Admin Scanner, Auto Delete by Distance, Ignored Nodes, and labels such as Pattern Testing, Response Matrix, Per-Sender Cooldown, Test Script, Console Output, Would Send to Mesh); must lists edited — why: D9b — cost if wrong: string swaps.
+Ruling: 8.3 m1/n1/n4 — uppercase section titles are CSS (text-transform); must lists use sentence case — why: textContent — cost if wrong: none.
+Ruling: 8.3 m3/n4 — "saves with the save bar" (14-06/07/08's words) for "saves as you change it" — why: the dispatch's "only on Save" and 14-x — cost if wrong: two words.
+Ruling: 8.3 m3 — superseded by 14-08 (regex pattern, matrix); m3's word chips, "Reply to", "Reply" and "2 other nodes, then quiet" are not drawn; must list edited — why: today's model is a regex (s14n6 places auto-ack's controls on 14-08) — cost if wrong: a word-chip editor over the regex.
+Ruling: 8.3 all — Sends lines follow the brief's wording without a leading "Sends" ("60 s cooldown per sender · …"); 14-07/08/15/16 must "Sends" replaced by the line — why: brief's examples, m1/n1 must — cost if wrong: one word per line.
+Ruling: 8.3 14-06 — Import script / Export / Dependencies stay in Server › Scripts (7.5 Ruling, dispatch); the page lists the scripts its triggers use and links there (admins); must list edited — why: dispatch — cost if wrong: one hop.
+Ruling: 8.3 14-06/14-07 — a trigger edits in a sheet (desktop right-docked), with the live test, script test and map inside it, not inline columns — why: D9c one sheet at a time, 7.5's lists — cost if wrong: layout.
+Ruling: 8.3 14-06 — the script test is drawn inline in the trigger's sheet on the kit (today's request and results) instead of reusing `ScriptTestModal` — why: CR (one layer), D9c, HH — cost if wrong: env-variable list not shown.
+Ruling: 8.3 14-07 — today's `GeofenceMapEditor` (CSS modules, BaseMap) is reused inside the sheet — why: a map widget, not a Classic form — cost if wrong: redraw.
+Ruling: 8.3 m1 — the door's six built-ins are fixed (Auto Acknowledge, Announce, Responder, Timer Triggers, Key Management, Traceroute) — why: the board's six — cost if wrong: a different six.
+Ruling: 8.3 m1 — Needs attention counts the rules that include this device with neither a cooldown nor a rate limit — why: s14n1's "No limit set" — cost if wrong: a chip.
+Ruling: 8.3 n4 — Next announcement: the next cron time, or "Every N h, counted from the last save or restart" for an interval (today's scheduler does not store its arm time); the board note is reworded to what today's server does — why: no invented time — cost if wrong: one row.
+Ruling: 8.3 all — Send now (announce) asks first; today sends at once — why: dispatch "if it transmits, it asks first" — cost if wrong: one press.
+Ruling: 8.3 all — not drawn: Auto Welcome's sample preview, the traceroute/LocalStats matching-node preview, the responder's pattern-examples gallery and type filter, the admin scanner's 30 s re-read — why: scope; settings and actions all present — cost if wrong: these displays.
+Ruling: 8.3 all — Delete by Distance's threshold is in km (today shows the user's unit) — why: kit field — cost if wrong: miles users convert.
+Ruling: 8.3 all — DeviceAutomations wraps SourceProvider + SettingsProvider as the Dashboard (8.1), which adds SettingsProvider's own settings read — why: the previews' date/time formats — cost if wrong: one read per visit.
+Ruling: 8.3 all — a built-in page's "Verify response" shows for every responder trigger (today's Done keeps it only for a DM trigger) — why: 14-06 draws it — cost if wrong: a dead toggle on channel triggers.
+Ruling: 8.3 m3 — "Reply to" and "Reply" are not separate controls: their data is today's Active Channels / Response Matrix and Message templates, under today's labels (D9b) — why: no other data — cost if wrong: two headings.
+Ruling: 8.3 m3 — word chips only for a plain `^(word|word)` pattern; any other regex shows the regex field alone — why: the chips edit today's `autoAckRegex` — cost if wrong: chips for complex patterns.
+Ruling: 8.3 14-06 — Export Scripts sends the script paths (what `/api/scripts/export` validates); today's "export all" branch posts metadata objects — why: the server reads paths — cost if wrong: none (FINAL REPORT ITEM: Classic's export-all may export nothing).
+Ruling: 8.3 14-06 — script Delete and Dependencies stay in Server › Scripts (linked) — why: 7.5 Ruling — cost if wrong: one hop.
+FINAL REPORT ITEM: 8.3 — save re-arms (today's server, unchanged): Auto Announce (Announce on Start can send within 30 s of a save), Auto Traceroute and LocalStats (first send 0–5 min after a save), Auto Time Sync, Geofence while-inside timers, Auto Delete by Distance (run 2 min after a save). The Workspace dock states each.
+FINAL REPORT ITEM: 8.3 — per-source saves of Auto Key Management and Remote Admin Scanner never reach the running scheduler until a reconnect (global branch only).
+FINAL REPORT ITEM: 8.3 — Auto Welcome enabled per source does not mark existing nodes welcomed (global branch only); not verified whether they are then welcomed.
+FINAL REPORT ITEM: 8.3 — Classic "export all" posts ScriptMetadata objects; the server's path check throws (AutoResponderSection.tsx:254-269, scriptRoutes.ts:980). Pre-existing; not fixed (Rule X). The Workspace sends paths.
+Ruling: 8.3 ID — the pattern-example data stays literally in PatternExamples.tsx and is exported from there (targeted react-refresh disable); Classic source-reading tests pass unedited (Rule X).
