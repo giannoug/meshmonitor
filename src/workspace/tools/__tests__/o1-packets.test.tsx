@@ -90,10 +90,12 @@ describe('o1-packets', () => {
     for (const text of ['All Types', 'All Transports', 'Hide Own Packets', 'Clear Filters']) expect(screen.getByText(text)).toBeInTheDocument();
   });
 
-  it('Clear all packets asks first with today\'s words, then sends one DELETE; a viewer who is not an admin has no Clear', async () => {
+  it('Clear all packets asks first with today\'s words, then sends one DELETE, even when pressed twice', async () => {
     renderTools(ROUTE);
     await screen.findAllByText('Nikos T-Echo');
-    fireEvent.click(screen.getByRole('button', { name: 'Clear all packets' }));
+    const clear = screen.getByRole('button', { name: 'Clear all packets' });
+    await waitFor(() => expect(clear).toBeEnabled());
+    fireEvent.click(clear);
     const sheet = await screen.findByRole('dialog', { name: 'Clear all packets' });
     expect(sheet).toHaveTextContent('Are you sure you want to clear all packet logs?');
     expect(sheet).toHaveTextContent('Sends nothing on the mesh');
@@ -104,6 +106,19 @@ describe('o1-packets', () => {
       fireEvent.click(confirm);
     });
     await waitFor(() => expect(nonGets().filter((r) => r.startsWith('DELETE /api/packets'))).toHaveLength(1));
+  });
+
+  it('a viewer who is not an admin has no Clear all packets (desktop head and phone ⋯)', async () => {
+    const grants = { bySource: { 'src-g2': { packetmonitor: { read: true, write: false }, nodes: { read: true, write: false } } } };
+    const desktop = renderTools(ROUTE, { permissions: grants });
+    await screen.findAllByText('Nikos T-Echo');
+    expect(screen.queryByRole('button', { name: 'Clear all packets' })).toBeNull();
+    desktop.unmount();
+    renderTools(ROUTE, { phone: true, permissions: grants });
+    await screen.findAllByText('Nikos T-Echo');
+    fireEvent.click(screen.getByRole('button', { name: 'More packet actions' }));
+    expect(screen.getByRole('menuitem', { name: 'Export packets to JSONL' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Clear all packets' })).toBeNull();
   });
 
   it('Pop out opens today\'s window; Pause is client-side only', async () => {

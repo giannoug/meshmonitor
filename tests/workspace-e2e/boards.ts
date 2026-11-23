@@ -2136,12 +2136,12 @@ export const BOARDS: Board[] = [
   } },
 ];
 
-/** The Automation Engine's rules, variables and runs (Task 8.4), a fresh log per board. */
 /** Task 8.5: Station G2's tools, with capture on. */
 function TOOLS(): Board['fixtures'] {
   return { ...captureOn, ...toolsFixtures() };
 }
 
+/** The Automation Engine's rules, variables and runs (Task 8.4), a fresh log per board. */
 function RULES(): Board['fixtures'] {
   return rulesFixtures({ writes: [] });
 }

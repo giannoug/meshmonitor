@@ -19,7 +19,7 @@
  * - "Also on this page": Quiet nodes and the key-mismatch log (Meshtastic).
  */
 import { useMemo, useState, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import { useAuth } from '../../contexts/AuthContext';
@@ -30,6 +30,7 @@ import { securityNotificationText } from '../../utils/securityNotificationText';
 import { keyPrefix, type FindingNode, type NotifyState, type SecurityIssueView } from '../../components/security/securityTypes';
 import { notifyStateOf, useSecurityData, type KeyMismatchEvent } from '../../components/security/useSecurityData';
 import { useSecurityDigest } from '../../components/security/useSecurityDigest';
+import { groupDuplicateKeyNodes, mismatchStatusLabel } from '../../components/security/securityHelpers';
 import { useSecurityFormat } from '../../components/security/useSecurityFormat';
 import ToolHead from '../meshcore/ToolHead';
 import RowMenu from '../patterns/RowMenu';
@@ -78,6 +79,8 @@ export default function SecurityPage({ sourceId, deviceName, sourceType, deviceT
   const issues = data.issues;
   const nodes = useMemo(() => issues?.nodes ?? [], [issues]);
 
+  // A device without today's Dead nodes section has no Quiet nodes page: back to Security.
+  if (quiet && !caps.deadNodes) return <Navigate replace to={`${base}/security`} />;
   if (quiet) {
     return (
       <QuietNodes
@@ -112,7 +115,7 @@ export default function SecurityPage({ sourceId, deviceName, sourceType, deviceT
 
   if (data.loading) {
     return (
-      <div className={mc.page} data-phone={isPhone ? '' : undefined}>
+      <div className={`${mc.page} ${styles.phoneScope}`} data-phone={isPhone ? '' : undefined}>
         <ToolHead title={title} back={back} />
         <StateView kind="loading" title={t('security.loading')} />
       </div>
@@ -120,7 +123,7 @@ export default function SecurityPage({ sourceId, deviceName, sourceType, deviceT
   }
   if (data.notConnected || data.error) {
     return (
-      <div className={mc.page} data-phone={isPhone ? '' : undefined}>
+      <div className={`${mc.page} ${styles.phoneScope}`} data-phone={isPhone ? '' : undefined}>
         <ToolHead title={title} back={back} />
         {data.notConnected ? (
           <StateView kind="empty" title={t('workspace.security.not_connected')} />
@@ -199,9 +202,8 @@ export default function SecurityPage({ sourceId, deviceName, sourceType, deviceT
 
   // ── Needs a look ──
   type Finding = { key: string; level: Level; title: string; text: string; nodes: Array<Node | FindingNode>; dms: ReactNode[] };
-  const groups = new Map<string, Node[]>();
-  nodes.filter((n) => n.duplicateKeyDetected && n.publicKey).forEach((n) => groups.set(n.publicKey!, [...(groups.get(n.publicKey!) ?? []), n]));
-  const shared = [...groups.entries()].filter(([, g]) => g.length > 1);
+  // Today's grouping (securityHelpers, shared with SecurityTab).
+  const shared = groupDuplicateKeyNodes(nodes).map((g): [string, Node[]] => [g.publicKey, g.nodes]);
   const findings: Finding[] = [
     ...shared.map(([key, g]) => ({
       key: `dup-${key}`, level: 'high' as const, title: t('workspace.security.shared_key'), text: t('workspace.security.shared_text'),
@@ -384,7 +386,7 @@ export default function SecurityPage({ sourceId, deviceName, sourceType, deviceT
   const mismatchToday = data.mismatchEvents.filter((e) => e.timestamp >= today).length;
 
   return (
-    <div className={mc.page} data-phone={isPhone ? '' : undefined}>
+    <div className={`${mc.page} ${styles.phoneScope}`} data-phone={isPhone ? '' : undefined}>
       <ToolHead
         title={title}
         back={back}
@@ -497,7 +499,7 @@ export default function SecurityPage({ sourceId, deviceName, sourceType, deviceT
       </section>
 
       <Sheet open={list !== null} onClose={() => setList(null)} title={list ? listTitle[list] : ''}>
-        <div className={mc.section}>{listBody()}</div>
+        <div className={`${styles.sheetBody} ${styles.phoneScope}`} data-phone={isPhone ? '' : undefined}>{listBody()}</div>
       </Sheet>
     </div>
   );
@@ -507,8 +509,7 @@ export default function SecurityPage({ sourceId, deviceName, sourceType, deviceT
 function MismatchLog({ events }: { events: KeyMismatchEvent[] }) {
   const { t } = useTranslation();
   if (events.length === 0) return <p className={mc.note}>{t('security.key_mismatch_empty')}</p>;
-  const status = (action: string) =>
-    ({ mismatch: t('security.key_mismatch_status_pending'), purge: t('security.key_mismatch_status_purged'), fixed: t('security.key_mismatch_status_fixed'), exhausted: t('security.key_mismatch_status_exhausted') })[action] ?? action;
+  const status = (action: string) => mismatchStatusLabel(action, t);
   return (
     <div className={mc.tableWrap}>
       <table className={mc.table}>

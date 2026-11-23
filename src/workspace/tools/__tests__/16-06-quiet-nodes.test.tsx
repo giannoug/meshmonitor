@@ -50,7 +50,9 @@ describe('16-06-quiet-nodes', () => {
     await screen.findByText('Penteli Hut');
     tick('Test bench T-Beam');
     tick('Lycabettus Hiker');
-    fireEvent.click(screen.getByRole('button', { name: 'Delete 2 node(s)' }));
+    const del = screen.getByRole('button', { name: 'Delete 2 node(s)' });
+    await waitFor(() => expect(del).toBeEnabled());
+    fireEvent.click(del);
     const sheet = await screen.findByRole('dialog');
     const confirm = within(sheet).getByRole('button', { name: 'Delete 2 node(s)' });
     await act(async () => {
@@ -65,7 +67,9 @@ describe('16-06-quiet-nodes', () => {
     const { log } = renderTools(ROUTE);
     await screen.findByText('Penteli Hut');
     tick('Penteli Hut');
-    fireEvent.click(screen.getByRole('button', { name: 'Delete 1 node(s)' }));
+    const del = screen.getByRole('button', { name: 'Delete 1 node(s)' });
+    await waitFor(() => expect(del).toBeEnabled());
+    fireEvent.click(del);
     const sheet = await screen.findByRole('dialog');
     expect(sheet).toHaveTextContent('Penteli Hut from MeshMonitor');
     expect(sheet).not.toHaveTextContent('node list too');
@@ -90,7 +94,9 @@ describe('16-06-quiet-nodes', () => {
     const days = screen.getByLabelText(/Dead after \(days\)/);
     fireEvent.change(days, { target: { value: '14' } });
     fireEvent.blur(days);
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    const save = screen.getByRole('button', { name: 'Save' });
+    await waitFor(() => expect(save).toBeEnabled());
+    fireEvent.click(save);
     await waitFor(() => expect(log.writes).toHaveLength(1));
     expect(log.writes[0]).toMatchObject({ path: '/api/settings', body: { securityDeadNodeDays: '14' } });
   });

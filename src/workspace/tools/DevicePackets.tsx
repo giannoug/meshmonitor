@@ -157,10 +157,10 @@ function DevicePackets({ sourceId, deviceName }: { sourceId: string; deviceName:
 
   const title = t('nav.packet_monitor');
   const back = { label: t('workspace.home.tools'), to: `${base}/tools` };
-  if (authLoading) return <div className={mc.page} />;
+  if (authLoading) return <div className={`${mc.page} ${styles.phoneScope}`} />;
   if (!m.canView) {
     return (
-      <div className={mc.page} data-phone={isPhone ? '' : undefined}>
+      <div className={`${mc.page} ${styles.phoneScope}`} data-phone={isPhone ? '' : undefined}>
         <ToolHead title={title} back={back} />
         <p className={mc.note}>{t('packet_monitor.no_permission')}</p>
       </div>
@@ -245,7 +245,7 @@ function DevicePackets({ sourceId, deviceName }: { sourceId: string; deviceName:
       ...(isAdmin ? [{ key: 'clear', label: t('packet_monitor.clear_all'), icon: 'delete' as const, danger: true, onSelect: () => setClearOpen(true) }] : []),
     ];
     return (
-      <div className={mc.page} data-phone="">
+      <div className={`${mc.page} ${styles.phoneScope}`} data-phone="">
         <ToolHead
           title={title}
           back={back}
@@ -277,7 +277,7 @@ function DevicePackets({ sourceId, deviceName }: { sourceId: string; deviceName:
   }
 
   return (
-    <div className={mc.page} data-panel={selected ? '' : undefined}>
+    <div className={`${mc.page} ${styles.phoneScope}`} data-panel={selected ? '' : undefined}>
       <ToolHead
         title={title}
         back={back}

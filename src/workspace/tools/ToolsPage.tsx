@@ -50,7 +50,7 @@ export default function ToolsPage({ sourceId, deviceName }: { sourceId: string; 
   );
 
   return (
-    <div className={mc.page} data-phone={isPhone ? '' : undefined}>
+    <div className={`${mc.page} ${styles.phoneScope}`} data-phone={isPhone ? '' : undefined}>
       <ToolHead title={t('workspace.home.tools')} back={{ label: t('workspace.tools.home'), to: base }} />
       <section className={mc.section} aria-label={deviceName}>
         <h2 className={mc.sectionTitle}>{deviceName}</h2>

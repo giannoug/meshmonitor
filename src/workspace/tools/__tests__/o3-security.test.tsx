@@ -60,7 +60,8 @@ describe('o3-security', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send a DM to Glyfada Beach' }));
     const box = await screen.findByPlaceholderText(/Glyfada Beach/, {}, { timeout: 8000 });
     await waitFor(() => expect(box).toHaveValue(securityNotificationText('duplicateKey', { duplicateCount: 1 })));
-    expect(nonGets().filter((r) => !r.startsWith('POST /api/messages/mark-read'))).toEqual([]);
+    // The only write is the DM view's own read mark (today's, on entry); nothing is sent.
+    expect(nonGets()).toEqual(['POST /api/messages/mark-read']);
   });
 
   it('each DM button says what Send will send, one node each', async () => {
@@ -86,7 +87,9 @@ describe('o3-security', () => {
   it('Scan now sends one scan request to the server and shows no Sends line', async () => {
     renderTools(ROUTE);
     await loaded();
-    fireEvent.click(screen.getByRole('button', { name: 'Scan now' }));
+    const scan = screen.getByRole('button', { name: 'Scan now' });
+    await waitFor(() => expect(scan).toBeEnabled());
+    fireEvent.click(scan);
     await waitFor(() => expect(nonGets().filter((r) => r === 'POST /api/security/scanner/scan')).toHaveLength(1));
     expect(nonGets()).toEqual(['POST /api/security/scanner/scan']);
   });
@@ -130,7 +133,9 @@ describe('o3-security', () => {
     await loaded();
     await waitFor(() => expect(screen.getByDisplayValue('discord://1187/Xk9f')).toBeInTheDocument());
     expect(screen.getByText('Send now posts it to the Apprise URL; nothing goes on the mesh')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    const save = screen.getByRole('button', { name: 'Save' });
+    await waitFor(() => expect(save).toBeEnabled());
+    fireEvent.click(save);
     await waitFor(() => expect(log.writes.filter((w) => w.path === '/api/settings')).toHaveLength(2));
     const sendNow = screen.getByRole('button', { name: /Send Now/ });
     await act(async () => fireEvent.click(sendNow));

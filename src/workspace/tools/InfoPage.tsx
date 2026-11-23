@@ -15,7 +15,7 @@
  * record (traceroute:write) asks first with today's words; it changes
  * MeshMonitor's records only. Nothing here sends on the mesh.
  */
-import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { version } from '../../../package.json';
@@ -23,7 +23,10 @@ import { UiIcon } from '../../components/icons';
 import DeviceCounterNote from '../../components/DeviceCounterNote';
 import RouteSegmentRecord from '../../components/RouteSegmentRecord';
 import TransportBreakdown from '../../components/TransportBreakdown';
-import { DISTRIBUTION_COLORS, type ChartDataEntry } from '../../components/PacketStatsChart';
+import {
+  availableChannels, hardwareModelChart, lastMessageTime, mostRecentlyHeardName, packetsByDeviceChart, packetsByTypeChart, portLabel,
+  portnumTypeName, radioStatsCharts,
+} from '../../components/infoTabCharts';
 import { formatUptime, useInfoTabData } from '../../components/useInfoTabData';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
@@ -102,6 +105,7 @@ function Info({ sourceId, source, group }: { sourceId: string; source: Dashboard
   const canWriteTraceroute = hasPermission('traceroute', 'write');
   const d = useInfoTabData({ connectionStatus, currentNodeId, isAuthenticated, isMqttOnlySource });
   const [showPrivateKey, setShowPrivateKey] = useState(false);
+  const clearingRef = useRef(false);
   const base = `/source/${encodeURIComponent(sourceId)}`;
   const label = (key: string) => t(key).replace(/:\s*$/, '');
   const yesNo = (v: unknown) => (v ? t('common.yes') : t('common.no'));
@@ -121,22 +125,14 @@ function Info({ sourceId, source, group }: { sourceId: string; source: Dashboard
       | { enabled: boolean; isRunning?: boolean; allowAdminCommands?: boolean; clientCount?: number; clients?: Array<{ id: string; ip: string; connectedAt: number; lastActivity: number }> }
       | null;
   }, [d.virtualNodeStatus, sourceId]);
-  // App's getAvailableChannels: configured and messaged channels, not DMs, not disabled, readable.
-  const activeChannels = useMemo(() => {
-    const set = new Set<number>(channels.map((c) => c.id));
-    view.messages.forEach((m) => set.add(m.channel));
-    return [...set].filter((ch) => {
-      if (ch === -1) return false;
-      const cfg = channels.find((c) => c.id === ch);
-      if (cfg && cfg.role === 0) return false;
-      return hasPermission(`channel_${ch}` as ResourceType, 'read');
-    });
-  }, [channels, view.messages, hasPermission]);
+  // App's getAvailableChannels and InfoTab's Recent Activity, from the same helpers (infoTabCharts).
+  const activeChannels = useMemo(
+    () => availableChannels(channels, view.messages, (ch) => hasPermission(`channel_${ch}` as ResourceType, 'read')),
+    [channels, view.messages, hasPermission],
+  );
   const lastMessage = useMemo(() => {
-    const all = [...view.messages, ...Object.values(view.channelMessages).flat()];
-    if (all.length === 0) return t('common.none');
-    const latest = all.reduce((a, b) => (b.timestamp.getTime() > a.timestamp.getTime() ? b : a));
-    return formatDateTime(latest.timestamp, settings.timeFormat, settings.dateFormat);
+    const last = lastMessageTime(view.messages, view.channelMessages);
+    return last ? formatDateTime(last, settings.timeFormat, settings.dateFormat) : t('common.none');
   }, [view.messages, view.channelMessages, settings.timeFormat, settings.dateFormat, t]);
 
   const groupTitle: Record<InfoGroup, string> = {
@@ -238,7 +234,7 @@ function Info({ sourceId, source, group }: { sourceId: string; source: Dashboard
   // ── A group's page ─────────────────────────────────────────────────────
   if (group) {
     return (
-      <div className={mc.page} data-phone={isPhone ? '' : undefined}>
+      <div className={`${mc.page} ${styles.phoneScope}`} data-phone={isPhone ? '' : undefined}>
         <ToolHead title={groupTitle[group]} subtitle={source.name} back={{ label: t('nav.info'), to: `${base}/info` }}
           actions={<Link className={mc.link} to={`${base}/info`}>{t('workspace.info.all_groups')}</Link>} phoneActions={null} />
         <Suspense fallback={<p className={mc.note}>{t('common.loading_indicator')}</p>}>
@@ -252,7 +248,16 @@ function Info({ sourceId, source, group }: { sourceId: string; source: Dashboard
           danger
           submitOnEnter={false}
           onCancel={() => d.setClearTarget(null)}
-          onConfirm={() => void d.confirmClearRecordHolder()}
+          onConfirm={async () => {
+            // One clear per confirm: a second press before the sheet closes waits for the first.
+            if (clearingRef.current) return;
+            clearingRef.current = true;
+            try {
+              await d.confirmClearRecordHolder();
+            } finally {
+              clearingRef.current = false;
+            }
+          }}
         />
       </div>
     );
@@ -314,22 +319,8 @@ function Info({ sourceId, source, group }: { sourceId: string; source: Dashboard
           </>
         );
       case 'radio': {
-        const rx = stats?.numPacketsRx || 0;
-        const tx = stats?.numPacketsTx || 0;
-        const rxBad = stats?.numPacketsRxBad || 0;
-        const rxDupe = stats?.numRxDupe || 0;
-        const txDropped = stats?.numTxDropped || 0;
-        const txRelay = stats?.numTxRelay || 0;
-        const rxData: ChartDataEntry[] = [
-          { name: t('info.rx_good'), value: Math.max(0, rx - rxBad - rxDupe), color: DISTRIBUTION_COLORS[2] },
-          { name: t('info.rx_bad_short'), value: rxBad, color: DISTRIBUTION_COLORS[1] },
-          { name: t('info.rx_dupe_short'), value: rxDupe, color: DISTRIBUTION_COLORS[3] },
-        ];
-        const txData: ChartDataEntry[] = [
-          { name: t('info.tx_direct'), value: Math.max(0, tx - txDropped - txRelay), color: DISTRIBUTION_COLORS[0] },
-          { name: t('info.tx_relay_short'), value: txRelay, color: DISTRIBUTION_COLORS[2] },
-          { name: t('info.tx_dropped_short'), value: txDropped, color: DISTRIBUTION_COLORS[1] },
-        ];
+        // Today's RX/TX breakdowns and colours (infoTabCharts).
+        const { rxTotal: rx, rxData, txTotal: tx, txData } = radioStatsCharts(stats, t);
         return (
           <>
             {card(<h2 className={mc.sectionTitle}>{t('info.lora_config')}</h2>, (
@@ -489,34 +480,16 @@ function Info({ sourceId, source, group }: { sourceId: string; source: Dashboard
   }
 
   function meshGroup() {
-    const hw = new Map<string, number>();
-    for (const n of nodes) {
-      const m = n.user?.hwModel;
-      if (m === undefined || m === 0) continue;
-      const name = getHardwareModelName(m);
-      hw.set(name, (hw.get(name) ?? 0) + 1);
-    }
-    const sorted = [...hw.entries()].sort((a, b) => b[1] - a[1]);
-    const hwData: ChartDataEntry[] = sorted.slice(0, 10).map(([name, value], i) => ({ name, value, color: DISTRIBUTION_COLORS[i % DISTRIBUTION_COLORS.length] }));
-    const hwOther = sorted.slice(10).reduce((s, [, v]) => s + v, 0);
-    if (hwOther > 0) hwData.push({ name: t('info.other_devices'), value: hwOther, color: DISTRIBUTION_COLORS[10] });
+    // Today's chart data (infoTabCharts), shared with InfoTab.
+    const other = t('info.other_devices');
+    const hw = hardwareModelChart(nodes, other);
     const dist = d.packetDistribution;
-    const deviceData: ChartDataEntry[] = (dist?.byDevice ?? []).map((x, i) => ({
-      name: x.from_node_longName || x.from_node_id || `Node ${x.from_node}`, value: x.count, color: DISTRIBUTION_COLORS[i % DISTRIBUTION_COLORS.length],
-    }));
-    const other = (dist?.total ?? 0) - deviceData.reduce((s, x) => s + x.value, 0);
-    if (other > 0) deviceData.push({ name: t('info.other_devices'), value: other, color: DISTRIBUTION_COLORS[10] });
-    const typeData: ChartDataEntry[] = (dist?.byType ?? []).map((p, i) => ({
-      name: p.portnum_name.replace(/_APP$/, '').replace(/_/g, ' '), value: p.count, color: DISTRIBUTION_COLORS[i % DISTRIBUTION_COLORS.length],
-    }));
+    const deviceData = dist ? packetsByDeviceChart(dist, other) : [];
+    const typeData = dist ? packetsByTypeChart(dist) : [];
     const byPort = d.portnumNodeDistribution;
-    const portData: ChartDataEntry[] = (byPort?.byDevice ?? []).map((x, i) => ({
-      name: x.from_node_longName || x.from_node_id || `Node ${x.from_node}`, value: x.count, color: DISTRIBUTION_COLORS[i % DISTRIBUTION_COLORS.length],
-    }));
-    const portOther = (byPort?.total ?? 0) - portData.reduce((s, x) => s + x.value, 0);
-    if (portOther > 0) portData.push({ name: t('info.other_devices'), value: portOther, color: DISTRIBUTION_COLORS[10] });
-    const selectedTypeName = dist?.byType.find((p) => p.portnum === d.selectedPortnum)?.portnum_name.replace(/_APP$/, '').replace(/_/g, ' ') ?? `Port ${d.selectedPortnum}`;
-    const mostRecent = nodes.length > 0 ? nodes.reduce((a, b) => ((a.lastHeard || 0) > (b.lastHeard || 0) ? a : b)).user?.longName || unknown : t('common.none');
+    const portData = byPort ? packetsByDeviceChart(byPort, other) : [];
+    const selectedTypeName = dist ? portnumTypeName(dist, d.selectedPortnum) : '';
+    const mostRecent = mostRecentlyHeardName(nodes, unknown) ?? t('common.none');
     return (
       <>
         {card(<h2 className={mc.sectionTitle}>{t('info.network_stats')}</h2>, (
@@ -541,9 +514,9 @@ function Info({ sourceId, source, group }: { sourceId: string; source: Dashboard
             {stats?.hostUptimeSeconds !== undefined && stats?.numPacketsTx === undefined && <p className={mc.note}>{t('info.packet_stats_unavailable')}</p>}
           </div>
         ), 'net')}
-        {hwData.length > 0 && card(<h2 className={mc.sectionTitle}>{t('info.hw_model_distribution')}</h2>, (
+        {hw && card(<h2 className={mc.sectionTitle}>{t('info.hw_model_distribution')}</h2>, (
           <div className={styles.chartCard}>
-            <PacketStatsChart title={t('info.hw_model_breakdown')} data={hwData} total={sorted.reduce((s, [, v]) => s + v, 0)} chartId="hw-model" bare stacked />
+            <PacketStatsChart title={t('info.hw_model_breakdown')} data={hw.data} total={hw.total} chartId="hw-model" bare stacked />
           </div>
         ), 'hw')}
         {dist?.enabled && card(<h2 className={mc.sectionTitle}>{t('info.packet_distribution')}</h2>, (
@@ -593,7 +566,7 @@ function Info({ sourceId, source, group }: { sourceId: string; source: Dashboard
             >
               <option value="">--</option>
               {[...dist.byType].sort((a, b) => b.count - a.count).map((p) => (
-                <option key={p.portnum} value={p.portnum}>{p.portnum_name.replace(/_APP$/, '').replace(/_/g, ' ')} ({p.count})</option>
+                <option key={p.portnum} value={p.portnum}>{portLabel(p.portnum_name)} ({p.count})</option>
               ))}
             </select>
             {d.selectedPortnum !== null && d.loadingPortnumNodes && <p className={mc.note}>{t('common.loading_indicator')}</p>}
@@ -631,7 +604,7 @@ function Info({ sourceId, source, group }: { sourceId: string; source: Dashboard
     const cards: InfoGroup[] = visible.filter((g) => g === 'connection' || g === 'radio' || g === 'node');
     const more = visible.filter((g) => !cards.includes(g));
     return (
-      <div className={mc.page} data-phone="">
+      <div className={`${mc.page} ${styles.phoneScope}`} data-phone="">
         <ToolHead title={t('nav.info')} back={{ label: t('workspace.home.tools'), to: `${base}/tools` }} />
         <p className={mc.note}><UiIcon name="info" size={18} />{t('workspace.info.phone_hint', { device: source.name })}</p>
         {cards.map((g) => (
@@ -668,7 +641,7 @@ function Info({ sourceId, source, group }: { sourceId: string; source: Dashboard
   }
 
   return (
-    <div className={mc.page}>
+    <div className={`${mc.page} ${styles.phoneScope}`}>
       <ToolHead title={t('nav.info')} subtitle={t('workspace.info.subtitle', { device: source.name })} back={{ label: t('workspace.home.tools'), to: `${base}/tools` }} />
       {!deviceConfig && !isMqttOnlySource && <p className={mc.note}>{t('info.device_config_unavailable')}</p>}
       <div className={mc.grid}>

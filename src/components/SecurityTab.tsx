@@ -22,15 +22,12 @@ import { useSecurityFormat } from './security/useSecurityFormat';
 import securityStyles from './security/SecurityIssues.module.css';
 import type { NotifyKind, NotifyState, SecurityIssueView } from './security/securityTypes';
 import { notifyStateOf, useSecurityData } from './security/useSecurityData';
+import { groupDuplicateKeyNodes, mismatchStatusLabel } from './security/securityHelpers';
 import { useResolvedSourceId } from '../hooks/useResolvedSourceId';
 import '../styles/SecurityTab.css';
 
 type SecurityNode = SecurityIssueView;
 
-interface DuplicateKeyGroup {
-  publicKey: string;
-  nodes: SecurityNode[];
-}
 
 interface SecurityTabProps {
   onTabChange?: (tab: TabType) => void;
@@ -76,22 +73,6 @@ export const SecurityTab: React.FC<SecurityTabProps> = ({ onOpenNode, onOpenDmWi
   const canWriteNodes = hasPermission('nodes', 'write', { sourceId });
   const canEditSettings = hasPermission('settings', 'write');
 
-  const groupDuplicateKeyNodes = (nodes: SecurityNode[]): DuplicateKeyGroup[] => {
-    const duplicateNodes = nodes.filter(node => node.duplicateKeyDetected && node.publicKey);
-    const groups = new Map<string, SecurityNode[]>();
-
-    duplicateNodes.forEach(node => {
-      if (node.publicKey) {
-        const existing = groups.get(node.publicKey) || [];
-        existing.push(node);
-        groups.set(node.publicKey, existing);
-      }
-    });
-
-    return Array.from(groups.entries())
-      .filter(([_, nodeList]) => nodeList.length > 1) // Only show groups with multiple nodes
-      .map(([publicKey, nodeList]) => ({ publicKey, nodes: nodeList }));
-  };
 
   const handleNodeClick = useCallback((nodeKey: string) => {
     // Check if user has permission to view messages before navigating
@@ -154,15 +135,7 @@ export const SecurityTab: React.FC<SecurityTabProps> = ({ onOpenNode, onOpenDmWi
     [caps.notifyDm, onOpenDmWithDraft, hasPermission, sourceId, t],
   );
 
-  const getMismatchStatusLabel = (action: string): string => {
-    switch (action) {
-      case 'mismatch': return t('security.key_mismatch_status_pending');
-      case 'purge': return t('security.key_mismatch_status_purged');
-      case 'fixed': return t('security.key_mismatch_status_fixed');
-      case 'exhausted': return t('security.key_mismatch_status_exhausted');
-      default: return action;
-    }
-  };
+  const getMismatchStatusLabel = (action: string): string => mismatchStatusLabel(action, t);
 
   if (loading) {
     return (

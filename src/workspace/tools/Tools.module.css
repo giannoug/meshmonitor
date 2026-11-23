@@ -706,3 +706,23 @@
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
+
+/*
+ * Phone targets (≥ 44 px). A page root carries `phoneScope` beside McTools'
+ * page; sheet content portals to <body>, so its own wrapper carries
+ * `phoneScope` and `data-phone` too.
+ */
+.phoneScope[data-phone] .input,
+.phoneScope[data-phone] .segButton,
+.phoneScope[data-phone] .groupLink,
+.phoneScope[data-phone] .textButton,
+.sheetBody[data-phone] button,
+.panelActions[data-phone] button {
+  min-height: 44px;
+}
+
+.sheetBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

@@ -135,7 +135,7 @@ export default function QuietNodes({
   );
   if (loading) {
     return (
-      <div className={mc.page} data-phone={isPhone ? '' : undefined}>
+      <div className={`${mc.page} ${styles.phoneScope}`} data-phone={isPhone ? '' : undefined}>
         {head}
         <StateView kind="loading" />
       </div>
@@ -143,7 +143,7 @@ export default function QuietNodes({
   }
   if (forbidden) {
     return (
-      <div className={mc.page} data-phone={isPhone ? '' : undefined}>
+      <div className={`${mc.page} ${styles.phoneScope}`} data-phone={isPhone ? '' : undefined}>
         {head}
         <p className={mc.note} data-testid="security-dead-nodes-forbidden">{t('security.mc_no_node_access')}</p>
       </div>
@@ -151,7 +151,7 @@ export default function QuietNodes({
   }
 
   return (
-    <div className={mc.page} data-phone={isPhone ? '' : undefined}>
+    <div className={`${mc.page} ${styles.phoneScope}`} data-phone={isPhone ? '' : undefined}>
       {head}
       {isPhone && (
         <p className={mc.note}>

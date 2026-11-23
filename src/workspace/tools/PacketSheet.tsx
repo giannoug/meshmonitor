@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '../../components/ToastContainer';
 import type { PacketLog } from '../../types/packet';
 import PacketDetailPanel from '../overview/PacketDetailPanel';
+import { useIsPhone } from '../shell/useIsPhone';
 import { fullJson } from '../overview/packetRows';
 import mc from '../meshcore/McTools.module.css';
 import styles from './Tools.module.css';
@@ -19,6 +20,8 @@ export default function PacketSheet({ packet, sourceId, onClose }: { packet: Pac
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  // The sheet portals to <body>, outside the page's phone scope: its buttons size themselves.
+  const isPhone = useIsPhone();
   const sender = packet.from_node_id && packet.from_node_id !== '!ffffffff' ? packet.from_node_id : null;
   const copy = async () => {
     try {
@@ -29,7 +32,7 @@ export default function PacketSheet({ packet, sourceId, onClose }: { packet: Pac
     }
   };
   const actions = (
-    <div className={styles.panelActions}>
+    <div className={styles.panelActions} data-phone={isPhone ? '' : undefined}>
       <button type="button" className={mc.button} onClick={() => void copy()}>
         {t('workspace.meshcore.copy_json')}
       </button>

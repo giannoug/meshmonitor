@@ -1,4 +1,5 @@
 import React, { Suspense, useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { availableChannels } from './components/infoTabCharts';
 import { useTranslation } from 'react-i18next';
 // Popup and Polyline moved to useTraceroutePaths hook
 // Recharts imports moved to useTraceroutePaths hook
@@ -2126,40 +2127,8 @@ function App() {
     return (node?.user?.shortName && node.user.shortName.trim()) || nodeId.slice(-4);
   };
 
-  const getAvailableChannels = (): number[] => {
-    const channelSet = new Set<number>();
-
-    // Add channels from channel configurations first (these are authoritative)
-    channels.forEach(ch => channelSet.add(ch.id));
-
-    // Add channels from messages
-    messages.forEach(msg => {
-      channelSet.add(msg.channel);
-    });
-
-    // Filter out channel -1 (used for direct messages), disabled channels (role = 0),
-    // and channels the user doesn't have permission to read
-    return Array.from(channelSet)
-      .filter(ch => {
-        if (ch === -1) return false; // Exclude DM channel
-
-        // Check if channel has a configuration
-        const channelConfig = channels.find(c => c.id === ch);
-
-        // If channel has config and role is Disabled (0), exclude it
-        if (channelConfig && channelConfig.role === 0) {
-          return false;
-        }
-
-        // Check if user has permission to read this channel
-        if (!hasPermission(`channel_${ch}` as ResourceType, 'read')) {
-          return false;
-        }
-
-        return true;
-      })
-      .sort((a, b) => a - b);
-  };
+  const getAvailableChannels = (): number[] =>
+    availableChannels(channels, messages, ch => hasPermission(`channel_${ch}` as ResourceType, 'read'));
 
   // sortNodes, filterNodes, processedNodes, and centerMapOnNode moved to
   // useSourceView (#3962 5.4 PR4)

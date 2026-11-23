@@ -7,7 +7,7 @@
  * Show; Clear record asks first with today's words. Opening it sends nothing.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { fetched, G2, nonGets, renderTools } from './renderTools';
 
@@ -72,14 +72,21 @@ describe('o2-info', () => {
     expect(screen.getByText('meshdev')).toBeInTheDocument();
   });
 
-  it('Clear Record asks first with today\'s words, then sends one DELETE', async () => {
+  it('Clear Record asks first with today\'s words, then sends one DELETE, even when pressed twice', async () => {
     renderTools(`${G2}/info/records`, { fixtures: { 'DELETE /api/route-segments/record-holder': () => ({ success: true }) } });
     fireEvent.click(await screen.findByRole('button', { name: /Clear Record/ }));
     const sheet = await screen.findByRole('dialog', { name: 'Clear Record Holder?' });
     expect(sheet).toHaveTextContent('Are you sure you want to clear the RF record holder? This action cannot be undone.');
     expect(nonGets()).toEqual([]);
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Clear Record' }));
+    const confirm = within(sheet).getByRole('button', { name: 'Clear Record' });
+    await waitFor(() => expect(confirm).toBeEnabled());
+    // A double press still clears once.
+    await act(async () => {
+      fireEvent.click(confirm);
+      fireEvent.click(confirm);
+    });
     await waitFor(() => expect(nonGets().filter((r) => r.startsWith('DELETE /api/route-segments/record-holder'))).toHaveLength(1));
+    expect(nonGets()).toEqual(['DELETE /api/route-segments/record-holder?sourceId=src-g2&transport=rf']);
   });
 
   it('an unknown group goes back to Info', async () => {

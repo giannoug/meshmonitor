@@ -14,8 +14,7 @@ import TransportSeriesGraphs from './TransportSeriesGraphs';
 import { version } from '../../package.json';
 import { type RouteSegmentRecords, type RouteSegmentView } from '../services/api';
 import { getDeviceRoleName } from '../utils/deviceRole';
-import { getHardwareModelName } from '../utils/hardwareModel';
-import PacketStatsChart, { ChartDataEntry, DISTRIBUTION_COLORS } from './PacketStatsChart';
+import PacketStatsChart from './PacketStatsChart';
 import { useSource } from '../contexts/SourceContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useDashboardSources } from '../hooks/useDashboardData';
@@ -24,6 +23,9 @@ import TransportBreakdown from './TransportBreakdown';
 import RouteSegmentRecord from './RouteSegmentRecord';
 import DeviceCounterNote from './DeviceCounterNote';
 import { formatUptime, useInfoTabData } from './useInfoTabData';
+import {
+  hardwareModelChart, lastMessageTime, mostRecentlyHeardName, packetsByDeviceChart, packetsByTypeChart, portnumTypeName, radioStatsCharts,
+} from './infoTabCharts';
 import { countNodesByTransport, transportCutoffSec, isMqttOnlySourceType, type NodeTransportClass } from '../utils/nodeTransport';
 
 const TRANSPORT_FILTER_OPTIONS = ['all', 'rf', 'udp', 'mqtt'] as const;
@@ -442,35 +444,9 @@ const InfoTab: React.FC<InfoTabProps> = React.memo(({
         </div>
 
         {(() => {
-          const counts = new Map<string, number>();
-          for (const n of nodes) {
-            const hw = n.user?.hwModel;
-            if (hw === undefined || hw === 0) continue;
-            const name = getHardwareModelName(hw);
-            counts.set(name, (counts.get(name) ?? 0) + 1);
-          }
-          if (counts.size === 0) return null;
-
-          const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-          const TOP_N = 10;
-          const top = sorted.slice(0, TOP_N);
-          const rest = sorted.slice(TOP_N);
-
-          const hwData: ChartDataEntry[] = top.map(([name, value], i) => ({
-            name,
-            value,
-            color: DISTRIBUTION_COLORS[i % DISTRIBUTION_COLORS.length],
-          }));
-          const otherCount = rest.reduce((sum, [, v]) => sum + v, 0);
-          if (otherCount > 0) {
-            hwData.push({
-              name: t('info.other_devices'),
-              value: otherCount,
-              color: DISTRIBUTION_COLORS[10],
-            });
-          }
-
-          const total = sorted.reduce((sum, [, v]) => sum + v, 0);
+          const hw = hardwareModelChart(nodes, t('info.other_devices'));
+          if (!hw) return null;
+          const { data: hwData, total } = hw;
 
           return (
             <div className="info-section">
@@ -488,27 +464,7 @@ const InfoTab: React.FC<InfoTabProps> = React.memo(({
         })()}
 
         {(localStats?.numPacketsRx > 0 || localStats?.numPacketsTx > 0) && (() => {
-          const rxTotal = localStats.numPacketsRx || 0;
-          const rxBad = localStats.numPacketsRxBad || 0;
-          const rxDupe = localStats.numRxDupe || 0;
-          const rxGood = Math.max(0, rxTotal - rxBad - rxDupe);
-          const rxData: ChartDataEntry[] = [
-            { name: t('info.rx_good'), value: rxGood, color: '#a6e3a1' },
-            { name: t('info.rx_bad_short'), value: rxBad, color: '#f38ba8' },
-            { name: t('info.rx_dupe_short'), value: rxDupe, color: '#fab387' },
-          ];
-
-          const txTotal = localStats.numPacketsTx || 0;
-          const txDropped = localStats.numTxDropped || 0;
-          const txRelay = localStats.numTxRelay || 0;
-          // Note: numTxRelayCanceled is NOT part of numPacketsTx - it counts packets
-          // that were never transmitted because another node relayed first
-          const txDirect = Math.max(0, txTotal - txDropped - txRelay);
-          const txData: ChartDataEntry[] = [
-            { name: t('info.tx_direct'), value: txDirect, color: '#89b4fa' },
-            { name: t('info.tx_relay_short'), value: txRelay, color: '#a6e3a1' },
-            { name: t('info.tx_dropped_short'), value: txDropped, color: '#f38ba8' },
-          ];
+          const { rxTotal, rxData, txTotal, txData } = radioStatsCharts(localStats, t);
 
           return (
             <div className="info-section">
@@ -540,30 +496,9 @@ const InfoTab: React.FC<InfoTabProps> = React.memo(({
 
         {/* Packet Distribution Charts - only shown when packet monitor is enabled */}
         {packetDistribution?.enabled && (() => {
-          // Prepare device data with "Other" grouping
-          const deviceData: ChartDataEntry[] = packetDistribution.byDevice.map((d, i) => ({
-            name: d.from_node_longName || d.from_node_id || `Node ${d.from_node}`,
-            value: d.count,
-            color: DISTRIBUTION_COLORS[i % DISTRIBUTION_COLORS.length]
-          }));
-
-          // Calculate "Other" if there are more devices beyond top 10
-          const deviceTotal = deviceData.reduce((sum, d) => sum + d.value, 0);
-          const otherCount = packetDistribution.total - deviceTotal;
-          if (otherCount > 0) {
-            deviceData.push({
-              name: t('info.other_devices'),
-              value: otherCount,
-              color: DISTRIBUTION_COLORS[10] // Use the gray color for "Other"
-            });
-          }
-
-          // Prepare type data
-          const typeData: ChartDataEntry[] = packetDistribution.byType.map((p, i) => ({
-            name: p.portnum_name.replace(/_APP$/, '').replace(/_/g, ' '),
-            value: p.count,
-            color: DISTRIBUTION_COLORS[i % DISTRIBUTION_COLORS.length]
-          }));
+          // Prepare device data with "Other" grouping, and type data
+          const deviceData = packetsByDeviceChart(packetDistribution, t('info.other_devices'));
+          const typeData = packetsByTypeChart(packetDistribution);
 
           const timeRangeButtonStyle = (active: boolean): React.CSSProperties => ({
             padding: '0.25rem 0.75rem',
@@ -731,25 +666,8 @@ const InfoTab: React.FC<InfoTabProps> = React.memo(({
                 );
               }
 
-              const portnumDeviceData: ChartDataEntry[] = portnumNodeDistribution.byDevice.map((d, i) => ({
-                name: d.from_node_longName || d.from_node_id || `Node ${d.from_node}`,
-                value: d.count,
-                color: DISTRIBUTION_COLORS[i % DISTRIBUTION_COLORS.length]
-              }));
-
-              const portnumDeviceTotal = portnumDeviceData.reduce((sum, d) => sum + d.value, 0);
-              const portnumOtherCount = portnumNodeDistribution.total - portnumDeviceTotal;
-              if (portnumOtherCount > 0) {
-                portnumDeviceData.push({
-                  name: t('info.other_devices'),
-                  value: portnumOtherCount,
-                  color: DISTRIBUTION_COLORS[10]
-                });
-              }
-
-              const selectedTypeName = packetDistribution.byType
-                .find((p) => p.portnum === selectedPortnum)
-                ?.portnum_name.replace(/_APP$/, '').replace(/_/g, ' ') ?? `Port ${selectedPortnum}`;
+              const portnumDeviceData = packetsByDeviceChart(portnumNodeDistribution, t('info.other_devices'));
+              const selectedTypeName = portnumTypeName(packetDistribution, selectedPortnum);
 
               return (
                 <PacketStatsChart
@@ -801,22 +719,11 @@ const InfoTab: React.FC<InfoTabProps> = React.memo(({
         <div className="info-section">
           <h3>{t('info.recent_activity')}</h3>
           <p><strong>{t('info.last_message')}</strong> {(() => {
-            // Combine all messages from DMs and all channels
-            const allMessages = [
-              ...messages,
-              ...Object.values(channelMessages).flat()
-            ];
-            if (allMessages.length === 0) return t('common.none');
-            const mostRecent = allMessages.reduce((latest, msg) =>
-              msg.timestamp.getTime() > latest.timestamp.getTime() ? msg : latest
-            );
-            return formatDateTime(mostRecent.timestamp, timeFormat, dateFormat);
+            const last = lastMessageTime(messages, channelMessages);
+            return last ? formatDateTime(last, timeFormat, dateFormat) : t('common.none');
           })()}</p>
           <p><strong>{t('info.most_active_node')}</strong> {
-            nodes.length > 0 ?
-            nodes.reduce((prev, current) =>
-              (prev.lastHeard || 0) > (current.lastHeard || 0) ? prev : current
-            ).user?.longName || t('info.unknown') : t('common.none')
+            mostRecentlyHeardName(nodes, t('info.unknown')) ?? t('common.none')
           }</p>
         </div>
 
