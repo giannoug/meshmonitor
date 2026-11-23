@@ -1,19 +1,19 @@
 {
   "must": [
     "Trigger pattern",
-    "Pattern testing",
-    "Response matrix",
+    "Pattern Testing",
+    "Response Matrix",
     "Tapback",
     "Message",
     "Respond via DM",
     "0 hops",
     "Multi-hop",
     "IP",
-    "Per-sender cooldown",
+    "Per-Sender Cooldown",
     "Maximum number of responses",
-    "Resend attempts",
+    "Resend Attempts",
     "Convert to rule",
-    "Sends"
+    "60 s cooldown per sender"
   ],
   "absent": [],
   "source": "checks/s14.json"

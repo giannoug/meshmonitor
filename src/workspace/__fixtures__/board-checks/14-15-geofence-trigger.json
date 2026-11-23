@@ -4,7 +4,7 @@
     "Polygon",
     "Entry",
     "Cooldown",
-    "Sends",
+    "1 message per node per trigger’s cooldown",
     "Test"
   ],
   "absent": [],

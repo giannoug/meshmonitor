@@ -23,6 +23,7 @@ import { MC, meshcoreFixtures, type MeshCoreFixtureOptions } from '../../src/wor
 import { regionFeedFixtures } from '../../src/workspace/__fixtures__/meshcoreTools';
 import { RNS, reticulumFixtures, type ReticulumFixtureOptions } from '../../src/workspace/__fixtures__/reticulum';
 import { dashboardFixtures, overviewBoard, phoneBoard, savedBoard } from '../../src/workspace/__fixtures__/dashboard';
+import { automationFixtures } from '../../src/workspace/__fixtures__/automations';
 
 export interface Board {
   id: string;
@@ -2053,7 +2054,36 @@ export const BOARDS: Board[] = [
   // Task 8.2: the Overview dashboard, one row per device, then the user's Overview board.
   { id: 'j3-overview-dashboard', size: 'desktop', path: '/overview/dashboard', fixtures: OVERVIEW_DASHBOARD(), setup: overviewDashboardLoaded },
   { id: '16-04-overview-dashboard', size: 'phone', path: '/overview/dashboard', fixtures: OVERVIEW_DASHBOARD(), setup: overviewDashboardLoaded },
+  // Task 8.3: Station G2's Automations, its built-ins list and the drawn built-ins.
+  { id: 'm1-automations', size: 'desktop', path: '/source/src-g2/automation', fixtures: AUTOMATIONS(), setup: (page) => page.getByRole('link', { name: 'Open Weather bot' }).waitFor() },
+  { id: 'n1-automations', size: 'phone', path: '/source/src-g2/automation', fixtures: AUTOMATIONS(), setup: (page) => page.getByRole('link', { name: 'Open Weather bot' }).waitFor() },
+  { id: '14-05-builtins-list', size: 'desktop', path: '/source/src-g2/automation/builtins', fixtures: AUTOMATIONS(), setup: (page) => page.getByText('4 ignored').waitFor() },
+  { id: '14-14-builtins-list', size: 'phone', path: '/source/src-g2/automation/builtins', fixtures: AUTOMATIONS(), setup: (page) => page.getByText('4 ignored').waitFor() },
+  { id: 'm3-builtin', size: 'desktop', path: '/source/src-g2/automation/auto-acknowledge', fixtures: AUTOMATIONS(), setup: (page) => page.getByText('Response Matrix').first().waitFor() },
+  { id: '14-08-auto-acknowledge', size: 'desktop', path: '/source/src-g2/automation/auto-acknowledge', fixtures: AUTOMATIONS(), setup: (page) => page.getByText('Response Matrix').first().waitFor() },
+  { id: '14-16-auto-acknowledge', size: 'phone', path: '/source/src-g2/automation/auto-acknowledge', fixtures: AUTOMATIONS(), setup: (page) => page.getByText('Response Matrix').first().waitFor() },
+  { id: 'n4-builtin', size: 'phone', path: '/source/src-g2/automation/auto-announce', fixtures: AUTOMATIONS(), setup: (page) => page.getByText('Next announcement').waitFor() },
+  { id: '14-06-auto-responder', size: 'desktop', path: '/source/src-g2/automation/auto-responder', fixtures: AUTOMATIONS(), setup: (page) => openTrigger(page, 0, true) },
+  { id: '14-12-responder-trigger', size: 'phone', path: '/source/src-g2/automation/auto-responder', fixtures: AUTOMATIONS(), setup: (page) => openTrigger(page, 0, false) },
+  { id: '14-07-geofence-trigger', size: 'desktop', path: '/source/src-g2/automation/geofence-triggers', fixtures: AUTOMATIONS(), setup: (page) => openTrigger(page, 0, false) },
+  { id: '14-15-geofence-trigger', size: 'phone', path: '/source/src-g2/automation/geofence-triggers', fixtures: AUTOMATIONS(), setup: (page) => openTrigger(page, 0, false) },
 ];
+
+/** Station G2's automations (Task 8.3), a fresh log per board. */
+function AUTOMATIONS(): Board['fixtures'] {
+  return automationFixtures({ writes: [] });
+}
+
+/** A built-in's trigger list: Edit the `i`th trigger; with `test`, run its script test in the sheet. */
+async function openTrigger(page: Page, i: number, test: boolean): Promise<void> {
+  await page.getByRole('button', { name: 'Edit' }).nth(i).click();
+  const sheet = page.getByRole('dialog');
+  await sheet.waitFor();
+  if (test) {
+    await sheet.getByRole('button', { name: /Run Test/ }).click();
+    await sheet.getByText('Marousi 17 °C, wind 9 km/h N, clear').waitFor();
+  }
+}
 
 /** The user's Overview board (Task 8.2) over the Dashboard fixture. */
 function OVERVIEW_DASHBOARD(): Board['fixtures'] {

@@ -1,10 +1,10 @@
 {
   "must": [
     "Trigger pattern",
-    "Response matrix",
-    "Per-sender cooldown",
+    "Response Matrix",
+    "Per-Sender Cooldown",
     "Convert to rule",
-    "Sends"
+    "60 s cooldown per sender"
   ],
   "absent": [],
   "source": "checks/s14.json"

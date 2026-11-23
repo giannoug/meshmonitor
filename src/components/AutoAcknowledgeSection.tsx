@@ -7,7 +7,7 @@ import { useCsrfFetch } from '../hooks/useCsrfFetch';
 import { useSourceQuery } from '../hooks/useSourceQuery';
 import { useSource } from '../contexts/SourceContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { formatTime, formatDate } from '../utils/datetime';
+import { autoAckSampleMessage } from '../utils/autoAckSample';
 import { Channel } from '../types/device';
 import { useSaveBar } from '../hooks/useSaveBar';
 import {
@@ -261,47 +261,8 @@ const AutoAcknowledgeSection: React.FC<AutoAcknowledgeSectionProps> = ({
   };
 
   // Generate sample message with example token values
-  const generateSampleMessage = (isDirect: boolean = false): string => {
-    let sample = isDirect ? localMessageDirect : localMessage;
-
-    // Replace with sample values
-    const now = new Date();
-    sample = sample.replace(/{NODE_ID}/g, '!a1b2c3d4');
-    sample = sample.replace(/{NUMBER_HOPS}/g, isDirect ? '0' : '3');
-    sample = sample.replace(/{HOPS}/g, isDirect ? '0' : '3');
-    sample = sample.replace(/{RABBIT_HOPS}/g, isDirect ? '🎯' : '🐇🐇🐇'); // 🎯 for direct, 3 rabbits for 3 hops
-    sample = sample.replace(/{DATE}/g, formatDate(now, dateFormat));
-    sample = sample.replace(/{TIME}/g, formatTime(now, timeFormat));
-    sample = sample.replace(/{VERSION}/g, '2.9.1');
-    sample = sample.replace(/{DURATION}/g, '3d 12h');
-    sample = sample.replace(/{LONG_NAME}/g, 'Meshtastic ABC1');
-    sample = sample.replace(/{SHORT_NAME}/g, 'ABC1');
-
-    // Check which features would be shown
-    const sampleFeatures: string[] = [];
-    sampleFeatures.push('🗺️'); // Traceroute
-    sampleFeatures.push('🤖'); // Auto-ack
-    sampleFeatures.push('📢'); // Auto-announce
-    sampleFeatures.push('👋'); // Auto-welcome
-    sampleFeatures.push('🏓'); // Auto-ping
-    sampleFeatures.push('🔑'); // Auto-key management
-    sampleFeatures.push('💬'); // Auto-responder
-    sampleFeatures.push('⏱️'); // Timed triggers
-    sampleFeatures.push('📍'); // Geofence triggers
-    sampleFeatures.push('🔍'); // Remote admin scan
-    sampleFeatures.push('🕐'); // Auto time sync
-    sample = sample.replace(/{FEATURES}/g, sampleFeatures.join(' '));
-
-    sample = sample.replace(/{NODECOUNT}/g, '42');
-    sample = sample.replace(/{DIRECTCOUNT}/g, '8');
-    sample = sample.replace(/{TOTALNODES}/g, '156');
-    sample = sample.replace(/{SNR}/g, '7.5');
-    sample = sample.replace(/{RSSI}/g, '-95');
-    sample = sample.replace(/{TRANSPORT}/g, 'LoRa'); // Sample transport type
-    sample = sample.replace(/{LAST_HOP}/g, isDirect ? 'unknown' : 'RLY1'); // Relay short name (no relay on direct)
-
-    return sample;
-  };
+  const generateSampleMessage = (isDirect: boolean = false): string =>
+    autoAckSampleMessage(isDirect ? localMessageDirect : localMessage, isDirect, { dateFormat, timeFormat });
 
   // Immutably update a single field of a single matrix cell.
   // Toggling reply off also forces replyDm off (reply-DM applies to the reply only).

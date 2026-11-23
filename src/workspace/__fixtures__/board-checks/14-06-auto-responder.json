@@ -13,11 +13,10 @@
     "Cooldown",
     "Channels",
     "Live test",
-    "Import script",
-    "Export",
-    "Test script",
-    "Would send",
-    "Console output"
+    "Test Script",
+    "Would Send to Mesh",
+    "Console Output",
+    "Scripts"
   ],
   "absent": [],
   "source": "checks/s14.json"

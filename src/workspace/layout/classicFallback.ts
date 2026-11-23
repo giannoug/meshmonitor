@@ -24,6 +24,8 @@ const RULES: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
   [/^\/source\/([^/]+)\/map\/?$/, (m) => `/source/${m[1]}/nodes`],
   [/^\/source\/([^/]+)\/(dms|activity|room)(\/.*)?$/, (m) => `/source/${m[1]}/`],
   [/^\/automations\/[^/]+(\/.*)?$/, () => '/automations'],
+  // A Meshtastic built-in's page and the built-ins list (Task 8.3) are Classic's Automation tab.
+  [/^\/source\/([^/]+)\/automation\/[^/]+\/?$/, (m) => `/source/${m[1]}/automation`],
 ];
 
 /** The Classic path for a Workspace-only path, or null when Classic serves it as is. */

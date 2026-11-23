@@ -14,7 +14,7 @@
     "Cooldown",
     "Verify response",
     "Test",
-    "Sends"
+    "1 message per node per trigger’s cooldown"
   ],
   "absent": [],
   "source": "checks/s14.json"

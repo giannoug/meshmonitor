@@ -99,6 +99,8 @@ export default function PhoneShell({ sources, openId, home, mode, children }: Ph
       !!matchPath('/source/:id/map', pathname) ||
       !!matchPath('/source/:id/nodes', pathname) ||
       !!matchPath('/source/:id/node/*', pathname) ||
+      // Automations and each built-in have Back (n1, n4, 14-12 … 14-16, Task 8.3).
+      !!matchPath('/source/:id/automation/*', pathname) ||
       (isMqttOnlySourceType(source.type) && !!matchPath('/source/:id/packetmonitor', pathname)) ||
       // Device settings (b-set-p1-list, 12-22): the list and each page have Back, on a remote target too (Task 5.9).
       !!matchPath('/source/:id/settings/*', pathname)));

@@ -10,6 +10,7 @@
  * Run now and the per-node rows are their own controls (`extra`).
  */
 import type { TFunction } from 'i18next';
+import type { ReactNode } from 'react';
 import { isValidCron } from 'cron-validator';
 import apiService from '../../../services/api';
 import { validateForwardingRules, type ForwardingRule } from '../../../types/forwarding';
@@ -65,6 +66,10 @@ export interface Field {
   /** The item's errors, or null. `isNew`: not in the saved list. */
   validateItem?(item: Values, isNew: boolean): string | null;
   itemEnabledKey?: string;
+  /** list: a search box over the items (its label, read by screen readers). */
+  searchLabel?: string;
+  /** list: more of the item's controls under its fields in the sheet (a map, a test). */
+  itemExtra?(item: Values, setItem: (item: Values) => void): ReactNode;
 }
 
 export type Extra = 'announce' | 'timers' | 'distance' | 'favorite' | 'autoPing' | 'timeSync' | 'remoteTelemetry' | 'forwarding';

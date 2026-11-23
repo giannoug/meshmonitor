@@ -9,7 +9,9 @@
  *   a DM (`dm/<nodeId>`) its own DmConversation, the DM inbox (`dms`) its
  *   DmInbox, Activity (`activity`) its ActivityFeed (Task 2.8), the device map
  *   (`map`) its DeviceMap (Task 3.1), Nodes (`nodes`) its NodesPage (Task 3.3), the
- *   Dashboard (`dashboard`) its DeviceDashboard (Task 8.1), an MQTT
+ *   Dashboard (`dashboard`) its DeviceDashboard (Task 8.1), Automations
+ *   (`automation[/builtins|/<built-in>]`, and today's `automation#<built-in>`)
+ *   its DeviceAutomations (Task 8.3), an MQTT
  *   source's packet monitor (`packetmonitor`) its MqttReceptions (Task 4.7), and the bare
  *   source URL on a phone its PhoneHome (Task 2.6), and device settings
  *   (`settings[/…]`, and the Classic URLs that redirect there) its
@@ -71,6 +73,7 @@ import type { NodeTab } from '../node-page/NodePage';
 import { useIsPhone } from '../shell/useIsPhone';
 import type { MeshCoreScreenKind } from '../meshcore/MeshCoreScreen';
 import { isMqttOnlySourceType } from '../../utils/nodeTransport';
+import { BUILTIN_IDS } from '../automations/ids';
 import styles from './WorkspaceSource.module.css';
 
 // The same chunks Classic loads (main.tsx); Reticulum's page is the Workspace's own (Task 7.6).
@@ -106,6 +109,9 @@ const NODE_TABS: readonly string[] = ['telemetry', 'links', 'position', 'admin']
 /** `dashboard`: the Workspace Dashboard (Task 8.1). */
 const MeshtasticDashboard = lazy(() => import('../dashboard/DeviceDashboard.tsx'));
 const DASHBOARD_PATH = /^dashboard\/?$/;
+/** `automation[/builtins|/<built-in>]`: the Workspace device Automations (Task 8.3); today's `automation#<built-in>` opens that built-in's page. */
+const DeviceAutomations = lazy(() => import('../automations/DeviceAutomations.tsx'));
+const AUTOMATION_PATH = /^automation(?:\/([^/]+))?\/?$/;
 /** `packetmonitor` on an MQTT source: the Workspace receptions page (Task 4.7); other sources keep today's until Task 8.5. */
 const MqttReceptions = lazy(() => import('../tools/MqttReceptions.tsx'));
 const PACKETS_PATH = /^packetmonitor\/?$/;
@@ -293,6 +299,20 @@ export default function WorkspaceSource() {
         </Redirect>
       );
     }
+  }
+
+  // Today's Automation tab gate (App.tsx tabPermissions): not an MQTT bridge, automation:read on this device.
+  const automation = source && source.type !== 'mqtt_bridge' && hasPermission('automation', 'read', { sourceId }) && splat.match(AUTOMATION_PATH);
+  if (automation) {
+    const anchor = !automation[1] ? location.hash.replace(/^#/, '') : '';
+    const page = automation[1] ?? ((BUILTIN_IDS as readonly string[]).includes(anchor) ? anchor : '');
+    return (
+      <Redirect to={page && !automation[1] ? `${base}/automation/${page}` : null}>
+        <Rehost>
+          <DeviceAutomations key={sourceId} sourceId={sourceId} source={source} path={page} />
+        </Rehost>
+      </Redirect>
+    );
   }
 
   const chat = source && splat.match(CHAT_PATH);

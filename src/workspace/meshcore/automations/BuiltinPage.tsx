@@ -50,19 +50,66 @@ interface BuiltinPageProps {
   reload(): void;
 }
 
-export default function BuiltinPage({ b, result, onSaved, reload }: BuiltinPageProps) {
+/** What a built-in's own parts see: the values on screen, the saved ones, and the page's edit. */
+export interface BuiltinPartProps {
+  values: Values;
+  saved: Values;
+  dirty: boolean;
+  canWrite: boolean;
+  readOnly: boolean;
+  set(values: Values): void;
+}
+
+export interface BuiltinViewProps extends BuiltinPageProps {
+  sourceId: string;
+  /** Receive-only: a transmitting built-in shows `pausedNote`. */
+  receiveOnly: boolean;
+  pausedNote: string;
+  canWrite: boolean;
+  back: { label: string; to: string };
+  /** Under the title (desktop; on the phone too with `phoneSubtitle`). */
+  subtitle?: ReactNode;
+  phoneSubtitle?: boolean;
+  /** The head's end (desktop) or the phone bar's end: the built-in's own switch. */
+  headActions?(p: BuiltinPartProps): ReactNode;
+  /** Before the fields (a banner), and after them (the controls that act at once). */
+  top?(p: BuiltinPartProps): ReactNode;
+  extra?(p: BuiltinPartProps): ReactNode;
+}
+
+/** A MeshCore built-in's page: the view inside today's runtime, with its controls that act at once. */
+export default function BuiltinPage(props: BuiltinPageProps) {
   const { t } = useTranslation();
-  const isPhone = useIsPhone();
   const { sourceId, receiveOnly } = useMeshCoreRuntime();
   const { hasPermission } = useAuth();
-  const canWrite = hasPermission('automation', 'write', { sourceId });
-  const base = `/source/${encodeURIComponent(sourceId)}`;
-  const back = { label: t('workspace.meshcore.auto.title'), to: `${base}/automations` };
+  return (
+    <BuiltinView
+      {...props}
+      sourceId={sourceId}
+      receiveOnly={receiveOnly}
+      pausedNote={t('meshcore.receive_only.paused_note', 'Paused — receive-only mode. These settings are saved and unchanged; they take effect again when receive-only is turned off.')}
+      canWrite={hasPermission('automation', 'write', { sourceId })}
+      back={{ label: t('workspace.meshcore.auto.title'), to: `/source/${encodeURIComponent(sourceId)}/automations` }}
+      subtitle={props.b.description}
+      extra={(p) => <ExtraPart b={props.b} values={p.values} saved={p.saved} dirty={p.dirty} canWrite={p.canWrite} reload={props.reload} />}
+    />
+  );
+}
+
+/** One built-in's page on the row kit, with its own dock; shared by MeshCore and Meshtastic (Task 8.3). */
+export function BuiltinView({ b, result, onSaved, sourceId, receiveOnly, pausedNote, canWrite, back, subtitle, phoneSubtitle, headActions, top, extra, reload }: BuiltinViewProps) {
+  const { t } = useTranslation();
+  const isPhone = useIsPhone();
   const saved = result.data;
   const [edits, setEdits] = useState<Values | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const value = edits ?? saved;
+  const part: BuiltinPartProps | null =
+    value && saved
+      ? { values: value, saved, dirty: false, canWrite, readOnly: !canWrite || saving, set: (v) => setEdits(v) }
+      : null;
+  if (part) part.dirty = changedLabels(b.fields(part.values), part.values, saved!).length > 0 || JSON.stringify(part.values) !== JSON.stringify(saved);
 
   const head = (
     <>
@@ -71,10 +118,11 @@ export default function BuiltinPage({ b, result, onSaved, reload }: BuiltinPageP
           {back.label} <UiIcon name="chevronRight" size={14} />
         </Link>
       )}
-      <ToolHead title={b.title} subtitle={b.description} back={back} />
+      <ToolHead title={b.title} subtitle={subtitle} back={back} actions={part && headActions ? headActions(part) : undefined} />
+      {isPhone && phoneSubtitle && subtitle && <p className={styles.muted}>{subtitle}</p>}
     </>
   );
-  if (!value || !saved) {
+  if (!value || !saved || !part) {
     return (
       <div className={styles.page} data-phone={isPhone || undefined}>
         {head}
@@ -84,7 +132,9 @@ export default function BuiltinPage({ b, result, onSaved, reload }: BuiltinPageP
   }
 
   const fields = b.fields(value);
-  const changes = changedLabels(fields, value, saved);
+  const labelled = changedLabels(fields, value, saved);
+  // A change no field names (a matrix cell, a list item drawn by the page) still counts once.
+  const changes = labelled.length > 0 || !part.dirty ? labelled : [b.title];
   const invalid = b.validate?.(value, saved) ?? null;
   const sends = b.sends(value);
   const save = async () => {
@@ -115,11 +165,12 @@ export default function BuiltinPage({ b, result, onSaved, reload }: BuiltinPageP
       {receiveOnly && b.transmits && (
         <p className={styles.banner} role="note">
           <UiIcon name="info" size={16} />
-          <span>{t('meshcore.receive_only.paused_note', 'Paused — receive-only mode. These settings are saved and unchanged; they take effect again when receive-only is turned off.')}</span>
+          <span>{pausedNote}</span>
         </p>
       )}
       {!canWrite && <p className={styles.note} role="status">{t('automation.insufficient_permissions', 'Insufficient permissions')}</p>}
       <SendsLine>{sends ?? t('workspace.settings.savebar.sends_nothing')}</SendsLine>
+      {top?.(part)}
       {groups.map((g, gi) =>
         g.fields.length === 0 && !g.title ? null : (
           <section key={gi} className={styles.section} aria-label={g.title ?? b.title}>
@@ -134,8 +185,9 @@ export default function BuiltinPage({ b, result, onSaved, reload }: BuiltinPageP
           </section>
         ),
       )}
-      <ExtraPart b={b} values={value} saved={saved} dirty={changes.length > 0} canWrite={canWrite} reload={reload} />
+      {extra?.(part)}
       <McDock
+        sourceId={sourceId}
         changes={changes}
         page={b.title}
         sends={b.saveEffect(value)}
@@ -190,7 +242,7 @@ function Checks({ field, value, onChange, readOnly }: { field: Field; value: unk
   );
 }
 
-function FieldRow({ field: f, id, values, readOnly, onChange, savedItems }: {
+export function FieldRow({ field: f, id, values, readOnly, onChange, savedItems }: {
   field: Field; id: string; values: Values; readOnly: boolean; onChange(v: unknown): void; savedItems?: Values[];
 }) {
   const raw = getPath(values, f.key);
@@ -236,11 +288,14 @@ function FieldRow({ field: f, id, values, readOnly, onChange, savedItems }: {
 }
 
 /** A list of triggers or rules: one row each (its switch, Edit, Delete); Edit opens the item in a sheet. */
-function ListField({ field: f, items, savedItems, readOnly, onChange }: { field: Field; items: Values[]; savedItems: Values[]; readOnly: boolean; onChange(v: Values[]): void }) {
+export function ListField({ field: f, items, savedItems, readOnly, onChange }: { field: Field; items: Values[]; savedItems: Values[]; readOnly: boolean; onChange(v: Values[]): void }) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const [open, setOpen] = useState<{ index: number; item: Values } | null>(null);
   const [tried, setTried] = useState(false);
+  const [search, setSearch] = useState('');
+  const term = search.trim().toLowerCase();
+  const matches = (x: Values, i: number) => !term || `${f.itemTitle?.(x) ?? i + 1} ${f.itemSub?.(x) ?? ''}`.toLowerCase().includes(term);
   const savedIds = new Set(savedItems.map((x) => String(x.id)));
   const isNew = (x: Values) => !savedIds.has(String(x.id));
   const errorOf = (x: Values) => f.validateItem?.(x, isNew(x)) ?? null;
@@ -261,9 +316,17 @@ function ListField({ field: f, items, savedItems, readOnly, onChange }: { field:
   };
   return (
     <SettingGroup title={f.label}>
+      {f.searchLabel && items.length > 0 && (
+        <label className={own.search}>
+          <UiIcon name="search" size={16} />
+          <span className={styles.srOnly}>{f.searchLabel}</span>
+          <input type="search" value={search} placeholder={`${f.searchLabel}…`} onChange={(e) => setSearch(e.target.value)} />
+        </label>
+      )}
       <ul className={own.items}>
         {items.length === 0 && <li className={styles.note}>{t('meshcore.automation.responder.empty', 'No triggers configured yet.')}</li>}
         {items.map((x, i) => {
+          if (!matches(x, i)) return null;
           const err = errorOf(x);
           const title = f.itemTitle?.(x) ?? String(i + 1);
           return (
@@ -312,6 +375,7 @@ function ListField({ field: f, items, savedItems, readOnly, onChange }: { field:
                 onChange={(v) => setOpen({ ...open, item: x.set ? x.set(open.item, v) : setPath(open.item, x.key, v) })} />
             ))}
           </SettingGroup>
+          {open && f.itemExtra?.(open.item, (item) => setOpen({ ...open, item }))}
           {tried && openError && <p className={styles.error} role="alert">{openError}</p>}
         </div>
       </Sheet>

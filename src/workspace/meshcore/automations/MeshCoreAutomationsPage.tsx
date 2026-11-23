@@ -31,6 +31,7 @@ import { useIsPhone } from '../../shell/useIsPhone';
 import { useMeshCoreRuntime } from '../runtime';
 import { McDock } from '../settings/mcShared';
 import ToolHead from '../ToolHead';
+import { ENGINE, readRule, TRANSMITTING, type EngineRule } from '../../automations/engineRules';
 import type { Builtin, Values } from './builtins';
 import BuiltinPage from './BuiltinPage';
 import { useBuiltins } from './useBuiltins';
@@ -38,43 +39,8 @@ import kit from '../../settings/kit/kit.module.css';
 import styles from '../McTools.module.css';
 import own from './Automations.module.css';
 
-const ENGINE = '/overview/automations';
-/** Engine actions that put something on the air. */
-const TRANSMITTING = new Set(['action.tapback', 'action.sendMessage', 'action.tracePathSchedule', 'action.requestData', 'action.broadcastWaypoint', 'action.runScript']);
 /** The phone shows the first five built-ins, then "N more built-ins" (8-31, s8n6). */
 const PHONE_FIRST = 5;
-
-interface EngineRule {
-  id: string;
-  name: string;
-  enabled: boolean;
-  config: string;
-}
-
-/** The source ids a rule's source filters name (none: every device), and its action types. */
-function readRule(config: string): { sources: string[] | null; actions: string[] } {
-  const sources: string[] = [];
-  const actions: string[] = [];
-  let filtered = false;
-  const walk = (o: unknown) => {
-    if (Array.isArray(o)) o.forEach(walk);
-    else if (o && typeof o === 'object') {
-      const node = o as { type?: unknown; params?: { sourceIds?: unknown } };
-      if (node.type === 'condition.sourceFilter' && Array.isArray(node.params?.sourceIds) && node.params.sourceIds.length > 0) {
-        filtered = true;
-        sources.push(...(node.params.sourceIds as string[]));
-      }
-      if (typeof node.type === 'string' && node.type.startsWith('action.')) actions.push(node.type);
-      Object.values(o).forEach(walk);
-    }
-  };
-  try {
-    walk(JSON.parse(config));
-  } catch {
-    // An unreadable config names no device.
-  }
-  return { sources: filtered ? sources : null, actions };
-}
 
 export default function MeshCoreAutomationsPage({ builtin }: { builtin: string | null }) {
   const current = useBuiltins({ scripts: builtin === 'auto-responder' || builtin === 'timer-triggers' });
