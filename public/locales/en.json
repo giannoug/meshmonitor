@@ -8909,6 +8909,7 @@
   "workspace.overview_dashboard.pick_device": "Pick the device the widget reads from.",
   "workspace.overview_dashboard.change_device": "Change device",
   "workspace.overview_dashboard.empty_detail": "Choose Edit, then Add widget, and pick a device.",
+  "workspace.overview_dashboard.device_disabled": "{{name}} is disabled, so this widget shows nothing.",
   "workspace.devices.edit_title": "Edit device",
   "workspace.devices.step_type": "Type",
   "workspace.devices.step_connection": "Connection",

@@ -151,7 +151,14 @@ export function AddWidgetSheet({ open, onClose, supported, onAdd, device, starre
         {device && (
           <p className={styles.sheetDevice}>
             <span>{device.name}</span>
-            <button type="button" className={styles.textButton} onClick={device.onChange}>
+            <button
+              type="button"
+              className={styles.textButton}
+              onClick={() => {
+                setHelp(false);
+                device.onChange();
+              }}
+            >
               {t('workspace.overview_dashboard.change_device')}
             </button>
           </p>

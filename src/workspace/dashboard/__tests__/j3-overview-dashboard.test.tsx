@@ -11,8 +11,9 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import type { QueryClient } from '@tanstack/react-query';
 import { expectBoard } from '../../test/boardChecks';
-import { SOURCE_IDS as S } from '../../__fixtures__/athens';
+import { athensFixture, SOURCE_IDS as S } from '../../__fixtures__/athens';
 import { dashboardFixtures, OV, overviewBoard, type DashboardFixtureOptions, type DashboardLog } from '../../__fixtures__/dashboard';
 import { renderWorkspace, type RenderWorkspaceOptions } from '../../test/renderWorkspace';
 import WorkspaceApp from '../../WorkspaceApp';
@@ -120,10 +121,12 @@ describe('Overview dashboard: per-device visibility', () => {
       [S.mqtt]: { dashboard: READ, nodes: READ },
     },
   };
+  const RAK_CHART = `${S.rak}/!a1b2c301-batteryLevel`;
   const withRak = {
     ...overviewBoard,
     widgets: [...overviewBoard.widgets, { id: 'ov-rak', type: 'nodeStatus', nodeIds: ['!a1b2c301'], sourceId: S.rak }],
-    order: [...overviewBoard.order, 'ov-rak'],
+    charts: [...overviewBoard.charts, { sourceId: S.rak, nodeId: '!a1b2c301', telemetryType: 'batteryLevel' }],
+    order: [...overviewBoard.order, 'ov-rak', RAK_CHART],
   };
 
   it('shows only the devices the viewer can read; a saved widget from another shows no data', async () => {
@@ -138,6 +141,14 @@ describe('Overview dashboard: per-device visibility', () => {
     expect(rak).toHaveTextContent("You don't have permission to do this");
     expect(rak).not.toHaveTextContent('Rooftop RAK');
     expect(rak).not.toHaveTextContent('Kifisia');
+    // M7: a chart from that device is titled by its metric alone, with no node name and no device tag.
+    const rakChart = cards()[4];
+    expect(within(rakChart).getByRole('heading')).toHaveTextContent(/^Battery Level$/);
+    expect(rakChart).toHaveTextContent("You don't have permission to do this");
+    expect(rakChart).not.toHaveTextContent('Kifisia');
+    expect(rakChart).not.toHaveTextContent('Rooftop RAK');
+    expect(within(rakChart).queryByTitle('Rooftop RAK')).toBeNull();
+    expect(within(rakChart).queryByText('RR')).toBeNull();
     await pause();
     expect(requests('GET', '/api/nodes', `sourceId=${S.rak}`)).toBe(0);
     const unified = vi.mocked(fetch).mock.calls.map(([u]) => String(u)).filter((u) => u.includes('/api/unified/dashboard'));
@@ -157,6 +168,93 @@ describe('Overview dashboard: per-device visibility', () => {
     expect(requests('GET', '/api/nodes')).toBe(0);
     expect(requests('GET', '/api/packets/stats/node-activity')).toBe(0);
     expect(requests('GET', /^\/api\/telemetry\//)).toBe(0);
+  });
+
+  it('M3: a widget from a readable but disabled device says the device is disabled, and reads nothing for it', async () => {
+    const sources = athensFixture.sources.map((s) => (s.id === S.mqtt ? { ...s, enabled: false } : s));
+    renderDashboard(URL_, { dashboard: { overview: overviewBoard }, fixtures: { 'GET /api/sources': () => sources } });
+    await loaded();
+    const live = cards()[1];
+    expect(live).toHaveTextContent('Athens MQTT is disabled, so this widget shows nothing.');
+    expect(live).not.toHaveTextContent("You don't have permission");
+    expect(within(devices()).queryByText('Athens MQTT')).toBeNull();
+    await pause();
+    expect(requests('GET', '/api/nodes', `sourceId=${S.mqtt}`)).toBe(0);
+    expect(requests('GET', '/api/packets/stats/node-activity')).toBe(0);
+  });
+});
+
+describe('Overview dashboard: review fixes', () => {
+  it('I1: an Overview chart card has no solar overlay button, even with solar monitoring on', async () => {
+    renderDashboard(URL_, {
+      dashboard: { overview: overviewBoard },
+      fixtures: { 'GET /api/settings': () => ({ ...athensFixture.settings, solarMonitoringEnabled: '1' }) },
+    });
+    await loaded();
+    const chart = cards()[0];
+    await within(chart).findByRole('button', { name: 'Export CSV' });
+    expect(within(chart).queryByRole('button', { name: /solar/i })).toBeNull();
+  });
+
+  it('HY: with two devices on the board, the page adds no timer but the bundle\'s own', async () => {
+    const pollingKeys = (qc: QueryClient) =>
+      qc.getQueryCache().getAll().flatMap((q) => (q.observers.some((o) => Boolean(o.options.refetchInterval)) ? [JSON.stringify(q.queryKey)] : []));
+    const twoDevices = {
+      widgets: [
+        { id: 'ov-hops', type: 'hopDistribution', sourceId: S.g2 },
+        { id: 'ov-status', type: 'nodeStatus', nodeIds: [], sourceId: S.mqtt },
+      ],
+      order: ['ov-hops', 'ov-status'],
+    };
+    const empty = renderDashboard(URL_);
+    await screen.findByText('Nothing on your board yet');
+    await pause();
+    const baseline = pollingKeys(empty.queryClient).sort();
+    empty.unmount();
+
+    const { queryClient } = renderDashboard(URL_, { dashboard: { overview: twoDevices } });
+    await screen.findByRole('heading', { name: 'Node Status' });
+    await waitFor(() => expect(requests('GET', '/api/nodes', `sourceId=${S.mqtt}`)).toBe(1));
+    await pause();
+    // The board's two devices are read once, on the device dashboard's key, with no interval here.
+    const nodeQueries = queryClient.getQueryCache().findAll({ queryKey: ['dashboard', 'nodes'] });
+    expect(nodeQueries.map((q) => q.queryKey[2]).sort()).toEqual([S.g2, S.mqtt].sort());
+    for (const q of nodeQueries) expect(q.observers.filter((o) => Boolean(o.options.refetchInterval))).toEqual([]);
+    // Only the bundle's 15 s poll is the page's own, and it has one observer.
+    const bundle = queryClient.getQueryCache().findAll({ queryKey: ['dashboard', 'unified-dashboard'] }).filter((q) => q.observers.length > 0);
+    expect(bundle).toHaveLength(1);
+    expect(bundle[0].observers.filter((o) => Boolean(o.options.refetchInterval))).toHaveLength(1);
+    expect(pollingKeys(queryClient).sort()).toEqual(baseline);
+    expect(baseline.filter((k) => k.includes('unified-dashboard'))).toHaveLength(1);
+  });
+
+  it('M4: Change device in the Add widget sheet leaves the chart help', async () => {
+    renderDashboard(URL_, { dashboard: { overview: overviewBoard } });
+    await edit();
+    fireEvent.click(screen.getByRole('button', { name: 'Add widget' }));
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Add widget' })).getByRole('button', { name: /Station G2/ }));
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Add widget' })).getByRole('button', { name: /Telemetry chart/ }));
+    await screen.findByText("Open the node's page.");
+    fireEvent.click(screen.getByRole('button', { name: 'Change device' }));
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Add widget' })).getByRole('button', { name: /Athens MQTT/ }));
+    const add = await screen.findByRole('dialog', { name: 'Add widget' });
+    expect(within(add).getByRole('button', { name: 'Add Node Status' })).toBeInTheDocument();
+    expect(within(add).queryByText("Open the node's page.")).toBeNull();
+  });
+
+  it('M5: a chart pinned in this edit is titled by its node name, not its id', async () => {
+    renderDashboard(URL_, { dashboard: { overview: { widgets: [overviewBoard.widgets[1]], order: [OV.live] } } });
+    await screen.findByRole('heading', { name: 'Live Mesh Activity' });
+    const editButton = screen.getByRole('button', { name: 'Edit' });
+    await waitFor(() => expect(editButton).toBeEnabled());
+    fireEvent.click(editButton);
+    fireEvent.click(await screen.findByRole('button', { name: 'Add widget' }));
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Add widget' })).getByRole('button', { name: /Station G2/ }));
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Add widget' })).getByRole('button', { name: /Telemetry chart/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Add Kifisia Rooftop/ }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    const titles = within(screen.getByRole('list', { name: 'Your board' })).getAllByTestId('row-title').map((r) => r.textContent);
+    expect(titles).toEqual(['Live Mesh Activity', 'Kifisia Rooftop']);
   });
 });
 

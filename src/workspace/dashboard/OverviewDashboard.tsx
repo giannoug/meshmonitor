@@ -45,7 +45,7 @@ import RowMenu from '../patterns/RowMenu';
 import Sheet from '../patterns/Sheet';
 import StateView from '../patterns/StateView';
 import { useShellDevices } from '../shell/shellDevices';
-import { statusLabel } from '../shell/deviceTabs';
+import { isMeshtasticFamily, statusLabel } from '../shell/deviceTabs';
 import { useIsPhone } from '../shell/useIsPhone';
 import type { WorkspaceSource } from '../shell/useWorkspaceSources';
 import { renderChart, renderWidget, type ChartEnv, type WidgetEnv } from './boardBodies';
@@ -128,14 +128,17 @@ export default function OverviewDashboard() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { authStatus, hasPermission } = useAuth();
-  const { temperatureUnit, solarMonitoringEnabled, distanceUnit, favoriteTelemetryStorageDays } = useSettings();
+  const { temperatureUnit, distanceUnit, favoriteTelemetryStorageDays } = useSettings();
   const { sources } = useShellDevices();
 
   const devices = useMemo(() => sources.filter((s) => s.status !== 'disabled'), [sources]);
-  const byId = useMemo(() => new Map(devices.map((s) => [s.id, s])), [devices]);
+  // Disabled devices too, so a saved widget from one says so (it is still readable).
+  const byId = useMemo(() => new Map(sources.map((s) => [s.id, s])), [sources]);
+  // `dashboard` is a global resource (not in SOURCEY_RESOURCES): the device gate is the readable list itself.
+  const mayReadDashboard = hasPermission('dashboard', 'read');
   const canOpen = useCallback(
-    (s: WorkspaceSource | undefined): s is WorkspaceSource => !!s && hasDashboard(s.type) && hasPermission('dashboard', 'read', { sourceId: s.id }),
-    [hasPermission],
+    (s: WorkspaceSource | undefined): s is WorkspaceSource => !!s && s.status !== 'disabled' && hasDashboard(s.type) && mayReadDashboard,
+    [mayReadDashboard],
   );
 
   const { data: bundles } = useUnifiedDashboardBundles(devices.map((s) => s.id), true, AGE_WINDOW);
@@ -145,7 +148,8 @@ export default function OverviewDashboard() {
   const charts = useMemo(() => (board.charts ?? []) as FavoriteChart[], [board.charts]);
   const items = useMemo(() => boardItems(board.widgets, charts, board.order, overviewChartKey), [board.widgets, charts, board.order]);
 
-  // One node read per device on the board that the viewer may open: the device dashboard's own query (key, 30 s).
+  // One node read per device on the board that the viewer may open, on the device dashboard's key (shared cache).
+  // No interval here (Ruling 8.2 HY): read on open, refreshed on focus or revisit; the device page keeps its own 30 s timer.
   const boardDevices = useMemo(
     () => [...new Set(items.map(sourceOf))].map((id) => byId.get(id)).filter(canOpen),
     [items, byId, canOpen],
@@ -158,8 +162,6 @@ export default function OverviewDashboard() {
         queryFn: () => fetchDashboardNodes(ds, s.id),
         staleTime: 10 * 1000,
         gcTime: 5 * 60 * 1000,
-        refetchInterval: 30000,
-        refetchIntervalInBackground: false,
       };
     }),
   });
@@ -188,8 +190,13 @@ export default function OverviewDashboard() {
   );
   const widgetOps = useCustomWidgets({ baseUrl: appBasename, customWidgets: board.widgets, setCustomWidgets: noop, saveWidgets });
 
+  // A node's name from the device's nodes, else the all-devices bundle (a chart pinned in this edit, before its device is read).
+  const nameFromBundle = (sourceId: string, id: string) => {
+    const row = ((bundleOf(sourceId)?.nodes ?? []) as BundleRow[]).find((n) => n.nodeId === id || n.publicKey === id);
+    return row?.longName || row?.shortName || id;
+  };
   const nodeName = (sourceId: string, id: string) =>
-    dataSourceFor(byId.get(sourceId)?.type ?? '').getDisplayName(nodesOf(sourceId).get(id) as NodeInfo | undefined, id);
+    dataSourceFor(byId.get(sourceId)?.type ?? '').getDisplayName(nodesOf(sourceId).get(id) as NodeInfo | undefined, nameFromBundle(sourceId, id));
   const label = (item: BoardItem): ItemLabel => {
     const ok = canOpen(byId.get(sourceOf(item)));
     if (item.kind === 'chart') {
@@ -289,17 +296,13 @@ export default function OverviewDashboard() {
   // Add widget: the device first (readable, with a dashboard), then today's widget types for it, or one of its stars.
   const addable = devices.filter(canOpen);
   const pinned = new Set(items.map((i) => i.key));
-  const nameFromBundle = (s: WorkspaceSource, id: string) => {
-    const row = ((bundleOf(s.id)?.nodes ?? []) as BundleRow[]).find((n) => n.nodeId === id || n.publicKey === id);
-    return row?.longName || row?.shortName || id;
-  };
   const starred = addDevice
     ? (starredQuery.data?.favorites ?? [])
         .map((f): OverviewChart => ({ ...f, sourceId: addDevice.id }))
         .filter((f) => !pinned.has(overviewChartKey(f)) && !draft?.items.some((i) => i.key === overviewChartKey(f)))
         .map((f) => ({
           key: overviewChartKey(f),
-          title: `${nameFromBundle(addDevice, f.nodeId)} · ${getTelemetryLabel(f.telemetryType)}`,
+          title: `${nameFromBundle(addDevice.id, f.nodeId)} · ${getTelemetryLabel(f.telemetryType)}`,
           onAdd: () => draft && setDraft({ ...draft, items: [...draft.items, { key: overviewChartKey(f), kind: 'chart', favorite: f }] }),
         }))
     : undefined;
@@ -363,11 +366,11 @@ export default function OverviewDashboard() {
     onDataLoaded: handleDataLoaded,
     // The solar overlay and Y range are each device's own chart settings: on its dashboard.
     solarEstimates: NO_SOLAR,
-    solarMonitoringEnabled,
   });
   const widgetEnv = (s: WorkspaceSource): WidgetEnv => ({
     nodes: nodesOf(s.id),
-    localId: s.live?.nodeNum !== undefined ? `!${s.live.nodeNum.toString(16).padStart(8, '0')}` : null,
+    // Meshtastic-backed devices only: MeshCore's home is its key, Reticulum has none (as 8.1).
+    localId: isMeshtasticFamily(s.type) && s.live?.nodeNum !== undefined ? `!${s.live.nodeNum.toString(16).padStart(8, '0')}` : null,
     dataSource: dataSourceFor(s.type),
     distanceUnit,
     canEdit: canEditBoard,
@@ -394,6 +397,9 @@ export default function OverviewDashboard() {
             const sid = sourceOf(item);
             const s = byId.get(sid);
             const ok = canOpen(s);
+            // Readable but disabled: say so (no data is read for it), rather than no permission.
+            const disabledName = !ok && mayReadDashboard && byId.get(sid)?.status === 'disabled' ? byId.get(sid)?.name : undefined;
+            const disabled = disabledName !== undefined;
             const l = label(item);
             const menu = [
               ...(canEditBoard ? [{ key: 'edit', label: t('workspace.dashboard.edit_title'), icon: 'edit' as const, onSelect: startEdit }] : []),
@@ -408,7 +414,7 @@ export default function OverviewDashboard() {
                     {l.title}
                     {ok && item.kind === 'chart' && <span className={styles.muted}>{getTelemetryLabel(item.favorite.telemetryType)}</span>}
                   </h3>
-                  {ok && <DeviceTag sourceId={sid} />}
+                  {(ok || disabled) && <DeviceTag sourceId={sid} />}
                   {menu.length > 0 && <RowMenu label={t('workspace.dashboard.card_menu', { name: l.title })} items={menu} />}
                 </div>
                 <div className={styles.cardBody}>
@@ -416,6 +422,8 @@ export default function OverviewDashboard() {
                     <SourceProvider sourceId={s.id} sourceName={s.name} sourceType={s.type}>
                       {item.kind === 'chart' ? renderChart(item.favorite, chartEnv(sid)) : renderWidget(item.widget, widgetEnv(s))}
                     </SourceProvider>
+                  ) : disabled ? (
+                    <StateView kind="empty" title={t('workspace.overview_dashboard.device_disabled', { name: disabledName })} />
                   ) : (
                     <StateView kind="noPermission" />
                   )}
