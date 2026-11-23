@@ -123,12 +123,24 @@ export default function SubstitutionsHelpDrawer({ triggerType, variables, stepNa
   stepNames?: string[];
   onClose: () => void;
 }) {
-  const order = [triggerType, ...Object.keys(TRIGGER_TOKENS).filter((t) => t !== triggerType)];
   // Docked, non-modal slide-in panel (no backdrop / click-away) so it stays open
   // beside the builder while you keep editing the page.
   return (
     <aside className="ae-drawer" role="complementary" aria-label="Substitutions reference">
       <button className="ae-btn ae-btn--ghost ae-drawer-close" onClick={onClose} aria-label="Close substitutions reference"><UiIcon name="close" size={16} /></button>
+      <SubstitutionsReference triggerType={triggerType} variables={variables} stepNames={stepNames} />
+    </aside>
+  );
+}
+
+/** The reference itself (the drawer's content, moved as is so the Workspace's Tokens sheet shows the same; #6365 Rule X). */
+export function SubstitutionsReference({ triggerType, variables, stepNames = [] }: {
+  triggerType: string; variables: Array<{ name: string }>;
+  stepNames?: string[];
+}) {
+  const order = [triggerType, ...Object.keys(TRIGGER_TOKENS).filter((t) => t !== triggerType)];
+  return (
+    <>
       <h2>Substitutions</h2>
       <p className="ae-muted">Insert these <code>{'{{ … }}'}</code> tokens in any text field (message, notify title/body). An unknown or empty value renders blank.</p>
 
@@ -175,6 +187,6 @@ export default function SubstitutionsHelpDrawer({ triggerType, variables, stepNa
           </dl>
         </div>
       ))}
-    </aside>
+    </>
   );
 }

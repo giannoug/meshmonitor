@@ -40,10 +40,13 @@ import { useIsPhone } from '../shell/useIsPhone';
 import { McDock } from '../meshcore/settings/mcShared';
 import ToolHead from '../meshcore/ToolHead';
 import { ENGINE, ruleUrl, rulesQuery } from './engineRules';
-import { drawable, isLimited, limitOf, readGraph, runsQuery, triggerOf, wouldSend } from './rules';
+import { drawable, isLimited, limitOf, readGraph, runsQuery, triggerOf, variablesQuery, wouldSend } from './rules';
 import { useRuleActions } from './ruleActions';
 import RuleSteps from './RuleSteps';
 import RuleTest from './RuleTest';
+import { useTestDraft } from './useTestDraft';
+import TokensSheet from './TokensSheet';
+import { namedStepOutputs } from '../../components/automations/automationTesterHelpers';
 import RunsTab from './RunsTab';
 import TraceTab from './TraceTab';
 import type { PickerKind } from './WhenSheet';
@@ -113,6 +116,9 @@ function Rule({ rule, isNew }: { rule: Automation; isNew: boolean }) {
   const [homesBusy, setHomesBusy] = useState(false);
   const [homesMsg, setHomesMsg] = useState<string | null>(null);
   const [phonePicker, setPhonePicker] = useState<PickerKind | null>(null);
+  const testDraft = useTestDraft();
+  const [tokens, setTokens] = useState(false);
+  const { data: vars = [] } = useQuery({ ...variablesQuery, enabled: tokens });
 
   const limited = isLimited(limitOf(triggerOf(savedGraph)));
   const changes = [
@@ -283,6 +289,9 @@ function Rule({ rule, isNew }: { rule: Automation; isNew: boolean }) {
     <RowMenu
       label={t('workspace.rules.more_for', { name: rule.name || t('workspace.rules.new') })}
       items={[
+        // Phone: + Step and Test stay reachable while the dock holds unsaved changes (the bottom dock gives way to it).
+        ...(isPhone && tab === '' && canWrite && mode === 'steps' ? [{ key: 'step', label: t('workspace.rules.add_step'), icon: 'plus' as const, onSelect: () => setPhonePicker('step') }] : []),
+        ...(isPhone && tab === '' ? [{ key: 'test', label: t('workspace.rules.test.button'), icon: 'test' as const, onSelect: () => setTestOpen(true) }] : []),
         ...(isPhone && !isNew ? [{ key: 'run', label: t('workspace.rules.run.button'), icon: 'zap' as const, disabled: !canWrite, onSelect: () => setRunAsk(true) }] : []),
         { key: 'names', label: t('workspace.rules.names'), icon: 'edit' as const, onSelect: () => setNamesOpen(true) },
         mode === 'steps'
@@ -369,7 +378,7 @@ function Rule({ rule, isNew }: { rule: Automation; isNew: boolean }) {
         {errors.length > 0 && <ul className={own.error} role="alert">{errors.map((e) => <li key={e}>{e}</li>)}</ul>}
         {mode === 'steps' && <p className={styles.note}><UiIcon name="code" size={16} /><span>{t('workspace.rules.json_hint')}</span></p>}
       </div>
-      {testOpen && !isPhone && <RuleTest getConfig={getTestConfig} />}
+      {testOpen && !isPhone && <RuleTest getConfig={getTestConfig} draft={testDraft} onTokens={() => setTokens(true)} />}
     </div>
   );
 
@@ -422,9 +431,17 @@ function Rule({ rule, isNew }: { rule: Automation; isNew: boolean }) {
         onDiscard={discard}
       />
 
-      <Sheet open={testOpen && isPhone} onClose={() => setTestOpen(false)} title={t('workspace.rules.test.title')}>
-        <RuleTest getConfig={getTestConfig} />
+      <Sheet open={testOpen && isPhone && !tokens} onClose={() => setTestOpen(false)} title={t('workspace.rules.test.title')}>
+        <RuleTest getConfig={getTestConfig} draft={testDraft} onTokens={() => setTokens(true)} />
       </Sheet>
+      {/* s14n4: Tokens from the Test run; on the phone it replaces the test sheet until it closes (D9c). */}
+      <TokensSheet
+        open={tokens}
+        onClose={() => setTokens(false)}
+        triggerType={getTestConfig().triggerType ?? ''}
+        variables={vars}
+        stepNames={tokens ? namedStepOutputs(getTestConfig().config) : []}
+      />
       <Sheet
         open={namesOpen}
         onClose={() => setNamesOpen(false)}

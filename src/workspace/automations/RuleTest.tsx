@@ -5,7 +5,6 @@
  * /api/automations/test, which sends nothing on the mesh and saves nothing,
  * and lists what matched and what it would send. One request per press.
  */
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import apiService from '../../services/api';
@@ -14,10 +13,12 @@ import { BLOCK_BY_TYPE } from '../../components/automations/catalog';
 import {
   KIND_BY_TRIGGER, MESHCORE_ROLE_OPTIONS, SYSTEM_EVENT_OPTIONS, TELEMETRY_METRIC_OPTIONS,
   buildTestEvent, buildTestNode, buildTestVars, leftHomeModeHint, leftHomeThresholdFromConfig, namedStepOutputs,
-  type EventState, type FactState, type SimResult,
+  type EventState, type SimResult,
 } from '../../components/automations/automationTesterHelpers';
 import { useShellDevices } from '../shell/shellDevices';
+import { useIsPhone } from '../shell/useIsPhone';
 import { variablesQuery } from './rules';
+import type { TestDraft } from './useTestDraft';
 import styles from '../meshcore/McTools.module.css';
 import own from './Rules.module.css';
 
@@ -59,23 +60,19 @@ const FACTS: F[] = [
 export interface RuleTestProps {
   /** The draft compiled to a graph, or why it cannot be. */
   getConfig(): { ok: boolean; config?: unknown; error?: string; triggerType?: string };
+  draft: TestDraft;
+  /** Opens Tokens (s14n4). */
+  onTokens(): void;
 }
 
-export default function RuleTest({ getConfig }: RuleTestProps) {
+export default function RuleTest({ getConfig, draft, onTokens }: RuleTestProps) {
   const { t } = useTranslation();
   const { sources } = useShellDevices();
+  const isPhone = useIsPhone();
   const { data: vars = [] } = useQuery(variablesQuery);
   const cfg = getConfig();
   const kind = KIND_BY_TRIGGER[cfg.triggerType ?? ''] ?? 'message';
-  const [ev, setEv] = useState<EventState>({});
-  const [facts, setFacts] = useState<FactState>({});
-  const [overrides, setOverrides] = useState<Record<string, string>>({});
-  const [samples, setSamples] = useState<Record<string, string>>({});
-  const [more, setMore] = useState(false);
-  const [advanced, setAdvanced] = useState(false);
-  const [result, setResult] = useState<SimResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [running, setRunning] = useState(false);
+  const { ev, setEv, facts, setFacts, overrides, setOverrides, samples, setSamples, more, setMore, advanced, setAdvanced, result, setResult, error, setError, running, setRunning } = draft;
   const outputs = namedStepOutputs(cfg.config);
   const fields = eventFields(kind, ev);
   const [first, ...rest] = fields;
@@ -129,12 +126,13 @@ export default function RuleTest({ getConfig }: RuleTestProps) {
 
   const stepWord = (type: string) => (type.startsWith('condition.') ? t('workspace.rules.word.if') : t('workspace.rules.word.then'));
   return (
-    <section className={`${styles.card} ${own.test}`} aria-label={t('workspace.rules.test.title')}>
+    <section className={`${styles.card} ${own.test}`} aria-label={t('workspace.rules.test.title')} data-phone={isPhone || undefined}>
       <div className={own.testHead}>
         <UiIcon name="test" size={18} />
         <h2 className={own.cardTitle}>{t('workspace.rules.test.title')}</h2>
         <span className={styles.muted}>{t('workspace.rules.test.nothing_sent')}</span>
       </div>
+      <button type="button" className={own.linkButton} onClick={onTokens}>{t('workspace.rules.tokens')}</button>
       {sources.length > 0 && (
         <label className={styles.field}>
           <span>{t('workspace.rules.test.from_source')}</span>

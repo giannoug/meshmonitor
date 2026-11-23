@@ -23,6 +23,7 @@ import { TRANSMITTING } from './engineRules';
 import { isLimited, limitOf, sendsWhat, stepSummary, wouldSend } from './rules';
 import { useBuilderData } from './useBuilderData';
 import WhenSheet, { type PickerKind } from './WhenSheet';
+import TokensSheet from './TokensSheet';
 import styles from '../meshcore/McTools.module.css';
 import own from './Rules.module.css';
 
@@ -48,6 +49,7 @@ export default function RuleSteps({ form, onChange, canWrite, whenExtra, picker:
   const [at, setAt] = useState<At | null>(null);
   const [ownPicker, setOwnPicker] = useState<{ kind: PickerKind; replace: boolean } | null>(null);
   const [why, setWhy] = useState(false);
+  const [tokens, setTokens] = useState(false);
   const picker = ownPicker ?? (outerPicker ? { kind: outerPicker, replace: false } : null);
   const closePicker = () => { setOwnPicker(null); setOuterPicker?.(null); };
   const data = useBuilderData(at !== null);
@@ -228,7 +230,7 @@ export default function RuleSteps({ form, onChange, canWrite, whenExtra, picker:
         </div>
       )}
 
-      <Sheet open={!!at && !picker && (!!open || at.kind === 'finallyMode')} onClose={() => setAt(null)} title={sheetTitle}>
+      <Sheet open={!!at && !picker && !tokens && (!!open || at.kind === 'finallyMode')} onClose={() => setAt(null)} title={sheetTitle}>
         <div className={own.stepSheet} data-phone={isPhone || undefined}>
           {at?.kind === 'finallyMode' && form.combine ? (
             <>
@@ -244,6 +246,8 @@ export default function RuleSteps({ form, onChange, canWrite, whenExtra, picker:
           ) : open && at ? (
             <>
               <p className={styles.muted}>{BLOCK_BY_TYPE[open.type]?.description}</p>
+              {/* s14n4: today's substitutions help, replacing this sheet until it closes (D9c). */}
+              <button type="button" className={own.linkButton} onClick={() => setTokens(true)}>{t('workspace.rules.tokens')}</button>
               <fieldset className={own.fields} disabled={!canWrite}>
                 <BlockFields
                   block={open}
@@ -274,6 +278,7 @@ export default function RuleSteps({ form, onChange, canWrite, whenExtra, picker:
           ) : null}
         </div>
       </Sheet>
+      <TokensSheet open={tokens} onClose={() => setTokens(false)} triggerType={triggerType} variables={data.variables} stepNames={[...new Set(formOutputNames(form))]} />
       {/* One sheet at a time (D9c): the picker replaces the step sheet while it is open. */}
       <WhenSheet kind={picker?.kind ?? 'step'} open={!!picker} onClose={closePicker} onPick={onPick} />
     </div>

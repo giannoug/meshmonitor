@@ -165,4 +165,91 @@ describe('m2-rule', () => {
     renderRules('/automations/nope');
     expect(await screen.findByText(/not found/i)).toBeInTheDocument();
   });
+
+  it('phone: with unsaved changes, ⋯ still offers Add a step and Test (I1)', async () => {
+    renderRules(WEATHER, { phone: true });
+    fireEvent.click(await screen.findByRole('button', { name: 'IF: Message text starts with !wx' }));
+    const step = await screen.findByRole('dialog', { name: 'Text comparison' });
+    fireEvent.change(within(step).getByDisplayValue('!wx'), { target: { value: '!weather' } });
+    fireEvent.keyDown(step, { key: 'Escape' });
+    // The dock holds the change; the bottom "+ Step / Test" row has given way to it.
+    await screen.findByRole('region', { name: /save/i });
+    expect(screen.queryByRole('button', { name: 'Step' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'More for Weather bot' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Add a step' }));
+    const picker = await screen.findByRole('dialog', { name: 'Add a step' });
+    fireEvent.click(within(picker).getByRole('button', { name: /^Always \(no filtering\)/ }));
+    const added = await screen.findByRole('dialog', { name: 'Always (no filtering)' });
+    fireEvent.keyDown(added, { key: 'Escape' });
+    expect(await screen.findByRole('button', { name: /^IF: Always \(no filtering\)/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'More for Weather bot' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Test' }));
+    const test = await screen.findByRole('dialog', { name: 'Test run' });
+    fireEvent.change(within(test).getByRole('textbox', { name: 'Sample message' }), { target: { value: '!weather athens' } });
+    fireEvent.click(within(test).getByRole('button', { name: 'Run test' }));
+    await waitFor(() => expect(nonGet()).toHaveLength(1));
+    // The dry run tests the unsaved draft: the edited condition and the added step.
+    const body = nonGet()[0].body as { config: { nodes: Array<{ type: string; params: Record<string, unknown> }> } };
+    expect(nonGet()[0].path).toBe('/api/automations/test');
+    expect(body.config.nodes.find((n) => n.type === 'condition.string')?.params.value).toBe('!weather');
+    expect(body.config.nodes.some((n) => n.type === 'condition.always')).toBe(true);
+  });
+
+  it('phone: a new rule gets a condition from ⋯ › Add a step (I1)', async () => {
+    renderRules('/automations/new', { phone: true });
+    await screen.findByRole('textbox', { name: 'Name' });
+    fireEvent.click(screen.getByRole('button', { name: 'More for New automation' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Add a step' }));
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Add a step' })).getByRole('button', { name: /^Text comparison/ }));
+    fireEvent.keyDown(await screen.findByRole('dialog', { name: 'Text comparison' }), { key: 'Escape' });
+    expect(await screen.findByRole('button', { name: /^IF: / })).toBeInTheDocument();
+    expect(nonGet()).toEqual([]);
+  });
+
+  it('Tokens replaces the step sheet; Escape closes only Tokens and brings the step back with its draft (I2, s14n4)', async () => {
+    renderRules(WEATHER);
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'IF: Message text starts with !wx' }));
+    const step = await screen.findByRole('dialog', { name: 'Text comparison' });
+    fireEvent.change(within(step).getByDisplayValue('!wx'), { target: { value: '!weather' } });
+    fireEvent.click(within(step).getByRole('button', { name: 'Tokens' }));
+    const tokens = await screen.findByRole('dialog', { name: 'Tokens' });
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(tokens).toHaveTextContent('{{ var.NAME }}');
+    expect(tokens).toHaveTextContent('{{ trigger.senderLabel }}');
+    expect(tokens).toHaveTextContent('{{ steps.wx.output }}');
+    expect(tokens).toHaveTextContent('lowBatteryThreshold');
+    fireEvent.keyDown(tokens, { key: 'Escape' });
+    const back = await screen.findByRole('dialog', { name: 'Text comparison' });
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(within(back).getByDisplayValue('!weather')).toBeInTheDocument();
+    await settle();
+    expect(nonGet()).toEqual([]);
+  });
+
+  it('Tokens from the Test run (desktop panel and phone sheet) keeps the test inputs (I2)', async () => {
+    renderRules(WEATHER);
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
+    let test = await screen.findByRole('region', { name: 'Test run' });
+    fireEvent.change(within(test).getByRole('textbox', { name: 'Sample message' }), { target: { value: '!wx kifisia' } });
+    fireEvent.click(within(test).getByRole('button', { name: 'Tokens' }));
+    fireEvent.keyDown(await screen.findByRole('dialog', { name: 'Tokens' }), { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    test = screen.getByRole('region', { name: 'Test run' });
+    expect(within(test).getByRole('textbox', { name: 'Sample message' })).toHaveValue('!wx kifisia');
+  });
+
+  it('phone: Tokens replaces the test sheet and Escape brings it back with its inputs (I2)', async () => {
+    renderRules(WEATHER, { phone: true });
+    fireEvent.click(await screen.findByRole('button', { name: 'Test' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Test run' });
+    fireEvent.change(within(sheet).getByRole('textbox', { name: 'Sample message' }), { target: { value: '!wx kifisia' } });
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Tokens' }));
+    const tokens = await screen.findByRole('dialog', { name: 'Tokens' });
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    fireEvent.keyDown(tokens, { key: 'Escape' });
+    const back = await screen.findByRole('dialog', { name: 'Test run' });
+    expect(within(back).getByRole('textbox', { name: 'Sample message' })).toHaveValue('!wx kifisia');
+  });
 });

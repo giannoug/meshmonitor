@@ -993,3 +993,60 @@
   flex: 1;
   min-width: 0;
 }
+
+/* ── tokens (today's substitutions reference) ── */
+
+.tokens {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tokens h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.tokens h3 {
+  margin: 12px 0 0;
+  color: var(--color-text-subtle);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.tokens p {
+  margin: 0;
+  color: var(--color-text-subtle);
+}
+
+.tokens dl {
+  margin: 0;
+}
+
+.tokens dt {
+  margin-top: 8px;
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.tokens dd {
+  margin: 2px 0 0;
+  color: var(--color-text-subtle);
+}
+
+.tokens code {
+  font-family: var(--font-mono, monospace);
+}
+
+.stepSheet .linkButton,
+.test .linkButton {
+  align-self: flex-start;
+  min-height: 36px;
+}
+
+.stepSheet[data-phone] .linkButton,
+.test[data-phone] .linkButton {
+  min-height: 44px;
+}

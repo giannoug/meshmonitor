@@ -10415,6 +10415,7 @@
   "workspace.rules.test.would_notify": "Would notify (Apprise):",
   "workspace.rules.test.to_dm": "as a DM to node {{to}}",
   "workspace.rules.test.to_channel": "to channel {{channel}}",
+  "workspace.rules.tokens": "Tokens",
   "workspace.rules.too_advanced": "This workflow is too advanced for the builder (branches/fanout) — edit it as JSON.",
   "workspace.rules.tpl.gallery": "Template gallery · {{count}}",
   "workspace.rules.tpl.subtitle": "Ready-made rules for every device",
