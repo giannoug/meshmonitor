@@ -104,9 +104,19 @@
   height: 20px;
 }
 
-.matrix[data-phone] td input {
-  width: 28px;
-  height: 28px;
+/* The cell's hit area: 44 px on the phone, the box stays readable. */
+.cellHit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  cursor: pointer;
+}
+
+.matrix[data-phone] .cellHit {
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .tests {
@@ -147,7 +157,7 @@
   gap: 8px;
 }
 
-.inline input {
+.inline input:not([type='checkbox']) {
   flex: 1 1 160px;
   min-width: 0;
   min-height: 36px;
@@ -159,7 +169,7 @@
   font: inherit;
 }
 
-.inline[data-phone] input,
+.inline[data-phone] input:not([type='checkbox']),
 .inline[data-phone] button {
   min-height: 44px;
 }
@@ -180,5 +190,138 @@
 }
 
 .nodeChecks[data-phone] label {
+  min-height: 44px;
+}
+
+.disclosure {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.testGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.testField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--color-text-subtle);
+  font-size: 13px;
+}
+
+.testField input,
+.testField select {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.testGrid[data-phone] .testField input,
+.testGrid[data-phone] .testField select {
+  min-height: 44px;
+}
+
+.examples {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 6px;
+}
+
+.example {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.example code {
+  color: var(--color-accent);
+  overflow-wrap: anywhere;
+}
+
+.example span {
+  color: var(--color-text-subtle);
+  font-size: 12px;
+}
+
+.tips {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--color-text-subtle);
+  font-size: 13px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  padding: 0 4px 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+}
+
+.chip button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  border: 0;
+  background: none;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.chips[data-phone] .chip {
+  min-height: 44px;
+}
+
+.chips[data-phone] .chip button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.addWord input {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.chips[data-phone] .addWord input {
   min-height: 44px;
 }

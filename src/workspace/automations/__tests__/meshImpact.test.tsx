@@ -9,19 +9,19 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { BUILTIN_IDS } from '../ids';
-import { AUTO, renderAutomations, requests, settle, writes } from './renderAutomations';
+import { AUTO, renderAutomations, requests, settle, writes, nonGet } from './renderAutomations';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('../../meshcore/__tests__/mocks')).wsMock(orig));
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
 
 describe('Automations mesh impact', () => {
   it.each(BUILTIN_IDS.map((id) => [id]))('opening and re-rendering %s sends nothing, and mounts no Classic section', async (id) => {
-    const { log, rerenderWorkspace } = renderAutomations(`${AUTO}/${id}`);
+    const { rerenderWorkspace } = renderAutomations(`${AUTO}/${id}`);
     await screen.findByRole('heading', { level: 1 });
     await screen.findAllByText(/Sends|sends|^1 |^Up to|^On |^Cooldown|^No trigger|^Pauses|^Off|^60 s|^When on/);
     rerenderWorkspace();
     await settle(120);
-    expect(log.writes).toHaveLength(0);
+    expect(nonGet()).toHaveLength(0);
     expect(document.querySelector('.automation-section-header, .settings-section')).toBeNull();
     expect(screen.queryByTestId('page-app')).toBeNull();
   });

@@ -9,7 +9,10 @@
     "Limits",
     "Per-Sender Cooldown",
     "Trigger pattern",
-    "Active Channels"
+    "Active Channels",
+    "2 other nodes, then quiet",
+    "When the message says",
+    "Add word"
   ],
   "absent": [
     "replies a minute"

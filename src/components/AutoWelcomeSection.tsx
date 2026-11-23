@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { autoWelcomeSampleMessage } from '../utils/autoAckSample';
 
 import { Channel } from '../types/device';
 import { useToast } from './ToastContainer';
@@ -198,21 +199,7 @@ const AutoWelcomeSection: React.FC<AutoWelcomeSectionProps> = ({
   };
 
   // Generate sample message with example token values
-  const generateSampleMessage = (): string => {
-    let sample = localMessage;
-
-    // Replace with sample values
-    sample = sample.replace(/{LONG_NAME}/g, 'Meshtastic ABC1');
-    sample = sample.replace(/{SHORT_NAME}/g, 'ABC1');
-    sample = sample.replace(/{VERSION}/g, '2.10.0');
-    sample = sample.replace(/{DURATION}/g, '2d 5h');
-    sample = sample.replace(/{FEATURES}/g, '🗺️ 🤖 📢 👋 🏓 🔑 💬 ⏱️ 📍 🔍 🕐');
-    sample = sample.replace(/{NODECOUNT}/g, '15');
-    sample = sample.replace(/{DIRECTCOUNT}/g, '3');
-    sample = sample.replace(/{TOTALNODES}/g, '156');
-
-    return sample;
-  };
+  const generateSampleMessage = (): string => autoWelcomeSampleMessage(localMessage);
 
   return (
     <NumberInputScope scope={numberScope}>

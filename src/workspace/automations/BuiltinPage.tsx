@@ -15,10 +15,10 @@
  * Saving sends this built-in's today's request once per press and never runs
  * it. Anything that transmits asks first (ConfirmSheet, Enter does nothing).
  */
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { Trans, useTranslation } from 'react-i18next';
+import { skipToken, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { Cron } from 'croner';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -30,7 +30,12 @@ import { useTxStatus } from '../../hooks/useTxStatus';
 import type { DashboardSource } from '../../hooks/useDashboardData';
 import GeofenceMapEditor from '../../components/GeofenceMapEditor';
 import { AUTOACK_CELLS, type AutoAckCellId, type AutoAckMatrix } from '../../utils/autoAckMatrix';
-import { autoAckSampleMessage } from '../../utils/autoAckSample';
+import { autoAckSampleMessage, autoWelcomeSampleMessage } from '../../utils/autoAckSample';
+import { matchTracerouteNodes, type TracerouteMatchFilter } from '../../utils/tracerouteNodeMatch';
+import { scriptTestEnvironment } from '../../utils/scriptTestEnvironment';
+import { COMMAND_EXAMPLES, PATTERN_GROUPS } from '../../components/auto-responder/patternExamplesData';
+import { ROLE_NAMES, DeviceRole } from '../../constants';
+import { useCsrfFetch } from '../../hooks/useCsrfFetch';
 import { HOP_COUNT_EMOJIS } from '../../utils/hopEmoji';
 import { FORWARDED_MARKER, FORWARDING_MAX_PER_WINDOW, FORWARDING_MAX_TEXT_CHARS } from '../../types/forwarding';
 import { matchAutoResponderTrigger, renderSampleResponse, finalizeTrigger } from '../../components/auto-responder/triggerModel';
@@ -73,16 +78,19 @@ export default function BuiltinPage({ b, sourceId, source, result, channels, nod
   const base = `/source/${encodeURIComponent(sourceId)}/automation`;
   const ctx = { b, sourceId, channels, nodes, localNodeNum, reload, receiveOnly };
 
-  // Lists get their own parts in the item sheet (tests, the map).
+  // Lists get their own parts in the item sheet (tests, the map, the examples); the head switch counts as a change.
   const withItems: MeshtasticBuiltin = useMemo(() => ({
     ...b,
+    savedKeys: [...(b.savedKeys ?? []), ...(b.enabledKey ? [{ key: b.enabledKey, label: b.title }] : [])],
     fields: (v: Values) => b.fields(v).map((f): Field => {
-      if (f.key === 'autoResponderTriggers') return { ...f, searchLabel: t('workspace.automations.search_triggers'), itemExtra: (item) => <ResponderTests item={item} /> };
+      if (f.key === 'autoResponderTriggers') {
+        return { ...f, itemExtra: (item, set) => <><PatternGallery onPick={(pattern) => set({ ...item, trigger: pattern })} /><ResponderTests item={item} /></> };
+      }
       if (f.key === 'geofenceTriggers') return { ...f, itemExtra: (item, set) => <GeofenceParts item={item} set={set} nodes={nodes} /> };
       if (f.key === 'timerTriggers') return { ...f, itemExtra: (item) => <TimerTest item={item} /> };
       return f;
     }),
-  }), [b, nodes, t]);
+  }), [b, nodes]);
 
   return (
     <BuiltinView
@@ -139,7 +147,7 @@ function Extra(props: ExtraProps) {
     case 'auto-favorite': return <FavoriteNodes {...props} />;
     case 'auto-key-management': return <LogCard {...props} path="key-repair-log" kind="key" />;
     case 'auto-heap-management': return <HeapStatus {...props} />;
-    case 'auto-traceroute': return <LogCard {...props} path="traceroute-log" kind="traceroute" />;
+    case 'auto-traceroute': return <><MatchCount {...props} /><LogCard {...props} path="traceroute-log" kind="traceroute" /></>;
     case 'remote-admin-scanner': return <ScanLog {...props} />;
     case 'auto-delete-by-distance': return <DistanceParts {...props} />;
     case 'ignored-nodes': return <IgnoredNodes {...props} />;
@@ -173,8 +181,10 @@ function AckParts({ p }: ExtraProps) {
     p.set({ ...p.values, matrix: { ...matrix, [id]: cell } });
   };
   const pathLabel = (hop: string) => t(`workspace.automations.path.${hop}`);
+  const words = ackWords(regex);
   return (
     <>
+      {words && <WordChips words={words} readOnly={p.readOnly} onChange={(next) => p.set({ ...p.values, autoAckRegex: wordsRegex(next) })} />}
       <section className={styles.section} aria-label={t('automation.auto_ack.pattern_testing')}>
         <h2 className={styles.sectionTitle}>{t('automation.auto_ack.pattern_testing')}</h2>
         <ul className={mine.tests}>
@@ -209,13 +219,15 @@ function AckParts({ p }: ExtraProps) {
                   <tr key={c.id}>
                     <th scope="row">{c.type === 'channel' ? t('workspace.automations.channel') : t('workspace.automations.direct')}</th>
                     <td>{pathLabel(c.hop)}</td>
-                    <td><input type="checkbox" aria-label={`${name}: ${t('automation.auto_ack.matrix_tapback')}`} checked={cell.tapback} disabled={p.readOnly} onChange={(e) => setCell(c.id, 'tapback', e.target.checked)} /></td>
-                    <td><input type="checkbox" aria-label={`${name}: ${t('automation.auto_ack.matrix_message')}`} checked={cell.reply} disabled={p.readOnly} onChange={(e) => setCell(c.id, 'reply', e.target.checked)} /></td>
+                    <td><label className={mine.cellHit}><input type="checkbox" aria-label={`${name}: ${t('automation.auto_ack.matrix_tapback')}`} checked={cell.tapback} disabled={p.readOnly} onChange={(e) => setCell(c.id, 'tapback', e.target.checked)} /></label></td>
+                    <td><label className={mine.cellHit}><input type="checkbox" aria-label={`${name}: ${t('automation.auto_ack.matrix_message')}`} checked={cell.reply} disabled={p.readOnly} onChange={(e) => setCell(c.id, 'reply', e.target.checked)} /></label></td>
                     <td>
                       {/* Direct replies are always DMs (today's matrix has no box there). */}
                       {c.type === 'channel' ? (
-                        <input type="checkbox" aria-label={`${name}: ${t('automation.auto_ack.matrix_respond_via_dm')}`} checked={cell.replyDm} disabled={p.readOnly || !cell.reply}
-                          onChange={(e) => setCell(c.id, 'replyDm', e.target.checked)} />
+                        <label className={mine.cellHit}>
+                          <input type="checkbox" aria-label={`${name}: ${t('automation.auto_ack.matrix_respond_via_dm')}`} checked={cell.replyDm} disabled={p.readOnly || !cell.reply}
+                            onChange={(e) => setCell(c.id, 'replyDm', e.target.checked)} />
+                        </label>
                       ) : (
                         <UiIcon name="check" size={16} />
                       )}
@@ -235,6 +247,56 @@ function AckParts({ p }: ExtraProps) {
         <p className={styles.quote}>{autoAckSampleMessage(String(p.values.autoAckMessageDirect ?? ''), true, { dateFormat, timeFormat })}</p>
       </section>
     </>
+  );
+}
+
+/**
+ * m3's words: when today's pattern is a plain alternation (`^(test|ping)`),
+ * its words as chips. Removing or adding a word rewrites that same regex, so
+ * the save is today's `autoAckRegex`; any other pattern has no chips.
+ */
+const SIMPLE_ALTERNATION = /^\^\(([A-Za-z0-9 _-]+(?:\|[A-Za-z0-9 _-]+)*)\)$/;
+function ackWords(regex: string): string[] | null {
+  const m = regex.match(SIMPLE_ALTERNATION);
+  return m ? m[1].split('|') : null;
+}
+const wordsRegex = (words: string[]) => `^(${words.join('|')})`;
+
+function WordChips({ words, readOnly, onChange }: { words: string[]; readOnly: boolean; onChange(words: string[]): void }) {
+  const { t } = useTranslation();
+  const isPhone = useIsPhone();
+  const [draft, setDraft] = useState('');
+  const word = draft.trim();
+  const ok = /^[A-Za-z0-9 _-]+$/.test(word) && !words.includes(word);
+  const add = () => {
+    if (!ok) return;
+    onChange([...words, word]);
+    setDraft('');
+  };
+  return (
+    <section className={styles.section} aria-label={t('workspace.automations.when_message_says')}>
+      <h2 className={styles.sectionTitle}>{t('workspace.automations.when_message_says')}</h2>
+      <div className={mine.chips} data-phone={isPhone || undefined}>
+        {words.map((w) => (
+          <span key={w} className={mine.chip}>
+            {w}
+            <button type="button" disabled={readOnly || words.length === 1} aria-label={t('workspace.automations.remove_word', { word: w })}
+              onClick={() => onChange(words.filter((x) => x !== w))}>
+              <UiIcon name="close" size={14} />
+            </button>
+          </span>
+        ))}
+        <label className={mine.addWord}>
+          <span className={styles.srOnly}>{t('workspace.automations.add_word')}</span>
+          <input value={draft} disabled={readOnly} placeholder={t('workspace.automations.add_word')} onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.repeat) { e.preventDefault(); add(); } }} />
+        </label>
+        <button type="button" className={styles.button} disabled={readOnly || !ok} onClick={add}>
+          <UiIcon name="plus" size={14} /> {t('workspace.automations.add_word')}
+        </button>
+      </div>
+      <p className={styles.muted}>{t('workspace.automations.words_note')}</p>
+    </section>
   );
 }
 
@@ -394,6 +456,15 @@ function AnnounceParts({ sourceId, p, receiveOnly, channels }: ExtraProps) {
     refetchOnWindowFocus: false,
   });
   const saved = p.saved;
+  // The server sends the stored announcement (announceRoutes → sendAutoAnnouncement): the confirm quotes it, read when the confirm opens.
+  const savedMessage = String(saved.autoAnnounceMessage ?? '');
+  const { data: savedPreview } = useQuery({
+    queryKey: ['workspace', 'automation', 'announce-preview', sourceId, savedMessage],
+    enabled: confirm && savedMessage !== '',
+    queryFn: async () => (await apiService.get<{ preview?: string }>(`/api/announce/preview?message=${encodeURIComponent(savedMessage)}&sourceId=${encodeURIComponent(sourceId)}`))?.preview ?? savedMessage,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  });
   const next = (() => {
     if (saved.autoAnnounceEnabled !== true) return t('workspace.meshcore.auto.off');
     if (saved.autoAnnounceUseSchedule === true) {
@@ -410,6 +481,7 @@ function AnnounceParts({ sourceId, p, receiveOnly, channels }: ExtraProps) {
   const names = (Array.isArray(saved.autoAnnounceChannelIndexes) ? saved.autoAnnounceChannelIndexes as number[] : [])
     .map((i) => channels.find((c) => c.id === i)?.name ?? t('forwarding.channel_n', { index: i })).join(', ');
   const send = async () => {
+    if (busy) return;
     setBusy(true);
     try {
       const reply = await apiService.post<{ message?: string }>('/api/announce/send', { sourceId });
@@ -446,7 +518,8 @@ function AnnounceParts({ sourceId, p, receiveOnly, channels }: ExtraProps) {
         title={t('automation.auto_announce.send_now')}
         body={
           <>
-            <p className={styles.quote}>{preview || message}</p>
+            <p className={styles.quote}>{savedPreview || savedMessage}</p>
+            {p.dirty && <p className={styles.note}>{t('workspace.automations.send_now_unsaved')}</p>}
             <SendsLine>{t('workspace.automations.send_now_sends', { count, channels: names })}</SendsLine>
           </>
         }
@@ -462,23 +535,60 @@ function AnnounceParts({ sourceId, p, receiveOnly, channels }: ExtraProps) {
 
 // ── Lists: tests and the map ─────────────────────────────────────────────────
 
-/** Today's script test (ScriptTestModal's request and results), inline in the item's sheet: one request per press, nothing sent. */
-function ScriptTest({ triggerType, scriptPath, scriptArgs, extra }: { triggerType: 'auto-responder' | 'geofence' | 'timer'; scriptPath: string; scriptArgs?: string; extra: Values }) {
+interface ScriptTestProps {
+  triggerType: 'auto-responder' | 'geofence' | 'timer';
+  scriptPath: string;
+  scriptArgs?: string;
+  trigger?: string | string[];
+  geofenceName?: string;
+  geofenceId?: string;
+  timerName?: string;
+  timerId?: string;
+}
+
+/**
+ * Today's script test (ScriptTestModal: its test context, request, results and
+ * environment list), inline in the item's sheet: one request per press, and
+ * nothing is sent on the mesh.
+ */
+function ScriptTest({ triggerType, scriptPath, scriptArgs, trigger, geofenceName, geofenceId, timerName, timerId }: ScriptTestProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
-  const [message, setMessage] = useState('');
-  const [shortName, setShortName] = useState('TEST');
+  const [testMessage, setTestMessage] = useState('');
+  const [mockNodeNum, setMockNodeNum] = useState('12345');
+  const [mockShortName, setMockShortName] = useState('TEST');
+  const [mockLongName, setMockLongName] = useState('Test Node');
+  const [mockNodeLat, setMockNodeLat] = useState('37.7749');
+  const [mockNodeLon, setMockNodeLon] = useState('-122.4194');
+  const [eventType, setEventType] = useState<'entry' | 'exit' | 'while_inside'>('entry');
   const [busy, setBusy] = useState(false);
+  const [showEnv, setShowEnv] = useState(false);
   const [result, setResult] = useState<{ success: boolean; stdout?: string; stderr?: string; wouldSendMessages?: string[]; executionTimeMs?: number; error?: string } | null>(null);
   const run = async () => {
+    if (busy) return;
     setBusy(true);
     setResult(null);
+    // Today's request body (ScriptTestModal runTest).
     const body: Values = {
       script: scriptPath, triggerType, scriptArgs,
-      mockNode: { nodeNum: 12345, shortName, longName: 'Test Node', lat: 37.7749, lon: -122.4194 },
-      ...extra,
+      mockNode: {
+        nodeNum: parseInt(mockNodeNum) || 12345, shortName: mockShortName, longName: mockLongName,
+        lat: parseFloat(mockNodeLat) || 37.7749, lon: parseFloat(mockNodeLon) || -122.4194,
+      },
     };
-    if (triggerType === 'auto-responder') body.testMessage = message;
+    if (triggerType === 'auto-responder') {
+      body.trigger = trigger;
+      body.testMessage = testMessage;
+    } else if (triggerType === 'geofence') {
+      body.geofenceName = geofenceName || 'Test Geofence';
+      body.geofenceId = geofenceId || 'test-id';
+      body.eventType = eventType;
+      body.nodeLat = parseFloat(mockNodeLat) || 37.7749;
+      body.nodeLon = parseFloat(mockNodeLon) || -122.4194;
+    } else {
+      body.timerName = timerName || 'Test Timer';
+      body.timerId = timerId || 'test-id';
+    }
     try {
       setResult(await apiService.post('/api/scripts/test', body));
     } catch (err) {
@@ -487,14 +597,43 @@ function ScriptTest({ triggerType, scriptPath, scriptArgs, extra }: { triggerTyp
       setBusy(false);
     }
   };
+  const env = scriptTestEnvironment({
+    triggerType, scriptPath, testMessage, mockNodeNum, mockShortName, mockLongName, mockNodeLat, mockNodeLon, eventType,
+    trigger, geofenceName, geofenceId, timerName, timerId,
+  });
+  const input = (label: string, value: string, set: (v: string) => void) => (
+    <label className={mine.testField}>
+      <span>{label}</span>
+      <input value={value} onChange={(e) => set(e.target.value)} />
+    </label>
+  );
   return (
     <section className={styles.section} aria-label={t('script_test.title')}>
       <h3 className={styles.sectionTitle}>{t('script_test.title')} · {scriptPath.split('/').pop()}</h3>
-      <div className={mine.inline} data-phone={isPhone || undefined}>
-        {triggerType === 'auto-responder' && (
-          <input aria-label={t('workspace.automations.test_message')} placeholder={t('workspace.automations.test_message')} value={message} onChange={(e) => setMessage(e.target.value)} />
+      <p className={styles.kvLabel}>{t('script_test.mock_context', 'Test Context')}</p>
+      <div className={mine.testGrid} data-phone={isPhone || undefined}>
+        {triggerType === 'auto-responder' && input(t('script_test.mock.message', 'Test Message'), testMessage, setTestMessage)}
+        {triggerType === 'geofence' && (
+          <label className={mine.testField}>
+            <span>{t('script_test.mock.event_type', 'Geofence Event')}</span>
+            <select value={eventType} onChange={(e) => setEventType(e.target.value as typeof eventType)}>
+              <option value="entry">{t('automation.geofence_triggers.event_entry', 'Entry')}</option>
+              <option value="exit">{t('automation.geofence_triggers.event_exit', 'Exit')}</option>
+              <option value="while_inside">{t('automation.geofence_triggers.event_while_inside', 'While Inside')}</option>
+            </select>
+          </label>
         )}
-        <input aria-label={t('workspace.automations.from_short_name')} value={shortName} onChange={(e) => setShortName(e.target.value)} />
+        {input(t('script_test.mock.from_node', 'From Node Number'), mockNodeNum, setMockNodeNum)}
+        {input(t('workspace.automations.from_short_name'), mockShortName, setMockShortName)}
+        {input(t('script_test.mock.from_long_name', 'From Long Name'), mockLongName, setMockLongName)}
+        {(triggerType === 'geofence' || triggerType === 'auto-responder') && (
+          <>
+            {input(t('script_test.mock.node_lat', 'Node Latitude'), mockNodeLat, setMockNodeLat)}
+            {input(t('script_test.mock.node_lon', 'Node Longitude'), mockNodeLon, setMockNodeLon)}
+          </>
+        )}
+      </div>
+      <div className={styles.actions}>
         <button type="button" className={styles.button} disabled={busy} onClick={() => void run()}>
           <UiIcon name="play" size={14} /> {busy ? t('script_test.running') : t('script_test.run_test')}
         </button>
@@ -513,6 +652,19 @@ function ScriptTest({ triggerType, scriptPath, scriptArgs, extra }: { triggerTyp
             : <p className={styles.muted}>{t('script_test.no_messages')}</p>}
           <p className={styles.muted}>{t('script_test.would_send_note')}</p>
         </>
+      )}
+      <button type="button" className={mine.disclosure} aria-expanded={showEnv} onClick={() => setShowEnv((x) => !x)}>
+        <UiIcon name={showEnv ? 'chevronDown' : 'chevronRight'} size={16} /> {t('script_test.environment')}
+      </button>
+      {showEnv && (
+        <dl className={styles.kv}>
+          {Object.entries(env).map(([key, value]) => (
+            <div key={key} className={styles.kvRow}>
+              <dt className={`${styles.kvLabel} ${styles.mono}`}>{key}</dt>
+              <dd className={`${styles.kvValue} ${styles.mono}`}>{value}</dd>
+            </div>
+          ))}
+        </dl>
       )}
     </section>
   );
@@ -555,24 +707,153 @@ function ResponderTests({ item }: { item: Values }) {
         )}
       </section>
       {tr.responseType === 'script' && tr.response && (
-        <ScriptTest triggerType="auto-responder" scriptPath={tr.response} scriptArgs={tr.scriptArgs} extra={{ trigger: tr.trigger }} />
+        <ScriptTest triggerType="auto-responder" scriptPath={tr.response} scriptArgs={tr.scriptArgs} trigger={tr.trigger} />
       )}
     </>
   );
 }
 
-/** The scripts the triggers run; managing them (import, export, delete, dependencies) stays in Server › Scripts (7.5 Ruling). */
+/**
+ * The scripts the triggers run, and today's Import Script and Export Scripts
+ * (ScriptManagement's requests; admins, as the server's gate). Delete and
+ * dependencies stay in Server › Scripts.
+ */
 function ResponderScripts({ p }: ExtraProps) {
   const { t } = useTranslation();
   const { authStatus } = useAuth();
+  const { showToast } = useToast();
+  const csrfFetch = useCsrfFetch();
+  const isAdmin = authStatus?.user?.isAdmin === true;
+  const file = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState<'import' | 'export' | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const queryClient = useQueryClient();
+  // The page's script list (useBuiltins reads it on this page); read here without fetching.
+  const { data: scripts = [] } = useQuery<Array<{ path: string; name: string }>>({ queryKey: ['workspace', 'automation', 'scripts'], queryFn: skipToken });
+  const refetch = () => queryClient.invalidateQueries({ queryKey: ['workspace', 'automation', 'scripts'] });
   const used = [...new Set((Array.isArray(p.values.autoResponderTriggers) ? p.values.autoResponderTriggers as AutoResponderTrigger[] : [])
     .filter((tr) => tr.responseType === 'script' && tr.response).map((tr) => tr.response))];
+  const importFile = async (f: File) => {
+    if (busy) return;
+    setBusy('import');
+    try {
+      const res = await csrfFetch(`${appBasename}/api/scripts/import`, {
+        method: 'POST', headers: { 'x-filename': f.name, 'Content-Type': 'application/octet-stream' }, body: await f.arrayBuffer(),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || t('auto_responder.script_import_failed'));
+      showToast(t('auto_responder.script_imported'), 'success');
+      void refetch();
+    } catch (err) {
+      showToast(err instanceof Error && err.message ? err.message : t('auto_responder.script_import_failed'), 'error');
+    } finally {
+      setBusy(null);
+      if (file.current) file.current.value = '';
+    }
+  };
+  const exportAll = async () => {
+    if (busy) return;
+    setBusy('export');
+    try {
+      const res = await csrfFetch(`${appBasename}/api/scripts/export`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scripts: scripts.map((sc) => sc.path) }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || t('auto_responder.script_export_failed'));
+      const url = window.URL.createObjectURL(await res.blob());
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'scripts-export.zip';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showToast(t('auto_responder.scripts_exported', { count: scripts.length }), 'success');
+      setExporting(false);
+    } catch (err) {
+      showToast(err instanceof Error && err.message ? err.message : t('auto_responder.script_export_failed'), 'error');
+    } finally {
+      setBusy(null);
+    }
+  };
   return (
     <section className={styles.section} aria-label={t('workspace.automations.scripts')}>
       <h2 className={styles.sectionTitle}>{t('workspace.automations.scripts_count', { count: used.length })}</h2>
       {used.length > 0 && <ul className={`${styles.card} ${mine.column}`}>{used.map((path) => <li key={path} className={`${styles.listRow} ${styles.mono}`}>{path.split('/').pop()}</li>)}</ul>}
+      {isAdmin && (
+        <div className={styles.actions}>
+          <input ref={file} type="file" accept=".js,.mjs,.py,.sh" className={styles.srOnly} aria-label={t('auto_responder.import_script')}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) void importFile(f); }} />
+          <button type="button" className={styles.button} disabled={busy !== null} title={t('auto_responder.import_script_description')} onClick={() => file.current?.click()}>
+            <UiIcon name="upload" size={16} /> {busy === 'import' ? t('auto_responder.importing') : t('auto_responder.import_script')}
+          </button>
+          <button type="button" className={styles.button} disabled={busy !== null || scripts.length === 0} onClick={() => setExporting(true)}>
+            <UiIcon name="download" size={16} /> {t('auto_responder.export_scripts')}
+          </button>
+        </div>
+      )}
       <p className={styles.muted}>{t('workspace.automations.scripts_test_hint')}</p>
-      {authStatus?.user?.isAdmin && <Link className={styles.link} to="/server/scripts">{t('workspace.automations.scripts_manage')}</Link>}
+      {isAdmin && <Link className={styles.link} to="/server/scripts">{t('workspace.automations.scripts_manage')}</Link>}
+      <ConfirmSheet
+        open={exporting}
+        title={t('auto_responder.export_scripts')}
+        body={t('auto_responder.export_all_confirm', { count: scripts.length })}
+        confirmLabel={busy === 'export' ? t('auto_responder.exporting') : t('auto_responder.export_scripts')}
+        busy={busy === 'export'}
+        submitOnEnter={false}
+        onCancel={() => setExporting(false)}
+        onConfirm={exportAll}
+      />
+    </section>
+  );
+}
+
+/** Today's pattern examples (PatternExamples): picking one fills the trigger's pattern. */
+function PatternGallery({ onPick }: { onPick(pattern: string): void }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const code = <code className={styles.mono} />;
+  return (
+    <section className={styles.section} aria-label={t('auto_responder.examples_title')}>
+      <button type="button" className={mine.disclosure} aria-expanded={open} onClick={() => setOpen((x) => !x)}>
+        <UiIcon name="sparkles" size={16} /> {t('auto_responder.examples_title')}
+        <UiIcon name={open ? 'chevronDown' : 'chevronRight'} size={16} />
+      </button>
+      {open && (
+        <>
+          <p className={styles.kvLabel}>{t('auto_responder.examples_common_commands')}</p>
+          <div className={mine.examples}>
+            {COMMAND_EXAMPLES.map(([pattern, key]) => (
+              <button key={pattern} type="button" className={mine.example} title={t('auto_responder.examples_click_to_use_pattern')} onClick={() => onPick(pattern)}>
+                <code>{pattern}</code>
+                <span>{t(`auto_responder.${key}`)}</span>
+              </button>
+            ))}
+          </div>
+          {PATTERN_GROUPS.map((g) => (
+            <div key={g.titleKey}>
+              <p className={styles.kvLabel}>{t(`auto_responder.${g.titleKey}`)}</p>
+              <div className={mine.examples}>
+                {g.items.map((item) => (
+                  <button key={item.pattern} type="button" className={mine.example} title={t(`auto_responder.${item.titleKey ?? 'examples_click_to_use'}`)} onClick={() => onPick(item.pattern)}>
+                    <code>{item.pattern}</code>
+                    <span>{t(`auto_responder.${item.descKey}`, item.values ?? {})}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <p className={styles.kvLabel}>{t('auto_responder.examples_tips_title')}</p>
+          <ul className={mine.tips}>
+            <li><Trans i18nKey="auto_responder.examples_tip_click" components={{ b: <strong /> }} /></li>
+            <li><Trans i18nKey="auto_responder.examples_tip_default_param" components={{ example: <code className={styles.mono}>{'{param}'}</code> }} /></li>
+            <li><Trans i18nKey="auto_responder.examples_tip_regex_param" components={{ example: <code className={styles.mono}>{'{param:regex}'}</code> }} /></li>
+            <li><Trans i18nKey="auto_responder.examples_tip_multiple" components={{ example: <code className={styles.mono}>{'pattern1, pattern2 {param}'}</code> }} /></li>
+            <li><Trans i18nKey="auto_responder.examples_tip_default_pattern" components={{ example: <code className={styles.mono}>{'[^\\s]+'}</code> }} /></li>
+            <li><Trans i18nKey="auto_responder.examples_tip_multiple_words" components={{ example: <code className={styles.mono}>{'[\\w\\s]+'}</code> }} /></li>
+            <li><Trans i18nKey="auto_responder.examples_tip_escape" components={{ example: <code className={styles.mono}>{'\\ . + * ? ^ $ { } [ ] ( ) |'}</code> }} /></li>
+            <li><Trans i18nKey="auto_responder.examples_tip_timezone" components={{ b: <strong />, env: code, setting: code, file: code }} /></li>
+          </ul>
+        </>
+      )}
     </section>
   );
 }
@@ -580,7 +861,7 @@ function ResponderScripts({ p }: ExtraProps) {
 function TimerTest({ item }: { item: Values }) {
   if (item.responseType === 'text' || !item.scriptPath) return null;
   return <ScriptTest triggerType="timer" scriptPath={String(item.scriptPath)} scriptArgs={item.scriptArgs as string | undefined}
-    extra={{ timerName: item.name || 'Test Timer', timerId: item.id || 'test-id' }} />;
+    timerName={String(item.name ?? '')} timerId={String(item.id ?? '')} />;
 }
 
 /** A geofence's shape on today's map editor, its nodes (all or a picked set) and, for a script, the test. */
@@ -640,8 +921,7 @@ function GeofenceParts({ item, set, nodes }: { item: Values; set(item: Values): 
         )}
       </section>
       {g.responseType === 'script' && g.scriptPath && (
-        <ScriptTest triggerType="geofence" scriptPath={g.scriptPath} scriptArgs={g.scriptArgs}
-          extra={{ geofenceName: g.name || 'Test Geofence', geofenceId: g.id || 'test-id', eventType: g.event, nodeLat: 37.7749, nodeLon: -122.4194 }} />
+        <ScriptTest triggerType="geofence" scriptPath={g.scriptPath} scriptArgs={g.scriptArgs} geofenceName={g.name} geofenceId={g.id} />
       )}
     </>
   );
@@ -654,6 +934,7 @@ function WelcomeParts({ sourceId, p }: ExtraProps) {
   const { showToast } = useToast();
   const [busy, setBusy] = useState(false);
   const mark = async () => {
+    if (busy) return;
     setBusy(true);
     try {
       const reply = await apiService.post<{ markedCount?: number; count?: number }>(`/api/settings/mark-all-welcomed${q(sourceId)}`, {});
@@ -666,6 +947,9 @@ function WelcomeParts({ sourceId, p }: ExtraProps) {
   };
   return (
     <section className={`${styles.card} ${styles.cardBody}`} aria-label={t('automation.auto_welcome.mark_all_welcomed')}>
+      <p className={styles.kvLabel}>{t('automation.auto_welcome.sample_preview')}</p>
+      <p className={styles.muted}>{t('automation.auto_welcome.sample_preview_description')}</p>
+      <p className={styles.quote}>{autoWelcomeSampleMessage(String(p.values.autoWelcomeMessage ?? ''))}</p>
       <p className={styles.muted}>{t('automation.auto_welcome.mark_all_welcomed_tooltip')}</p>
       <div className={styles.actions}>
         <button type="button" className={styles.button} disabled={busy || !p.canWrite} onClick={() => void mark()}>
@@ -714,35 +998,105 @@ function ForwardingLimits() {
   return <p className={styles.note}>{t('forwarding.limits', { max: FORWARDING_MAX_PER_WINDOW, chars: FORWARDING_MAX_TEXT_CHARS, marker: FORWARDED_MARKER })}</p>;
 }
 
-/** Today's status line (AirtimeCutoffSection), re-read every 15 s while the page is open, as today. */
+interface AirtimeNode { nodeNum: number | null; nodeId: string | null; longName: string | null; shortName: string | null }
+interface AirtimeStatusData {
+  threshold: number; source: string; neighborMaxHops?: number; channelUtilization: number | null; gated: boolean; sampleCount: number;
+  contributors?: Array<AirtimeNode & { rssi: number | null; channelUtilization: number }>;
+  targetCount?: number; neighborAverage?: number | null; localChannelUtilization?: number | null;
+  localUsed?: 'no_neighbors' | 'higher_than_neighbors' | null; skipped?: Array<AirtimeNode & { reason: string }>;
+}
+
+/** Today's status (AirtimeCutoffSection): the line, how the gap was filled, who was skipped and who is in the average; re-read every 15 s as today. */
 function AirtimeStatus({ sourceId }: ExtraProps) {
   const { t } = useTranslation();
   const { data: s } = useQuery({
     queryKey: ['workspace', 'automation', 'airtime-status', sourceId],
-    queryFn: () => apiService.get<{ threshold: number; source: string; channelUtilization: number | null; gated: boolean; sampleCount: number }>(`/api/automation/airtime-status${q(sourceId)}`),
+    queryFn: () => apiService.get<AirtimeStatusData>(`/api/automation/airtime-status${q(sourceId)}`),
     refetchInterval: 15_000,
     refetchOnWindowFocus: false,
   });
   if (!s) return null;
-  const label = s.source === 'neighbors' ? t('automation.airtime_cutoff.source_neighbors_label', 'neighbour-averaged') : t('automation.airtime_cutoff.source_local_label', 'local');
-  const util = s.channelUtilization == null ? null : parseFloat(s.channelUtilization.toFixed(2));
+  const pct = (v: number) => parseFloat(v.toFixed(2));
+  const disabled = s.threshold <= 0;
+  const neighbors = s.source === 'neighbors';
+  const localUsed = neighbors ? (s.localUsed ?? null) : null;
+  const sampleCount = s.sampleCount ?? 0;
+  const target = s.targetCount ?? sampleCount;
+  const label = neighbors && !localUsed ? t('automation.airtime_cutoff.source_neighbors_label', 'neighbour-averaged') : t('automation.airtime_cutoff.source_local_label', 'local');
+  const util = s.channelUtilization == null ? null : pct(s.channelUtilization);
+  const name = (n: AirtimeNode) => n.longName || n.shortName || n.nodeId || (n.nodeNum != null ? `!${n.nodeNum.toString(16).padStart(8, '0')}` : '?');
+  const skipReason = (r: string) =>
+    r === 'mqtt' ? t('automation.airtime_cutoff.skip_mqtt', 'heard over MQTT')
+      : r === 'not_infrastructure' ? t('automation.airtime_cutoff.skip_not_infrastructure', 'no longer an infrastructure role')
+        : r === 'not_found' ? t('automation.airtime_cutoff.skip_not_found', 'not heard in the last day')
+          : t('automation.airtime_cutoff.skip_stale', 'no fresh Channel Utilization');
+  let fill: string | null = null;
+  if (!disabled && neighbors) {
+    const local = s.localChannelUtilization;
+    const avg = s.neighborAverage;
+    if (localUsed === 'no_neighbors' && local != null) {
+      fill = t('automation.airtime_cutoff.fill_no_neighbors', { target, local: pct(local), defaultValue: '0 of {{target}} infrastructure nodes qualify; using local {{local}}%.' });
+    } else if (localUsed === 'higher_than_neighbors' && local != null && avg != null) {
+      fill = t('automation.airtime_cutoff.fill_local_higher', { count: sampleCount, target, local: pct(local), avg: pct(avg),
+        defaultValue: '{{count}} of {{target}} infrastructure nodes qualify; using local {{local}}% (higher than their average {{avg}}%).' });
+    } else if (sampleCount > 0 && sampleCount < target && avg != null) {
+      fill = local != null
+        ? t('automation.airtime_cutoff.fill_local_lower', { count: sampleCount, target, local: pct(local), avg: pct(avg),
+          defaultValue: '{{count}} of {{target}} infrastructure nodes qualify; local {{local}}% is lower, so their average {{avg}}% is used.' })
+        : t('automation.airtime_cutoff.fill_local_unknown', { count: sampleCount, target,
+          defaultValue: '{{count}} of {{target}} infrastructure nodes qualify; local Channel Utilization is not known yet.' });
+    }
+  }
+  const hops = s.neighborMaxHops ?? 0;
+  const contributors = !disabled && neighbors ? (s.contributors ?? []) : [];
+  const skipped = !disabled && neighbors ? (s.skipped ?? []) : [];
   return (
-    <p className={styles.banner} role="status">
-      <UiIcon name="info" size={16} />
-      <span>
-        {s.threshold <= 0
-          ? t('automation.airtime_cutoff.status_disabled', 'Airtime cutoff is disabled (threshold 0).')
-          : util == null
-            ? t('automation.airtime_cutoff.status_unknown', 'Waiting for the connected node to report Channel Utilization…')
-            : s.gated
-              ? t('automation.airtime_cutoff.status_paused', { source: label, util, threshold: s.threshold })
-              : t('automation.airtime_cutoff.status_active', { source: label, util, threshold: s.threshold })}
-      </span>
-    </p>
+    <section className={styles.section} aria-label={t('workspace.automations.airtime_status')}>
+      <p className={styles.banner} role="status">
+        <UiIcon name={disabled ? 'info' : s.gated ? 'pause' : 'check'} size={16} />
+        <span>
+          {disabled
+            ? t('automation.airtime_cutoff.status_disabled', 'Airtime cutoff is disabled (threshold 0).')
+            : util == null
+              ? (neighbors
+                  ? (hops > 0
+                      ? t('automation.airtime_cutoff.status_unknown_neighbors_hops', { hops, defaultValue: 'Waiting for infrastructure (router) neighbours within {{hops}} hop(s) to report Channel Utilization…' })
+                      : t('automation.airtime_cutoff.status_unknown_neighbors', 'Waiting for 0-hop infrastructure (router) neighbours to report Channel Utilization…'))
+                  : t('automation.airtime_cutoff.status_unknown', 'Waiting for the connected node to report Channel Utilization…'))
+              : s.gated
+                ? t('automation.airtime_cutoff.status_paused', { source: label, util, threshold: s.threshold })
+                : t('automation.airtime_cutoff.status_active', { source: label, util, threshold: s.threshold })}
+          {!disabled && util != null && neighbors && !localUsed && ` ${t('automation.airtime_cutoff.status_neighbors_suffix', { count: sampleCount, defaultValue: '(averaged from {{count}} infrastructure node(s))' })}`}
+        </span>
+      </p>
+      {fill && <p className={styles.muted}>{fill}</p>}
+      {skipped.length > 0 && (
+        <p className={styles.muted}>{t('automation.airtime_cutoff.skipped_line', { list: skipped.map((n) => `${name(n)} (${skipReason(n.reason)})`).join(', '), defaultValue: 'Skipped: {{list}}' })}</p>
+      )}
+      {contributors.length > 0 && (
+        <>
+          <p className={styles.kvLabel}>{t('automation.airtime_cutoff.contributors_label', 'Infrastructure nodes in calculation')}</p>
+          <ul className={`${styles.card} ${mine.column}`}>
+            {contributors.map((n, i) => (
+              <li key={n.nodeId ?? n.nodeNum ?? i} className={styles.listRow}>
+                <span className={styles.rowTitle}>{name(n)}</span>
+                <span className={styles.rowSub}>
+                  {n.rssi != null
+                    ? t('automation.airtime_cutoff.contributor_detail', { util: pct(n.channelUtilization), rssi: n.rssi, defaultValue: '{{util}}% · {{rssi}} dBm' })
+                    : t('automation.airtime_cutoff.contributor_detail_no_rssi', { util: pct(n.channelUtilization), defaultValue: '{{util}}%' })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
   );
 }
 
-interface FavStatus { firmwareVersion: string | null; supportsFavorites: boolean; autoFavoriteNodes: Array<{ nodeNum: number; nodeId: string; longName: string | null; shortName: string | null; favoriteLocked: boolean }> }
+const ELIGIBLE_ROLES: Set<number> = new Set([DeviceRole.ROUTER, DeviceRole.ROUTER_LATE, DeviceRole.CLIENT_BASE]);
+
+interface FavStatus { localNodeRole: number | null; firmwareVersion: string | null; supportsFavorites: boolean; autoFavoriteNodes: Array<{ nodeNum: number; nodeId: string; longName: string | null; shortName: string | null; favoriteLocked: boolean }> }
 
 function FavoriteNodes({ sourceId, p }: ExtraProps) {
   const { t } = useTranslation();
@@ -763,10 +1117,24 @@ function FavoriteNodes({ sourceId, p }: ExtraProps) {
     }
   };
   const rows = data?.autoFavoriteNodes ?? [];
+  const roleValid = data?.localNodeRole != null && ELIGIBLE_ROLES.has(data.localNodeRole);
   return (
     <section className={styles.section} aria-label={t('automation.auto_favorite.managed_nodes', 'Auto-Favorited Nodes')}>
       <h2 className={styles.sectionTitle}>{t('automation.auto_favorite.managed_nodes', 'Auto-Favorited Nodes')}</h2>
       {data && !data.supportsFavorites && <p className={styles.note}>{t('automation.auto_favorite.firmware_warning', 'Firmware {{version}} does not support favorites (requires >= 2.7.0)', { version: data.firmwareVersion || 'unknown' })}</p>}
+      {/* Today's role checks (AutoFavoriteSection ELIGIBLE_LOCAL_ROLES). */}
+      {data && data.supportsFavorites && !roleValid && (
+        <p className={styles.note}>{t('automation.auto_favorite.role_warning', 'Your node role is "{{role}}" — Auto Favorite requires Router, Router Late, or Client Base.', { role: ROLE_NAMES[data.localNodeRole ?? 0] || 'Unknown' })}</p>
+      )}
+      {data && data.supportsFavorites && roleValid && (
+        <p className={styles.muted}>{t('automation.auto_favorite.valid_config', 'Valid configuration: {{role}} on firmware {{version}}. Will auto-favorite: {{targets}}.', {
+          role: ROLE_NAMES[data.localNodeRole!] || 'Unknown', version: data.firmwareVersion || 'unknown',
+          targets: t('automation.auto_favorite.target_routers', '0-hop Router, Router Late, and Client Base nodes'),
+        })}</p>
+      )}
+      {data?.localNodeRole === DeviceRole.CLIENT_BASE && (
+        <p className={styles.muted}>{t('automation.auto_favorite.client_base_tip', 'For maximum benefits, you should manually Favorite your local nearby CLIENT and CLIENT_MUTE nodes.')}</p>
+      )}
       {p.saved.aircraftDetectionEnabled === false && <p className={styles.muted}>{t('automation.auto_favorite.exclude_aircraft_hint', '')}</p>}
       {rows.length === 0 ? <p className={styles.muted}>{t('automation.auto_favorite.no_nodes', 'No nodes auto-favorited yet.')}</p> : (
         <ul className={`${styles.card} ${mine.column}`}>
@@ -832,6 +1200,29 @@ function LogCard({ sourceId, p, path, kind }: ExtraProps & { path: string; kind:
           ))}
         </ul>
       )}
+    </section>
+  );
+}
+
+/** Today's preview: how many of this device's nodes the filters match now (computed here, as today). */
+function MatchCount({ p, nodes }: ExtraProps) {
+  const { t } = useTranslation();
+  const f = (p.values.filter ?? {}) as Values;
+  const matching = matchTracerouteNodes(nodes as Parameters<typeof matchTracerouteNodes>[0], {
+    ...(f as unknown as TracerouteMatchFilter),
+    selectedNodeNums: (f.nodeNums as number[] | undefined) ?? [],
+    filterEnabled: f.enabled === true,
+    filterChannels: (f.filterChannels as number[] | undefined) ?? [],
+    filterRoles: (f.filterRoles as number[] | undefined) ?? [],
+    filterHwModels: (f.filterHwModels as number[] | undefined) ?? [],
+    filterNameRegex: String(f.filterNameRegex ?? '.*'),
+  });
+  return (
+    <section className={styles.section} aria-label={t('workspace.automations.matching')}>
+      <p className={styles.kvLabel}>
+        {t('automation.auto_traceroute.matching_nodes', { count: matching.length })} / {nodes.length} {t('common.total')}
+      </p>
+      {matching.length > 0 && <p className={styles.muted}>{matching.map(nodeName).join(', ')}</p>}
     </section>
   );
 }

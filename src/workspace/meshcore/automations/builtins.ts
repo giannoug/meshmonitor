@@ -70,6 +70,12 @@ export interface Field {
   searchLabel?: string;
   /** list: more of the item's controls under its fields in the sheet (a map, a test). */
   itemExtra?(item: Values, setItem: (item: Values) => void): ReactNode;
+  /** list: Delete asks first, with these words (today's), in a ConfirmSheet. */
+  confirmDelete?(item: Values): { title: string; message: string; confirmLabel: string };
+  /** list: a type filter beside the search (today's TriggerListFilter). */
+  itemFilter?: { label: string; options: Option[]; match(item: Values, value: string): boolean };
+  /** The value the input shows when it is not the stored one (a distance in the user's unit); `set` stores it back. */
+  read?(v: Values): unknown;
 }
 
 export type Extra = 'announce' | 'timers' | 'distance' | 'favorite' | 'autoPing' | 'timeSync' | 'remoteTelemetry' | 'forwarding';
@@ -96,6 +102,12 @@ export interface Builtin {
    */
   saveEffect(v: Values): string;
   fields(v: Values): Field[];
+  /**
+   * Saved keys the page edits outside its fields (a matrix, a head switch):
+   * a change to one counts as one change, under its label. Nothing else
+   * outside the fields counts, so polled data (sessions) never reads as dirty.
+   */
+  savedKeys?: Array<{ key: string; label: string }>;
   validate?(v: Values, saved: Values): string | null;
   extra?: Extra;
 }
@@ -677,6 +689,10 @@ export function builtinTable(t: TFunction, ctx: BuiltinCtx): Builtin[] {
 }
 
 /** The fields, flattened, that differ between two values: the dock's change list. */
-export function changedLabels(fields: Field[], v: Values, saved: Values): string[] {
-  return fields.filter((f) => f.kind !== 'heading' && !same(getPath(v, f.key), getPath(saved, f.key))).map((f) => f.label);
+export function changedLabels(fields: Field[], v: Values, saved: Values, savedKeys: Array<{ key: string; label: string }> = []): string[] {
+  const named = new Set(fields.map((f) => f.key));
+  return [
+    ...fields.filter((f) => f.kind !== 'heading' && !same(getPath(v, f.key), getPath(saved, f.key))).map((f) => f.label),
+    ...savedKeys.filter((k) => !named.has(k.key) && !same(getPath(v, k.key), getPath(saved, k.key))).map((k) => k.label),
+  ];
 }

@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCsrfFetch } from '../hooks/useCsrfFetch';
 import { UiIcon } from './icons';
+import { scriptTestEnvironment } from '../utils/scriptTestEnvironment';
 
 export type ScriptTestTriggerType = 'auto-responder' | 'geofence' | 'timer';
 
@@ -136,40 +137,10 @@ const ScriptTestModal: React.FC<ScriptTestModalProps> = ({
     csrfFetch,
   ]);
 
-  const getEnvironmentVariables = (): Record<string, string> => {
-    const env: Record<string, string> = {
-      IP: '(server IP)',
-      PORT: '(server port)',
-      VERSION: '(server version)',
-    };
-
-    if (triggerType === 'auto-responder') {
-      env.MESSAGE = testMessage || '(test message)';
-      env.FROM_NODE = mockNodeNum;
-      env.FROM_SHORT_NAME = mockShortName;
-      env.FROM_LONG_NAME = mockLongName;
-      env.PACKET_ID = '99999';
-      env.TRIGGER = Array.isArray(trigger) ? trigger.join(', ') : (trigger || '');
-    } else if (triggerType === 'geofence') {
-      env.GEOFENCE_NAME = geofenceName || 'Test Geofence';
-      env.GEOFENCE_ID = geofenceId || 'test-id';
-      env.GEOFENCE_EVENT = eventType;
-      env.EVENT = eventType;
-      env.NODE_LAT = mockNodeLat;
-      env.NODE_LON = mockNodeLon;
-      env.NODE_NUM = mockNodeNum;
-      env.NODE_ID = mockNodeNum;
-      env.SHORT_NAME = mockShortName;
-      env.LONG_NAME = mockLongName;
-      env.DISTANCE_TO_CENTER = '0.5';
-    } else if (triggerType === 'timer') {
-      env.TIMER_NAME = timerName || 'Test Timer';
-      env.TIMER_ID = timerId || 'test-id';
-      env.TIMER_SCRIPT = scriptPath;
-    }
-
-    return env;
-  };
+  const getEnvironmentVariables = (): Record<string, string> => scriptTestEnvironment({
+    triggerType, scriptPath, testMessage, mockNodeNum, mockShortName, mockLongName, mockNodeLat, mockNodeLon, eventType,
+    trigger, geofenceName, geofenceId, timerName, timerId,
+  });
 
   // Escape closes, like the other Auto Responder dialogs. This modal stays
   // mounted with an isOpen flag, so it cannot use the mount-only

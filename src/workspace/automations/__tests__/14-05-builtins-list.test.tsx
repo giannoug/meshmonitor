@@ -9,7 +9,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
-import { AUTO, renderAutomations, settle, writes } from './renderAutomations';
+import { AUTO, renderAutomations, settle, writes, nonGet } from './renderAutomations';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('../../meshcore/__tests__/mocks')).wsMock(orig));
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
@@ -74,7 +74,7 @@ describe('14-05-builtins-list', () => {
     const { log } = renderAutomations(LIST);
     await loaded();
     await settle();
-    expect(log.writes).toHaveLength(0);
+    expect(nonGet()).toHaveLength(0);
     fireEvent.click(screen.getByRole('switch', { name: 'Auto Welcome' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
     await waitFor(() => expect(writes(log, '/api/settings')).toHaveLength(1));
@@ -83,6 +83,6 @@ describe('14-05-builtins-list', () => {
       autoWelcomeWaitForName: 'true', autoWelcomeMaxHops: '5', autoWelcomeDelay: '30',
     });
     await settle();
-    expect(log.writes).toHaveLength(1);
+    expect(nonGet()).toHaveLength(1);
   });
 });

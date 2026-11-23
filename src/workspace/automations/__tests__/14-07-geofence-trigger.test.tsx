@@ -11,7 +11,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { joined } from '../../chat/__tests__/renderChat';
-import { AUTO, renderAutomations, settle, writes } from './renderAutomations';
+import { AUTO, renderAutomations, settle, writes, nonGet } from './renderAutomations';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('../../meshcore/__tests__/mocks')).wsMock(orig));
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
@@ -54,7 +54,7 @@ describe('14-07-geofence-trigger', () => {
     fireEvent.change(cooldown, { target: { value: '45' } });
     fireEvent.blur(cooldown);
     fireEvent.click(within(sheet).getByRole('button', { name: 'Done' }));
-    expect(log.writes).toHaveLength(0);
+    expect(nonGet()).toHaveLength(0);
     fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
     await waitFor(() => expect(writes(log, '/api/settings')).toHaveLength(1));
     const saved = JSON.parse((writes(log, '/api/settings')[0].body as { geofenceTriggers: string }).geofenceTriggers);
@@ -62,7 +62,7 @@ describe('14-07-geofence-trigger', () => {
     expect(saved[0].nodeFilter.nodeNums).toContain(0xa1b2c303);
     expect(saved[1].id).toBe('g2');
     await settle();
-    expect(log.writes).toHaveLength(1);
+    expect(nonGet()).toHaveLength(1);
   });
 
   it('Clear shape leaves a trigger Done refuses with today\'s reason', async () => {

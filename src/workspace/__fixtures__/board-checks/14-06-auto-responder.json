@@ -16,7 +16,9 @@
     "Test Script",
     "Would Send to Mesh",
     "Console Output",
-    "Scripts"
+    "Scripts",
+    "Import Script",
+    "Export"
   ],
   "absent": [],
   "source": "checks/s14.json"

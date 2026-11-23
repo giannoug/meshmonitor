@@ -51,3 +51,20 @@ export function autoAckSampleMessage(
 
   return sample;
 }
+
+/** Auto Welcome's sample preview, moved as is from AutoWelcomeSection (Task 8.3, Rule X). */
+export function autoWelcomeSampleMessage(message: string): string {
+  let sample = message;
+
+  // Replace with sample values
+  sample = sample.replace(/{LONG_NAME}/g, 'Meshtastic ABC1');
+  sample = sample.replace(/{SHORT_NAME}/g, 'ABC1');
+  sample = sample.replace(/{VERSION}/g, '2.10.0');
+  sample = sample.replace(/{DURATION}/g, '2d 5h');
+  sample = sample.replace(/{FEATURES}/g, '🗺️ 🤖 📢 👋 🏓 🔑 💬 ⏱️ 📍 🔍 🕐');
+  sample = sample.replace(/{NODECOUNT}/g, '15');
+  sample = sample.replace(/{DIRECTCOUNT}/g, '3');
+  sample = sample.replace(/{TOTALNODES}/g, '156');
+
+  return sample;
+}

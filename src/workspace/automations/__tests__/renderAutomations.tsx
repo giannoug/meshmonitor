@@ -41,4 +41,11 @@ export function requests(method: string, path: string | RegExp): number {
   }).length;
 }
 
+/** Every request that is not a GET (the fetch mock), whether or not a fixture logs it. */
+export function nonGet(): Array<{ method: string; path: string }> {
+  return vi.mocked(fetch).mock.calls
+    .map(([u, i]) => ({ method: (i?.method ?? 'GET').toUpperCase(), path: new URL(String(u), 'http://localhost').pathname }))
+    .filter((r) => r.method !== 'GET');
+}
+
 export const settle = (ms = 60) => act(async () => new Promise((r) => setTimeout(r, ms)));

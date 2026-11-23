@@ -174,3 +174,32 @@
   color: var(--color-text);
   font: inherit;
 }
+
+.search[data-phone] {
+  min-height: 44px;
+}
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.filterRow .search {
+  flex: 1 1 200px;
+}
+
+.filterSelect {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.filterSelect[data-phone] {
+  min-height: 44px;
+}

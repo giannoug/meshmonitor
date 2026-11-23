@@ -109,7 +109,10 @@ export function BuiltinView({ b, result, onSaved, sourceId, receiveOnly, pausedN
     value && saved
       ? { values: value, saved, dirty: false, canWrite, readOnly: !canWrite || saving, set: (v) => setEdits(v) }
       : null;
-  if (part) part.dirty = changedLabels(b.fields(part.values), part.values, saved!).length > 0 || JSON.stringify(part.values) !== JSON.stringify(saved);
+  const fields = value ? b.fields(value) : [];
+  // Each changed field, and each changed saved key the page edits outside the fields, is one change.
+  const changes = value && saved ? changedLabels(fields, value, saved, b.savedKeys) : [];
+  if (part) part.dirty = changes.length > 0;
 
   const head = (
     <>
@@ -131,10 +134,6 @@ export function BuiltinView({ b, result, onSaved, sourceId, receiveOnly, pausedN
     );
   }
 
-  const fields = b.fields(value);
-  const labelled = changedLabels(fields, value, saved);
-  // A change no field names (a matrix cell, a list item drawn by the page) still counts once.
-  const changes = labelled.length > 0 || !part.dirty ? labelled : [b.title];
   const invalid = b.validate?.(value, saved) ?? null;
   const sends = b.sends(value);
   const save = async () => {
@@ -245,7 +244,7 @@ function Checks({ field, value, onChange, readOnly }: { field: Field; value: unk
 export function FieldRow({ field: f, id, values, readOnly, onChange, savedItems }: {
   field: Field; id: string; values: Values; readOnly: boolean; onChange(v: unknown): void; savedItems?: Values[];
 }) {
-  const raw = getPath(values, f.key);
+  const raw = f.read ? f.read(values) : getPath(values, f.key);
   let control: ReactNode;
   switch (f.kind) {
     case 'toggle':
@@ -294,8 +293,14 @@ export function ListField({ field: f, items, savedItems, readOnly, onChange }: {
   const [open, setOpen] = useState<{ index: number; item: Values } | null>(null);
   const [tried, setTried] = useState(false);
   const [search, setSearch] = useState('');
+  const [kind, setKind] = useState('all');
+  const [removing, setRemoving] = useState<number | null>(null);
   const term = search.trim().toLowerCase();
-  const matches = (x: Values, i: number) => !term || `${f.itemTitle?.(x) ?? i + 1} ${f.itemSub?.(x) ?? ''}`.toLowerCase().includes(term);
+  const matches = (x: Values, i: number) =>
+    (!term || `${f.itemTitle?.(x) ?? i + 1} ${f.itemSub?.(x) ?? ''}`.toLowerCase().includes(term)) &&
+    (kind === 'all' || !f.itemFilter || f.itemFilter.match(x, kind));
+  const remove = (i: number) => onChange(items.filter((_, j) => j !== i));
+  const asking = removing !== null && items[removing] ? f.confirmDelete?.(items[removing]) : undefined;
   const savedIds = new Set(savedItems.map((x) => String(x.id)));
   const isNew = (x: Values) => !savedIds.has(String(x.id));
   const errorOf = (x: Values) => f.validateItem?.(x, isNew(x)) ?? null;
@@ -317,11 +322,18 @@ export function ListField({ field: f, items, savedItems, readOnly, onChange }: {
   return (
     <SettingGroup title={f.label}>
       {f.searchLabel && items.length > 0 && (
-        <label className={own.search}>
-          <UiIcon name="search" size={16} />
-          <span className={styles.srOnly}>{f.searchLabel}</span>
-          <input type="search" value={search} placeholder={`${f.searchLabel}…`} onChange={(e) => setSearch(e.target.value)} />
-        </label>
+        <div className={own.filterRow}>
+          <label className={own.search} data-phone={isPhone || undefined}>
+            <UiIcon name="search" size={16} />
+            <span className={styles.srOnly}>{f.searchLabel}</span>
+            <input type="search" value={search} placeholder={`${f.searchLabel}…`} onChange={(e) => setSearch(e.target.value)} />
+          </label>
+          {f.itemFilter && (
+            <select className={own.filterSelect} data-phone={isPhone || undefined} aria-label={f.itemFilter.label} value={kind} onChange={(e) => setKind(e.target.value)}>
+              {f.itemFilter.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          )}
+        </div>
       )}
       <ul className={own.items}>
         {items.length === 0 && <li className={styles.note}>{t('meshcore.automation.responder.empty', 'No triggers configured yet.')}</li>}
@@ -342,7 +354,7 @@ export function ListField({ field: f, items, savedItems, readOnly, onChange }: {
               )}
               <button type="button" className={styles.button} disabled={readOnly} onClick={() => setOpen({ index: i, item: x })}>{t('common.edit', 'Edit')}</button>
               <button type="button" className={`${styles.iconButton} ${styles.danger}`} disabled={readOnly} title={t('common.delete', 'Delete')}
-                onClick={() => onChange(items.filter((_, j) => j !== i))}>
+                onClick={() => (f.confirmDelete ? setRemoving(i) : remove(i))}>
                 <UiIcon name="delete" size={16} />
                 <span className={styles.srOnly}>{t('common.delete', 'Delete')}</span>
               </button>
@@ -357,6 +369,19 @@ export function ListField({ field: f, items, savedItems, readOnly, onChange }: {
           {f.addLabel}
         </button>
       )}
+      <ConfirmSheet
+        open={!!asking}
+        title={asking?.title ?? ''}
+        body={asking?.message}
+        confirmLabel={asking?.confirmLabel ?? ''}
+        danger
+        submitOnEnter={false}
+        onCancel={() => setRemoving(null)}
+        onConfirm={() => {
+          if (removing !== null) remove(removing);
+          setRemoving(null);
+        }}
+      />
       <Sheet
         open={!!open}
         onClose={() => { setOpen(null); setTried(false); }}

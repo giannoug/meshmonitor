@@ -9,7 +9,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
-import { AUTO, renderAutomations, settle, writes } from './renderAutomations';
+import { AUTO, renderAutomations, settle, writes, nonGet } from './renderAutomations';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('../../meshcore/__tests__/mocks')).wsMock(orig));
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
@@ -51,29 +51,29 @@ describe('14-08-auto-acknowledge', () => {
     const { log } = renderAutomations(PAGE);
     await loaded();
     await settle();
-    expect(log.writes).toHaveLength(0);
+    expect(nonGet()).toHaveLength(0);
     fireEvent.click(screen.getByRole('checkbox', { name: 'Channel · IP: Tapback' }));
     const cooldown = screen.getByLabelText('Per-Sender Cooldown');
     fireEvent.change(cooldown, { target: { value: '120' } });
     fireEvent.blur(cooldown);
-    expect(await screen.findByText('1 change in Auto Acknowledge')).toBeInTheDocument();
-    expect(log.writes).toHaveLength(0);
+    expect(await screen.findByText('2 changes in Auto Acknowledge')).toBeInTheDocument();
+    expect(nonGet()).toHaveLength(0);
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(writes(log, '/api/settings')).toHaveLength(1));
     expect(writes(log, '/api/settings')[0].body).toMatchObject({
       autoAckEnabled: 'true', autoAckCooldownSeconds: '120', autoAckChannelIpTapbackEnabled: 'true', autoAckMaxResponses: '2', autoAckMaxAttempts: '3', autoAckHopLimit: '',
     });
     await settle();
-    expect(log.writes).toHaveLength(1);
+    expect(nonGet()).toHaveLength(1);
   });
 
   it('an unsafe pattern blocks the save with today\'s reason', async () => {
-    const { log } = renderAutomations(PAGE);
+    renderAutomations(PAGE);
     await loaded();
     fireEvent.change(screen.getByLabelText('Trigger Pattern (regular expression)'), { target: { value: '(?=x)test' } });
     expect((await screen.findAllByText(/are not supported/)).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-    expect(log.writes).toHaveLength(0);
+    expect(nonGet()).toHaveLength(0);
   });
 
   it('Convert to rule previews on open and creates once per press', async () => {

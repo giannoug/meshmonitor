@@ -15,7 +15,7 @@ const NOW = Date.now();
 const G2 = SOURCE_IDS.g2;
 
 const responderTriggers = [
-  { id: 'r1', trigger: 'weather {location}', syntax: 'pattern', responseType: 'script', response: '/data/scripts/weather.py', channels: [1], cooldownSeconds: 60, scriptArgs: '--loc {location}' },
+  { id: 'r1', trigger: 'weather {location}', syntax: 'pattern', responseType: 'script', response: '/data/scripts/weather.py', channels: ['dm', 1], cooldownSeconds: 60, scriptArgs: '--loc {location}' },
   { id: 'r2', trigger: 'ping', syntax: 'pattern', responseType: 'text', response: 'pong {SHORT_NAME}', channels: ['dm'], verifyResponse: true },
   { id: 'r3', trigger: 'trace {node}', syntax: 'pattern', responseType: 'traceroute', response: '{node}', channels: ['dm'], cooldownSeconds: 300 },
   { id: 'r4', trigger: 'mail', syntax: 'pattern', responseType: 'mailbox', response: '', channels: ['dm'] },

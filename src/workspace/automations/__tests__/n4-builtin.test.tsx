@@ -10,7 +10,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
-import { AUTO, renderAutomations, requests, settle, writes } from './renderAutomations';
+import { AUTO, renderAutomations, requests, settle, writes, nonGet } from './renderAutomations';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('../../meshcore/__tests__/mocks')).wsMock(orig));
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
@@ -39,7 +39,7 @@ describe('n4-builtin', () => {
     await waitFor(() => expect(writes(log, '/api/announce/send')).toHaveLength(1));
     expect(writes(log, '/api/announce/send')[0].body).toEqual({ sourceId: 'src-g2' });
     await settle();
-    expect(log.writes).toHaveLength(1);
+    expect(nonGet()).toHaveLength(1);
   });
 
   it('saving says what today\'s scheduler does, and sends today\'s body once', async () => {
@@ -58,7 +58,7 @@ describe('n4-builtin', () => {
       autoAnnounceNodeInfoDelaySeconds: 30,
     });
     await settle();
-    expect(log.writes).toHaveLength(1);
+    expect(nonGet()).toHaveLength(1);
   });
 
   it('with Announce on Start on, the dock says a save can send one in 30 s', async () => {
@@ -69,7 +69,7 @@ describe('n4-builtin', () => {
   });
 
   it('typing reads the preview once after today\'s debounce, never per keystroke, and sends nothing', async () => {
-    const { log } = renderAutomations(PAGE);
+    renderAutomations(PAGE);
     await loaded();
     await settle(700);
     const before = requests('GET', '/api/announce/preview');
@@ -77,6 +77,6 @@ describe('n4-builtin', () => {
     for (const ch of ['a', 'b', 'c']) fireEvent.change(message, { target: { value: `Hello ${ch}` } });
     await settle(700);
     expect(requests('GET', '/api/announce/preview') - before).toBe(1);
-    expect(log.writes).toHaveLength(0);
+    expect(nonGet()).toHaveLength(0);
   });
 });

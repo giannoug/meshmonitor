@@ -10226,5 +10226,18 @@
   "workspace.automations.scripts_count_one": "Scripts · {{count}}",
   "workspace.automations.scripts_count_other": "Scripts · {{count}}",
   "workspace.automations.scripts_test_hint": "Test a script from its trigger. Import, export, delete and dependencies are in Server › Scripts.",
-  "workspace.automations.scripts_manage": "Manage scripts in Server › Scripts"
+  "workspace.automations.scripts_manage": "Manage scripts in Server › Scripts",
+  "workspace.automations.send_now_unsaved": "Your unsaved edits are not sent: Send now sends the saved announcement above. Save first to send them.",
+  "workspace.automations.airtime_status": "Airtime status",
+  "workspace.automations.matching": "Matching nodes",
+  "workspace.automations.when_message_says": "When the message says",
+  "workspace.automations.remove_word": "Remove {{word}}",
+  "workspace.automations.add_word": "Add word",
+  "workspace.automations.words_note": "The words of the trigger pattern above; adding or removing one rewrites it.",
+  "workspace.automations.quiet_after_one": "{{count}} other node, then quiet",
+  "workspace.automations.quiet_after_other": "{{count}} other nodes, then quiet",
+  "workspace.automations.remove_geofence_title": "Remove Geofence Trigger",
+  "workspace.automations.remove_geofence_message": "Are you sure you want to remove \"{{name}}\"?",
+  "workspace.automations.saved_and_failed": "Saved: {{saved}}. Not saved: {{failed}}.",
+  "workspace.automations.failed": "Not saved: {{failed}}."
 }

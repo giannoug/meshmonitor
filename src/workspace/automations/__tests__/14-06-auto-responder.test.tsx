@@ -11,7 +11,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { joined } from '../../chat/__tests__/renderChat';
-import { AUTO, renderAutomations, settle, writes } from './renderAutomations';
+import { AUTO, renderAutomations, settle, writes, nonGet } from './renderAutomations';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('../../meshcore/__tests__/mocks')).wsMock(orig));
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
@@ -37,7 +37,7 @@ describe('14-06-auto-responder', () => {
     const { container } = renderAutomations(PAGE, { phone: true });
     await loaded();
     const sheet = await openWeather();
-    fireEvent.change(within(sheet).getAllByLabelText('Test message')[0], { target: { value: 'weather marousi' } });
+    fireEvent.change(within(sheet).getByLabelText('Test message'), { target: { value: 'weather marousi' } });
     fireEvent.click(within(sheet).getByRole('button', { name: 'Run' }));
     await within(sheet).findByText('Match · weather {location}');
     expectBoard('14-12-responder-trigger', joined(container, sheet));
@@ -52,7 +52,7 @@ describe('14-06-auto-responder', () => {
   });
 
   it('the live test matches locally and shows what a text reply would send; it sends nothing', async () => {
-    const { log } = renderAutomations(PAGE);
+    renderAutomations(PAGE);
     await loaded();
     fireEvent.click((await screen.findAllByRole('button', { name: 'Edit' }))[1]);
     const sheet = await screen.findByRole('dialog', { name: 'ping' });
@@ -61,14 +61,14 @@ describe('14-06-auto-responder', () => {
     const label = await within(sheet).findByText('Would send, not sent now:');
     expect(label.nextElementSibling).toHaveTextContent('pong {SHORT_NAME}');
     await settle();
-    expect(log.writes).toHaveLength(0);
+    expect(nonGet()).toHaveLength(0);
   });
 
   it('the script test sends today\'s request once per press and nothing on the mesh', async () => {
     const { log } = renderAutomations(PAGE);
     await loaded();
     const sheet = await openWeather();
-    fireEvent.change(within(sheet).getAllByLabelText('Test message')[1], { target: { value: 'weather marousi' } });
+    fireEvent.change(within(sheet).getByLabelText('Test Message'), { target: { value: 'weather marousi' } });
     fireEvent.click(within(sheet).getByRole('button', { name: /Run Test/ }));
     await waitFor(() => expect(writes(log, '/api/scripts/test')).toHaveLength(1));
     expect(writes(log, '/api/scripts/test')[0].body).toMatchObject({
@@ -76,7 +76,7 @@ describe('14-06-auto-responder', () => {
     });
     expect(await within(sheet).findByText('These messages would be sent if this were a real trigger (NOT sent during test)')).toBeInTheDocument();
     await settle();
-    expect(log.writes).toHaveLength(1);
+    expect(nonGet()).toHaveLength(1);
   });
 
   it('a trigger edited in its sheet saves with today\'s body, once', async () => {
@@ -87,7 +87,7 @@ describe('14-06-auto-responder', () => {
     fireEvent.change(cooldown, { target: { value: '120' } });
     fireEvent.blur(cooldown);
     fireEvent.click(within(sheet).getByRole('button', { name: 'Done' }));
-    expect(log.writes).toHaveLength(0);
+    expect(nonGet()).toHaveLength(0);
     fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
     await waitFor(() => expect(writes(log, '/api/settings')).toHaveLength(1));
     const body = writes(log, '/api/settings')[0].body as Record<string, string>;
@@ -95,8 +95,8 @@ describe('14-06-auto-responder', () => {
     expect(body.autoResponderSkipIncompleteNodes).toBe('false');
     const triggers = JSON.parse(body.autoResponderTriggers) as Array<{ id: string; cooldownSeconds?: number; channels?: unknown[] }>;
     expect(triggers.map((tr) => tr.id)).toEqual(['r1', 'r2', 'r3', 'r4']);
-    expect(triggers[0]).toMatchObject({ cooldownSeconds: 120, channels: [1] });
+    expect(triggers[0]).toMatchObject({ cooldownSeconds: 120, channels: ['dm', 1] });
     await settle();
-    expect(log.writes).toHaveLength(1);
+    expect(nonGet()).toHaveLength(1);
   });
 });

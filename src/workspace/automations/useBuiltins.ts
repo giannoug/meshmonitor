@@ -17,6 +17,7 @@ import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiService from '../../services/api';
 import { usePoll } from '../../hooks/usePoll';
 import { useCachedSourceStatus } from '../../hooks/useDashboardData';
+import { useSettings } from '../../contexts/SettingsContext';
 import { channelLabel } from '../chat/channelLabel';
 import type { Values } from '../meshcore/automations/builtins';
 import { builtinTable, type MeshtasticBuiltin } from './builtins';
@@ -41,6 +42,9 @@ export interface ApiNode {
   remoteAdminMetadata?: string | null;
   position?: { latitude?: number; longitude?: number };
   longName?: string;
+  lastHeard?: number;
+  hopsAway?: number;
+  channel?: number;
 }
 
 export function nodeName(nd: ApiNode): string {
@@ -51,6 +55,7 @@ export function useBuiltins(sourceId: string, page: string | null) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const status = useCachedSourceStatus(sourceId);
+  const { distanceUnit } = useSettings();
   // Today's poll, read once (no interval): channels, nodes and the local node.
   const { data: poll } = usePoll({ pollInterval: 0 });
   const { data: apiNodes } = useQuery({
@@ -59,6 +64,9 @@ export function useBuiltins(sourceId: string, page: string | null) {
     queryFn: () => apiService.get<ApiNode[]>(`/api/nodes?sourceId=${encodeURIComponent(sourceId)}`),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
+    // Today's scanner timer (RemoteAdminScannerSection), moved: its counts and log re-read every 30 s while it is on, on that page only.
+    refetchInterval: () =>
+      page === 'remote-admin-scanner' && queryClient.getQueryData<Values>(builtinKey(sourceId, 'remote-admin-scanner'))?.enabled === true ? 30_000 : false,
   });
   const { data: scriptRows = [] } = useQuery({
     queryKey: ['workspace', 'automation', 'scripts'],
@@ -120,8 +128,8 @@ export function useBuiltins(sourceId: string, page: string | null) {
     [queryClient],
   );
   const table = useMemo(
-    () => builtinTable(t, { channels, nodes, scripts: scriptRows, candidates: candidateRows, localNodeNum, settings }),
-    [t, channels, nodes, scriptRows, candidateRows, localNodeNum, settings],
+    () => builtinTable(t, { channels, nodes, scripts: scriptRows, candidates: candidateRows, localNodeNum, settings, distanceUnit: distanceUnit === 'mi' ? 'mi' : 'km' }),
+    [t, channels, nodes, scriptRows, candidateRows, localNodeNum, settings, distanceUnit],
   );
   const results = useQueries({
     queries: table.map((b) => ({

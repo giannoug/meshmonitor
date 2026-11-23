@@ -60,6 +60,8 @@ export interface MeshtasticCtx {
   /** The airtime picker's eligible nodes (read on its page only). */
   candidates: Array<{ nodeNum: number; label: string }>;
   localNodeNum: number | null;
+  /** The viewer's distance unit (today's Delete by Distance shows its threshold in it). */
+  distanceUnit?: 'km' | 'mi';
   /** Today's shared `/api/settings?sourceId=` read, once per visit. */
   settings(sourceId: string): Promise<Record<string, unknown>>;
 }
@@ -144,6 +146,9 @@ export function builtinTable(t: TFunction, ctx: MeshtasticCtx): MeshtasticBuilti
     help: t('automation.hop_limit_override.description', "How far this automated message may travel. Capped at the node's own hop limit, so it can only shorten reach, never extend it. 0 keeps it to nodes that hear this radio directly."),
   });
   const sends = (id: BuiltinId) => (v: Values) => builtinSends(id, v, t, { channelName });
+  const miles = ctx.distanceUnit === 'mi';
+  const toUnit = (km: number) => (miles ? km * 0.621371 : km);
+  const fromUnit = (val: number) => (miles ? val / 0.621371 : val);
   const scheduleFields = (help: string): Field[] => [
     { kind: 'toggle', key: 'scheduleEnabled', label: t('automation.remote_admin_scanner.schedule_window', 'Schedule window'), help },
     { kind: 'text', key: 'scheduleStart', label: t('automation.schedule.starting_at', 'Starting at'), placeholder: 'HH:MM', mono: true, maxLength: 5, showIf: (v) => b(v, 'scheduleEnabled') },
@@ -223,11 +228,12 @@ export function builtinTable(t: TFunction, ctx: MeshtasticCtx): MeshtasticBuilti
         });
       },
       validate: (v) => ackRegexError(t, String(v.autoAckRegex ?? '')),
+      savedKeys: [{ key: 'matrix', label: t('automation.auto_ack.response_matrix') }],
       isOn: (v) => builtinIsOn('auto-acknowledge', v),
       summary: (v) => t('workspace.automations.ack_summary', { regex: String(v.autoAckRegex) }),
       sends: sends('auto-acknowledge'),
       saveEffect: nothing,
-      fields: () => [
+      fields: (v) => [
         { kind: 'heading', key: 'h.trigger', label: t('workspace.automations.trigger_pattern') },
         { kind: 'text', key: 'autoAckRegex', label: t('automation.auto_ack.regex_label'), help: t('workspace.automations.regex_rules'), mono: true, maxLength: 100 },
         { kind: 'textarea', key: 'autoAckTestMessages', label: t('automation.auto_ack.pattern_testing'), placeholder: t('automation.auto_ack.test_placeholder') },
@@ -235,7 +241,10 @@ export function builtinTable(t: TFunction, ctx: MeshtasticCtx): MeshtasticBuilti
         { kind: 'heading', key: 'h.limits', label: t('workspace.automations.limits') },
         { kind: 'number', key: 'autoAckCooldownSeconds', label: t('automation.auto_ack.cooldown_label'), help: t('automation.auto_ack.cooldown_help'), min: 0, max: COOLDOWN_SECONDS_MAX },
         { kind: 'number', key: 'autoAckMaxResponses', label: t('automation.auto_ack.max_responses_label', 'Maximum number of responses'),
-          help: t('automation.auto_ack.max_responses_help', 'other nodes (0 = no limit, default 2, max 10)'), min: AUTO_ACK_MAX_RESPONSES_MIN, max: AUTO_ACK_MAX_RESPONSES_MAX },
+          help: `${t('automation.auto_ack.max_responses_help', 'other nodes (0 = no limit, default 2, max 10)')} · ${n(v, 'autoAckMaxResponses') > 0
+            ? t('workspace.automations.quiet_after', { count: n(v, 'autoAckMaxResponses') })
+            : t('automation.auto_ack.max_responses_zero_hint', '0 = no limit: always answer after the wait')}`,
+          min: AUTO_ACK_MAX_RESPONSES_MIN, max: AUTO_ACK_MAX_RESPONSES_MAX },
         { kind: 'number', key: 'autoAckMaxAttempts', label: t('automation.auto_ack.max_attempts_label', 'Auto-Ack Resend Attempts'),
           help: t('automation.auto_ack.max_attempts_help', 'attempts (1 = least airtime, 3 = default)'), min: 1, max: 3 },
         { kind: 'number', key: 'autoAckPreSendDelaySeconds', label: t('automation.auto_ack.presend_delay_label', 'Pre-Send Delay'),
@@ -294,6 +303,19 @@ export function builtinTable(t: TFunction, ctx: MeshtasticCtx): MeshtasticBuilti
         { kind: 'toggle', key: 'autoResponderSkipIncompleteNodes', label: t('automation.auto_ack.skip_incomplete'), help: t('automation.auto_ack.skip_incomplete_description') },
         {
           kind: 'list', key: 'autoResponderTriggers', label: t('workspace.meshcore.auto.triggers'), addLabel: t('workspace.automations.new_trigger'),
+          searchLabel: t('automation.trigger_list.search_label', 'Search triggers'),
+          itemFilter: {
+            label: t('automation.trigger_list.type_label', 'Filter by type'),
+            options: [{ value: 'all', label: t('auto_responder.filter_all') },
+              ...(['text', 'http', 'script', 'traceroute', 'mailbox'] as const).map((r) => ({ value: r, label: t(`auto_responder.type_${r}`) }))],
+            match: (x, value) => x.responseType === value,
+          },
+          // Today's TriggerCard confirm (#5808).
+          confirmDelete: (x) => ({
+            title: t('auto_responder.remove_trigger_title'),
+            message: `${t('auto_responder.remove_trigger_draft_confirm')} ${patternText((x.trigger as string | string[]) ?? '')}`.trim(),
+            confirmLabel: t('common.remove', 'Remove'),
+          }),
           itemTitle: (x) => patternText((x.trigger as string | string[]) ?? '').trim() || t('workspace.automations.new_trigger'),
           itemSub: (x) => {
             const tr = x as unknown as AutoResponderTrigger;
@@ -390,6 +412,12 @@ export function builtinTable(t: TFunction, ctx: MeshtasticCtx): MeshtasticBuilti
       fields: () => [
         {
           kind: 'list', key: 'geofenceTriggers', label: t('workspace.meshcore.auto.triggers'), addLabel: t('workspace.automations.add_trigger'), itemEnabledKey: 'enabled',
+          // Today's remove modal words (GeofenceTriggersSection).
+          confirmDelete: (x) => ({
+            title: t('workspace.automations.remove_geofence_title'),
+            message: t('workspace.automations.remove_geofence_message', { name: String(x.name ?? '') }),
+            confirmLabel: t('common.remove', 'Remove'),
+          }),
           itemTitle: (x) => String(x.name || t('workspace.automations.new_trigger')),
           itemSub: (x) => geofenceSub(t, x as unknown as GeofenceTrigger, channelName),
           newItem: () => ({
@@ -508,6 +536,21 @@ export function builtinTable(t: TFunction, ctx: MeshtasticCtx): MeshtasticBuilti
       fields: () => [
         {
           kind: 'list', key: 'timerTriggers', label: t('workspace.automations.timers'), addLabel: t('automation.timer_triggers.add_trigger', 'Add Timer'), itemEnabledKey: 'enabled',
+          searchLabel: t('automation.timer_triggers.search', 'Search timers…').replace(/…$/, ''),
+          itemFilter: {
+            label: t('automation.trigger_list.type_label', 'Filter by type'),
+            options: [
+              { value: 'all', label: t('automation.timer_triggers.filter_all', 'All types') },
+              { value: 'script', label: t('automation.timer_triggers.type_script', 'Script') },
+              { value: 'text', label: t('automation.timer_triggers.type_text', 'Text Message') },
+            ],
+            match: (x, value) => (x.responseType ?? 'script') === value,
+          },
+          confirmDelete: (x) => ({
+            title: t('automation.timer_triggers.remove_title', 'Remove timer?'),
+            message: `${t('automation.trigger_card.delete_message', 'The trigger is removed from the list now and deleted when you save.')} ${String(x.name || x.cronExpression || '')}`.trim(),
+            confirmLabel: t('common.remove', 'Remove'),
+          }),
           itemTitle: (x) => String(x.name || t('meshcore.automation.timers.untitled', 'New trigger')),
           itemSub: (x) => [String(x.cronExpression ?? ''), typeof x.lastRun === 'number' ? `${t('meshcore.automation.timers.last_run', 'Last run')} ${new Date(x.lastRun).toLocaleString()}` : null]
             .filter(Boolean).join(' · '),
@@ -765,7 +808,11 @@ export function builtinTable(t: TFunction, ctx: MeshtasticCtx): MeshtasticBuilti
       fields: () => [
         { kind: 'number', key: 'autoDeleteByDistanceLat', label: t('automation.distance_delete.latitude'), nullable: true, min: -90, max: 90 },
         { kind: 'number', key: 'autoDeleteByDistanceLon', label: t('automation.distance_delete.longitude'), nullable: true, min: -180, max: 180 },
-        { kind: 'number', key: 'autoDeleteByDistanceThresholdKm', label: t('workspace.automations.threshold_km'), min: 1, max: DISTANCE_DELETE_THRESHOLD_KM_MAX },
+        // Today's: the threshold shows and is typed in the viewer's unit, stored in km (to 0.1).
+        { kind: 'number', key: 'autoDeleteByDistanceThresholdKm', label: `${t('automation.distance_delete.threshold')} (${miles ? 'mi' : 'km'})`, min: 1,
+          max: Math.floor(toUnit(DISTANCE_DELETE_THRESHOLD_KM_MAX)),
+          read: (v) => Math.round(toUnit(n(v, 'autoDeleteByDistanceThresholdKm'))),
+          set: (v, value) => ({ ...v, autoDeleteByDistanceThresholdKm: Math.round(fromUnit(Number(value)) * 10) / 10 }) },
         { kind: 'select', key: 'autoDeleteByDistanceIntervalHours', label: t('automation.distance_delete.interval'), numeric: true,
           options: [6, 12, 24, 48].map((h) => ({ value: String(h), label: t('automation.distance_delete.interval_hours', { count: h }) })) },
         { kind: 'select', key: 'autoDeleteByDistanceAction', label: t('automation.distance_delete.action', 'Action for nodes beyond threshold'),
@@ -782,7 +829,8 @@ export function builtinTable(t: TFunction, ctx: MeshtasticCtx): MeshtasticBuilti
         return { nodes: Array.isArray(rows) ? rows : [] };
       },
       save: async () => undefined,
-      isOn: () => true,
+      // A list, not something that is on: today has no on state for it.
+      isOn: () => false,
       value: (v) => t('workspace.automations.ignored_count', { count: list(v, 'nodes').length }),
       summary: (v) => t('workspace.automations.ignored_count', { count: list(v, 'nodes').length }),
       sends: sends('ignored-nodes'),
@@ -911,9 +959,11 @@ function responderItemFields(t: TFunction, x: Values, channelOptions: Option[], 
       options: [{ value: CHANNEL_DM, label: t('workspace.automations.direct_messages') }, ...channelOptions, ...(type === 'script' ? [{ value: CHANNEL_NONE, label: t('workspace.automations.no_mesh_output') }] : [])],
       set: (item, value) => ({ ...item, channels: mixedChannels(value), channel: undefined }) },
     { kind: 'number', key: 'cooldownSeconds', label: t('workspace.automations.cooldown'), help: t('workspace.automations.cooldown_help'), min: 0, max: COOLDOWN_SECONDS_MAX },
-    // Shown always, as the board draws it; today's Done keeps it only for a DM trigger (finalizeTrigger).
-    { kind: 'toggle', key: 'verifyResponse', label: t('workspace.automations.verify'), help: t('workspace.automations.verify_help') },
-    { kind: 'toggle', key: 'multiline', label: t('workspace.automations.multiline'), help: t('workspace.automations.multiline_help'), showIf: () => type !== 'script' },
+    // DM only: a channel trigger has no Verify response (today's Done drops it there, finalizeTrigger).
+    { kind: 'toggle', key: 'verifyResponse', label: t('workspace.automations.verify'), help: t('workspace.automations.verify_help'),
+      showIf: (v) => (Array.isArray(v.channels) ? v.channels : v.channel !== undefined ? [v.channel] : []).includes(CHANNEL_DM) },
+    // Today's split option: text and HTTP replies only.
+    { kind: 'toggle', key: 'multiline', label: t('workspace.automations.multiline'), help: t('workspace.automations.multiline_help'), showIf: () => type === 'text' || type === 'http' },
   ];
 }
 

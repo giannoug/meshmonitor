@@ -11,7 +11,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { g2AutomationSettings } from '../../__fixtures__/automations';
-import { AUTO, G2, renderAutomations, requests, settle, writes } from './renderAutomations';
+import { AUTO, G2, renderAutomations, requests, settle, writes, nonGet } from './renderAutomations';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('../../meshcore/__tests__/mocks')).wsMock(orig));
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
@@ -68,10 +68,10 @@ describe('m1-automations', () => {
     await loaded();
     rerenderWorkspace();
     await settle();
-    expect(log.writes).toHaveLength(0);
+    expect(nonGet()).toHaveLength(0);
     fireEvent.click(screen.getByRole('switch', { name: 'Auto Traceroute' }));
     expect(await screen.findByText('1 change in Automations')).toBeInTheDocument();
-    expect(log.writes).toHaveLength(0);
+    expect(nonGet()).toHaveLength(0);
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     // Today's three requests for Auto Traceroute's save: settings, the filter, and the interval (which re-arms its scheduler).
     await waitFor(() => expect(writes(log, '/api/settings/traceroute-interval')).toHaveLength(1));
@@ -82,17 +82,17 @@ describe('m1-automations', () => {
     expect(writes(log, '/api/settings/traceroute-nodes')).toHaveLength(1);
     expect(writes(log, '/api/settings/traceroute-interval')[0].body).toEqual({ intervalMinutes: 15, sourceId: 'src-g2' });
     await settle();
-    expect(log.writes).toHaveLength(3);
+    expect(nonGet()).toHaveLength(3);
   });
 
   it('a switch and Discard send nothing', async () => {
-    const { log } = renderAutomations();
+    renderAutomations();
     await loaded();
     fireEvent.click(screen.getByRole('switch', { name: 'Auto Acknowledge' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Discard' }));
     await settle();
     expect(screen.queryByText('1 change in Automations')).toBeNull();
-    expect(log.writes).toHaveLength(0);
+    expect(nonGet()).toHaveLength(0);
   });
 
   it('saving Auto Acknowledge from its switch sends today\'s whole section body once', async () => {
@@ -105,7 +105,7 @@ describe('m1-automations', () => {
     expect(body).toMatchObject({ autoAckEnabled: 'false', autoAckRegex: g2AutomationSettings.autoAckRegex, autoAckChannels: '1', autoAckCooldownSeconds: '60', autoAckMaxResponses: '2' });
     expect(body.autoAckChannelMultiHopReplyEnabled).toBe('true');
     await settle();
-    expect(log.writes).toHaveLength(1);
+    expect(nonGet()).toHaveLength(1);
   });
 
   it('a rule\'s switch sends today\'s disable once', async () => {
@@ -114,7 +114,7 @@ describe('m1-automations', () => {
     fireEvent.click(screen.getByRole('switch', { name: 'Weather bot' }));
     await waitFor(() => expect(writes(log, '/api/automations/e3/disable')).toHaveLength(1));
     await settle();
-    expect(log.writes).toHaveLength(1);
+    expect(nonGet()).toHaveLength(1);
   });
 
   it('without automation:write the switches are off, and without automations:read the rules say why', async () => {

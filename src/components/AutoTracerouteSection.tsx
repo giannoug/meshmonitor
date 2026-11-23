@@ -6,6 +6,7 @@ import { useCsrfFetch } from '../hooks/useCsrfFetch';
 import { useSourceQuery } from '../hooks/useSourceQuery';
 import { DEVICE_ROLES } from '../utils/deviceRole';
 import { getHardwareModelName } from '../utils/hardwareModel';
+import { matchTracerouteNodes } from '../utils/tracerouteNodeMatch';
 import { useSaveBar } from '../hooks/useSaveBar';
 import { UiIcon } from './icons';
 import { NumberInput } from './common/NumberInput';
@@ -567,91 +568,12 @@ const AutoTracerouteSection: React.FC<AutoTracerouteSectionProps> = ({
   }, [availableNodes]);
 
   // Get nodes matching current filters (for preview)
-  const matchingNodes = useMemo(() => {
-    if (!filterEnabled) return availableNodes;
-
-    // Apply AND pre-filters (last heard, hop range) to narrow the candidate pool first
-    let candidatePool = availableNodes;
-
-    if (filterLastHeardEnabled) {
-      const lastHeardCutoff = Math.floor(Date.now() / 1000) - (filterLastHeardHours * 3600);
-      candidatePool = candidatePool.filter(n =>
-        n.lastHeard != null && n.lastHeard >= lastHeardCutoff
-      );
-    }
-
-    if (filterHopsEnabled) {
-      candidatePool = candidatePool.filter(n => {
-        const hops = n.hopsAway ?? 1;
-        return hops >= filterHopsMin && hops <= filterHopsMax;
-      });
-    }
-
-    /**
-     * Mirror of the backend's per-filter combine logic (#5230), so the preview
-     * count below shows what auto-traceroute will actually do. If these two
-     * drift, the preview becomes a confident lie — which is worse than no
-     * preview, because the user tunes against it.
-     *
-     * A filter participates only when enabled AND configured: an 'and' filter
-     * with nothing selected is one the user has not filled in, not a scope that
-     * excludes everything.
-     */
-    let regexMatcherForCheck: RegExp | null = null;
-    if (filterRegexEnabled && filterNameRegex && filterNameRegex !== '.*') {
-      try { regexMatcherForCheck = new RegExp(filterNameRegex, 'i'); } catch { /* invalid */ }
-    }
-
-    const nodeName = (n: Node) => n.longName || n.user?.longName || n.shortName || n.user?.shortName || n.nodeId || '';
-
-    const active: Array<{ mode: FilterMode; matches: (n: Node) => boolean }> = [];
-    if (filterNodesEnabled && selectedNodeNums.length > 0) {
-      active.push({ mode: filterNodesMode, matches: (n) => selectedNodeNums.includes(n.nodeNum) });
-    }
-    if (filterChannelsEnabled && filterChannels.length > 0) {
-      active.push({
-        mode: filterChannelsMode,
-        matches: (n) => n.channel != null && filterChannels.includes(n.channel),
-      });
-    }
-    if (filterRolesEnabled && filterRoles.length > 0) {
-      active.push({
-        mode: filterRolesMode,
-        matches: (n) => { const r = getNodeRole(n); return r !== undefined && filterRoles.includes(r); },
-      });
-    }
-    if (filterHwModelsEnabled && filterHwModels.length > 0) {
-      active.push({
-        mode: filterHwModelsMode,
-        matches: (n) => { const h = getNodeHwModel(n); return h !== undefined && filterHwModels.includes(h); },
-      });
-    }
-    // `.*` is NOT a participating filter, matching the backend, which only
-    // compiles a matcher when the pattern is non-default. The old preview
-    // treated it as a match-all OR member — and since the regex filter is
-    // enabled with `.*` by DEFAULT, that silently neutralised every other OR
-    // filter: picking a channel showed the whole mesh as matching while the
-    // scheduler traced only the channel. The preview now says what will happen.
-    if (filterRegexEnabled && regexMatcherForCheck !== null) {
-      const re = regexMatcherForCheck;
-      active.push({ mode: filterRegexMode, matches: (n) => re.test(nodeName(n)) });
-    }
-
-    if (active.length === 0) {
-      // Only the always-AND filters are doing anything.
-      return candidatePool;
-    }
-
-    const andFilters = active.filter(f => f.mode === 'and');
-    const orFilters = active.filter(f => f.mode === 'or');
-
-    return candidatePool.filter(n => {
-      if (!andFilters.every(f => f.matches(n))) return false;
-      if (orFilters.length > 0 && !orFilters.some(f => f.matches(n))) return false;
-      return true;
-    });
-
-  }, [filterEnabled, selectedNodeNums, filterChannels, filterRoles, filterHwModels, filterNameRegex, availableNodes,
+  const matchingNodes = useMemo(() => matchTracerouteNodes(availableNodes, {
+    filterEnabled, selectedNodeNums, filterChannels, filterRoles, filterHwModels, filterNameRegex,
+    filterNodesEnabled, filterChannelsEnabled, filterRolesEnabled, filterHwModelsEnabled, filterRegexEnabled,
+    filterNodesMode, filterChannelsMode, filterRolesMode, filterHwModelsMode, filterRegexMode,
+    filterLastHeardEnabled, filterLastHeardHours, filterHopsEnabled, filterHopsMin, filterHopsMax,
+  }), [filterEnabled, selectedNodeNums, filterChannels, filterRoles, filterHwModels, filterNameRegex, availableNodes,
       filterNodesEnabled, filterChannelsEnabled, filterRolesEnabled, filterHwModelsEnabled, filterRegexEnabled,
       filterNodesMode, filterChannelsMode, filterRolesMode, filterHwModelsMode, filterRegexMode,
       filterLastHeardEnabled, filterLastHeardHours, filterHopsEnabled, filterHopsMin, filterHopsMax]);
