@@ -18,7 +18,7 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
 }));
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
 
-const GUEST_NOTE = "You're viewing as a guest. Sign in to send messages, see DMs and get notifications.";
+const GUEST_NOTE = "You're viewing as a guest. Log in to send messages, see DMs and get notifications.";
 const R = { read: true, write: false };
 const guest = {
   anonymous: true,

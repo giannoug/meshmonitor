@@ -75,6 +75,17 @@ describe('15-08-map-menu', () => {
     await waitFor(() => expect(within(menu).getAllByRole('menuitem')[0]).toHaveFocus());
   });
 
+  it('Escape returns focus to the Map actions button that opened the menu', async () => {
+    renderChat(mapRoute);
+    const opener = await screen.findByRole('button', { name: 'Map actions' }, { timeout: 5000 });
+    opener.focus();
+    fireEvent.click(opener);
+    const menu = await screen.findByRole('menu', { name: 'Map actions' });
+    await waitFor(() => expect(within(menu).getAllByRole('menuitem')[0]).toHaveFocus());
+    fireEvent.keyDown(menu, { key: 'Escape' });
+    await waitFor(() => expect(opener).toHaveFocus());
+  });
+
   it('Measure from here starts at the spot: anchor A is drawn at once, and the next click measures from it', async () => {
     renderChat(mapRoute);
     /** Today's measure rings (CircleMarker) and line, drawn in its own colour. */

@@ -60,6 +60,7 @@ import MessageRowD, { type RowTranslationActions } from './MessageRowD';
 import type { MessageActionContext } from './messageActions';
 import { useMessageActions } from './useMessageActions';
 import ReadOnlyNote from './ReadOnlyNote';
+import StateView from '../patterns/StateView';
 import OfflineBanner from '../devices/OfflineBanner';
 import { composerGate } from './composerGate';
 import { channelLabel, heardToday, replyIdOf } from './channelLabel';
@@ -332,7 +333,7 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
     );
   }
 
-  const thread = dbPending ? null : (
+  const thread = dbPending ? <StateView kind="loading" /> : (
     <div className={styles.split}>
       <div className={styles.column}>
         <div className={styles.messages} ref={view.channelMessagesContainerRef} role="log" aria-label={`# ${name}`}>

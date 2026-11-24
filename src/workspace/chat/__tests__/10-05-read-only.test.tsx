@@ -23,7 +23,7 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
 
 const TX_TOOLTIP = "Transmit is disabled on this node's radio. Re-enable TX in the LoRa configuration to use this.";
-const GUEST_NOTE = "You're viewing as a guest. Sign in to send messages, see DMs and get notifications.";
+const GUEST_NOTE = "You're viewing as a guest. Log in to send messages, see DMs and get notifications.";
 const txOff = { 'GET /api/device/tx-status': () => ({ ...athensFixture.txStatus, txEnabled: false, canTransmit: false }) };
 const guest = {
   anonymous: true,

@@ -130,7 +130,7 @@ export default function NodePeek({ node, sourceId, onClose }: NodePeekProps) {
             {signedIn && <NodeActionMenus key={nodeId} protocol={protocol} sourceId={sourceId} node={node} variant="buttons" onOpenNodePage={openNodePage} />}
           </div>
           {openPage}
-          <p className={styles.swipe}>
+          <p className={styles.swipe} aria-hidden="true">
             <UiIcon name="chevronUp" size={16} />
             {t('workspace.map.swipe_up')}
           </p>

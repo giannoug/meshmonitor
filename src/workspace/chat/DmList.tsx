@@ -41,7 +41,7 @@ export default function DmList({ sourceId, onNavigate, large, limit }: DmListPro
       if (m.channel !== -1) continue;
       const peer = m.fromNodeId === local ? m.toNodeId : m.fromNodeId;
       if (!peer || peer === local) continue;
-      latest.set(peer, Math.max(latest.get(peer) ?? 0, new Date(m.timestamp).getTime()));
+      latest.set(peer, Math.max(latest.get(peer) ?? 0, new Date(m.receivedAt ?? m.timestamp).getTime()));
     }
     return [...latest].sort((a, b) => b[1] - a[1]).map(([id]) => id).slice(0, limit);
   }, [poll, limit]);

@@ -88,8 +88,9 @@ function SearchPanel({ source, phone, onClose, s, channels, nodes, local, canSea
 
   const isDm = (r: SearchResult) => r.channel === undefined || r.channel === null || r.channel === -1;
   // The other end of a DM: ours go to `to`, theirs come from `from`.
+  // Without the local id we cannot tell which end is ours (a result has no local marker), so there is no peer yet.
   const peerOf = (r: SearchResult) =>
-    (r.fromNodeId && r.fromNodeId === local ? r.toNodeId : r.fromNodeId) ?? (r.fromNodeNum !== undefined ? `!${r.fromNodeNum.toString(16)}` : '');
+    !local ? '' : (r.fromNodeId && r.fromNodeId === local ? r.toNodeId : r.fromNodeId) ?? (r.fromNodeNum !== undefined ? `!${r.fromNodeNum.toString(16)}` : '');
   const node = (id: string | undefined) => nodes.find((n) => n.nodeId === id);
   const contextLabel = (r: SearchResult) =>
     isDm(r)
@@ -103,6 +104,7 @@ function SearchPanel({ source, phone, onClose, s, channels, nodes, local, canSea
   };
 
   const pick = (r: SearchResult) => {
+    if (isDm(r) && !peerOf(r)) return;
     const base = `/source/${encodeURIComponent(source.id)}`;
     onClose();
     // The conversation scrolls to and highlights the message (useFocusMessage), as App's focusMessageId.
@@ -227,7 +229,7 @@ function SearchPanel({ source, phone, onClose, s, channels, nodes, local, canSea
               <ul className={styles.results}>
                 {s.results.map((r) => (
                   <li key={r.id}>
-                    <button type="button" className={styles.result} onClick={() => pick(r)}>
+                    <button type="button" className={styles.result} onClick={() => pick(r)} disabled={isDm(r) && !peerOf(r)}>
                       <span className={styles.avatar} aria-hidden="true">{node(r.fromNodeId)?.shortName ?? '?'}</span>
                       <span className={styles.main}>
                         <span className={styles.meta}>

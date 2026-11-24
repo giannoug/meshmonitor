@@ -122,6 +122,16 @@ describe('10-15-search-messages', () => {
     });
   });
 
+  it('a DM result stays put while the local node id is unknown (no own-node peer)', async () => {
+    const { athensFixture: A } = await import('../../__fixtures__/athens');
+    const poll = { ...A.poll, deviceConfig: { ...A.poll.deviceConfig, basic: { ...A.poll.deviceConfig!.basic, nodeId: undefined } }, config: { ...A.poll.config!, localNodeInfo: undefined } };
+    const { d } = await search(`${g2}/channel/0`, { fixtures: { 'GET /api/poll': () => poll } });
+    const dm = d.getAllByRole('button').find((b) => /DM with/.test(b.textContent ?? ''))!;
+    await waitFor(() => expect(dm).toBeDisabled());
+    fireEvent.click(dm);
+    expect(screen.getByRole('dialog', { name: 'Search Messages' })).toBeInTheDocument();
+  });
+
   it('Load More asks for the next page', async () => {
     const { d } = await search();
     fireEvent.click(d.getByRole('button', { name: 'Load More' }));

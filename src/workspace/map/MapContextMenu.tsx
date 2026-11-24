@@ -61,6 +61,9 @@ export interface MapContextMenuProps {
 export default function MapContextMenu({ spot, phone, canWaypoint, canMarker, measureDisabled, onWaypoint, onMarker, onMeasure, onClose }: MapContextMenuProps) {
   const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
+  // Escape and a pick hand focus back; a pointer press elsewhere keeps where the user clicked.
+  const opener = useRef(document.activeElement as HTMLElement | null);
+  const restore = () => opener.current?.focus?.();
   const items = () => [...(ref.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? [])];
 
   useEffect(() => {
@@ -80,6 +83,7 @@ export default function MapContextMenu({ spot, phone, canWaypoint, canMarker, me
     if (e.key === 'Escape') {
       e.stopPropagation();
       onClose();
+      restore();
       return;
     }
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
@@ -90,7 +94,7 @@ export default function MapContextMenu({ spot, phone, canWaypoint, canMarker, me
   };
 
   const item = (icon: UiIconName, label: string, hint: string, onPick: () => void, disabled = false) => (
-    <button type="button" role="menuitem" className={styles.item} disabled={disabled} onClick={() => { onClose(); onPick(); }}>
+    <button type="button" role="menuitem" className={styles.item} disabled={disabled} onClick={() => { onClose(); restore(); onPick(); }}>
       <UiIcon name={icon} size={18} />
       <span className={styles.text}>
         <strong>{label}</strong>

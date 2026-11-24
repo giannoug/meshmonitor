@@ -214,7 +214,7 @@ export default function WaypointSheet(p: WaypointSheetProps) {
               <SendsLine>{sends}</SendsLine>
             </div>
           )}
-          {form.error && <p className={`${styles.error} ${styles.pad}`} role="alert">{form.error}</p>}
+          {form.error && <p className={styles.error} role="alert">{form.error}</p>}
         </NumberInputScope>
       }
     />

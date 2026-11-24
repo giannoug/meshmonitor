@@ -156,6 +156,7 @@ export function ActivityList({ sourceId, deviceName, activity, phone, onNavigate
                               : item.fromName}
                           </strong>{' '}
                           {where(item)}
+                          {unseen && <span className={styles.unread}>{t('workspace.activity.unread')}</span>}
                         </span>
                       }
                       subtitle={
