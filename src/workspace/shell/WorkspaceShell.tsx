@@ -231,7 +231,14 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!drawerOpen) return;
     const drawer = document.getElementById('ws-drawer');
-    (drawer?.querySelector<HTMLElement>('a[href],button') ?? drawer)?.focus();
+    const inside = drawer?.querySelector<HTMLElement>('a[href],button');
+    if (inside) return inside.focus();
+    // #ws-drawer is display: contents (no box, so no focus); fall back to its first child, the sidebar's own box.
+    const box = drawer?.firstElementChild as HTMLElement | null | undefined;
+    if (box) {
+      box.tabIndex = -1;
+      box.focus();
+    }
   }, [drawerOpen]);
 
   // UserMenu's forced change, redrawn: no close, Esc or backdrop (Sheet portals to <body>).
@@ -290,7 +297,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
             )
           }
         />
-        <div id="ws-drawer" tabIndex={-1} style={{ display: 'contents' }}>
+        <div id="ws-drawer" style={{ display: 'contents' }}>
         {showSidebar && mode === 'overview' && <OverviewSidebar sources={sources} onNavigate={() => setDrawerOpen(false)} />}
         {showSidebar && mode === 'you' && <YouSidebar onNavigate={() => setDrawerOpen(false)} />}
         {showSidebar && mode === 'server' && <ServerSidebar onNavigate={() => setDrawerOpen(false)} />}

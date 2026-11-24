@@ -13,7 +13,7 @@ import WorkspaceShell from '../WorkspaceShell';
 vi.mock('../../overview/OverviewSidebar', () => ({ default: () => <p>Nothing to follow</p> }));
 
 describe('drawer focus', () => {
-  it('drawer with no focusable content focuses the drawer itself', async () => {
+  it('drawer with no focusable content focuses the sidebar box inside it', async () => {
     renderWorkspace(
       <ToastProvider>
         <WorkspaceShell>
@@ -25,7 +25,10 @@ describe('drawer focus', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Show sidebar' }));
     const drawer = document.getElementById('ws-drawer')!;
     await screen.findByText('Nothing to follow');
-    await waitFor(() => expect(drawer).toHaveFocus());
-    expect(drawer).toHaveAttribute('tabindex', '-1');
+    // The wrapper is display: contents and cannot take focus; the sidebar's own box does.
+    const box = drawer.firstElementChild as HTMLElement;
+    await waitFor(() => expect(box).toHaveFocus());
+    expect(box).toHaveAttribute('tabindex', '-1');
+    expect(drawer).not.toHaveFocus();
   });
 });
