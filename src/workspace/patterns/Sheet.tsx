@@ -50,7 +50,8 @@ function OpenSheet({ onClose: close, title, side = 'auto', children, footer, act
   useEffect(() => {
     openSheets.push(token);
     return () => {
-      openSheets.splice(openSheets.indexOf(token), 1);
+      const i = openSheets.indexOf(token);
+      if (i >= 0) openSheets.splice(i, 1);
     };
   }, [token]);
   const { contentRef, onKeyDown } = useDialogA11y(() => {

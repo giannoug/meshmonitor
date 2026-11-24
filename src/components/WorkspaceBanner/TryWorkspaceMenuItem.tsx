@@ -5,7 +5,7 @@
  * The menu closes only once the save worked; a failed save leaves it open with the error,
  * since not every UserMenu mount point sits inside a ToastProvider.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { logger } from '../../utils/logger';
 import { useLayout } from '../../workspace/layout/useLayout';
@@ -16,18 +16,23 @@ export default function TryWorkspaceMenuItem({ onSelect }: { onSelect: () => voi
   const { setLayout } = useLayout();
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const inflight = useRef(false);
   const choose = () => {
-    if (busy) return;
+    if (inflight.current) return;
+    inflight.current = true;
     setBusy(true);
     setFailed(false);
     setLayout('workspace').then(onSelect, (error: unknown) => {
       logger.error('Failed to save the layout choice:', error);
       setFailed(true);
-    }).finally(() => setBusy(false));
+    }).finally(() => {
+      inflight.current = false;
+      setBusy(false);
+    });
   };
   return (
     <>
-      <button type="button" className="user-menu-item" disabled={busy} onClick={choose}>
+      <button type="button" className="user-menu-item" aria-busy={busy || undefined} onClick={choose}>
         {t('workspace.entry.menu_item')}
       </button>
       {failed && (

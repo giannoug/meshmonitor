@@ -8471,6 +8471,7 @@
   "workspace.shell.overview": "Overview",
   "workspace.shell.overview_label": "Overview: all devices",
   "workspace.shell.device_unread": "{{name}}, {{count}} unread",
+  "workspace.shell.unread_suffix": ", {{count}} unread",
   "workspace.shell.add_device": "Add device",
   "workspace.shell.your_account": "Your account",
   "workspace.shell.preferences": "Preferences",

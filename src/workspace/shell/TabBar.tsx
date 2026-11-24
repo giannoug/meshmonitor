@@ -80,12 +80,13 @@ export default function TabBar({ home, active }: TabBarProps) {
             </span>
           );
         }
+        const current = active === key && (key === 'you' || pathname === '/' || matchPath({ path: base ?? '/overview', end: false }, pathname));
         return (
           <Link
             key={key}
             to={to}
-            className={`${styles.tab} ${active === key ? styles.on : ''}`}
-            aria-current={active === key && (key === 'you' || pathname === '/' || matchPath({ path: base ?? '/overview', end: false }, pathname)) ? 'page' : undefined}
+            className={`${styles.tab} ${current ? styles.on : ''}`}
+            aria-current={current ? 'page' : undefined}
             aria-label={badge ? t('workspace.shell.device_unread', { name: label, count: badge }) : undefined}
           >
             {content}

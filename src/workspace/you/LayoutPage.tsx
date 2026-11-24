@@ -9,7 +9,7 @@
  * (`hover` | `always`); Phase 2's chat reads them. A guest sees the page with
  * the controls off: preferences belong to an account.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -43,16 +43,23 @@ export default function LayoutPage() {
     logger.error('Failed to save a layout preference:', error);
     showToast(t('common.save_failed'), 'error');
   };
-  const [busy, setBusy] = useState(false);
-  const guarded = (send: () => Promise<unknown>) => {
-    if (busy) return;
-    setBusy(true);
-    send().catch(failed).finally(() => setBusy(false));
+  // In-flight keys: a repeat on the same key is dropped, a different key still saves.
+  const inflight = useRef(new Set<string>());
+  const [busyKeys, setBusyKeys] = useState<string[]>([]);
+  const busy = busyKeys.length > 0;
+  const guarded = (key: string, send: () => Promise<unknown>) => {
+    if (inflight.current.has(key)) return;
+    inflight.current.add(key);
+    setBusyKeys([...inflight.current]);
+    send().catch(failed).finally(() => {
+      inflight.current.delete(key);
+      setBusyKeys([...inflight.current]);
+    });
   };
   const choose = (l: Layout) => {
-    if (l !== layout) guarded(() => setLayout(l));
+    if (l !== layout) guarded('layout', () => setLayout(l));
   };
-  const save = (key: string, value: string) => guarded(() => setPref(key, value));
+  const save = (key: string, value: string) => guarded(key, () => setPref(key, value));
 
   const select = (label: string, value: string, key: string, options: Array<[string, string]>) => (
     <TwoLineRow
@@ -63,7 +70,7 @@ export default function LayoutPage() {
           aria-label={label}
           value={value}
           disabled={!signedIn}
-          aria-busy={busy || undefined}
+          aria-busy={busyKeys.includes(key) || undefined}
           onChange={(e) => save(key, e.target.value)}
         >
           {options.map(([v, text]) => (
@@ -103,7 +110,7 @@ export default function LayoutPage() {
               value={l}
               checked={l === layout}
               disabled={!signedIn}
-          aria-busy={busy || undefined}
+              aria-busy={busy || undefined}
               onChange={() => choose(l)}
             />
             <span className={styles.preview} data-layout={l} aria-hidden="true">

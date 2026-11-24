@@ -51,7 +51,11 @@ function OpenWait({
   const isPhone = useIsPhone();
   const titleId = useId();
   const card = useRef<HTMLDivElement>(null);
-  useEffect(() => card.current?.focus(), []);
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    card.current?.focus();
+    return () => opener?.focus?.();
+  }, []);
   const current = STEP_OF[statusKey] ?? 3;
   const failed = FAILED.has(statusKey);
   const labels = [

@@ -95,6 +95,21 @@ describe('r2-you-layout', () => {
     expect(style).toHaveDisplayValue('Bubbles');
   });
 
+  it('two different preferences changed back-to-back both save', async () => {
+    const prefs = prefsFixture({ layout: 'workspace' });
+    renderLayout({ fixtures: prefs.fixtures });
+    const style = await screen.findByRole('combobox', { name: 'Messages as' });
+    const detail = screen.getByRole('combobox', { name: 'Hops, SNR and route' });
+    await waitFor(() => expect(style).not.toHaveAttribute('aria-busy'));
+    fireEvent.change(style, { target: { value: 'bubbles' } });
+    fireEvent.change(detail, { target: { value: 'always' } });
+    await waitFor(() => expect(prefs.puts).toHaveLength(2));
+    expect(prefs.puts).toEqual(expect.arrayContaining([
+      ['workspace.messageStyle', 'bubbles'],
+      ['workspace.signalDetail', 'always'],
+    ]));
+  });
+
   it('a double click on a layout sends one request', async () => {
     const prefs = prefsFixture({ layout: 'workspace' });
     renderLayout({ fixtures: prefs.fixtures });

@@ -68,7 +68,6 @@ export default function DeviceSwitcherSheet({ open, onClose, sources, openId, ov
                 to={deviceSquarePath(pathname, sources.find((o) => o.id === openId), s)}
                 onClick={onClose}
                 active={current}
-                aria-label={!current && s.unread > 0 ? t('workspace.shell.device_unread', { name: s.name, count: s.unread }) : undefined}
                 leading={
                   <span className={styles.square} style={{ background: s.colorToken }} aria-hidden="true">
                     {s.abbrev}
@@ -84,6 +83,7 @@ export default function DeviceSwitcherSheet({ open, onClose, sources, openId, ov
                   <>
                     <span className={styles.dot} data-status={s.status} aria-hidden="true" />
                     <span>{line(s)}</span>
+                    {!current && s.unread > 0 && <span className={styles.srOnly}>{t('workspace.shell.unread_suffix', { count: s.unread })}</span>}
                   </>
                 }
                 trailing={

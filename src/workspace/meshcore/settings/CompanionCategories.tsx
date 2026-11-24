@@ -31,7 +31,7 @@ import { useReadOnly, useSettingRow } from '../../settings/kit/useFieldRegistry'
 import { Warn } from '../../settings/categories/RowParts';
 import { ContactList } from './MaintenanceCategory';
 import { DeviceNotes, McDock, McPage } from './mcShared';
-import { runSweep, useSweep } from './sweepStore';
+import { isSweeping, runSweep, useSweep } from './sweepStore';
 import { useDraft } from './useDraft';
 import { useMcDevice } from './useMcDevice';
 import styles from './McSettings.module.css';
@@ -100,7 +100,7 @@ export function PathScopeCategory(_props: CategoryProps) {
     if (failedNames.length) setFailed(t('workspace.meshcore.settings.not_saved', { names: failedNames.join(', ') }));
   };
   const discover = async () => {
-    if (sweep !== null) return;
+    if (sweep !== null || isSweeping(d.sourceId)) return;
     const result = await runSweep(d.sourceId, 'regions', discoverRegions);
     if (result === null) return showToast(t('meshcore.scope.discover_failed', 'Failed to discover regions'), 'error');
     setRegions(result.regions);
@@ -328,7 +328,7 @@ export function ContactsCategory({ sourceId }: CategoryProps) {
   // One radio sweep at a time (today's otherSweepRunning): a region discovery holds this too.
   const discoverOff = !d.canWriteNodes || !d.connected || d.loading || sweep !== null || d.receiveOnly;
   const discover = async (m: DiscoverMode) => {
-    if (sweep !== null) return;
+    if (sweep !== null || isSweeping(sourceId)) return;
     setMode(m);
     setFound(null);
     const r = await runSweep(sourceId, 'nodes', () => d.actions.discoverNodes(m));

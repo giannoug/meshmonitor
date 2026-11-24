@@ -24,7 +24,7 @@ describe('DiscoverMenu', () => {
     await screen.findByText(/Discovery failed|discover.failed/);
   });
 
-  it('two presses in one tick call onDiscover once', async () => {
+  it('a second press while the first is pending calls onDiscover once', async () => {
     const onDiscover = vi.fn(() => new Promise<null>(() => {}));
     render(<DiscoverMenu onDiscover={onDiscover} onNew={() => {}} />);
     const b = screen.getAllByRole('button')[1];

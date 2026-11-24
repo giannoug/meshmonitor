@@ -75,7 +75,7 @@ describe('13-12 / 13-28 security & privacy', () => {
     await waitFor(() => expect(log.writes).toContainEqual({ method: 'DELETE', path: '/api/privacy/admin/documents/privacy', body: undefined }));
   });
 
-  it('a settings writer who is not an admin sees today\'s writer part only: the hosted documents', async () => {
+  it('a settings writer who is not an admin sees today\'s writer part (the hosted documents) and the read-only Privacy rows', async () => {
     renderServer(PATH, { permissions: grants({ write: true }) });
     await screen.findByText('Privacy Policy');
     expect(screen.getByText('Documents hosted here')).toBeInTheDocument();
