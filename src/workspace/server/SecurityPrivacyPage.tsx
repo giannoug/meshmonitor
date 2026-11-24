@@ -36,7 +36,7 @@ import StateView from '../patterns/StateView';
 import SettingGroup from '../settings/kit/SettingGroup';
 import SettingRow from '../settings/kit/SettingRow';
 import SettingText from '../settings/kit/SettingText';
-import { useReadOnly } from '../settings/kit/useFieldRegistry';
+import { SettingsCategoryContext, useReadOnly } from '../settings/kit/useFieldRegistry';
 import { AutoNumber, AutoSelect, AutoToggle, CommitOnBlur, SavedLine } from '../settings/categories/autosave';
 import { Warn } from '../settings/categories/RowParts';
 import { useAutosaveSetting } from '../settings/useAutosaveSetting';
@@ -68,7 +68,13 @@ export default function SecurityPrivacyPage() {
           </div>
         </div>
       ) : (
-        <DocumentsGroup />
+        <>
+          {/* Privacy keys are admin-only on the server (GLOBAL_ONLY_SETTINGS_KEYS): a reader sees them, none can save. */}
+          <SettingsCategoryContext.Provider value={{ categoryId: 'security', readOnly: true }}>
+            <PrivacyGroup />
+          </SettingsCategoryContext.Provider>
+          <DocumentsGroup />
+        </>
       )}
     </ServerFrame>
   );

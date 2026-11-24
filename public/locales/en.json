@@ -9204,7 +9204,7 @@
   "workspace.server.mi_enable": "Enable mesh issues analysis",
   "workspace.server.enrich_push_sends": "Sends 1 NodeInfo request over the mesh per enriched node · at most {{cap}} per run, {{spacing}} s apart; the rest wait for the next run. Leave off unless you need the radio's own NodeDB kept in sync.",
   "workspace.server.solar_row": "{{state}} · {{lat}}, {{lon}}",
-  "workspace.server.integrations_scope": "Server · admins only · sends nothing on the mesh",
+  "workspace.server.integrations_scope": "Server · sends nothing on the mesh",
   "workspace.server.integrations_writer_note": "Only an administrator can change integrations. Virtual Node replay is shown as today; the server keeps its settings for admins.",
   "workspace.server.services": "Services",
   "workspace.server.feeds": "Feeds and overlays",

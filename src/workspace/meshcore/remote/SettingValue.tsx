@@ -15,6 +15,7 @@ import type { DraftKey } from '../../../components/MeshCore/hooks/useRepeaterSet
 import {
   effectiveRepeaterMax,
   getRepeaterSettingDef,
+  repeaterValuesEqual,
   validateRepeaterValue,
 } from '../../../utils/meshcoreRepeaterSettings';
 import Sheet from '../../patterns/Sheet';
@@ -35,7 +36,7 @@ export default function SettingValue({ target, k, step = 1 }: { target: MeshCore
   const value = d.draft[k] ?? current;
   const off = useReadOnly() || d.locked || current === undefined;
   const def = getRepeaterSettingDef(k);
-  const changed = value !== undefined && current !== undefined && value !== current;
+  const changed = value !== undefined && current !== undefined && !repeaterValuesEqual(k, value, current);
 
   let field;
   if (k === 'name') {

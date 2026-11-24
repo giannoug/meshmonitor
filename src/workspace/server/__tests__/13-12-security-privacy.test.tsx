@@ -84,6 +84,13 @@ describe('13-12 / 13-28 security & privacy', () => {
     expect(screen.getByRole('button', { name: 'Edit Privacy Policy' })).toBeEnabled();
   });
 
+  it('a non-admin reader sees the Privacy rows read-only: no control that would 403', async () => {
+    renderServer(PATH, { permissions: grants({ write: true }) });
+    await screen.findByText('Privacy Policy');
+    expect(await screen.findByRole('switch', { name: /Discourage search engine/ })).toBeDisabled();
+    expect(screen.getByPlaceholderText('https://example.org/privacy')).toBeDisabled();
+  });
+
   it('a settings viewer sees today\'s hosted documents, view only: no Publish, Upload or Unpublish', async () => {
     const { log } = renderServer(PATH, { permissions: grants({ read: true }) });
     fireEvent.click(await screen.findByRole('button', { name: 'Edit Privacy Policy' }));

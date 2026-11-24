@@ -6,7 +6,7 @@
  * nodes:write, off in receive-only). The
  * answer shows as a line under it, in today's words, and which rows are new.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import type { DiscoveredNode } from '../../components/MeshCore/hooks/useMeshCore';
@@ -25,7 +25,7 @@ const MODES: Array<[DiscoverMode, string, string]> = [
 ];
 
 export interface DiscoverMenuProps {
-  onDiscover(mode: DiscoverMode): Promise<{ returned: number; newCount: number; nodes: DiscoveredNode[] } | null>;
+  onDiscover(mode: DiscoverMode): Promise<{ returned: number; newCount: number; nodes: DiscoveredNode[] } | null | 'skipped'>;
   /** Today's receive-only reason, else undefined. */
   reason?: string;
   /** Another radio sweep is running on this source (sweepStore): wait for it. */
@@ -47,11 +47,14 @@ export default function DiscoverMenu({ onDiscover, reason, busy = false, onNew }
     return t(m[1], m[2]);
   };
 
+  const pressed = useRef(false); // a second press before the first render still starts nothing
   const run = async (mode: DiscoverMode) => {
-    if (running || reason || busy) return;
+    if (pressed.current || running || reason || busy) return;
+    pressed.current = true;
     setRunning(mode);
     try {
       const result = await onDiscover(mode);
+      if (result === 'skipped') return; // another sweep holds the radio: not a failure
       if (result) {
         setOutcome({ mode, ok: true, returned: result.returned, newCount: result.newCount, at: Date.now() });
         onNew(new Set(result.nodes.filter((n) => n.isNew).map((n) => n.publicKey.toLowerCase())));
@@ -59,6 +62,7 @@ export default function DiscoverMenu({ onDiscover, reason, busy = false, onNew }
         setOutcome({ mode, ok: false });
       }
     } finally {
+      pressed.current = false;
       setRunning(null);
     }
   };

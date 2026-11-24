@@ -65,8 +65,9 @@ function LookRows() {
   const { t } = useTranslation();
   const s = useSettings();
   const themes = themeOptions(t, s.customThemes);
-  // A slot on a theme that is gone (deleted here or elsewhere) shows context's value, as today's page did.
-  const theme = (fallback: string) => (raw?: string) => (raw && themes.some((o) => o.value === raw) ? raw : fallback);
+  // The applied theme (context) shows after a local Apply; if it is gone from the list, the stored value, else context's, as today's page did.
+  const has = (v?: string) => !!v && themes.some((o) => o.value === v);
+  const theme = (applied: string) => (raw?: string) => (has(applied) ? applied : has(raw) ? raw! : applied);
 
   return (
     <>

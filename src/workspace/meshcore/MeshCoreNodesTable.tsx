@@ -55,7 +55,7 @@ import StateView from '../patterns/StateView';
 import TwoLineRow from '../patterns/TwoLineRow';
 import { useIsPhone } from '../shell/useIsPhone';
 import DiscoverMenu from './DiscoverMenu';
-import { runSweep, useSweep } from './settings/sweepStore';
+import { isSweeping, runSweep, useSweep } from './settings/sweepStore';
 import { shortMark } from './meshcoreLabels';
 import { useMeshCoreRuntime } from './runtime';
 import styles from './MeshCoreNodesTable.module.css';
@@ -282,7 +282,7 @@ export default function MeshCoreNodesTable({ feed = false }: MeshCoreNodesTableP
   );
   const discover = canDiscover && (
     <DiscoverMenu
-      onDiscover={(mode) => runSweep(sourceId, 'nodes', () => actions.discoverNodes(mode))}
+      onDiscover={(mode) => (isSweeping(sourceId) ? Promise.resolve('skipped' as const) : runSweep(sourceId, 'nodes', () => actions.discoverNodes(mode)))}
       busy={sweep !== null}
       reason={receiveOnly ? t('meshcore.receive_only.control_tooltip', 'Receive-only mode is on for this MeshCore source. Turn it off in MeshCore Settings to use this.') : undefined}
       onNew={setNewKeys}

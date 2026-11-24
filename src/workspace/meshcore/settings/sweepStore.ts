@@ -17,6 +17,9 @@ const subscribe = (l: () => void) => {
   return () => void listeners.delete(l);
 };
 
+/** Whether a sweep is running on this source right now (not a hook: read at press time). */
+export const isSweeping = (sourceId: string) => running.has(sourceId);
+
 /** The sweep running on this source, or null. */
 export function useSweep(sourceId: string): SweepKind | null {
   return useSyncExternalStore(subscribe, () => running.get(sourceId) ?? null);
