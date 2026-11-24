@@ -452,11 +452,28 @@ D5 (AclManager) touches a transmit path (`setperm` over the mesh). D5's text cov
   - The i18n coverage test passes.
 - [ ] **Step 5: Commit.**
 
+### Task W14: Approved decisions D1–D3
+
+**Size:** ~12 lines · **Risk:** Low · **Files:** `shell/PhoneShell.module.css`, `map/deviceLayerGroups.tsx`, `map/DeviceMap.tsx`, `node-page/dialogs/MergeIdentitySheet.tsx`, `node-page/dialogs/MergeIdentitySheet.module.css`, tests under `map/__tests__/` and `node-page/__tests__/`.
+
+- [ ] **Step 1: Write failing tests**
+  - "phone Layers sheet has no Packet monitor toggle" (D2). The desktop Layers drawer still has it.
+  - "merge no-undo line uses the danger icon class" (D3).
+- [ ] **Step 2: Run, and see the new tests fail.**
+- [ ] **Step 3: Implement**
+  - **D1** `shell/PhoneShell.module.css:39-53,100`: add `.header[data-device] .switch:focus-visible .square { outline: 2px solid var(--color-accent); outline-offset: 3px }`, so the ring wraps the 44 px square and not only the 24 px name row. CSS only; check it on the phone shell board.
+  - **D2** `map/deviceLayerGroups.tsx:37`: add `isPhone: boolean` to `DeviceLayerParams`, and pass it from `map/DeviceMap.tsx:193` (`useIsPhone()`). Gate the packet-monitor toggle (`:315`) and the returned `showPacketMonitor` (`:329`) with `!p.isPhone`.
+  - **D3** `node-page/dialogs/MergeIdentitySheet.tsx:26-30,117`: `warning()` takes `{ danger?: boolean }`. The no-undo call passes `danger: true`, which uses a new `.dangerIcon { color: var(--color-danger) }` in the module instead of `.warningIcon`. This matches Classic `NodeIdentityMergeDialog.module.css:188-202`.
+- [ ] **Step 4: Run `npx vitest run src/workspace/map src/workspace/node-page src/workspace/shell`.** All pass.
+- [ ] **Step 5: Commit.**
+
 ---
 
-## Decision tasks (run only the ones the requester approves)
+## Decision tasks
 
-Each is one commit. The recommendation is in brackets.
+**Decided 2026-11-24:** the requester took every recommendation. D1–D3 are done in Task W14. D4–D7 are not done; each gets a ruling (JM–JP). Q1–Q7 are skipped.
+
+The recommendation is in brackets.
 
 - **D1. Phone switcher focus ring** (S27) [do]. `shell/PhoneShell.module.css:39-53,100`: `.header[data-device] .switch:focus-visible .square { outline: 2px solid var(--color-accent); outline-offset: 3px }`. Test: the CSS rule exists, plus a board check (phone shell). About 4 lines, Low.
 - **D2. Packet monitor toggle hidden on phone** (M14) [do]. `deviceLayerGroups.tsx:37` adds `isPhone` to `DeviceLayerParams`, and `DeviceMap.tsx:193` passes it. Gate `:315` and `:329` with `!p.isPhone`. Test: "phone Layers sheet has no Packet monitor". About 4 lines, Low.
@@ -467,6 +484,8 @@ Each is one commit. The recommendation is in brackets.
 - **D7. Leave guard on browser Back** (S25) [don't now]. With `BrowserRouter`, `useBlocker` isn't available. A Workspace-only guard would push a sentinel history entry and catch `popstate` in the capture phase before react-router's listener. About 50 lines in `settings/LeaveGuard.tsx`, Medium–High risk (history-stack edge cases, and it depends on listener order). Revisit if the app moves to a data router (the LeaveGuard comment already says so).
 
 ## Questions for the requester (not in the main plan)
+
+**Decided 2026-11-24: all skipped.**
 
 These need a Classic change or are new features:
 
