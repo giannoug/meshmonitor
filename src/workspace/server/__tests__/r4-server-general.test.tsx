@@ -6,7 +6,7 @@
  * default landing page, MeshCore messaging and the Reticulum cap, s13n5).
  */
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { renderWorkspace, type RenderWorkspaceOptions } from '../../test/renderWorkspace';
 import { athensFixture, SOURCE_IDS } from '../../__fixtures__/athens';
 import type { FixtureHandler } from '../../__fixtures__/fixtureApi';
@@ -48,6 +48,12 @@ function renderCard(opts: RenderWorkspaceOptions = {}) {
     { route: '/server/general', ...opts },
   );
 }
+
+/** Every request made so far has been answered, and the renders that follow are flushed. */
+const settled = () =>
+  act(async () => {
+    await Promise.allSettled(vi.mocked(fetch).mock.results.map((r) => r.value));
+  });
 
 const row = (title: string) => screen.getByText(title).closest('[data-testid="general-row"]') as HTMLElement;
 
@@ -156,8 +162,9 @@ describe('r4-server-general (Layout and Sources cards)', () => {
       expect(w.puts).toEqual([['layout', 'workspace']]);
       expect(w.posts).toEqual([{ defaultLayout: 'classic' }]);
       expect(layout).toHaveDisplayValue('Classic');
-      // The gate's refetch after the save has landed: it still says Workspace.
+      // The gate's refetch after the save has started, and its answer is applied: it still says Workspace.
       await waitFor(() => expect(prefReads()).toBeGreaterThan(readsBefore));
+      await settled();
       expect(screen.getByTestId('gate')).toHaveTextContent('workspace');
     });
 
@@ -196,8 +203,8 @@ describe('r4-server-general (Layout and Sources cards)', () => {
     renderCard({ permissions: { bySource: { [SOURCE_IDS.g2]: { settings: { read: true, write: true } } } } });
     const urls = () => vi.mocked(fetch).mock.calls.map(([u]) => String(u));
     await waitFor(() => expect(urls().some((u) => u.includes('/api/auth/status'))).toBe(true));
-    // The gate's own preference read starts after the auth status landed.
-    await waitFor(() => expect(urls().some((u) => u.endsWith('/api/user/preferences'))).toBe(true));
+    // The auth status (and every other request so far) is answered, and the render that follows is flushed.
+    await settled();
     expect(screen.queryByRole('heading')).toBeNull();
     expect(screen.queryByTestId('general-row')).toBeNull();
     expect(urls().some((u) => u.includes('/api/admin/layout-usage'))).toBe(false);

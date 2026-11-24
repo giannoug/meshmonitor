@@ -13,9 +13,9 @@
  */
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import apiService from '../../services/api';
 import { matchPath, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import apiService from '../../services/api';
 import { appBasename } from '../../init';
 import { useDashboardSources, useFailedSourceStatuses, useSourceStatuses, type DashboardSource, type SourceStatus } from '../../hooks/useDashboardData';
 import { useUnreadBySource } from '../../hooks/useUnreadBySource';
