@@ -315,6 +315,27 @@ export const BOARDS: Board[] = [
     fixtures: { 'GET /api/user/preferences': () => ({ success: true, data: { preferences: {} } }) },
     setup: (page) => page.getByText('Try the Workspace layout.').waitFor(),
   },
+  // Fix round 1: over Classic's default tab (Nodes, a fixed map view) and under a TX-disabled AppBanner.
+  {
+    id: 'r3-classic-banner-nodes',
+    size: 'desktop',
+    path: '/source/src-g2',
+    fixtures: { 'GET /api/user/preferences': () => ({ success: true, data: { preferences: {} } }) },
+    setup: (page) => page.getByText('Try the Workspace layout.').waitFor(),
+  },
+  {
+    id: 'r3-classic-banner-tx',
+    size: 'desktop',
+    path: '/source/src-g2/channels',
+    fixtures: {
+      'GET /api/user/preferences': () => ({ success: true, data: { preferences: {} } }),
+      'GET /api/device/tx-status': () => ({ txEnabled: false, udpRelayEnabled: false, canTransmit: false }),
+    },
+    setup: async (page) => {
+      await page.locator('.warning-banner').waitFor();
+      await page.getByText('Try the Workspace layout.').waitFor();
+    },
+  },
   { id: 'r2-you-layout', size: 'desktop', path: '/you/layout' },
   { id: 's3-layout', size: 'phone', path: '/you/layout' },
   { id: 'r4-server-general', size: 'desktop', path: '/server/general', fixtures: SERVER() },

@@ -10,7 +10,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWorkspace, type RenderWorkspaceOptions } from '../../../workspace/test/renderWorkspace';
 import { athensFixture } from '../../../workspace/__fixtures__/athens';
@@ -113,5 +113,51 @@ describe('r3-classic-banner', () => {
     const { container } = renderWorkspace(<UserMenu />, { anonymous: true });
     await settle();
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+// Shown, the banner is part of Classic's fixed top chrome: it sits below the
+// header and extends `--app-header-height` on its shell by its own height, so
+// every Classic surface (page padding, Nodes view, AppBanners) moves below it.
+describe('r3-classic-banner offsets Classic below it', () => {
+  let header: HTMLElement;
+  beforeEach(() => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    );
+    header = document.createElement('header');
+    header.className = 'app-header';
+    header.getBoundingClientRect = () => ({ bottom: 60, height: 60 }) as DOMRect;
+    document.body.appendChild(header);
+  });
+  afterEach(() => {
+    header.remove();
+    vi.unstubAllGlobals();
+  });
+
+  it('while shown, sets the shell offset to header + banner; Not now clears it', async () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      return (this.tagName === 'SECTION' ? { bottom: 130, height: 70 } : { bottom: 0, height: 0 }) as DOMRect;
+    });
+    renderBanner();
+    const banner = (await screen.findByText('Try the Workspace layout.')).closest('section')!;
+    const shell = banner.parentElement!;
+    expect(banner.style.top).toBe('60px');
+    expect(shell.style.getPropertyValue('--app-header-height')).toBe('130px');
+    fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+    await waitFor(() => expect(screen.queryByText('Try the Workspace layout.')).toBeNull());
+    expect(shell.style.getPropertyValue('--app-header-height')).toBe('');
+    vi.restoreAllMocks();
+  });
+
+  it('hidden, it sets nothing', async () => {
+    const { container } = renderBanner({ layout: 'classic' });
+    await settle();
+    expect(container).toBeEmptyDOMElement();
+    expect(container.style.getPropertyValue('--app-header-height')).toBe('');
   });
 });

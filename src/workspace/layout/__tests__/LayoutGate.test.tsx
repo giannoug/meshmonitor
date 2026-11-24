@@ -55,7 +55,7 @@ afterEach(() => {
 
 describe('LayoutGate', () => {
   it('renders the Workspace when the user chose it, with no server flag', async () => {
-    renderGate({ 'GET /api/config': () => ({ baseUrl: '' }), 'GET /api/user/preferences': prefs('workspace') });
+    renderGate({ 'GET /api/user/preferences': prefs('workspace') });
     expect(await screen.findByTestId('workspace-app')).toBeInTheDocument();
     expect(localStorage.getItem('mm.layout')).toBe('workspace');
   });

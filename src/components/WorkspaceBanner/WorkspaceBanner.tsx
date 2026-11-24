@@ -10,6 +10,7 @@
  * Not now (and the close button) saves `layout=classic`, so a later
  * Workspace default does not move the user, and the dismissal.
  */
+import { useLayoutEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
@@ -20,6 +21,8 @@ import { installSettingsQuery, useLayout } from '../../workspace/layout/useLayou
 import { WORKSPACE_ENTRY_ENABLED } from '../../workspace/layout/workspaceEntry';
 import { useUserPreferences } from '../../workspace/prefs/useUserPreferences';
 import styles from './WorkspaceBanner.module.css';
+
+const HEADER_VAR = '--app-header-height';
 
 export default function WorkspaceBanner() {
   // Inside the Workspace (a re-hosted Classic page) there is nothing to offer.
@@ -34,9 +37,44 @@ function Offer() {
   const { prefs, isSuccess, setPref } = useUserPreferences({ enabled: signedIn });
   const settings = useQuery({ ...installSettingsQuery, enabled: signedIn });
   const { setLayout } = useLayout();
+  const shown =
+    signedIn &&
+    isSuccess &&
+    settings.data?.offerWorkspaceBanner === 'true' &&
+    prefs.layout === undefined &&
+    prefs['workspace.bannerDismissed'] !== true;
+  const ref = useRef<HTMLElement>(null);
 
-  if (!signedIn || !isSuccess || settings.data?.offerWorkspaceBanner !== 'true') return null;
-  if (prefs.layout !== undefined || prefs['workspace.bannerDismissed'] === true) return null;
+  // Part of Classic's fixed top chrome while shown: sit right below the header
+  // and extend `--app-header-height` (the offset every Classic surface below the
+  // header reads: page padding, the Nodes view, section nav, AppBanners) by the
+  // banner's height, on the shell element only. Hidden, it sets nothing.
+  useLayoutEffect(() => {
+    const banner = ref.current;
+    const shell = banner?.parentElement;
+    const header = document.querySelector('.app-header');
+    if (!shown || !banner || !shell || !header || typeof ResizeObserver === 'undefined') return;
+    const measure = () => {
+      const bar = Math.ceil(header.getBoundingClientRect().bottom);
+      // A zero bar is not a measurement (useAppHeaderHeightVar): leave the CSS offset alone.
+      if (bar <= 0) {
+        shell.style.removeProperty(HEADER_VAR);
+        return;
+      }
+      banner.style.top = `${bar}px`;
+      shell.style.setProperty(HEADER_VAR, `${bar + Math.ceil(banner.getBoundingClientRect().height)}px`);
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(header);
+    observer.observe(banner);
+    measure();
+    return () => {
+      observer.disconnect();
+      shell.style.removeProperty(HEADER_VAR);
+    };
+  }, [shown]);
+
+  if (!shown) return null;
 
   const failed = (error: unknown) => logger.error('Failed to save the layout choice:', error);
   const notNow = async () => {
@@ -49,7 +87,7 @@ function Offer() {
   };
 
   return (
-    <section className={styles.banner} aria-label={t('workspace.entry.menu_item')}>
+    <section ref={ref} className={styles.banner} aria-label={t('workspace.entry.menu_item')}>
       <UiIcon name="monitor" size={22} className={styles.icon} />
       <p className={styles.text}>
         <strong>{t('workspace.entry.title')}</strong> {t('workspace.entry.body')}
