@@ -18,7 +18,7 @@ import { UiIcon } from '../../../components/icons';
 import { useToast } from '../../../components/ToastContainer';
 import { NumberInputScope } from '../../../components/common/NumberInputScope';
 import { useNumberInputScope } from '../../../components/common/numberInputScopeContext';
-import TelemetryOutlierDialog from '../../../components/TelemetryOutlierDialog/TelemetryOutlierDialog';
+import OutlierCleanupPage from '../../misc/OutlierCleanupPage';
 import { useMeshCoreNodeDisplayDraft, type MeshCoreNodeDisplayNumericKey } from '../../../components/MeshCore/hooks/useMeshCoreNodeDisplayDraft';
 import { useMeshCoreTelemetrySettingsDraft } from '../../../components/MeshCore/hooks/useMeshCoreTelemetrySettingsDraft';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -270,7 +270,7 @@ export default function DisplayCategory({ sourceId, readOnly }: CategoryProps) {
         onCancel={() => setPending(null)}
       />
       {d.isAdmin && (
-        <TelemetryOutlierDialog
+        <OutlierCleanupPage
           isOpen={outliers}
           onClose={() => setOutliers(false)}
           sourceId={sourceId}

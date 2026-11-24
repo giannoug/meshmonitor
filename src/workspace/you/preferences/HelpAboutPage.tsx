@@ -7,7 +7,8 @@
  *   modal. Disconnect / Connect stay in the device's Connection popover.
  * - News: the newest three items of today's feed (`GET /api/news`), new ones
  *   marked as today's popup counts them (`unseenNewsItems`); Show all news
- *   opens today's NewsPopup with `forceShowAll`, which marks nothing seen.
+ *   opens the news sheet (17-09, today's popup logic) with `forceShowAll`,
+ *   which marks nothing seen.
  * - Help: today's settings-header documentation and Ko-fi links, and the
  *   sidebar footer's GitHub link, in a new tab.
  */
@@ -16,12 +17,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { version } from '../../../../package.json';
 import { BrandIcon, UiIcon } from '../../../components/icons';
-import { NewsPopup } from '../../../components/NewsPopup';
 import { unseenNewsItems } from '../../../components/NewsPopup/unseenNews';
 import { MESHMONITOR_GITHUB_URL, MESHMONITOR_KOFI_URL } from '../../../components/SidebarFooter';
 import { useAuth } from '../../../contexts/AuthContext';
 import apiService from '../../../services/api';
 import type { NewsItem, SystemStatus } from '../../../types/ui';
+import NewsSheet from '../../misc/NewsSheet';
 import StateView from '../../patterns/StateView';
 import SettingGroup from '../../settings/kit/SettingGroup';
 import { useIsPhone } from '../../shell/useIsPhone';
@@ -168,7 +169,7 @@ function NewsCard() {
           {t('workspace.help.show_all_news')}
         </button>
       </div>
-      <NewsPopup
+      <NewsSheet
         isOpen={open}
         onClose={() => {
           setOpen(false);

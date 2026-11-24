@@ -1,0 +1,47 @@
+/* Saved broker presets and Save as preset (boards 17-08 / 17-15). */
+.body { display: flex; flex-direction: column; gap: 12px; padding: 4px 20px 12px; }
+.hint { margin: 0; color: var(--color-text-subtle); font-size: 13px; line-height: 1.45; }
+.error { margin: 0; color: var(--color-error); font-size: 13px; line-height: 1.4; }
+
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.body[data-phone] .list { border: 1px solid var(--color-surface); border-radius: 12px; }
+.row { display: flex; flex-direction: column; gap: 4px; padding: 12px 0; border-bottom: 1px solid var(--color-surface); }
+.row:last-child { border-bottom: 0; }
+.body[data-phone] .row { padding: 12px 16px; }
+.rowName { font-weight: 700; color: var(--color-text); overflow-wrap: anywhere; }
+.endpoint { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--color-text-subtle); overflow-wrap: anywhere; }
+.rowActions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.ask { flex: 1; min-width: 0; color: var(--color-error); font-weight: 600; }
+.end { margin-left: auto; }
+
+.form { display: flex; flex-direction: column; gap: 10px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.label { color: var(--color-text-subtle); font-size: 13px; }
+.input {
+  box-sizing: border-box; width: 100%; min-height: 36px; padding: 0 10px; font: inherit;
+  color: var(--color-text); background: var(--color-bg-sunken);
+  border: 1px solid var(--color-surface); border-radius: 8px;
+}
+.body[data-phone] .input { min-height: 44px; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.portRow { display: flex; align-items: flex-end; gap: 16px; }
+.port { width: 128px; flex: none; }
+.check { min-height: 36px; display: inline-flex; align-items: center; gap: 10px; color: var(--color-text); cursor: pointer; }
+.body[data-phone] .check { min-height: 44px; }
+.check input { width: 18px; height: 18px; accent-color: var(--color-accent); }
+
+.foot { display: flex; flex-direction: column; gap: 10px; }
+.actions { display: flex; justify-content: flex-end; gap: 8px; }
+.foot[data-phone] .actions .button { flex: 1; }
+.wide { min-width: 96px; }
+
+.button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 36px; padding: 0 14px; font: inherit; font-weight: 600; cursor: pointer;
+  border-radius: 8px; border: 1px solid var(--color-surface);
+  color: var(--color-text); background: var(--color-bg-raised);
+}
+.body[data-phone] .button, .foot[data-phone] .button { min-height: 44px; }
+.button:disabled { opacity: 0.5; cursor: not-allowed; }
+.primary { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-bg-sunken); }
+.danger { color: var(--color-error); border-color: var(--color-error); }

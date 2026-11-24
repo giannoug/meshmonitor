@@ -7,94 +7,25 @@
  * Saving or deleting a preset changes no source and no radio: a form copies a
  * preset in when someone picks it, so what is already saved stays as it is.
  */
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'i18next';
 import Modal from '../common/Modal';
 import { NumberInput } from '../common/NumberInput';
-import {
-  useCreateBrokerPreset,
-  useDeleteBrokerPreset,
-  useUpdateBrokerPreset,
-  type SavedBrokerPreset,
-  type SavedBrokerPresetBody,
-} from '../../hooks/useMqttBrokerPresets';
-import { defaultMqttPort } from '../../utils/mqttBrokerEndpoint';
+import type { SavedBrokerPreset } from '../../hooks/useMqttBrokerPresets';
 import { MqttRootFinder } from './MqttRootFinder';
 import { MqttRootFieldError } from './MqttRootFieldError';
-import { mqttRootErrorMessage } from './mqttRootApiError';
-import { isChangedInvalidMqttRoot } from '../../utils/mqttRootTopic';
 import { defaultDeviceRegionRoot } from './mqttRootDefaults';
+import {
+  useManageBrokerPresets,
+  useSaveBrokerPresetForm,
+  presetFinderTarget,
+  withTls,
+  type BrokerPresetDraft,
+  type EditorValues,
+} from './useSavedBrokerPresetEditor';
 import styles from './SavedBrokerPresetDialogs.module.css';
 
-/** A form's current broker values, offered to "Save as preset". */
-export interface BrokerPresetDraft {
-  host: string;
-  port: number;
-  tls: boolean;
-  username: string;
-  password: string;
-  rootTopic: string;
-}
-
-interface EditorValues {
-  name: string;
-  host: string;
-  port: number;
-  tls: boolean;
-  username: string;
-  password: string;
-  rootTopic: string;
-}
-
-function valuesFromDraft(draft: BrokerPresetDraft, name = ''): EditorValues {
-  return {
-    name,
-    host: draft.host,
-    port: draft.port,
-    tls: draft.tls,
-    username: draft.username,
-    password: draft.password,
-    rootTopic: draft.rootTopic,
-  };
-}
-
-function valuesFromPreset(p: SavedBrokerPreset, name = p.name): EditorValues {
-  return {
-    name,
-    host: p.host,
-    port: p.port,
-    tls: p.tls,
-    username: p.username ?? '',
-    password: p.password ?? '',
-    rootTopic: p.rootTopic ?? '',
-  };
-}
-
-function bodyFromValues(v: EditorValues): SavedBrokerPresetBody {
-  return {
-    name: v.name.trim(),
-    host: v.host.trim(),
-    port: v.port,
-    tls: v.tls,
-    username: v.username.trim() || null,
-    password: v.password || null,
-    rootTopic: v.rootTopic.trim() || null,
-  };
-}
-
-function errorText(err: unknown, t: TFunction): string {
-  return mqttRootErrorMessage(err, t) ?? (err instanceof Error ? err.message : String(err));
-}
-
-/**
- * The server trims a preset root and strips a trailing `/`, then refuses it
- * when it changed and breaks the root rules (#6338). `saved` is the stored
- * root, or undefined for a new preset.
- */
-function presetRootBlocksSave(rootTopic: string, saved: string | null | undefined): boolean {
-  return isChangedInvalidMqttRoot(rootTopic.trim().replace(/\/+$/, ''), saved);
-}
+export type { BrokerPresetDraft };
 
 const PresetEditor: React.FC<{
   values: EditorValues;
@@ -136,11 +67,7 @@ const PresetEditor: React.FC<{
         <input
           type="checkbox"
           checked={values.tls}
-          onChange={(e) => {
-            // Switching TLS moves a default port along with it.
-            const port = values.port === defaultMqttPort(values.tls) ? defaultMqttPort(e.target.checked) : values.port;
-            onChange({ ...values, tls: e.target.checked, port });
-          }}
+          onChange={(e) => onChange(withTls(values, e.target.checked))}
         />
         {t('mqtt_presets.saved.field_tls', 'Use TLS')}
       </label>
@@ -173,15 +100,7 @@ const PresetEditor: React.FC<{
         context="preset"
         defaultRegionRoot={defaultDeviceRegionRoot(values.rootTopic)}
         currentRoot={values.rootTopic}
-        getTarget={() =>
-          values.host.trim()
-            ? {
-                broker: { url: `${values.tls ? 'mqtts' : 'mqtt'}://${values.host.trim()}:${values.port}` },
-                username: values.username,
-                password: values.password,
-              }
-            : null
-        }
+        getTarget={() => presetFinderTarget(values)}
         onPickRoot={(root) => set('rootTopic', root)}
       />
       <p className={styles.hint}>
@@ -202,27 +121,7 @@ export const SaveBrokerPresetDialog: React.FC<{
   passwordNotIncluded?: boolean;
 }> = ({ isOpen, onClose, draft, passwordNotIncluded = false }) => {
   const { t } = useTranslation();
-  const create = useCreateBrokerPreset();
-  const [values, setValues] = useState<EditorValues | null>(null);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (isOpen && draft) {
-      setValues(valuesFromDraft(draft));
-      setError('');
-    }
-  }, [isOpen, draft]);
-
-  const save = async () => {
-    if (!values) return;
-    setError('');
-    try {
-      await create.mutateAsync(bodyFromValues(values));
-      onClose();
-    } catch (err) {
-      setError(errorText(err, t));
-    }
-  };
+  const { values, setValues, error, save, canSave } = useSaveBrokerPresetForm({ isOpen, draft, onClose });
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t('mqtt_presets.saved.save_title', 'Save as preset')}>
@@ -251,7 +150,7 @@ export const SaveBrokerPresetDialog: React.FC<{
             type="button"
             className="btn-primary"
             onClick={() => void save()}
-            disabled={!values || !values.name.trim() || presetRootBlocksSave(values.rootTopic, undefined) || create.isPending}
+            disabled={!canSave}
             data-testid="save-broker-preset-submit"
           >
             {t('mqtt_presets.saved.save_button', 'Save preset')}
@@ -262,64 +161,26 @@ export const SaveBrokerPresetDialog: React.FC<{
   );
 };
 
-type EditTarget = { mode: 'edit'; preset: SavedBrokerPreset } | { mode: 'duplicate'; preset: SavedBrokerPreset };
-
 export const ManageBrokerPresetsDialog: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   presets: SavedBrokerPreset[];
 }> = ({ isOpen, onClose, presets }) => {
   const { t } = useTranslation();
-  const create = useCreateBrokerPreset();
-  const update = useUpdateBrokerPreset();
-  const remove = useDeleteBrokerPreset();
-  const [target, setTarget] = useState<EditTarget | null>(null);
-  const [values, setValues] = useState<EditorValues | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (!isOpen) {
-      setTarget(null);
-      setValues(null);
-      setConfirmDeleteId(null);
-      setError('');
-    }
-  }, [isOpen]);
-
-  const startEdit = (next: EditTarget) => {
-    setTarget(next);
-    setError('');
-    setConfirmDeleteId(null);
-    setValues(
-      next.mode === 'edit'
-        ? valuesFromPreset(next.preset)
-        : valuesFromPreset(next.preset, t('mqtt_presets.saved.copy_of', 'Copy of {{name}}', { name: next.preset.name })),
-    );
-  };
-
-  const saveEdit = async () => {
-    if (!target || !values) return;
-    setError('');
-    try {
-      if (target.mode === 'edit') await update.mutateAsync({ id: target.preset.id, body: bodyFromValues(values) });
-      else await create.mutateAsync(bodyFromValues(values));
-      setTarget(null);
-      setValues(null);
-    } catch (err) {
-      setError(errorText(err, t));
-    }
-  };
-
-  const doDelete = async (id: number) => {
-    setError('');
-    try {
-      await remove.mutateAsync(id);
-      setConfirmDeleteId(null);
-    } catch (err) {
-      setError(errorText(err, t));
-    }
-  };
+  const {
+    target,
+    values,
+    setValues,
+    confirmDeleteId,
+    setConfirmDeleteId,
+    error,
+    startEdit,
+    cancelEdit,
+    saveEdit,
+    doDelete,
+    canSaveEdit,
+    deletePending,
+  } = useManageBrokerPresets({ isOpen });
 
   return (
     <Modal
@@ -345,19 +206,14 @@ export const ManageBrokerPresetsDialog: React.FC<{
             <PresetEditor values={values} onChange={setValues} idPrefix="manage-broker-preset" />
             {error && <p className={styles.error} role="alert">{error}</p>}
             <div className={styles.actions}>
-              <button type="button" className="btn-secondary" onClick={() => { setTarget(null); setValues(null); }}>
+              <button type="button" className="btn-secondary" onClick={cancelEdit}>
                 {t('common.cancel', 'Cancel')}
               </button>
               <button
                 type="button"
                 className="btn-primary"
                 onClick={() => void saveEdit()}
-                disabled={
-                  !values.name.trim()
-                  || presetRootBlocksSave(values.rootTopic, target.mode === 'edit' ? target.preset.rootTopic : undefined)
-                  || update.isPending
-                  || create.isPending
-                }
+                disabled={!canSaveEdit}
                 data-testid="manage-broker-preset-submit"
               >
                 {t('mqtt_presets.saved.save_button', 'Save preset')}
@@ -389,7 +245,7 @@ export const ManageBrokerPresetsDialog: React.FC<{
                           type="button"
                           className={`btn-secondary ${styles.danger}`}
                           onClick={() => void doDelete(p.id)}
-                          disabled={remove.isPending}
+                          disabled={deletePending}
                           data-testid={`saved-broker-preset-confirm-delete-${p.id}`}
                         >
                           {t('common.delete', 'Delete')}

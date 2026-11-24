@@ -3,7 +3,8 @@
  *
  * Boards 13-14 (desktop) and 13-29 (phone), Task 6.3: You › Help & about.
  * System status and news are read once when the page opens (no poll); Show
- * all news opens today's NewsPopup; the links are today's, in a new tab.
+ * all news opens the news sheet (17-09, today's popup logic); the links are
+ * today's, in a new tab.
  */
 import { describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
@@ -69,7 +70,7 @@ describe('13-14-help-about', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Show all news' }));
     await screen.findByText(/Embed profiles moved to/);
     const before = log.reads.filter((r) => r === '/api/news/user/status').length;
-    fireEvent.click(document.querySelector('.news-modal-overlay')!);
+    fireEvent.click(screen.getByTestId('sheet-backdrop'));
     await waitFor(() => expect(log.reads.filter((r) => r === '/api/news/user/status').length).toBe(before + 1));
   });
 

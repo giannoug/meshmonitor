@@ -10,21 +10,13 @@
  * delete. The delete sends back the preview's cutoffId + fingerprint, so the
  * server removes exactly the previewed rows or refuses (PREVIEW_STALE).
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import Modal from '../common/Modal';
 import { NumberInput } from '../common/NumberInput';
 import { NumberInputScope } from '../common/NumberInputScope';
-import { useNumberInputScope } from '../common/numberInputScopeContext';
-import apiService, { ApiError, type TelemetryOutlierRequest } from '../../services/api';
-import {
-  OUTLIER_K_DEFAULT,
-  OUTLIER_K_MAX,
-  OUTLIER_K_MIN,
-  OUTLIER_MIN_SAMPLES,
-  validateOutlierCriteria,
-  type OutlierPreview,
-} from '../../utils/telemetryOutliers';
+import { OUTLIER_K_MAX, OUTLIER_K_MIN, OUTLIER_MIN_SAMPLES } from '../../utils/telemetryOutliers';
+import { formatOutlierValue as formatValue, useTelemetryOutlierCleanup } from './useTelemetryOutlierCleanup';
 import styles from './TelemetryOutlierDialog.module.css';
 
 export interface TelemetryOutlierDialogProps {
@@ -46,13 +38,6 @@ export interface TelemetryOutlierDialogProps {
   onPurged?: (deletedCount: number) => void;
 }
 
-type Step = 'configure' | 'preview' | 'confirm' | 'done';
-
-function formatValue(v: number | null): string {
-  if (v === null || !Number.isFinite(v)) return '–';
-  return String(Number(v.toPrecision(6)));
-}
-
 const TelemetryOutlierDialog: React.FC<TelemetryOutlierDialogProps> = ({
   isOpen,
   onClose,
@@ -65,150 +50,36 @@ const TelemetryOutlierDialog: React.FC<TelemetryOutlierDialogProps> = ({
   onPurged,
 }) => {
   const { t } = useTranslation();
-  const isNodeMode = Boolean(nodeId);
-
-  const [sourceId, setSourceId] = useState<string>(initialSourceId ?? '');
-  const [telemetryType, setTelemetryType] = useState<string>(fixedType ?? '');
-  const [types, setTypes] = useState<string[] | null>(null);
-  const [auto, setAuto] = useState(true);
-  const [k, setK] = useState(String(OUTLIER_K_DEFAULT));
-  const [min, setMin] = useState('');
-  const [max, setMax] = useState('');
-  const numberScope = useNumberInputScope();
-  const [step, setStep] = useState<Step>('configure');
-  const [preview, setPreview] = useState<OutlierPreview | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [deletedCount, setDeletedCount] = useState(0);
-
-  // Fresh state every time the dialog opens.
-  useEffect(() => {
-    if (!isOpen) return;
-    setSourceId(initialSourceId ?? '');
-    setTelemetryType(fixedType ?? '');
-    setAuto(true);
-    setK(String(OUTLIER_K_DEFAULT));
-    setMin('');
-    setMax('');
-    setStep('configure');
-    setPreview(null);
-    setError(null);
-    setBusy(false);
-  }, [isOpen, initialSourceId, fixedType]);
-
-  // Sweep mode: load the chosen source's metrics.
-  useEffect(() => {
-    if (!isOpen || isNodeMode || !sourceId) {
-      setTypes(null);
-      return;
-    }
-    let cancelled = false;
-    setTypes(null);
-    apiService
-      .getTelemetryOutlierTypes(sourceId)
-      .then(list => {
-        if (cancelled) return;
-        setTypes(list);
-        setTelemetryType(prev => (list.includes(prev) ? prev : ''));
-      })
-      .catch(err => {
-        if (!cancelled) {
-          setTypes([]);
-          setError(t('telemetry_outliers.error', { message: err instanceof Error ? err.message : String(err) }));
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, isNodeMode, sourceId, t]);
-
-  const validation = useMemo(
-    () => validateOutlierCriteria({ auto, k: k.trim() === '' ? undefined : Number(k), min, max }),
-    [auto, k, min, max],
-  );
-
-  const validationMessage = validation.ok
-    ? null
-    : validation.code === 'INVALID_K'
-      ? t('telemetry_outliers.invalid_k', { min: OUTLIER_K_MIN, max: OUTLIER_K_MAX })
-      : validation.code === 'NO_CRITERIA'
-        ? t('telemetry_outliers.no_criteria')
-        : t('telemetry_outliers.invalid_bounds');
-
-  const canPreview =
-    validation.ok && !numberScope.invalid && Boolean(sourceId) && Boolean(telemetryType) && !busy;
-
-  const buildRequest = (): TelemetryOutlierRequest | null => {
-    // #5649: a field holding invalid text was never applied to the criteria, so
-    // neither preview nor purge may run on what the form still remembers.
-    if (!validation.ok || numberScope.invalid) return null;
-    return {
-      sourceId,
-      telemetryType,
-      ...(nodeId ? { nodeId } : {}),
-      ...validation.criteria,
-    };
-  };
-
-  /** Any edit after a preview invalidates it. */
-  const edit = <T,>(setter: (v: T) => void) => (v: T) => {
-    setter(v);
-    if (step !== 'configure') {
-      setStep('configure');
-      setPreview(null);
-    }
-    setError(null);
-  };
-
-  const runPreview = async () => {
-    const req = buildRequest();
-    if (!req) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await apiService.previewTelemetryOutliers(req);
-      setPreview(result);
-      setStep('preview');
-    } catch (err) {
-      setError(t('telemetry_outliers.error', { message: err instanceof Error ? err.message : String(err) }));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const runPurge = async () => {
-    const req = buildRequest();
-    if (!req || !preview || preview.cutoffId === null) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await apiService.purgeTelemetryOutliers({
-        ...req,
-        cutoffId: preview.cutoffId,
-        fingerprint: preview.fingerprint,
-      });
-      setDeletedCount(result.deletedCount);
-      setStep('done');
-      onPurged?.(result.deletedCount);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        setError(t('telemetry_outliers.stale'));
-        setStep('configure');
-        setPreview(null);
-      } else {
-        setError(t('telemetry_outliers.error', { message: err instanceof Error ? err.message : String(err) }));
-        setStep('preview');
-      }
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const title = isNodeMode
-    ? t('telemetry_outliers.title_node', { type: getTypeLabel(telemetryType) })
-    : t('telemetry_outliers.title_sweep');
-
-  const reasonLabel = (reason: string) => t(`telemetry_outliers.reason_${reason}`);
+  const {
+    isNodeMode,
+    sourceId,
+    setSourceId,
+    telemetryType,
+    setTelemetryType,
+    types,
+    auto,
+    setAuto,
+    k,
+    setK,
+    min,
+    setMin,
+    max,
+    setMax,
+    numberScope,
+    step,
+    setStep,
+    preview,
+    busy,
+    error,
+    deletedCount,
+    validationMessage,
+    canPreview,
+    edit,
+    runPreview,
+    runPurge,
+    title,
+    reasonLabel,
+  } = useTelemetryOutlierCleanup({ isOpen, sourceId: initialSourceId, telemetryType: fixedType, nodeId, getTypeLabel, onPurged });
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth="640px">

@@ -2,7 +2,8 @@
  * The node page's Telemetry tab (board f5-telemetry): Classic's DM pane charts
  * as they are, in its order and under its conditions (MessagesTab): today's
  * TelemetryGraphs (time range, the per-chart ⋯ menu with split / merge, Y
- * range, CSV and Clean outliers… for admins, the dashboard star), Smart Hops,
+ * range, CSV and Clean outliers… for admins, which opens the Workspace's
+ * outlier sheet, 17-07, for this node and metric; the dashboard star), Smart Hops,
  * Link Quality and, when packet logging is on and the node sent anything in
  * the last 24 h, its packet-type distribution. Lazy chunks, as in Classic (the
  * only recharts users here).
@@ -19,6 +20,7 @@ import { appBasename } from '../../init';
 import { getPacketDistributionStats } from '../../services/packetApi';
 import type { DeviceInfo } from '../../types/device';
 import { nodeIdOf } from '../nodes/nodeColumns';
+import OutlierCleanupPage from '../misc/OutlierCleanupPage';
 import StateView from '../patterns/StateView';
 
 const TelemetryGraphs = lazy(() => import('../../components/TelemetryGraphs'));
@@ -42,7 +44,7 @@ export default function TelemetryTab({ sourceId, node }: { sourceId: string; nod
 
   return (
     <Suspense fallback={<StateView kind="loading" />}>
-      <TelemetryGraphs {...shared} temperatureUnit={temperatureUnit} showTimeRangeSelector />
+      <TelemetryGraphs {...shared} temperatureUnit={temperatureUnit} showTimeRangeSelector OutlierDialog={OutlierCleanupPage} />
       <SmartHopsGraphs {...shared} />
       <LinkQualityGraph {...shared} />
       {distribution?.enabled && typeData.length > 0 && (

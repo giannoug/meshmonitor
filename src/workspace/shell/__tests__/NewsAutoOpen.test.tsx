@@ -3,7 +3,8 @@
  *
  * s13n2 (Task 6.3 fix round 1, Ruling GO): new news opens by itself once.
  * The shell reads today's `GET /api/news/unread` once when it mounts for a
- * signed-in user, and opens today's NewsPopup (unseen items) when it lists
+ * signed-in user, and opens the news sheet (17-09, today's popup logic; the
+ * unseen items) when it lists
  * any. No interval; a guest asks nothing.
  */
 import { describe, it, expect, vi } from 'vitest';
@@ -57,7 +58,7 @@ describe('news opens by itself once (s13n2)', () => {
     const calls = renderShell([]);
     await waitFor(() => expect(calls).toContain('unread'));
     await screen.findByText('page');
-    expect(document.querySelector('.news-modal-overlay')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(calls).toEqual(['unread']);
   });
 

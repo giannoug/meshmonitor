@@ -3,7 +3,8 @@
  * mqtt_bridge source's bridge setup on the row kit. State, requests and the
  * save are today's, shared with MqttBridgeConfigurationView through
  * useMqttBridgeConfig (Rule X); the broker preset choice through
- * useBrokerPresetChoice.
+ * useBrokerPresetChoice; Save as preset and Manage saved presets open the
+ * saved broker preset sheets (17-08, BrokerPresetsSheet).
  *
  * - Desktop: Connection and Subscribe on the left; Publish, Forwarding and
  *   Topic rewrites on the right. Phone: Connection, then one summary row per
@@ -24,11 +25,11 @@ import { MqttRootFinder } from '../../../components/MQTT/MqttRootFinder';
 import { applyRootToSubscriptions, defaultBridgeRegionRoot } from '../../../components/MQTT/mqttRootDefaults';
 import { BROKER_DISCOVERY_LINKS, matchBridgePreset } from '../../../components/MQTT/brokerPresets';
 import { BRIDGE_FORWARDING_MODES, BRIDGE_MODES, type BridgeConfigForm, type UplinkTopicMode } from '../../../components/MQTT/mqttBridgeConfig';
-import { ManageBrokerPresetsDialog, SaveBrokerPresetDialog } from '../../../components/MQTT/SavedBrokerPresetDialogs';
 import { useBrokerPresetChoice } from '../../../components/MQTT/useBrokerPresetChoice';
 import { GEO_KEYS, bboxFromForm, brokerGatewayClientId, useMqttBridgeConfig, type MqttBridgeConfig } from '../../../components/MQTT/useMqttBridgeConfig';
 import { bboxToFormStrings } from '../../../pages/DashboardPage.bboxSeed';
 import { formatRelativeTime } from '../../../utils/datetime';
+import BrokerPresetsSheet from '../../misc/BrokerPresetsSheet';
 import Sheet from '../../patterns/Sheet';
 import StateView from '../../patterns/StateView';
 import { useIsPhone } from '../../shell/useIsPhone';
@@ -201,6 +202,9 @@ function ConnectionRows({ b }: { b: MqttBridgeConfig }) {
         label={t('mqtt_presets.label', 'Broker preset')}
         help={
           <>
+            <span className={pages.block}>
+              {t('mqtt_presets.description', 'Fills in the broker address, TLS and login. Nothing is sent until you save.')}
+            </span>
             {presets.keptKey && keptPreset && (
               <span className={pages.block} role="status" data-testid="broker-preset-kept">
                 {t(presets.keptKey, presets.keptFallbacks[presets.keptKey], {
@@ -245,18 +249,21 @@ function ConnectionRows({ b }: { b: MqttBridgeConfig }) {
             title={presets.currentDraft === null ? t('mqtt_presets.saved.save_needs_host', 'Enter a broker address first.') : undefined}
             onClick={() => presets.setSaveDraft(presets.currentDraft)}
           >
+            <UiIcon name="download" size={16} />
             {t('mqtt_presets.saved.save_as', 'Save as preset')}
           </button>
           <button type="button" className={pages.button} disabled={!b.canWrite} onClick={() => presets.setManageOpen(true)}>
+            <UiIcon name="settings" size={16} />
             {t('mqtt_presets.saved.manage', 'Manage saved presets')}
           </button>
-          <SaveBrokerPresetDialog
-            isOpen={presets.saveDraft !== null}
-            onClose={() => presets.setSaveDraft(null)}
-            draft={presets.saveDraft}
+          <BrokerPresetsSheet
+            saveDraft={presets.saveDraft}
+            onCloseSave={() => presets.setSaveDraft(null)}
             passwordNotIncluded={b.passwordStored && f.password === ''}
+            manageOpen={presets.manageOpen}
+            onCloseManage={() => presets.setManageOpen(false)}
+            presets={presets.savedRows}
           />
-          <ManageBrokerPresetsDialog isOpen={presets.manageOpen} onClose={() => presets.setManageOpen(false)} presets={presets.savedRows} />
         </div>
       )}
       <SettingRow stacked

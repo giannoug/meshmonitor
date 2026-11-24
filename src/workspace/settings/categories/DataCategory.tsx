@@ -7,7 +7,8 @@
  *
  * - Erase nodes, Purge telemetry and Reset traceroutes act on this source;
  *   Purge messages purges every source, as today's call does.
- * - Clean outliers: today's dialog, admins only.
+ * - Clean outliers (admins only, as today): the outlier sheet (17-07), every
+ *   source offered in its Source picker as today's Settings does, this one picked.
  * - After a purge every query reads again (today reloaded the page after 1.5 s);
  *   after Reset to Defaults the page reloads, because SettingsContext reads the
  *   defaults only on load.
@@ -17,12 +18,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../../components/icons';
 import { useToast } from '../../../components/ToastContainer';
-import TelemetryOutlierDialog from '../../../components/TelemetryOutlierDialog/TelemetryOutlierDialog';
 import { getTelemetryLabel } from '../../../components/TelemetryChart';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useSource } from '../../../contexts/SourceContext';
+import { useDashboardSources } from '../../../hooks/useDashboardData';
 import apiService from '../../../services/api';
 import { logger } from '../../../utils/logger';
+import OutlierCleanupPage from '../../misc/OutlierCleanupPage';
 import ConfirmSheet from '../../patterns/ConfirmSheet';
 import DangerZone from '../../patterns/DangerZone';
 import SendsLine from '../../patterns/SendsLine';
@@ -63,6 +65,7 @@ function DataRows({ sourceId }: { sourceId: string }) {
   const [pending, setPending] = useState<Action | null>(null);
   const [busy, setBusy] = useState(false);
   const [outliers, setOutliers] = useState(false);
+  const { data: allSources = [] } = useDashboardSources();
   const close = () => setPending(null);
 
   /** Today's confirm text: the title, "Impact:", the list, "cannot be undone". */
@@ -229,11 +232,11 @@ function DataRows({ sourceId }: { sourceId: string }) {
         onCancel={close}
       />
       {isAdmin && (
-        <TelemetryOutlierDialog
+        <OutlierCleanupPage
           isOpen={outliers}
           onClose={() => setOutliers(false)}
           sourceId={sourceId}
-          sources={[{ id: sourceId, name: sourceName ?? sourceId }]}
+          sources={allSources.length ? allSources.map((src) => ({ id: src.id, name: src.name })) : [{ id: sourceId, name: sourceName ?? sourceId }]}
           getTypeLabel={getTelemetryLabel}
         />
       )}

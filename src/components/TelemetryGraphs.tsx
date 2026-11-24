@@ -33,7 +33,7 @@ import { downloadTelemetryCsv, resolveSeriesDisplay } from '../utils/telemetrySe
 import { TELEMETRY_RANGE_PRESETS, TELEMETRY_RETENTION_HOURS } from '../utils/telemetryRangePresets';
 import { UiIcon } from './icons';
 import DeviceCounterNote from './DeviceCounterNote';
-import TelemetryOutlierDialog from './TelemetryOutlierDialog/TelemetryOutlierDialog';
+import TelemetryOutlierDialog, { type TelemetryOutlierDialogProps } from './TelemetryOutlierDialog/TelemetryOutlierDialog';
 import { isDeviceCounterType } from '../utils/deviceCounters';
 import { isTransportSeriesComponentType } from '../utils/transportSeries';
 import type { TranslateFn } from '../types/translate';
@@ -76,6 +76,11 @@ interface TelemetryGraphsProps {
    * window.
    */
   showTimeRangeSelector?: boolean;
+  /**
+   * What "Clean outliers…" opens: today's dialog unless a host draws its own
+   * with the same props (the Workspace's outlier sheet, #6365).
+   */
+  OutlierDialog?: React.ComponentType<TelemetryOutlierDialogProps>;
 }
 
 /** localStorage key for the Device Info telemetry time-range selection. */
@@ -638,7 +643,7 @@ const TelemetryGraphWidget: React.FC<TelemetryGraphWidgetProps> = ({
 };
 
 const TelemetryGraphs: React.FC<TelemetryGraphsProps> = React.memo(
-  ({ nodeId, temperatureUnit = 'C', telemetryHours = 24, baseUrl = '', showTimeRangeSelector = false }) => {
+  ({ nodeId, temperatureUnit = 'C', telemetryHours = 24, baseUrl = '', showTimeRangeSelector = false, OutlierDialog = TelemetryOutlierDialog }) => {
     const { t } = useTranslation();
     const csrfFetch = useCsrfFetch();
     const { showToast } = useToast();
@@ -1192,7 +1197,7 @@ const TelemetryGraphs: React.FC<TelemetryGraphsProps> = React.memo(
           </section>
         ))}
         {isAdmin && effectiveSourceId && (
-          <TelemetryOutlierDialog
+          <OutlierDialog
             isOpen={outlierType !== null}
             onClose={() => setOutlierType(null)}
             sourceId={effectiveSourceId}

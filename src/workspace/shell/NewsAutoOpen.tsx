@@ -1,13 +1,13 @@
 /**
  * New news opens by itself once (s13n2), as Classic's App and Dashboard do:
  * when the shell mounts for a signed-in user, one `GET /api/news/unread`
- * (today's request); when it lists anything, today's NewsPopup opens without
- * `forceShowAll`, so it shows the unseen items (`unseenNewsItems`) and marks
- * them seen when closed. No interval; the full-page sign-in has no shell.
+ * (today's request); when it lists anything, the news sheet (17-09, today's
+ * popup logic) opens without `forceShowAll`, so it shows the unseen items
+ * (`unseenNewsItems`) and dismisses them when closed. No interval; the full-page sign-in has no shell.
  * Re-hosted Classic pages skip their own check while embedded.
  */
 import { useEffect, useState } from 'react';
-import { NewsPopup } from '../../components/NewsPopup';
+import NewsSheet from '../misc/NewsSheet';
 import { useAuth } from '../../contexts/AuthContext';
 import apiService from '../../services/api';
 import { logger } from '../../utils/logger';
@@ -31,5 +31,5 @@ export default function NewsAutoOpen() {
     };
   }, [signedIn]);
 
-  return <NewsPopup isOpen={open} onClose={() => setOpen(false)} isAuthenticated={signedIn} />;
+  return <NewsSheet isOpen={open} onClose={() => setOpen(false)} isAuthenticated={signedIn} />;
 }

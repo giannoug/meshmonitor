@@ -26,6 +26,9 @@ import { dashboardFixtures, overviewBoard, phoneBoard, savedBoard } from '../../
 import { automationFixtures } from '../../src/workspace/__fixtures__/automations';
 import { rulesFixtures } from '../../src/workspace/__fixtures__/rules';
 import { toolsFixtures } from '../../src/workspace/__fixtures__/tools';
+import { brokerPresetFixtures, EMBED_PROFILE, embedFixtures, newsFixtures, outlierFixtures, privacyFixtures } from '../../src/workspace/__fixtures__/oddPages';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 export interface Board {
   id: string;
@@ -2166,7 +2169,58 @@ export const BOARDS: Board[] = [
   { id: '17-04-states', size: 'desktop', path: '/source/src-g2/packetmonitor', fixtures: { ...TOOLS(), 'GET /api/packets': () => ({ packets: [], total: 0, offset: 0, limit: 100 }) }, setup: (page) => page.getByText('No packets logged yet').waitFor() },
   // A Users row that is not a user: the page throws while it renders, and the shell shows the route error state.
   { id: '17-11-states', size: 'phone', path: '/overview/users', fixtures: { ...usersFixtures, 'GET /api/users': () => ({ users: [null] }) }, setup: (page) => page.getByText('Something went wrong').waitFor() },
+  // Task 9.2: the odd pages. The public privacy document and embed map are today's pages, outside both layouts.
+  { id: '17-05-privacy-document', size: 'desktop', path: '/privacy/privacy', fixtures: privacyFixtures(), setup: (page) => page.getByText('What this instance collects').waitFor() },
+  { id: '17-12-privacy-document', size: 'phone', path: '/privacy/privacy', fixtures: privacyFixtures(), setup: (page) => page.getByText('What this instance collects').waitFor() },
+  { id: '17-06-embed-map', size: 'desktop', path: `/embed/${EMBED_PROFILE}`, fixtures: embedFixtures(), init: serveEmbed, setup: openEmbedPopup },
+  { id: '17-13-embed-map', size: 'phone', path: `/embed/${EMBED_PROFILE}`, fixtures: embedFixtures(), init: serveEmbed, setup: (page) => page.getByText('13 nodes online').waitFor() },
+  { id: '17-07-outlier-cleanup', size: 'desktop', path: '/source/src-g2/settings/data', fixtures: { ...PINS, ...outlierFixtures() }, setup: previewOutliers },
+  { id: '17-14-outlier-cleanup', size: 'phone', path: '/source/src-g2/settings/data', fixtures: { ...PINS, ...outlierFixtures() }, setup: previewOutliers },
+  { id: '17-08-broker-presets', size: 'desktop', path: '/source/src-bridge/settings/mqtt-bridge', fixtures: { ...PINS, ...brokerPresetFixtures() }, setup: askDeletePreset },
+  { id: '17-15-broker-presets', size: 'phone', path: '/source/src-bridge/settings/mqtt-bridge', fixtures: { ...PINS, ...brokerPresetFixtures() }, setup: askDeletePreset },
+  { id: '17-09-news', size: 'desktop', path: '/you/help', fixtures: { ...PREFS(), ...newsFixtures(), 'GET /api/news/unread': () => ({ items: [] }) }, setup: secondNewsItem },
+  { id: '17-16-news', size: 'phone', path: '/you/help', fixtures: { ...PREFS(), ...newsFixtures(), 'GET /api/news/unread': () => ({ items: [] }) }, setup: secondNewsItem },
 ];
+
+/** The preview server has no /embed route: serve the built embed entry for it, as the server does. */
+async function serveEmbed(page: Page) {
+  const html = fileURLToPath(new URL('../../dist/embed.html', import.meta.url));
+  await page.route(`**/embed/${EMBED_PROFILE}`, (route) => route.fulfill({ contentType: 'text/html', body: readFileSync(html, 'utf8') }));
+}
+
+/** Opens Hymettus Relay's popup on the embed map, as 17-06 draws it (the second marker; the icons carry no label). */
+async function openEmbedPopup(page: Page) {
+  await page.getByText('13 nodes online').waitFor();
+  await page.locator('.leaflet-marker-icon').nth(1).click();
+  await page.locator('.embed-popup', { hasText: 'Hymettus Relay' }).waitFor();
+  await expect(page.locator('.leaflet-popup')).toHaveCSS('opacity', '1');
+}
+
+/** Clean outliers… from Settings › Data, Temperature with a 60 °C cap, previewed (17-07 / 17-14). */
+async function previewOutliers(page: Page) {
+  await page.getByRole('button', { name: 'Clean outliers…' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Clean telemetry outliers' });
+  await sheet.getByRole('combobox', { name: 'Metric' }).selectOption('temperature');
+  await sheet.getByLabel('Remove values above').fill('60');
+  await sheet.getByRole('button', { name: 'Preview' }).click();
+  await sheet.getByText('37 of 4,812 readings would be removed').waitFor();
+}
+
+/** Manage saved presets, with Piraeus test broker's inline "Delete this preset?" (17-08 / 17-15). */
+async function askDeletePreset(page: Page) {
+  await page.getByRole('button', { name: 'Manage saved presets' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Saved broker presets' });
+  await sheet.getByTestId('saved-broker-preset-delete-2').click();
+  await sheet.getByText('Delete this preset?').waitFor();
+}
+
+/** Show all news, then the second item (17-09 / 17-16 draw 2 / 3). */
+async function secondNewsItem(page: Page) {
+  await page.getByRole('button', { name: 'Show all news' }).click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByRole('button', { name: 'Next' }).click();
+  await sheet.getByText('2 / 3').waitFor();
+}
 
 // Review Focus 5 (Task 9.1): three boards again in Latte, the light theme.
 for (const id of ['10-01-dm-conversation', '12-04-security', '13-01-appearance']) {
