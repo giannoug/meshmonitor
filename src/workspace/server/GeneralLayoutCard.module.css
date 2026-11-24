@@ -88,3 +88,9 @@
   transform: translateX(18px);
   background: var(--color-bg-sunken);
 }
+
+.note {
+  margin: 0 4px 10px;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}

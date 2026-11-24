@@ -19,6 +19,13 @@ export default function YouHome() {
   const { t } = useTranslation();
   const { user, account, prefs, more, helpRow: help, signOut } = useYouRows();
   const [loginOpen, setLoginOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const doSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    await signOut();
+    setSigningOut(false);
+  };
 
   const group = (rows: Array<YouRow | null>, title?: string, note?: ReactNode) => {
     const shown = rows.filter((r): r is YouRow => !!r);
@@ -88,7 +95,7 @@ export default function YouHome() {
           </p>,
         )}
         {group([...more, helpRow])}
-        {group([{ key: 'logout', icon: 'forward', tone: 'plain', label: t('user_menu.logout'), onClick: () => void signOut() }])}
+        {group([{ key: 'logout', icon: 'forward', tone: 'plain', label: t('user_menu.logout'), onClick: () => void doSignOut() }])}
       </>
     );
   }

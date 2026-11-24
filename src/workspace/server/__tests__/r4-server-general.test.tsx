@@ -104,6 +104,7 @@ describe('r4-server-general (Layout and Sources cards)', () => {
     await waitFor(() => expect(screen.getByRole('combobox', { name: 'Default Meshtastic source' })).toHaveDisplayValue('Station G2'));
     await new Promise((r) => setTimeout(r, 50));
     expect(screen.getByRole('combobox', { name: 'Default layout for new users' })).toBeDisabled();
+    expect(screen.getByRole('alert')).toHaveTextContent(/layout choice/);
   });
 
   it('a failed save keeps the old value and says so', async () => {

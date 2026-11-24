@@ -15,16 +15,19 @@ export default function TryWorkspaceMenuItem({ onSelect }: { onSelect: () => voi
   const { t } = useTranslation();
   const { setLayout } = useLayout();
   const [failed, setFailed] = useState(false);
+  const [busy, setBusy] = useState(false);
   const choose = () => {
+    if (busy) return;
+    setBusy(true);
     setFailed(false);
     setLayout('workspace').then(onSelect, (error: unknown) => {
       logger.error('Failed to save the layout choice:', error);
       setFailed(true);
-    });
+    }).finally(() => setBusy(false));
   };
   return (
     <>
-      <button type="button" className="user-menu-item" onClick={choose}>
+      <button type="button" className="user-menu-item" disabled={busy} onClick={choose}>
         {t('workspace.entry.menu_item')}
       </button>
       {failed && (

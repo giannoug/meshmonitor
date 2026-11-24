@@ -42,14 +42,14 @@ function Cards() {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
-  const { data: settings = {} } = useQuery(installSettingsQuery);
+  const { data: settings = {}, isPending: settingsPending, isError: settingsError } = useQuery(installSettingsQuery);
   const usage = useQuery({
     queryKey: USAGE_KEY,
     queryFn: async () =>
       (await apiService.get<{ data?: { windowDays: number; classic: number; workspace: number } }>('/api/admin/layout-usage')).data,
   });
   const { data: sources = [] } = useDashboardSources();
-  const { prefs, isSuccess: prefsLoaded } = useUserPreferences();
+  const { prefs, isSuccess: prefsLoaded, isError: prefsError } = useUserPreferences();
   const { layout, setLayout } = useLayout();
   const [saved, setSaved] = useState<Record<string, boolean>>({});
 
@@ -119,6 +119,9 @@ function Cards() {
   return (
     <>
       <h2 className={styles.groupTitle}>{t('workspace.you.layout')}</h2>
+      {settingsPending && <p role="status" className={styles.note}>{t('workspace.server.settings_loading')}</p>}
+      {settingsError && <p role="alert" className={styles.note}>{t('workspace.server.settings_failed')}</p>}
+      {prefsError && <p role="alert" className={styles.note}>{t('workspace.server.prefs_failed')}</p>}
       <div className={styles.group}>
         <TwoLineRow
           data-testid="general-row"

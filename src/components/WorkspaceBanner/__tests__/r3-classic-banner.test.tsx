@@ -127,6 +127,18 @@ describe('r3-classic-banner', () => {
     fireEvent.click(await screen.findByTitle(/Athens Ops/));
     fireEvent.click(await screen.findByRole('button', { name: 'Try the Workspace layout' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(SAVE_FAILED);
+    expect(screen.getByRole('button', { name: 'Try the Workspace layout' })).toBeInTheDocument();
+  });
+
+  it('a double click on the user menu item sends one request', async () => {
+    const p = prefsFixture({ layout: 'classic' });
+    renderWorkspace(<UserMenu />, { fixtures: p.fixtures });
+    fireEvent.click(await screen.findByTitle(/Athens Ops/));
+    const item = await screen.findByRole('button', { name: 'Try the Workspace layout' });
+    await waitFor(() => expect(item).toBeEnabled());
+    fireEvent.click(item);
+    fireEvent.click(item);
+    await waitFor(() => expect(p.puts).toEqual([['layout', 'workspace']]));
   });
 
   it('an anonymous user has no user menu, so no menu item', async () => {

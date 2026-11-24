@@ -83,7 +83,9 @@ describe('r2-you-layout', () => {
     renderLayout({ fixtures: prefs.fixtures });
     const style = await screen.findByRole('combobox', { name: 'Messages as' });
     fireEvent.change(style, { target: { value: 'bubbles' } });
-    fireEvent.change(screen.getByRole('combobox', { name: 'Hops, SNR and route' }), { target: { value: 'always' } });
+    const detail = screen.getByRole('combobox', { name: 'Hops, SNR and route' });
+    await waitFor(() => expect(detail).toBeEnabled());
+    fireEvent.change(detail, { target: { value: 'always' } });
     await waitFor(() =>
       expect(prefs.puts).toEqual([
         ['workspace.messageStyle', 'bubbles'],
@@ -91,6 +93,16 @@ describe('r2-you-layout', () => {
       ]),
     );
     expect(style).toHaveDisplayValue('Bubbles');
+  });
+
+  it('a double click on a layout sends one request', async () => {
+    const prefs = prefsFixture({ layout: 'workspace' });
+    renderLayout({ fixtures: prefs.fixtures });
+    const classic = await screen.findByRole('radio', { name: /^Classic/ });
+    await waitFor(() => expect(classic).toBeEnabled());
+    fireEvent.click(classic);
+    fireEvent.click(classic);
+    await waitFor(() => expect(prefs.puts).toEqual([['layout', 'classic']]));
   });
 
   it('a guest cannot choose: the controls are off', async () => {

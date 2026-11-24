@@ -99,6 +99,19 @@ describe('s1-you', () => {
     expect(loggedOut).toBe(true);
   });
 
+  it('a double click on Logout sends one request', async () => {
+    const location = window.location;
+    Object.defineProperty(window, 'location', { value: { ...location, reload: vi.fn() }, writable: true });
+    onTestFinished(() => Object.defineProperty(window, 'location', { value: location, writable: true }));
+    let calls = 0;
+    renderYou({ fixtures: { 'POST /api/auth/logout': () => { calls += 1; return { success: true }; } } });
+    const row = await screen.findByRole('button', { name: /^Logout/ });
+    await waitFor(() => expect(row).toBeEnabled());
+    fireEvent.click(row);
+    fireEvent.click(row);
+    await waitFor(() => expect(calls).toBe(1));
+  });
+
   it('offers Login instead of the account rows to a guest', async () => {
     renderYou({ anonymous: true });
     // The page's Login row; the guest tab bar has its own Login (i6, Task 6.7).

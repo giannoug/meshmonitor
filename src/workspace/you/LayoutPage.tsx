@@ -9,6 +9,7 @@
  * (`hover` | `always`); Phase 2's chat reads them. A guest sees the page with
  * the controls off: preferences belong to an account.
  */
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -42,10 +43,16 @@ export default function LayoutPage() {
     logger.error('Failed to save a layout preference:', error);
     showToast(t('common.save_failed'), 'error');
   };
-  const choose = (l: Layout) => {
-    if (l !== layout) setLayout(l).catch(failed);
+  const [busy, setBusy] = useState(false);
+  const guarded = (send: () => Promise<unknown>) => {
+    if (busy) return;
+    setBusy(true);
+    send().catch(failed).finally(() => setBusy(false));
   };
-  const save = (key: string, value: string) => setPref(key, value).catch(failed);
+  const choose = (l: Layout) => {
+    if (l !== layout) guarded(() => setLayout(l));
+  };
+  const save = (key: string, value: string) => guarded(() => setPref(key, value));
 
   const select = (label: string, value: string, key: string, options: Array<[string, string]>) => (
     <TwoLineRow
@@ -55,8 +62,8 @@ export default function LayoutPage() {
           className={styles.select}
           aria-label={label}
           value={value}
-          disabled={!signedIn}
-          onChange={(e) => void save(key, e.target.value)}
+          disabled={!signedIn || busy}
+          onChange={(e) => save(key, e.target.value)}
         >
           {options.map(([v, text]) => (
             <option key={v} value={v}>{text}</option>
@@ -94,7 +101,7 @@ export default function LayoutPage() {
               className={styles.radio}
               value={l}
               checked={l === layout}
-              disabled={!signedIn}
+              disabled={!signedIn || busy}
               onChange={() => choose(l)}
             />
             <span className={styles.preview} data-layout={l} aria-hidden="true">
