@@ -116,7 +116,6 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   const { data: allSources } = useDashboardSources();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
-  const wasOpen = useRef(false);
   const [lastId, setLastId] = useState<string | null>(null);
 
   const openId = matchPath('/source/:sourceId/*', location.pathname)?.params.sourceId ?? null;
@@ -215,17 +214,19 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   useLeaveRemovedSource(openId);
   // Any navigation closes the drawer, and so does Esc.
   useEffect(() => setDrawerOpen(false), [location.pathname]);
+  const closeDrawer = (refocus: boolean) => {
+    setDrawerOpen(false);
+    if (refocus) toggleRef.current?.focus();
+  };
   useEffect(() => {
     if (!drawerOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setDrawerOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeDrawer(true);
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [drawerOpen]);
-  // Focus moves into the drawer on open, and back to the toggle on close (Esc, toggle or a followed link).
+  // Focus moves into the drawer on open; Esc, the toggle and the backdrop give it back (a followed link leaves it on the new page).
   useEffect(() => {
     if (drawerOpen) document.getElementById('ws-drawer')?.querySelector<HTMLElement>('a[href],button')?.focus();
-    else if (wasOpen.current) toggleRef.current?.focus();
-    wasOpen.current = drawerOpen;
   }, [drawerOpen]);
 
   // UserMenu's forced change, redrawn: no close, Esc or backdrop (Sheet portals to <body>).
@@ -274,7 +275,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
                 className={styles.drawerButton}
                 aria-expanded={drawerOpen}
                 aria-controls="ws-drawer"
-                onClick={() => setDrawerOpen((o) => !o)}
+                onClick={() => (drawerOpen ? closeDrawer(true) : setDrawerOpen(true))}
               >
                 <UiIcon name={drawerOpen ? 'close' : 'menu'} size={20} />
                 <span className={styles.srOnly}>
@@ -297,7 +298,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
           />
         )}
         </div>
-        {narrow && drawerOpen && <div className={styles.backdrop} onClick={() => setDrawerOpen(false)} aria-hidden="true" />}
+        {narrow && drawerOpen && <div className={styles.backdrop} onClick={() => closeDrawer(true)} aria-hidden="true" />}
         {/* A div, not <main>: re-hosted pages bring their own <main>. */}
         <div className={`${styles.main} ${styles.framed}`}>{page}</div>
       </div>

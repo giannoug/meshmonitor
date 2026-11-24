@@ -5,6 +5,7 @@
  * Review Focus 1, 2 and 4, and the hashchange bridge for Classic's SectionNav.
  */
 import { describe, it, expect, vi } from 'vitest';
+import sidebarStyles from '../DeviceSidebar.module.css';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { renderWorkspace, type RenderWorkspaceOptions } from '../../test/renderWorkspace';
@@ -229,12 +230,13 @@ describe('WorkspaceShell layout', () => {
     fireEvent.click(await screen.findByRole('link', { name: 'Dashboard' }));
     expect(realUrl()).toBe('/source/src-g2/dashboard');
     expect(screen.queryByRole('complementary')).toBeNull();
+    expect(toggle).not.toHaveFocus();
   });
 
   it('Nodes stays lit on the node page', async () => {
     renderShell('/source/src-g2/node/123');
     const side = await screen.findByRole('complementary', { name: 'Station G2' });
-    expect(within(side).getByRole('link', { name: /^Nodes/ }).className).toMatch(/on/);
+    expect(within(side).getByRole('link', { name: /^Nodes/ }).className).toContain(sidebarStyles.on);
   });
 
   it('desktop: no drawer button', async () => {
