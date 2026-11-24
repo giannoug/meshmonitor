@@ -3,7 +3,7 @@
 MeshMonitor's UI shows one source at a time behind a row of tabs, with long console-style settings pages and a phone layout that is the desktop squeezed. This branch builds **Workspace**, the opt-in shell the design canvas draws: a device rail (Overview, then one square per device), the layout-D sidebar with each device's tools, channels and DMs, Overview for everything that spans devices, You and Server for per-user and install-wide settings, and on phones a Home · DMs · Activity · You tab bar with sheets and push navigation. Every monitoring surface (map, analysis, reports, unified views, packets, telemetry, security, automations) is a first-class place in the shell. Workspace ships alongside today's layout (Classic), which keeps working unchanged; users opt in. The spec is [specs/2026-11-13-workspace-redesign-design.md](specs/2026-11-13-workspace-redesign-design.md) and its build covers 324 boards.
 
 - Branch: `claude/eager-pascal-svegts`
-- Final HEAD before this report: `d297f8d` (the verification gate ran at `c8d4646`; `d297f8d` changes only `docs/superpowers/workspace-ledger.md`). This report is the one commit on top.
+- Final code commit: `3e00f28` (Ruling F JC, after the first draft of this report); the verification gate ran there. Later commits change only docs.
 - Committed ledger: [workspace-ledger.md](workspace-ledger.md)
 - Final contact sheet: https://claude.ai/artifact/WiYsVAGa8BBPLMWSuj3BqS (all 324 boards, 14 MB, JPEG re-encoded)
 
@@ -21,6 +21,7 @@ Every line tagged `FINAL REPORT ITEM` in the committed ledger, in ledger order u
 
 - **D4 drop set.** Removing the preview gate is commits **cd650fe** (gate removal, Task 9.3) and **df61732** (its banner fix). Drop both to ship with the gated preview restored (Ruling 9.3 IT).
 - **The o2-info "flake" was a real bug (Ruling F JB, superseding F JA).** A cold deep link to an Info group (`info/radio`, `info/mqtt`) bounced to Info before the first poll and the auth check landed. Fixed in **5c04ab3** and **c8d4646**: InfoPage now waits only while the answer can change and reads the current poll's config first. Its remaining minor (a source whose `/status` keeps failing shows Loading… instead of redirecting) is under Deferred minors.
+- **Layout-choice save failures (Ruling F JC).** The Task 1.8 carry "must fix before enabling" was still open when the gate came off; fixed in **3e00f28** before this report was final.
 
 ### From the committed ledger
 
@@ -245,20 +246,20 @@ These were never copied to the committed ledger; the rest of progress.md's tagge
 - Task 2.6: FINAL REPORT ITEM: Classic SearchModal labels a DM by `to` and opens `from` (opens own node for our DMs). Follow-up.
 - FINAL REPORT ITEM: ApiService reads a 403 body twice, so every 403 toast says 'Request failed' instead of the server message (pre-existing, found in 4.5; not changed) — candidate cleanup after plan.
 
-Also found while writing this report: progress.md line 127 carried a Task 1.8 minor to Task 9.3 as "must fix before enabling" (banner Try it / Not now / menu item failures only logged, no user feedback). At `d297f8d`, `src/components/WorkspaceBanner/WorkspaceBanner.tsx` still only calls `logger.error` on a failed save, so the carry was not done before the gate came off. It is listed as open under Deferred minors.
+Also found while writing this report: progress.md line 127 carried a Task 1.8 minor to Task 9.3 as "must fix before enabling" (banner Try it / Not now / menu item failures only logged, no user feedback); the gate had come off without it. **Fixed in 3e00f28 (Ruling F JC):** a failed save now shows an inline alert in the banner and in the user-menu item (the menu stays open on failure); review clean. A sweep of the other 31 `deferred → <task>` carries found 26 resolved and 5 open minors (Ruling F JD, listed under Deferred minors).
 
 ## Verification evidence
 
-The controller's gate at `c8d4646` (the last code commit; `d297f8d` changes only the ledger). CI has not run on this fork (Actions off), so these are local runs.
+The controller's gate at `3e00f28` (the last code commit). CI has not run on this fork (Actions off), so these are local runs.
 
 | Check | Result |
 |---|---|
 | `npm run lint:ci`, in-repo filter (Ruling F) | 0 FAIL lines |
 | `tsc` client | exit 0 |
 | `tsc` server | exit 0 |
-| Vitest, PostgreSQL (5433) and MySQL (3307) containers up | success true · 41,626 total · 41,496 passed · 0 failed · 109 pending · 21 todo · 11,162 suites, 0 failed |
+| Vitest, PostgreSQL (5433) and MySQL (3307) containers up | success true · 41,630 total · 41,500 passed · 0 failed · 109 pending · 21 todo · 11,162 suites, 0 failed |
 | `npm run build` + `npm run check:bundle-size` | exit 0 |
-| Playwright `npm run test:workspace-e2e` | 388 passed (6.3 min) |
+| Playwright `npm run test:workspace-e2e` | 388 passed (6.5 min) |
 
 About 109 pending is the normal count with both database containers up: the PostgreSQL and MySQL suites ran. If either container is down those suites skip silently and pending rises to roughly 2,000 while the run still reports success. The Playwright run also regenerated every board screenshot in `test-results/workspace-boards/`.
 
@@ -2116,6 +2117,9 @@ How status was decided:
 - **progress L827** Ruling: 6.3 — M11 (tests written after the code) is recorded; no action.
 - **progress L1075** Ruling: 7.5 HS — a recurring flake gets fixed now, not re-run away: deflake task dispatched (sonnet acbde7e7cfbf63343), root cause first. 7.5 completes after it plus a full Vitest rerun.
 
+- Ruling: F JC — fix the Task 1.8 carry now (layout-choice save failures shown to the user, Classic's toast or an inline alert), before the report is final, and have a sonnet sweep check every other `deferred → <task>` carry — why: it was marked must-fix-before-enabling and 9.3 enabled the entry points; a doc that only flags it ships a known silent failure — cost if wrong: one small UI fix and a sweep.
+- Ruling: F JD — the 5 open carries go into the final report's deferred section, not this pass — why: all minor, none must-fix; the chat window is a performance follow-up that needs its own measurement — cost if wrong: a long channel renders slower in the Workspace than Classic.
+
 ### Only in f2-report.md (F.2 fix pass, commit 930faed)
 
 - Ruling: F.2 A1-I1 — on the `.dashboard-topbar` pages and the unified pages the banner sits in the page's flow (`inline`) instead of fixed with a measured `--app-header-height`. — why: those pages place their body under the fixed topbar with `.dashboard-page`'s padding (`--dashboard-topbar-height`, deliberately not the app-wide variable, #5070); in flow, the body moves down by the banner's height with no measurement and with nothing set when hidden. The phone source drawer (fixed at the topbar's bottom) overlays the banner while it is open, as it overlays the page. — cost if wrong: while the phone drawer is open the banner is covered.
@@ -2186,7 +2190,7 @@ All 286 progress.md lines that record a `minor (deferred…)` entry, verbatim an
 
 - Task 1.8: minor (deferred → 6.4): duplicate default-source control on /server/general; section below shows stale value after a card change (no write-back).
 - Task 1.8: minor (deferred): GeneralLayoutCard has no loading/error state; usage row blank on error.
-- Task 1.8: minor (deferred → 9.3, must fix before enabling): banner Try it / Not now / menu item failures only logged, no user feedback. **[still open at d297f8d: WorkspaceBanner.tsx only logs a failed save; this carry was not done in 9.3]**
+- Task 1.8: minor (deferred → 9.3, must fix before enabling): banner Try it / Not now / menu item failures only logged, no user feedback. **[fixed in 3e00f28, Ruling F JC]**
 - Task 1.8: minor (deferred): LayoutPage no in-flight guard (double PUT); failed prefs load shows defaults as real.
 - Task 1.8: minor (deferred): setLayout hardcodes /api/user/preferences/layout beside useUserPreferences path().
 - Task 1.8: minor (deferred): Server card group title reuses workspace.you.layout key.
@@ -2649,3 +2653,15 @@ What each one is (from the area reviews):
 
 - F.2: parked — r3 banner absent from /unified/packets, /analysis, /reports, /automations, /settings — Ruling IZ: real, deferred; the D18 menu item reaches the Workspace from every page and §5.2(a)'s main surfaces (Dashboard, every source type, unified feeds) now show it — cost if wrong: five more mount points.
 
+
+
+### Found after the first draft (JB, JC, carries audit)
+
+- JA follow-up: minor (deferred): a source whose /status keeps failing stays 'connecting', so a deep link to an unshown Info group shows Loading… instead of redirecting.
+- JC: minor (deferred): Not now with layout saved but bannerDismissed failing hides the banner before its alert shows (benign: the user is on Classic, banner gone); .error has no max-width (long translations squeeze the text on desktop); menu item has no in-flight guard (two idempotent PUTs, as before); the menu failure test doesn't assert the menu stays open; .menuError sits after the mobile @media block.
+- Open carries (Ruling F JD), from the sweep of every `deferred → <task>` line:
+  - Workspace `ChannelThread.tsx` renders the whole channel list; Classic windows it to about 100 rows (progress L180/L192, "check in the final review"; F.1 did not).
+  - Settings sidebar change dots: deferred to 9.1 and never built (also a final report item).
+  - `WorkspaceBanner.module.css` still has an ad-hoc `@media (max-width: 767.98px)` query (Task 1.8 carry to 9.3, L133).
+  - Classic `PacketMonitorPanel` relay estimate is still unscoped by source; the Workspace side was scoped in 8.5 (o1). Classic follow-up has no owner.
+  - Portalled overlays read `:root` offsets (L78, second item); no later task resolved it.
