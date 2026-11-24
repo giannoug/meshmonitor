@@ -436,6 +436,10 @@ Items checked in this pass carry a file:line. The others are bucketed by kind (s
 
 See the chat summary for recommendations. Every b1/b2 item is in the tables above. The b3 items stay deferred as one group.
 
+## Outcome
+
+All seven tasks are done (00e5608..a8d5f6d), plus a final-review fix wave (b4fb1ff). L6 item 5 was not done (Ruling JI). Evidence and rulings are in the final report's "Leftovers pass" section.
+
 ## Fix tasks (bucket a)
 
 Standing rules for every task:
@@ -522,7 +526,7 @@ Standing rules for every task:
 2. `en.json` `workspace.server.integrations_scope`: drop "admins only". The page is open to settings writers (IntegrationsPage.tsx:69, gate="write").
 3. `SecurityPrivacyPage.tsx:57-70`: readers who are not admins see the Privacy rows read-only through the existing `useReadOnly` mechanism, as today's Classic SettingsTab shows them. Writes stay admin-only as today; no new write path.
 4. `usePins.ts:18`: a failed pin save shows the shared toast as well as rolling back.
-5. `meshcore/remote/AclManager.tsx`: wrap its fields in a `<form>` so Enter applies, with the same handler as the Apply button. ACL apply sends to a remote node, so check whether that counts as transmitting. If it does, Enter must not send without the existing confirm. Report your call.
+5. **Not done (Ruling JI, moved to b3):** `meshcore/remote/AclManager.tsx`: wrap its fields in a `<form>` so Enter applies, with the same handler as the Apply button. ACL apply sends to a remote node, so check whether that counts as transmitting. If it does, Enter must not send without the existing confirm. Report your call.
 6. `meshcore/remote/SettingValue.tsx:38`: `changed` uses `repeaterValuesEqual` (as RepeaterSettingsCategory.tsx:176), not `!==`.
 7. `meshcore/DiscoverMenu.tsx:51` / `sweepStore.ts:30`: a second press while a sweep is running neither starts one nor shows "Discovery failed". Use a ref guard or a "skipped" result.
 

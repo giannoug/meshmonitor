@@ -1763,3 +1763,85 @@ Ruling: F JC — fix the Task 1.8 carry now (layout-choice save failures shown t
 Ruling: F JD — the 5 open carries go into the final report's deferred section, not this pass — why: all minor, none must-fix; the chat window is a performance follow-up that needs its own measurement — cost if wrong: a long channel renders slower in the Workspace than Classic.
 JC (3e00f28): the Task 1.8 carry "must fix before enabling" (banner / menu-item layout-choice save failures only logged) was still open when 9.3 removed the gate; a failed save now shows an inline alert in the banner and the user-menu item (the menu stays open on failure). Review clean (5 minors deferred, listed in the final report).
 F.3: final report docs/superpowers/workspace-final-report.md; final contact sheet https://claude.ai/artifact/WiYsVAGa8BBPLMWSuj3BqS (all 324 boards). Controller TG at 3e00f28: lint 0, tsc ×2 clean, vitest 41,630 total / 41,500 passed / 0 failed / 109 pending, build+bundle pass, e2e 388 passed.
+
+## Leftovers pass
+
+Triage and fixes after the final report, from HEAD 94deaa8 to b4fb1ff. The triage is in [workspace-leftovers.md](workspace-leftovers.md) (9f85193).
+
+Bucket counts:
+- **(a)**: about 50 items, in seven tasks (L1 to L7). Each task got an implementer and a review. One item was skipped by ruling JI.
+- **(b)**: the Classic, server and decision items, plus about 120 b3 items (Workspace-only, but over 20 lines or needing a visual call), left deferred.
+- **(c)**: items already fixed, closed by a ruling, or notes.
+
+Two items on the requester's candidate list landed in (c):
+- **ChannelThread** was measured, and Classic has no render window either (both page through the same hook).
+- The banner's **767.98 px query** is the exact complement of the Workspace's 768 px breakpoint.
+
+Commits:
+
+| Commit | Task |
+|---|---|
+| 00e5608, 75acf59 | L1: banner `.error` width, menu-item, layout and sign-out in-flight guards, install-settings notes, menu-open assertion |
+| ea8ab73, 330eb9a | L2: a source whose status never answers shows offline (Info deep link no longer hangs), switcher/tab a11y, drawer aria-controls and focus, Nodes row active on node page, reduced motion, abort-listener leak |
+| 82335c5 | L3: channel loading state, guest note "Log in", DM sort and search peer, unread name, swipe hint, map menu focus, waypoint error indent |
+| 3d26eb5 | L5: automations Test gated on write and not duplicated on phone, whole-name "read by", Export writes what is shown, no "through 0 devices", 44 px step buttons |
+| e681d70 | L4: Escape closes only the top Sheet, `submitOnEnter={false}` on the LoRa recipe and LeaveGuard confirms, RebootWait focus |
+| 97fd3b9 | L6: applied theme in the theme rows, Integrations scope copy, read-only Privacy rows for readers, pin-save toast, repeater value compare, discover double-press |
+| a8d5f6d | L7: Solar and packet copy into `workspace.*` keys, Source column width, firmware wizard padding, GeoJSON popup hint, MeshCore feed reason, test hygiene |
+| b4fb1ff | Final-review fix wave: 11 minors, including focus kept on the menu item, per-key layout guard, TabBar class matching aria-current, switcher name keeps status |
+
+Reviews:
+- Every task had a sonnet task review. Fix rounds: L1 1 (minors), L2 1 (drawer focus after link navigation, Important).
+- The final review of 9f85193..a8d5f6d (opus) found 0 Critical, 0 Important and 8 Minor, and returned "Ready". One fix wave took those 8 plus 3 deferred minors, and its scoped re-review found all 11 addressed.
+- Backend changes: none.
+- Classic changes:
+  - The two Workspace entry points in `src/components/WorkspaceBanner/`.
+  - One new export in `src/hooks/useDashboardData.ts` (`useFailedSourceStatuses`: a passive observer with `enabled: false`, so no request and no timer).
+  - A listener cleanup in `src/workspace/devices/useSourceForm.ts`.
+  - No Classic test was edited.
+- Mesh impact: no new sends, timers or limits. The Discover guard only removes duplicate presses, and two confirms that transmit or discard no longer submit on Enter.
+
+### Verification (at b4fb1ff, local; CI is off on this fork)
+
+| Check | Result |
+|---|---|
+| `npm run lint:ci`, in-repo filter | No in-repo FAIL. One line for `design-scratch/render.mjs`, which is git-excluded (`.git/info/exclude:7`), so CI never lints it (Ruling JL). |
+| `tsc` client / server | exit 0 / exit 0 |
+| Vitest `--maxWorkers=4`, PostgreSQL 5433 + MySQL 3307 up | success true · 41,649 total · 41,519 passed · 0 failed · 109 pending · 21 todo · 11,165 suites, 0 failed |
+| `npm run build` + `npm run check:bundle-size` | exit 0 / exit 0 |
+| `npm run test:workspace-e2e` | 388 passed (5.8 min) |
+
+Visual checks from the regenerated boards: 7-05 shows the SOURCE header in full at 1280 px, and 12-09's wizard lines up with the sheet title.
+
+### Rulings (leftovers pass)
+
+- **JE.** The leftovers plan is the triage doc's fix tasks L1 to L7. Implementers ran focused tests; the full gate ran once at the end.
+  - Why: the requester asked for one verification at the end.
+  - Cost if wrong: a cross-suite break found late.
+- **JF.** L1 minors fixed in a round: the racy double-click assertions, aria-describedby, and the disabled control dropping keyboard focus. Logout not visually disabled and the untested notes are accepted.
+  - Cost if wrong: a Logout row that looks tappable while signing out.
+- **JG.** Two L5 test-hygiene minors folded into L7: the Export test now proves the filter, and its stubs are restored.
+  - Cost if wrong: two lines in one more file.
+- **JH.** Six ConfirmSheets keep Enter-to-submit: key reveal, local marker save, position override, coverage setting, router-role draft, AEAD draft. None transmits or deletes.
+  - Cost if wrong: a keyboard path to a server-side save.
+- **JI.** L6.5 (AclManager Enter-to-apply) is not done and moves to b3. Apply sends `setperm` over the mesh with no confirm, so Enter would add a keyboard transmit path.
+  - Cost if wrong: Enter in the ACL form still does nothing.
+- **JJ.** The final review covered the leftovers range only. F.1 had already reviewed the whole branch.
+  - Cost if wrong: a cross-area interaction with older code is found later.
+- **JK.** One fix wave took all 11 cheap final-review items.
+  - Cost if wrong: one extra review round.
+- **JL.** The lint gate also filters `design-scratch/`. It is git-excluded like `.claude/worktrees/`, so CI never sees it.
+  - Cost if wrong: a scratch file's parse error is ignored locally.
+
+### Still open after this pass
+
+- All bucket (b) items in workspace-leftovers.md: Classic, server, product decisions and b3.
+- Deferred minors from this pass (none must-fix per the final review):
+  - The Logout row is not visually disabled.
+  - Lazily mounted drawer content gets no focus-in.
+  - "DM with" is empty until the local node id arrives (navigation is gated).
+  - The GeoJSON hint is a `title` only, so touch users don't see it.
+  - Regenerating the 15-25 board checks from the gitignored source would restore the "Request" string.
+  - The switcher row name may run its parts together without separators.
+  - Some new behaviours lack a dedicated test: theme rows, pin toast, repeater compare, `no_source`.
+- `tsc -p tsconfig.tests.json` reports errors in `prefFields.test.tsx`. Implementers reported them as pre-existing, and that config is not part of the gate. Not re-checked against 94deaa8.
