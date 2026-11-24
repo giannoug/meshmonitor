@@ -15,7 +15,7 @@ import { useMemo } from 'react';
 import { matchPath, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { appBasename } from '../../init';
-import { useDashboardSources, useSourceStatuses, type DashboardSource, type SourceStatus } from '../../hooks/useDashboardData';
+import { useDashboardSources, useFailedSourceStatuses, useSourceStatuses, type DashboardSource, type SourceStatus } from '../../hooks/useDashboardData';
 import { useUnreadBySource } from '../../hooks/useUnreadBySource';
 import { useUnreadCounts } from '../../hooks/useUnreadCounts';
 import { SOURCEY_RESOURCES } from '../../types/permission';
@@ -40,9 +40,9 @@ export function abbrevOf(name: string): string {
   return letters.toUpperCase();
 }
 
-function statusOf(source: DashboardSource, live: SourceStatus | null): WorkspaceSourceStatus {
+function statusOf(source: DashboardSource, live: SourceStatus | null, failed: boolean): WorkspaceSourceStatus {
   if (!source.enabled) return 'disabled';
-  if (!live) return 'connecting';
+  if (!live) return failed ? 'offline' : 'connecting';
   return live.connected ? 'connected' : 'offline';
 }
 
@@ -58,6 +58,7 @@ export function useWorkspaceSources(): { sources: WorkspaceSource[]; isLoading: 
     [data, hasPermission],
   );
   const statuses = useSourceStatuses(readable.map((s) => s.id));
+  const failed = useFailedSourceStatuses(readable.map((s) => s.id));
   const signedIn = authStatus?.authenticated === true;
   const { data: dms } = useUnreadBySource({ baseUrl: appBasename, enabled: signedIn });
   const openReadable = readable.some((s) => s.id === openId);
@@ -73,7 +74,7 @@ export function useWorkspaceSources(): { sources: WorkspaceSource[]; isLoading: 
       return {
         ...s,
         live,
-        status: statusOf(s, live),
+        status: statusOf(s, live, failed.has(s.id)),
         unread: dmUnread + channelUnread,
         dmUnread,
         abbrev: abbrevOf(s.name),
@@ -81,7 +82,7 @@ export function useWorkspaceSources(): { sources: WorkspaceSource[]; isLoading: 
         colorToken: `var(--device-${((data ?? []).indexOf(s) % 8) + 1})`,
       };
     });
-  }, [readable, statuses, dms, openId, openCounts, data]);
+  }, [readable, statuses, failed, dms, openId, openCounts, data]);
 
   return { sources, isLoading };
 }

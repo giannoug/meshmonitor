@@ -16,7 +16,7 @@
  *   dialog (Task 6.2); DMs, Activity and You need an account.
  */
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, matchPath, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon, type UiIconName } from '../../components/icons';
 import { useAuth } from '../../contexts/AuthContext';
@@ -36,6 +36,7 @@ interface TabBarProps {
 
 export default function TabBar({ home, active }: TabBarProps) {
   const { t } = useTranslation();
+  const { pathname } = useLocation();
   const base = home && `/source/${encodeURIComponent(home.id)}`;
   // Gated as the desktop sidebar's Direct messages entry (messages:read, type).
   const dms = useDeviceTab(home)('dms');
@@ -74,7 +75,7 @@ export default function TabBar({ home, active }: TabBarProps) {
         );
         if (!to) {
           return (
-            <span key={key} className={styles.tab} aria-disabled="true">
+            <span key={key} className={styles.tab} role="link" aria-disabled="true">
               {content}
             </span>
           );
@@ -84,7 +85,7 @@ export default function TabBar({ home, active }: TabBarProps) {
             key={key}
             to={to}
             className={`${styles.tab} ${active === key ? styles.on : ''}`}
-            aria-current={active === key ? 'page' : undefined}
+            aria-current={active === key && (key === 'you' || pathname === '/' || matchPath({ path: base ?? '/overview', end: false }, pathname)) ? 'page' : undefined}
             aria-label={badge ? t('workspace.shell.device_unread', { name: label, count: badge }) : undefined}
           >
             {content}

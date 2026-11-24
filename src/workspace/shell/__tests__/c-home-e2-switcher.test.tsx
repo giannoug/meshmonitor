@@ -70,6 +70,7 @@ describe('c-home-e2-switcher', () => {
     expect(within(sheet).getByRole('link', { name: /Reticulum node/ })).toHaveTextContent('Reticulum · LXMF messages');
     expect(within(sheet).getByRole('link', { name: /Athens MQTT/ })).toHaveTextContent('Receive-only');
     expect(within(sheet).getByRole('link', { name: /Heltec MeshCore/ })).toHaveTextContent('2');
+    expect(within(sheet).getByRole('link', { name: 'Heltec MeshCore, 2 unread' })).toBeInTheDocument();
     expect(within(sheet).getByRole('link', { name: 'Add device' })).toHaveAttribute('href', '/server/devices?add=1');
   });
 

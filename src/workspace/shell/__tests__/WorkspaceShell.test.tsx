@@ -215,15 +215,26 @@ describe('WorkspaceShell layout', () => {
     renderShell('/source/src-g2/nodes', { width: 900 });
     await rail();
     expect(screen.queryByRole('complementary')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Show sidebar' }));
+    const toggle = screen.getByRole('button', { name: 'Show sidebar' });
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-controls', 'ws-drawer');
     const side = await screen.findByRole('complementary', { name: 'Station G2' });
+    expect(document.getElementById('ws-drawer')).toContainElement(side);
+    await waitFor(() => expect(side).toContainElement(document.activeElement as HTMLElement));
     fireEvent.keyDown(side, { key: 'Escape' });
     expect(screen.queryByRole('complementary')).toBeNull();
+    await waitFor(() => expect(toggle).toHaveFocus());
     // Following a sidebar link closes the drawer too.
     fireEvent.click(screen.getByRole('button', { name: 'Show sidebar' }));
     fireEvent.click(await screen.findByRole('link', { name: 'Dashboard' }));
     expect(realUrl()).toBe('/source/src-g2/dashboard');
     expect(screen.queryByRole('complementary')).toBeNull();
+  });
+
+  it('Nodes stays lit on the node page', async () => {
+    renderShell('/source/src-g2/node/123');
+    const side = await screen.findByRole('complementary', { name: 'Station G2' });
+    expect(within(side).getByRole('link', { name: /^Nodes/ }).className).toMatch(/on/);
   });
 
   it('desktop: no drawer button', async () => {

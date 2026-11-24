@@ -19,7 +19,7 @@
  * with a gear to today's Settings.
  */
 import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, matchPath, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { UiIcon, type UiIconName } from '../../components/icons';
@@ -52,6 +52,8 @@ interface Row {
   label: string;
   icon?: UiIconName;
   count?: string;
+  /** A path pattern that also lights the row (Nodes on the node page). */
+  alsoOn?: string;
 }
 
 interface DeviceSidebarProps {
@@ -66,6 +68,7 @@ interface DeviceSidebarProps {
 export default function DeviceSidebar({ mode, source, onNavigate, onSearch }: DeviceSidebarProps) {
   const { t } = useTranslation();
   const tab = useDeviceTab(source);
+  const { pathname: here } = useLocation();
   // navigator.platform (deprecated) read once per mount, not on every render.
   const mac = useMemo(isMac, []);
 
@@ -73,7 +76,7 @@ export default function DeviceSidebar({ mode, source, onNavigate, onSearch }: De
     <ul className={styles.list}>
       {rows.map((r) => (
         <li key={r.to + r.label}>
-          <NavLink to={r.to} end className={({ isActive }) => `${styles.row} ${isActive ? styles.on : ''}`} onClick={onNavigate}>
+          <NavLink to={r.to} end className={({ isActive }) => `${styles.row} ${isActive || (r.alsoOn && matchPath(r.alsoOn, here)) ? styles.on : ''}`} onClick={onNavigate}>
             {r.icon && <UiIcon name={r.icon} size={16} />}
             <span className={styles.label}>{r.label}</span>
             {r.count && <span className={styles.count}>{r.count}</span>}
@@ -129,7 +132,7 @@ export default function DeviceSidebar({ mode, source, onNavigate, onSearch }: De
   const active = source.live?.activeNodeCount;
   const tools: Array<Row & { key: string }> = [
     { key: 'map', to: '', label: mapNav(t).label, icon: 'map' },
-    { key: 'nodes', to: '', label: t('nodes.title'), icon: 'radioSignal', count: active !== undefined ? t('workspace.shell.online_count', { count: active }) : undefined },
+    { key: 'nodes', to: '', label: t('nodes.title'), icon: 'radioSignal', count: active !== undefined ? t('workspace.shell.online_count', { count: active }) : undefined, alsoOn: '/source/:sourceId/node/*' },
     { key: 'dashboard', to: '', label: t('nav.dashboard'), icon: 'dashboard' },
     { key: 'automation', to: '', label: t('nav.automation'), icon: 'bot' },
     { key: 'config', to: '', label: deviceConfigurationNav(t).label, icon: 'configuration' },

@@ -17,6 +17,7 @@ export interface TwoLineRowProps {
   /** The row is where the viewer is now (`aria-current`). */
   active?: boolean;
   'data-testid'?: string;
+  'aria-label'?: string;
 }
 
 export default function TwoLineRow({ leading, title, subtitle, trailing, to, onClick, active, ...rest }: TwoLineRowProps) {
@@ -34,6 +35,7 @@ export default function TwoLineRow({ leading, title, subtitle, trailing, to, onC
     className: `${styles.row} ${active ? styles.active : ''}`,
     'aria-current': active ? ('page' as const) : undefined,
     'data-testid': rest['data-testid'],
+    'aria-label': rest['aria-label'],
   };
   if (to !== undefined) {
     return <Link to={to} onClick={onClick} {...common}>{inner}</Link>;

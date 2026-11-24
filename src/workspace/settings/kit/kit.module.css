@@ -182,6 +182,13 @@
   background: var(--color-bg-sunken);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .switch,
+  .switch::after {
+    transition: none;
+  }
+}
+
 /* Phone: the track stays 26 px tall, the hit target grows to 44 px. */
 .row[data-phone] .switch::before {
   content: '';

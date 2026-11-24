@@ -91,12 +91,19 @@ describe('a-chat-D-phone', () => {
     await waitFor(async () => expect(await tab(/^You/)).toHaveAttribute('aria-current', 'page'));
   });
 
+  it('Home is not current on an Overview page once a device was opened', async () => {
+    renderShell(`/source/${SOURCE_IDS.rak}/nodes`);
+    await waitFor(async () => expect(await tab(/^Home/)).toHaveAttribute('aria-current', 'page'));
+    goTo('/overview/audit');
+    await waitFor(async () => expect(await tab(/^Home/)).not.toHaveAttribute('aria-current'));
+  });
+
   it('Home goes to the last device opened, else the Overview; DMs and Activity need a device', async () => {
     renderShell('/overview');
     expect(await tab(/^Home/)).toHaveAttribute('href', '/overview');
     const bar = await tabBar();
-    expect(within(bar).queryByRole('link', { name: /^DMs/ })).toBeNull();
-    expect(within(bar).getByText('DMs').closest('[aria-disabled]')).toHaveAttribute('aria-disabled', 'true');
+    expect(within(bar).getByRole('link', { name: /^DMs/ })).toHaveAttribute('aria-disabled', 'true');
+    expect(within(bar).getByRole('link', { name: /^DMs/ })).not.toHaveAttribute('href');
 
     goTo(`/source/${SOURCE_IDS.rak}/nodes`);
     await waitFor(async () => expect(await tab(/^Home/)).toHaveAttribute('href', `/source/${SOURCE_IDS.rak}`));
@@ -112,8 +119,8 @@ describe('a-chat-D-phone', () => {
     });
     expect(await tab(/^Home/)).toHaveAttribute('href', `/source/${SOURCE_IDS.g2}`);
     const bar = await tabBar();
-    expect(within(bar).queryByRole('link', { name: /^DMs/ })).toBeNull();
-    expect(within(bar).getByText('DMs').closest('[aria-disabled]')).toHaveAttribute('aria-disabled', 'true');
+    expect(within(bar).getByRole('link', { name: /^DMs/ })).toHaveAttribute('aria-disabled', 'true');
+    expect(within(bar).getByRole('link', { name: /^DMs/ })).not.toHaveAttribute('href');
   });
 
   it.each([768, 1280])('the tab bar is hidden at %i px', async (width) => {

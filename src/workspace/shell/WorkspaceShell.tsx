@@ -115,6 +115,8 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   const { sources } = useWorkspaceSources();
   const { data: allSources } = useDashboardSources();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
   const [lastId, setLastId] = useState<string | null>(null);
 
   const openId = matchPath('/source/:sourceId/*', location.pathname)?.params.sourceId ?? null;
@@ -219,6 +221,12 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [drawerOpen]);
+  // Focus moves into the drawer on open, and back to the toggle on close (Esc, toggle or a followed link).
+  useEffect(() => {
+    if (drawerOpen) document.getElementById('ws-drawer')?.querySelector<HTMLElement>('a[href],button')?.focus();
+    else if (wasOpen.current) toggleRef.current?.focus();
+    wasOpen.current = drawerOpen;
+  }, [drawerOpen]);
 
   // UserMenu's forced change, redrawn: no close, Esc or backdrop (Sheet portals to <body>).
   const forcedPasswordChange = authStatus?.passwordChangeRequired === true && location.pathname !== '/you/password' && (
@@ -262,8 +270,10 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
             narrow && !firstRun && (
               <button
                 type="button"
+                ref={toggleRef}
                 className={styles.drawerButton}
                 aria-expanded={drawerOpen}
+                aria-controls="ws-drawer"
                 onClick={() => setDrawerOpen((o) => !o)}
               >
                 <UiIcon name={drawerOpen ? 'close' : 'menu'} size={20} />
@@ -274,6 +284,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
             )
           }
         />
+        <div id="ws-drawer" style={{ display: 'contents' }}>
         {showSidebar && mode === 'overview' && <OverviewSidebar sources={sources} onNavigate={() => setDrawerOpen(false)} />}
         {showSidebar && mode === 'you' && <YouSidebar onNavigate={() => setDrawerOpen(false)} />}
         {showSidebar && mode === 'server' && <ServerSidebar onNavigate={() => setDrawerOpen(false)} />}
@@ -285,6 +296,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
             onSearch={openSearch}
           />
         )}
+        </div>
         {narrow && drawerOpen && <div className={styles.backdrop} onClick={() => setDrawerOpen(false)} aria-hidden="true" />}
         {/* A div, not <main>: re-hosted pages bring their own <main>. */}
         <div className={`${styles.main} ${styles.framed}`}>{page}</div>

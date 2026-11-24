@@ -284,6 +284,23 @@ export function useCachedSourceStatus(sourceId: string): SourceStatus | null {
 }
 
 /**
+ * The ids whose status query failed and never answered, read passively from the
+ * polls above (`enabled: false`: no fetch, no timer). A later error keeps old
+ * data, so only a source that has never answered counts.
+ */
+export function useFailedSourceStatuses(sourceIds: string[]): Set<string> {
+  const { isAuthenticated } = useDashboardAuthGate();
+  const results = useQueries({
+    queries: sourceIds.map((id) => ({
+      queryKey: ['dashboard', 'status', id, isAuthenticated],
+      queryFn: () => fetchJson<SourceStatus>(`${appBasename}/api/sources/${id}/status`),
+      enabled: false,
+    })),
+  });
+  return new Set(sourceIds.filter((_, i) => results[i]?.isError && results[i]?.data === undefined));
+}
+
+/**
  * Aggregate status returned by GET /api/unified/status — a deduped count of
  * nodes across every readable source plus a flag indicating whether at least
  * one source is currently connected.

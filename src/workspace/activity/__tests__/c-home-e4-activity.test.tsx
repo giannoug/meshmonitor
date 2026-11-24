@@ -112,8 +112,8 @@ describe('c-home-e4-activity', () => {
   it('MeshCore keeps today’s page: no Activity tab (MeshCore chat is Phase 7)', async () => {
     renderChat(`/source/${SOURCE_IDS.heltec}/channels`, { phone: true });
     const bar = within(await tabBar());
-    expect(bar.queryByRole('link', { name: /^Activity/ })).toBeNull();
-    expect(bar.getByText('Activity').closest('[aria-disabled]')).toHaveAttribute('aria-disabled', 'true');
+    expect(bar.getByRole('link', { name: /^Activity/ })).toHaveAttribute('aria-disabled', 'true');
+    expect(bar.getByRole('link', { name: /^Activity/ })).not.toHaveAttribute('href');
   });
 
   it('without read access to the device, the tab is disabled and the page says so', async () => {
@@ -121,7 +121,7 @@ describe('c-home-e4-activity', () => {
     renderChat(`${g2}/activity`, { phone: true, permissions });
     expect(await screen.findByText("You don't have permission to do this")).toBeInTheDocument();
     const bar = within(await tabBar());
-    expect(bar.getByText('Activity').closest('[aria-disabled]')).toHaveAttribute('aria-disabled', 'true');
+    expect(bar.getByRole('link', { name: /^Activity/ })).toHaveAttribute('aria-disabled', 'true');
     expect(vi.mocked(fetch).mock.calls.some(([u]) => String(u).includes('/activity'))).toBe(false);
   });
 });

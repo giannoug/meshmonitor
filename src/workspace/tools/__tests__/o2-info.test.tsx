@@ -97,6 +97,12 @@ describe('o2-info', () => {
     expect(screen.queryByText('Device Role')).not.toBeInTheDocument();
   });
 
+  it('a source whose status request fails is offline, so a group deep link goes back to Info', async () => {
+    renderTools('/source/src-rak/info/radio', { fixtures: { 'GET /api/sources/:id/status': () => new Response('{}', { status: 500 }) } });
+    expect(await screen.findByRole('link', { name: 'Connection: all of it' }, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.queryByText('Device Role')).not.toBeInTheDocument();
+  });
+
   it('an unknown group goes back to Info', async () => {
     renderTools(`${G2}/info/nope`);
     expect(await screen.findByRole('link', { name: 'Radio: all of it' })).toBeInTheDocument();

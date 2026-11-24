@@ -584,8 +584,9 @@ async function connectOnce(queryClient: QueryClient, id: string, signal?: AbortS
     if (connected || signal?.aborted) break;
     // An abort ends the wait at once, so the in-flight mark clears with the surface that started it.
     await new Promise<void>((r) => {
-      const timer = setTimeout(r, 1500);
-      signal?.addEventListener('abort', () => (clearTimeout(timer), r()), { once: true });
+      const onAbort = () => (clearTimeout(timer), r());
+      const timer = setTimeout(() => (signal?.removeEventListener('abort', onAbort), r()), 1500);
+      signal?.addEventListener('abort', onAbort, { once: true });
     });
   }
 }
