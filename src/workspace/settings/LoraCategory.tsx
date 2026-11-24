@@ -257,6 +257,7 @@ export default function LoraCategory({ target }: CategoryProps) {
         onCancel={() => setTxConfirm(false)}
       />
       <ConfirmSheet
+        submitOnEnter={false}
         open={!!recipe}
         title={recipe ? t('lora_config.recipe_confirm_title', { name: recipe.name }) : ''}
         consequences={

@@ -8,7 +8,7 @@
  * close" warning; it ends with today's messages and closes itself, as today.
  * It cannot be dismissed (today's modal has no close either).
  */
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
@@ -50,6 +50,8 @@ function OpenWait({
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const titleId = useId();
+  const card = useRef<HTMLDivElement>(null);
+  useEffect(() => card.current?.focus(), []);
   const current = STEP_OF[statusKey] ?? 3;
   const failed = FAILED.has(statusKey);
   const labels = [
@@ -59,7 +61,16 @@ function OpenWait({
   ];
   return (
     <div className={styles.layer} data-phone={isPhone || undefined}>
-      <div className={styles.card} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div
+        ref={card}
+        className={styles.card}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        // The card has no control to move to, so Tab stays on it.
+        onKeyDown={(e) => e.key === 'Tab' && e.preventDefault()}
+      >
         <div className={styles.head}>
           <span className={styles.spin} aria-hidden="true">
             <UiIcon name="refresh" size={24} />

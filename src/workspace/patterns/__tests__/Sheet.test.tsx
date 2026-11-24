@@ -8,6 +8,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
 import { renderWorkspace } from '../../test/renderWorkspace';
 import Sheet from '../Sheet';
+import ConfirmSheet from '../ConfirmSheet';
 
 function renderSheet(opts: { phone?: boolean; side?: 'auto' | 'bottom' | 'right' } = {}) {
   const onClose = vi.fn();
@@ -62,5 +63,34 @@ describe('Sheet', () => {
   it('renders nothing while closed', () => {
     renderWorkspace(<Sheet open={false} onClose={() => {}} title="Devices">x</Sheet>, { phone: true });
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  describe('Escape over a stacked confirm', () => {
+    const stacked = (busy: boolean) => {
+      const onClose = vi.fn();
+      const onCancel = vi.fn();
+      renderWorkspace(
+        <>
+          <Sheet open onClose={onClose} title="Manage">x</Sheet>
+          <ConfirmSheet open title="Delete" confirmLabel="Delete" busy={busy} onConfirm={() => {}} onCancel={onCancel} />
+        </>,
+        { phone: true },
+      );
+      return { onClose, onCancel };
+    };
+
+    it('closes only the confirm', () => {
+      const { onClose, onCancel } = stacked(false);
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(onCancel).toHaveBeenCalledTimes(1);
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('closes nothing while the confirm is busy', () => {
+      const { onClose, onCancel } = stacked(true);
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(onCancel).not.toHaveBeenCalled();
+      expect(onClose).not.toHaveBeenCalled();
+    });
   });
 });

@@ -7,7 +7,7 @@
  * `dismissible={false}` drops all three (must-ack reveals, the forced
  * password change): only the sheet's own controls close it.
  */
-import { useId, useRef, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type PointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
@@ -32,6 +32,9 @@ export interface SheetProps {
 
 const ignore = () => {};
 
+/** Open sheets, oldest first: Esc reaches every sheet's document listener, so only the last one may act (CR). */
+const openSheets: symbol[] = [];
+
 const SWIPE_UP_PX = 64;
 
 export default function Sheet(props: SheetProps) {
@@ -43,7 +46,16 @@ function OpenSheet({ onClose: close, title, side = 'auto', children, footer, act
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const onClose = dismissible ? close : ignore;
-  const { contentRef, onKeyDown } = useDialogA11y(onClose);
+  const token = useRef(Symbol('sheet')).current;
+  useEffect(() => {
+    openSheets.push(token);
+    return () => {
+      openSheets.splice(openSheets.indexOf(token), 1);
+    };
+  }, [token]);
+  const { contentRef, onKeyDown } = useDialogA11y(() => {
+    if (openSheets[openSheets.length - 1] === token) onClose();
+  });
   const titleId = useId();
   const docked = side === 'auto' ? (isPhone ? 'bottom' : 'right') : side;
   const swipe = docked === 'bottom' ? onSwipeUp : undefined;

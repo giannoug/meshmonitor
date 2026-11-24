@@ -90,6 +90,7 @@ export function DiscardChangesSheet({ open, cards, onDiscard, onCancel }: { open
   const list = (labels: string[]) => new Intl.ListFormat(i18n.language, { type: 'conjunction' }).format(labels);
   return (
     <ConfirmSheet
+      submitOnEnter={false}
       open={open}
       title={
         <span className={styles.guardTitle}>

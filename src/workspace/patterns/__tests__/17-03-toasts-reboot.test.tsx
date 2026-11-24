@@ -123,6 +123,13 @@ describe('17-03 / 17-10 toasts and the reboot wait', () => {
     expectBoard('17-03-toasts-reboot', joined(atSave, document.body));
   });
 
+  it('moves focus into the reboot wait and keeps Tab on it', async () => {
+    renderLora(false);
+    const wait = await saveLora();
+    expect(wait).toHaveFocus();
+    expect(fireEvent.keyDown(wait, { key: 'Tab' })).toBe(false);
+  });
+
   it('17-10-toasts-reboot shows the board', async () => {
     renderLora(true);
     const wait = await saveLora();
