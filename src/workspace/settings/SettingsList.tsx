@@ -335,7 +335,11 @@ function Section({ title, rows, sidebar, count, note, onNavigate }: { title: str
               className={styles.row}
               data-child={r.child || undefined}
               aria-current={r.active ? 'page' : undefined}
-              onClick={onNavigate}
+              onClick={() => {
+                // The open category has no new hash for the shell's bridge to see; SectionNav still wants one to scroll back.
+                if (r.active) window.dispatchEvent(new HashChangeEvent('hashchange'));
+                onNavigate?.();
+              }}
             >
               {!sidebar && (
                 <span className={styles.tile} data-tone={r.tone} aria-hidden="true">

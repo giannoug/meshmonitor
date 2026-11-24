@@ -16,6 +16,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../components/ToastContainer';
 import { UiIcon } from '../../components/icons';
 import { logger } from '../../utils/logger';
+import StateView from '../patterns/StateView';
 import TwoLineRow from '../patterns/TwoLineRow';
 import { useUserPreferences } from '../prefs/useUserPreferences';
 import { asLayout, type Layout } from '../layout/resolveLayout';
@@ -30,9 +31,11 @@ export default function LayoutPage() {
   const isPhone = useIsPhone();
   const { authStatus } = useAuth();
   const { showToast } = useToast();
-  const { prefs, setPref } = useUserPreferences();
+  const { prefs, setPref, isLoading, isError } = useUserPreferences();
   const { setLayout } = useLayout();
+  // Until the stored choice is known (or when it could not be read) the controls stay off, not showing defaults.
   const signedIn = authStatus?.authenticated === true;
+  const editable = signedIn && !isLoading && !isError;
 
   // This page is only reachable in the Workspace, so no stored choice means Workspace.
   const layout = asLayout(prefs.layout) ?? 'workspace';
@@ -69,7 +72,7 @@ export default function LayoutPage() {
           className={styles.select}
           aria-label={label}
           value={value}
-          disabled={!signedIn}
+          disabled={!editable}
           aria-busy={busyKeys.includes(key) || undefined}
           onChange={(e) => save(key, e.target.value)}
         >
@@ -99,6 +102,7 @@ export default function LayoutPage() {
       )}
 
       {!signedIn && <p className={styles.note}>{t('workspace.layout.sign_in')}</p>}
+      {signedIn && isError && <StateView kind="error" />}
 
       <div className={styles.cards} role="radiogroup" aria-label={t('workspace.you.layout')}>
         {LAYOUTS.map((l) => (
@@ -109,7 +113,7 @@ export default function LayoutPage() {
               className={styles.radio}
               value={l}
               checked={l === layout}
-              disabled={!signedIn}
+              disabled={!editable}
               aria-busy={busy || undefined}
               onChange={() => choose(l)}
             />

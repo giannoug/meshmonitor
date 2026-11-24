@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiService from '../../services/api';
-import { PREFERENCES_KEY, useUserPreferences } from '../prefs/useUserPreferences';
+import { PREFERENCES_KEY, prefPath, useUserPreferences } from '../prefs/useUserPreferences';
 import { asLayout, resolveLayout, type Layout } from './resolveLayout';
 
 const MIRROR_KEY = 'mm.layout';
@@ -58,7 +58,7 @@ export function useLayout(): { layout: Layout; ready: boolean; setLayout(l: Layo
   // an optimistic write that fails would swap the page away and back.
   const setLayout = useCallback(
     async (l: Layout) => {
-      await apiService.put('/api/user/preferences/layout', { value: l });
+      await apiService.put(prefPath('layout'), { value: l });
       await queryClient.invalidateQueries({ queryKey: PREFERENCES_KEY });
     },
     [queryClient],

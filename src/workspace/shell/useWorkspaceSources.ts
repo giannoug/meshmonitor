@@ -12,6 +12,8 @@
  *   unread for every device is worth one poll per source.
  */
 import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import apiService from '../../services/api';
 import { matchPath, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { appBasename } from '../../init';
@@ -46,7 +48,19 @@ function statusOf(source: DashboardSource, live: SourceStatus | null, failed: bo
   return live.connected ? 'connected' : 'offline';
 }
 
-export function useWorkspaceSources(): { sources: WorkspaceSource[]; isLoading: boolean } {
+/** The viewer's `unreadIndicatorEnabled` (Classic's map preference): one unpolled read, true until it says otherwise. */
+function useUnreadIndicatorEnabled(signedIn: boolean): boolean {
+  const { data } = useQuery({
+    queryKey: ['user', 'map-preferences'],
+    enabled: signedIn,
+    staleTime: 5 * 60_000,
+    queryFn: async () =>
+      (await apiService.get<{ preferences?: { unreadIndicatorEnabled?: boolean } | null }>('/api/user/map-preferences')).preferences ?? null,
+  });
+  return data?.unreadIndicatorEnabled !== false;
+}
+
+export function useWorkspaceSources(): { sources: WorkspaceSource[]; isLoading: boolean; openId: string | null } {
   const { authStatus, hasPermission } = useAuth();
   const { pathname } = useLocation();
   const openId = matchPath('/source/:sourceId/*', pathname)?.params.sourceId ?? null;
@@ -60,17 +74,18 @@ export function useWorkspaceSources(): { sources: WorkspaceSource[]; isLoading: 
   const statuses = useSourceStatuses(readable.map((s) => s.id));
   const failed = useFailedSourceStatuses(readable.map((s) => s.id));
   const signedIn = authStatus?.authenticated === true;
-  const { data: dms } = useUnreadBySource({ baseUrl: appBasename, enabled: signedIn });
+  const badges = useUnreadIndicatorEnabled(signedIn);
+  const { data: dms } = useUnreadBySource({ baseUrl: appBasename, enabled: signedIn && badges });
   const openReadable = readable.some((s) => s.id === openId);
-  const { data: openCounts } = useUnreadCounts({ baseUrl: appBasename, sourceId: openId, enabled: signedIn && openReadable });
+  const { data: openCounts } = useUnreadCounts({ baseUrl: appBasename, sourceId: openId, enabled: signedIn && openReadable && badges });
 
   const sources = useMemo(() => {
     const ordered = [...readable.filter((s) => s.enabled), ...readable.filter((s) => !s.enabled)];
     return ordered.map((s): WorkspaceSource => {
       const live = statuses.get(s.id) ?? null;
       const channelUnread =
-        s.id === openId && openCounts ? Object.values(openCounts.channels).reduce((a, n) => a + n, 0) : 0;
-      const dmUnread = dms?.sources[s.id]?.directMessages ?? 0;
+        badges && s.id === openId && openCounts ? Object.values(openCounts.channels).reduce((a, n) => a + n, 0) : 0;
+      const dmUnread = !badges ? 0 : dms?.sources[s.id]?.directMessages ?? 0;
       return {
         ...s,
         live,
@@ -82,7 +97,7 @@ export function useWorkspaceSources(): { sources: WorkspaceSource[]; isLoading: 
         colorToken: `var(--device-${((data ?? []).indexOf(s) % 8) + 1})`,
       };
     });
-  }, [readable, statuses, failed, dms, openId, openCounts, data]);
+  }, [readable, statuses, failed, dms, openId, openCounts, data, badges]);
 
-  return { sources, isLoading };
+  return { sources, isLoading, openId };
 }

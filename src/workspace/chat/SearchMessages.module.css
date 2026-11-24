@@ -33,7 +33,7 @@
 
 /* Phone: a full page between the top of the screen and the tab bar, which stays reachable. */
 .layer[data-phone] {
-  bottom: var(--ws-tabbar-height, 64px);
+  bottom: calc(var(--ws-tabbar-height, 64px) + env(safe-area-inset-bottom, 0px));
   padding: 0;
 }
 

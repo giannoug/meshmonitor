@@ -46,6 +46,8 @@ export default function SignInCard({ page = false, onTitle, onSignedIn }: SignIn
   const recovery = useRecoveryCodeSignIn();
   const [recovering, setRecovering] = useState(false);
   const id = useId();
+  // The sign-in hooks return the message text only, so the expired case is told apart here, once.
+  const expiredText = t('auth.session_expired');
 
   const localAuthDisabled = authStatus?.localAuthDisabled ?? false;
   const oidcEnabled = authStatus?.oidcEnabled ?? false;
@@ -92,7 +94,7 @@ export default function SignInCard({ page = false, onTitle, onSignedIn }: SignIn
           />
           {backup && <span className={styles.hint}>{t('workspace.auth.backup_code_hint')}</span>}
         </div>
-        {s.error && <ErrorNote message={s.error} />}
+        {s.error && <ErrorNote message={s.error} expired={s.error === expiredText} />}
         <button type="submit" className={styles.btn} data-variant="primary" disabled={s.loading || !s.mfaCode}>
           {s.loading ? t('mfa.verifying') : t('mfa.verify_button')}
         </button>
@@ -150,7 +152,7 @@ export default function SignInCard({ page = false, onTitle, onSignedIn }: SignIn
             required
           />
         </div>
-        {recovery.error && <ErrorNote message={recovery.error} />}
+        {recovery.error && <ErrorNote message={recovery.error} expired={recovery.error === expiredText} />}
         <button
           type="submit"
           className={styles.btn}
@@ -177,7 +179,7 @@ export default function SignInCard({ page = false, onTitle, onSignedIn }: SignIn
   return (
     <div className={styles.card} data-phone={isPhone || undefined}>
       {page && (isPhone ? heading(t('auth.login')) : <p className={styles.subtitle}>{t('workspace.auth.subtitle')}</p>)}
-      {s.error && <ErrorNote message={s.error} />}
+      {s.error && <ErrorNote message={s.error} expired={s.error === expiredText} />}
       {localAuthDisabled && !oidcEnabled && <ErrorNote message={t('auth.local_disabled_no_oidc')} icon="info" />}
 
       {passkeysOn && (
@@ -269,9 +271,8 @@ function Divider() {
 }
 
 /** One of today's errors. Session expired adds Reload (s11n0: "session expired → Reload"). */
-function ErrorNote({ message, icon }: { message: string; icon?: UiIconName }) {
+function ErrorNote({ message, icon, expired = false }: { message: string; icon?: UiIconName; expired?: boolean }) {
   const { t } = useTranslation();
-  const expired = message === t('auth.session_expired');
   return (
     <div className={styles.error} role="alert">
       <UiIcon name={icon ?? (expired ? 'refresh' : 'alert')} size={18} />
@@ -289,6 +290,10 @@ function ErrorNote({ message, icon }: { message: string; icon?: UiIconName }) {
 export function SignInDialog({ open, onClose }: { open: boolean; onClose(): void }) {
   const { t } = useTranslation();
   const [title, setTitle] = useState<ReactNode>(t('auth.login'));
+  // A reopened dialog starts on the sign-in title, not the step it was closed on.
+  useEffect(() => {
+    if (open) setTitle(t('auth.login'));
+  }, [open, t]);
   return (
     <Sheet open={open} onClose={onClose} title={title}>
       <div className={styles.sheetPad}>

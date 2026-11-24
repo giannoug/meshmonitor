@@ -41,6 +41,8 @@ export default function YouHome() {
               data-testid="you-row"
               to={r.to}
               onClick={r.onClick}
+              aria-disabled={r.key === 'logout' && signingOut}
+              className={r.key === 'logout' && signingOut ? styles.dimmed : undefined}
               leading={
                 <span className={styles.icon} data-tone={r.tone}>
                   <UiIcon name={r.icon} size={20} />

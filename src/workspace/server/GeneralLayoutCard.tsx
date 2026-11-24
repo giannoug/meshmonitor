@@ -119,7 +119,7 @@ function Cards() {
 
   return (
     <>
-      <h2 className={styles.groupTitle}>{t('workspace.you.layout')}</h2>
+      <h2 className={styles.groupTitle}>{t('workspace.server.layout_group')}</h2>
       {settingsPending && <p role="status" className={styles.note}>{t('workspace.server.settings_loading')}</p>}
       {settingsError && <p role="alert" className={styles.note}>{t('workspace.server.settings_failed')}</p>}
       {prefsError && <p id="prefs-failed-note" role="alert" className={styles.note}>{t('workspace.server.prefs_failed')}</p>}

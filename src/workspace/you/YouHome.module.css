@@ -122,3 +122,8 @@
   flex: none;
   color: var(--color-accent);
 }
+
+/* Logout while the sign-out request is in flight. */
+.dimmed {
+  opacity: 0.5;
+}

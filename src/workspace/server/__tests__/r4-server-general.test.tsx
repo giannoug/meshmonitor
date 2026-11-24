@@ -102,9 +102,8 @@ describe('r4-server-general (Layout and Sources cards)', () => {
     renderCard({ fixtures: { 'GET /api/user/preferences': () => new Response('{}', { status: 500 }) } });
     // The other controls work; this one stays off while the preference is unknown.
     await waitFor(() => expect(screen.getByRole('combobox', { name: 'Default Meshtastic source' })).toHaveDisplayValue('Station G2'));
-    await new Promise((r) => setTimeout(r, 50));
+    expect(await screen.findByText(/layout choice/)).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Default layout for new users' })).toBeDisabled();
-    expect(screen.getByRole('alert')).toHaveTextContent(/layout choice/);
   });
 
   it('a failed save keeps the old value and says so', async () => {
@@ -149,14 +148,16 @@ describe('r4-server-general (Layout and Sources cards)', () => {
       const layout = screen.getByRole('combobox', { name: 'Default layout for new users' });
       await waitFor(() => expect(layout).toHaveDisplayValue('Workspace'));
       await waitFor(() => expect(layout).toBeEnabled());
+      const prefReads = () => vi.mocked(fetch).mock.calls.filter(([u, i]) => String(u).endsWith('/api/user/preferences') && (i?.method ?? 'GET') === 'GET').length;
+      const readsBefore = prefReads();
       fireEvent.change(layout, { target: { value: 'classic' } });
       await waitFor(() => expect(within(row('Default layout for new users')).getByText('Saved')).toBeInTheDocument());
       expect(w.order).toEqual(['pref', 'setting']);
       expect(w.puts).toEqual([['layout', 'workspace']]);
       expect(w.posts).toEqual([{ defaultLayout: 'classic' }]);
       expect(layout).toHaveDisplayValue('Classic');
-      // Give the gate's refetches time to land: it still says Workspace.
-      await new Promise((r) => setTimeout(r, 50));
+      // The gate's refetch after the save has landed: it still says Workspace.
+      await waitFor(() => expect(prefReads()).toBeGreaterThan(readsBefore));
       expect(screen.getByTestId('gate')).toHaveTextContent('workspace');
     });
 
@@ -195,8 +196,8 @@ describe('r4-server-general (Layout and Sources cards)', () => {
     renderCard({ permissions: { bySource: { [SOURCE_IDS.g2]: { settings: { read: true, write: true } } } } });
     const urls = () => vi.mocked(fetch).mock.calls.map(([u]) => String(u));
     await waitFor(() => expect(urls().some((u) => u.includes('/api/auth/status'))).toBe(true));
-    // Let the auth status land and any follow-up render happen.
-    await new Promise((r) => setTimeout(r, 50));
+    // The gate's own preference read starts after the auth status landed.
+    await waitFor(() => expect(urls().some((u) => u.endsWith('/api/user/preferences'))).toBe(true));
     expect(screen.queryByRole('heading')).toBeNull();
     expect(screen.queryByTestId('general-row')).toBeNull();
     expect(urls().some((u) => u.includes('/api/admin/layout-usage'))).toBe(false);

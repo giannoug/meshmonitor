@@ -41,8 +41,8 @@ describe('sign-in gate', () => {
     renderWorkspace(<><WorkspaceApp /><Where /></>, { route: ROUTE, anonymous: true, fixtures: signInFixtures() });
     expect(await screen.findByRole('heading', { name: 'Athens Mesh Watch' })).toBeInTheDocument();
     await screen.findByText('Privacy Policy');
-    // Give any stray query a chance to fire.
-    await new Promise((r) => setTimeout(r, 50));
+    // The expected sign-in requests have all been made; anything else would have followed them.
+    await waitFor(() => expect(new Set(requests())).toEqual(BEFORE_SIGN_IN));
     expect(document.querySelector('[data-workspace-shell]')).toBeNull();
     expect(screen.queryByRole('navigation', { name: 'Devices' })).toBeNull();
     const all = requests();

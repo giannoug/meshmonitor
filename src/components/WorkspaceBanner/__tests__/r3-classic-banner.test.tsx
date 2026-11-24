@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWorkspace, type RenderWorkspaceOptions } from '../../../workspace/test/renderWorkspace';
 import { athensFixture } from '../../../workspace/__fixtures__/athens';
 import { prefsFixture } from '../../../workspace/__fixtures__/prefsFixture';
@@ -46,7 +46,10 @@ const urls = () => vi.mocked(fetch).mock.calls.map(([u]) => String(u));
 /** Lets every pending fetch settle, so "renders nothing" is not just "not yet". */
 async function settle() {
   await waitFor(() => expect(urls().some((u) => u.includes('/api/auth/status'))).toBe(true));
-  await new Promise((r) => setTimeout(r, 50));
+  // Every request made so far has been answered; the render that follows is flushed by `act`.
+  await act(async () => {
+    await Promise.allSettled(vi.mocked(fetch).mock.results.map((r) => r.value));
+  });
 }
 
 describe('r3-classic-banner', () => {
@@ -63,6 +66,7 @@ describe('r3-classic-banner', () => {
     const { puts } = renderBanner();
     fireEvent.click(await screen.findByRole('button', { name: 'Try it' }));
     await waitFor(() => expect(puts).toEqual([['layout', 'workspace']]));
+    await waitFor(() => expect(screen.queryByText('Try the Workspace layout.')).toBeNull());
   });
 
   it.each(['Try it', 'Not now', 'Dismiss'])('%s shows a message when the save fails', async (name) => {
@@ -139,7 +143,8 @@ describe('r3-classic-banner', () => {
     fireEvent.click(item);
     fireEvent.click(item);
     await waitFor(() => expect(p.puts).toEqual([['layout', 'workspace']]));
-    await new Promise((r) => setTimeout(r, 50));
+    // The second click was dropped before it sent; the save's re-read has landed.
+    await waitFor(() => expect(urls().filter((u) => u.endsWith('/api/user/preferences')).length).toBeGreaterThan(1));
     expect(p.puts).toEqual([['layout', 'workspace']]);
   });
 

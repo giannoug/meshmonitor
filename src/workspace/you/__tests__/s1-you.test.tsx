@@ -114,6 +114,21 @@ describe('s1-you', () => {
     expect(calls).toBe(1);
   });
 
+  it('Logout is aria-disabled while signing out', async () => {
+    const location = window.location;
+    Object.defineProperty(window, 'location', { value: { ...location, reload: vi.fn() }, writable: true });
+    onTestFinished(() => Object.defineProperty(window, 'location', { value: location, writable: true }));
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    renderYou({ fixtures: { 'POST /api/auth/logout': async () => { await held; return { success: true }; } } });
+    const row = await screen.findByRole('button', { name: /^Logout/ });
+    await waitFor(() => expect(row).toBeEnabled());
+    expect(row).not.toHaveAttribute('aria-disabled');
+    fireEvent.click(row);
+    await waitFor(() => expect(row).toHaveAttribute('aria-disabled', 'true'));
+    release();
+  });
+
   it('offers Login instead of the account rows to a guest', async () => {
     renderYou({ anonymous: true });
     // The page's Login row; the guest tab bar has its own Login (i6, Task 6.7).

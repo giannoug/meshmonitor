@@ -18,9 +18,11 @@ export interface TwoLineRowProps {
   active?: boolean;
   'data-testid'?: string;
   'aria-label'?: string;
+  'aria-disabled'?: boolean;
+  className?: string;
 }
 
-export default function TwoLineRow({ leading, title, subtitle, trailing, to, onClick, active, ...rest }: TwoLineRowProps) {
+export default function TwoLineRow({ leading, title, subtitle, trailing, to, onClick, active, className, ...rest }: TwoLineRowProps) {
   const inner = (
     <>
       {leading && <span className={styles.leading}>{leading}</span>}
@@ -32,10 +34,11 @@ export default function TwoLineRow({ leading, title, subtitle, trailing, to, onC
     </>
   );
   const common = {
-    className: `${styles.row} ${active ? styles.active : ''}`,
+    className: `${styles.row} ${active ? styles.active : ''} ${className ?? ''}`,
     'aria-current': active ? ('page' as const) : undefined,
     'data-testid': rest['data-testid'],
     'aria-label': rest['aria-label'],
+    'aria-disabled': rest['aria-disabled'] || undefined,
   };
   if (to !== undefined) {
     return <Link to={to} onClick={onClick} {...common}>{inner}</Link>;

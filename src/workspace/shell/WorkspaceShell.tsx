@@ -31,7 +31,7 @@
  * be dismissed, except on `/you/password`, which draws the same form itself.
  */
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { matchPath, useLocation, useNavigate } from 'react-router-dom';
+import { matchPath, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../../components/ToastContainer';
 import { useAuth } from '../../contexts/AuthContext';
@@ -77,14 +77,16 @@ function modeOf(pathname: string, sourceType: string | undefined): SidebarMode {
  * SectionNav scrolls on mount and on `hashchange`, but router navigation
  * (pushState/replaceState) never fires `hashchange`. Fire it after a
  * client-side move whose hash changed, so a sidebar category link scrolls.
+ * Not on Back/Forward: the browser fires its own `hashchange` for a hash-only POP.
  */
 function useHashChangeOnNavigate(hash: string) {
   const prev = useRef(hash);
+  const navType = useNavigationType();
   useEffect(() => {
     if (prev.current === hash) return;
     prev.current = hash;
-    if (hash) window.dispatchEvent(new HashChangeEvent('hashchange'));
-  }, [hash]);
+    if (hash && navType !== 'POP') window.dispatchEvent(new HashChangeEvent('hashchange'));
+  }, [hash, navType]);
 }
 
 /** The open device was removed (it was in the list, now it is not): go to the Overview and say so. */
@@ -112,16 +114,17 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   const { authStatus, refreshAuth, hasPermission } = useAuth();
   const isPhone = useIsPhone();
   const narrow = useIsNarrowDesktop();
-  const { sources } = useWorkspaceSources();
+  const { sources, openId } = useWorkspaceSources();
   const { data: allSources } = useDashboardSources();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const [lastId, setLastId] = useState<string | null>(null);
 
-  const openId = matchPath('/source/:sourceId/*', location.pathname)?.params.sourceId ?? null;
   const source = sources.find((s) => s.id === openId);
   const mode = modeOf(location.pathname, source?.type);
-  const home = sources.find((s) => s.id === (openId ?? lastId)) ?? null;
+  // A last-open device that was disabled since is not a Home to offer.
+  const lastEnabled = sources.find((s) => s.id === lastId)?.status === 'disabled' ? null : lastId;
+  const home = sources.find((s) => s.id === (openId ?? lastEnabled)) ?? null;
   const firstRun =
     authStatus?.authenticated === true &&
     authStatus.user?.isAdmin === true &&
@@ -226,7 +229,9 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   }, [drawerOpen]);
   // Focus moves into the drawer on open; Esc, the toggle and the backdrop give it back (a followed link leaves it on the new page).
   useEffect(() => {
-    if (drawerOpen) document.getElementById('ws-drawer')?.querySelector<HTMLElement>('a[href],button')?.focus();
+    if (!drawerOpen) return;
+    const drawer = document.getElementById('ws-drawer');
+    (drawer?.querySelector<HTMLElement>('a[href],button') ?? drawer)?.focus();
   }, [drawerOpen]);
 
   // UserMenu's forced change, redrawn: no close, Esc or backdrop (Sheet portals to <body>).
@@ -285,7 +290,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
             )
           }
         />
-        <div id="ws-drawer" style={{ display: 'contents' }}>
+        <div id="ws-drawer" tabIndex={-1} style={{ display: 'contents' }}>
         {showSidebar && mode === 'overview' && <OverviewSidebar sources={sources} onNavigate={() => setDrawerOpen(false)} />}
         {showSidebar && mode === 'you' && <YouSidebar onNavigate={() => setDrawerOpen(false)} />}
         {showSidebar && mode === 'server' && <ServerSidebar onNavigate={() => setDrawerOpen(false)} />}

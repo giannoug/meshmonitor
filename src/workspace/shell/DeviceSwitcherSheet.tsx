@@ -62,9 +62,12 @@ export default function DeviceSwitcherSheet({ open, onClose, sources, openId, ov
           .filter((s) => s.status !== 'disabled')
           .map((s) => {
             const current = s.id === openId;
+            // The suffix string carries its own leading ", ".
+            const unreadText = !current && s.unread > 0 ? t('workspace.shell.unread_suffix', { count: s.unread }) : '';
             return (
               <TwoLineRow
                 key={s.id}
+                aria-label={[s.name, isReceiveOnly(s) && t('workspace.switcher.receive_only'), line(s)].filter(Boolean).join(', ') + unreadText}
                 to={deviceSquarePath(pathname, sources.find((o) => o.id === openId), s)}
                 onClick={onClose}
                 active={current}

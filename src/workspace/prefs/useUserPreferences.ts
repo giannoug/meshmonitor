@@ -9,7 +9,7 @@ import apiService from '../../services/api';
 type Prefs = Record<string, unknown>;
 /** The preference map's query key; whoever writes outside `setPref` invalidates it. */
 export const PREFERENCES_KEY = ['user', 'preferences'];
-const path = (key: string) => `/api/user/preferences/${encodeURIComponent(key)}`;
+export const prefPath = (key: string) => `/api/user/preferences/${encodeURIComponent(key)}`;
 
 export function useUserPreferences({ enabled = true }: { enabled?: boolean } = {}): {
   prefs: Prefs;
@@ -47,14 +47,14 @@ export function useUserPreferences({ enabled = true }: { enabled?: boolean } = {
   );
 
   const setPref = useCallback(
-    (key: string, value: unknown) => mutate((p) => ({ ...p, [key]: value }), () => apiService.put(path(key), { value })),
+    (key: string, value: unknown) => mutate((p) => ({ ...p, [key]: value }), () => apiService.put(prefPath(key), { value })),
     [mutate],
   );
   const deletePref = useCallback(
     (key: string) =>
       mutate(
         (p) => Object.fromEntries(Object.entries(p).filter(([k]) => k !== key)),
-        () => apiService.delete(path(key)),
+        () => apiService.delete(prefPath(key)),
       ),
     [mutate],
   );

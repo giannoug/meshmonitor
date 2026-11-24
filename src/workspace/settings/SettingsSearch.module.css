@@ -33,7 +33,7 @@
 }
 
 .layer[data-phone] {
-  bottom: var(--ws-tabbar-height, 64px);
+  bottom: calc(var(--ws-tabbar-height, 64px) + env(safe-area-inset-bottom, 0px));
   padding: 0;
 }
 

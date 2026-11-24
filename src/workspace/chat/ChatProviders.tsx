@@ -1,7 +1,8 @@
 /**
  * The providers App mounts for itself, under the source's own SourceProvider
- * (the device's socket is DeviceSocket's, one per open device, Ruling 9.1 IJ), for a Workspace screen App is not mounted on (Ruling AD): a
- * conversation, or the device map (`nodes`). UIProvider and
+ * (the device's socket is DeviceSocket's, one per open device, Ruling 9.1 IJ), for a
+ * Workspace screen App is not mounted on (Ruling AD): a conversation, or the device map
+ * (`nodes`). UIProvider and
  * useMessagingView read the tab from the location, so they are handed
  * Classic's location for the tab (`channels` or `messages`), as
  * WorkspaceSource does for App.

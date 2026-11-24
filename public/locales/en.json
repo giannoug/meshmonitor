@@ -8916,6 +8916,7 @@
   "workspace.saved": "Saved",
   "workspace.server.general": "General",
   "workspace.server.general_scope": "Server · applies to everyone on this MeshMonitor",
+  "workspace.server.layout_group": "Layout",
   "workspace.server.default_layout": "Default layout for new users",
   "workspace.server.settings_loading": "Loading the install settings…",
   "workspace.server.settings_failed": "Couldn't load the install settings. The values below may be out of date.",
