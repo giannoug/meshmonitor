@@ -10,7 +10,7 @@
  * Not now (and the close button) saves `layout=classic`, so a later
  * Workspace default does not move the user, and the dismissal.
  */
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
@@ -60,6 +60,7 @@ function Offer({ inline }: { inline: boolean }) {
     prefs.layout === undefined &&
     prefs['workspace.bannerDismissed'] !== true;
   const ref = useRef<HTMLElement>(null);
+  const [saveFailed, setSaveFailed] = useState(false);
 
   // Part of Classic's fixed top chrome while shown: sit right below the header
   // and extend `--app-header-height` (the offset every Classic surface below the
@@ -92,8 +93,12 @@ function Offer({ inline }: { inline: boolean }) {
 
   if (!shown) return null;
 
-  const failed = (error: unknown) => logger.error('Failed to save the layout choice:', error);
+  const failed = (error: unknown) => {
+    logger.error('Failed to save the layout choice:', error);
+    setSaveFailed(true);
+  };
   const notNow = async () => {
+    setSaveFailed(false);
     try {
       await setPref('layout', 'classic');
       await setPref('workspace.bannerDismissed', true);
@@ -108,8 +113,16 @@ function Offer({ inline }: { inline: boolean }) {
       <p className={styles.text}>
         <strong>{t('workspace.entry.title')}</strong> {t('workspace.entry.body')}
       </p>
+      {saveFailed && (
+        <p role="alert" className={styles.error}>
+          {t('workspace.entry.save_failed')}
+        </p>
+      )}
       <div className={styles.actions}>
-        <button type="button" className={styles.primary} onClick={() => void setLayout('workspace').catch(failed)}>
+        <button type="button" className={styles.primary} onClick={() => {
+            setSaveFailed(false);
+            void setLayout('workspace').catch(failed);
+          }}>
           {t('workspace.entry.try')}
         </button>
         <button type="button" className={styles.secondary} onClick={() => void notNow()}>

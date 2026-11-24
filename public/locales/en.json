@@ -9226,6 +9226,7 @@
   "workspace.entry.try": "Try it",
   "workspace.entry.not_now": "Not now",
   "workspace.entry.menu_item": "Try the Workspace layout",
+  "workspace.entry.save_failed": "Couldn't save your layout choice. Try again.",
   "workspace.state.loading": "Loading…",
   "workspace.state.empty": "Nothing here yet",
   "workspace.reboot.step_config": "Checking for configuration updates",

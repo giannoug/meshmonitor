@@ -36,6 +36,11 @@ function renderBanner(prefs: Record<string, unknown> = {}, opts: RenderWorkspace
   return { ...view, puts: p.puts };
 }
 
+const SAVE_FAILED = "Couldn't save your layout choice. Try again.";
+const failingPut = {
+  'PUT /api/user/preferences/:key': () => new Response(JSON.stringify({ error: 'boom' }), { status: 500 }),
+};
+
 const urls = () => vi.mocked(fetch).mock.calls.map(([u]) => String(u));
 
 /** Lets every pending fetch settle, so "renders nothing" is not just "not yet". */
@@ -58,6 +63,13 @@ describe('r3-classic-banner', () => {
     const { puts } = renderBanner();
     fireEvent.click(await screen.findByRole('button', { name: 'Try it' }));
     await waitFor(() => expect(puts).toEqual([['layout', 'workspace']]));
+  });
+
+  it.each(['Try it', 'Not now', 'Dismiss'])('%s shows a message when the save fails', async (name) => {
+    renderBanner({}, { fixtures: failingPut });
+    fireEvent.click(await screen.findByRole('button', { name }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(SAVE_FAILED);
+    expect(screen.getByText('Try the Workspace layout.')).toBeTruthy();
   });
 
   it('Not now saves layout=classic and the dismissal, and the banner goes', async () => {
@@ -107,6 +119,14 @@ describe('r3-classic-banner', () => {
     fireEvent.click(await screen.findByTitle(/Athens Ops/));
     fireEvent.click(await screen.findByRole('button', { name: 'Try the Workspace layout' }));
     await waitFor(() => expect(p.puts).toEqual([['layout', 'workspace']]));
+  });
+
+  it('the user menu item shows the error, and keeps the menu open, when the save fails', async () => {
+    const p = prefsFixture({ layout: 'classic' });
+    renderWorkspace(<UserMenu />, { fixtures: { ...p.fixtures, ...failingPut } });
+    fireEvent.click(await screen.findByTitle(/Athens Ops/));
+    fireEvent.click(await screen.findByRole('button', { name: 'Try the Workspace layout' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(SAVE_FAILED);
   });
 
   it('an anonymous user has no user menu, so no menu item', async () => {
