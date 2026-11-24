@@ -16,7 +16,6 @@
 import { useEffect, useMemo, type ReactNode } from 'react';
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import RouteLoading from '../../../components/RouteLoading/RouteLoading';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { MeshCoreContact } from '../../../utils/meshcoreHelpers';
 import { Redirect } from '../../rehost/pages';
@@ -123,7 +122,7 @@ export default function MeshCoreSettingsFrame({ path }: { path: string }) {
   const facts = useDeviceFacts(sourceId);
   const { ready, categories } = useVisibleCategories(sourceId, 'meshcore', !!pick.contact, facts);
   // This radio's pages wait for its role: they follow today's sections by role.
-  if (!ready || pick.pending || (!pick.contact && !facts && !meshCore.hasLoadedOnce)) return <RouteLoading />;
+  if (!ready || pick.pending || (!pick.contact && !facts && !meshCore.hasLoadedOnce)) return <StateView kind="loading" page />;
 
   const base = `/source/${encodeURIComponent(sourceId)}/settings`;
   // `maintenance` reads as Meshtastic's group name; on a MeshCore device it is the page.

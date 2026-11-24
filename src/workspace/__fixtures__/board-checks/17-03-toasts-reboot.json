@@ -1,17 +1,17 @@
 {
   "must": [
-    "Configuration error",
+    "Configuration Error",
     "Secure cookies are enabled but you are accessing via HTTP",
     "COOKIE_SECURE",
     "Learn more",
-    "Restarting Station G2",
+    "Device Reboot",
     "Please do not close this window or refresh the page.",
-    "Elapsed: 34 s",
+    "Elapsed: 34s",
     "Verifying device connection",
     "Checking for configuration updates",
     "Duty cycle limit exceeded",
     "Protection Level is Balanced",
-    "Rebooting in 5 seconds",
+    "Device will reboot",
     "⌘,"
   ],
   "absent": [

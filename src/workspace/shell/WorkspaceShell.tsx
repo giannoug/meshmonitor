@@ -23,7 +23,8 @@
  * FirstRun in place of the Overview's own pages (`/`, `/overview`,
  * `/overview/map`), with no sidebar; the rail keeps Add device.
  *
- * Also here: the open device going away (Review Focus 4), the hashchange
+ * Also here (Task 9.1): today's config-issue banner over the page, and the
+ * route error state (ShellRouteBoundary). And: the open device going away (Review Focus 4), the hashchange
  * that Classic's SectionNav needs after a client-side move to a `#section`,
  * and the forced password change after a recovery-code sign-in (Classic shows
  * it from UserMenu over every page): Task 6.1's form in a sheet that cannot
@@ -50,6 +51,8 @@ import NewsAutoOpen from './NewsAutoOpen';
 import PhoneShell from './PhoneShell';
 import OverviewSidebar from '../overview/OverviewSidebar';
 import FirstRun from '../devices/FirstRun';
+import ConfigBanner from '../patterns/ConfigBanner';
+import ShellRouteBoundary from './ShellRouteBoundary';
 import { useIsNarrowDesktop, useIsPhone } from './useIsPhone';
 import { ShellDevicesContext } from './shellDevices';
 import { useWorkspaceSources } from './useWorkspaceSources';
@@ -123,7 +126,13 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
     authStatus.user?.isAdmin === true &&
     allSources?.length === 0 &&
     /^\/(overview(\/map)?\/?)?$/.test(location.pathname);
-  const page = firstRun ? <FirstRun /> : children;
+  // Today's config-issue banner over the page (17-03 / 17-10), and the route error state (17-04 / 17-11).
+  const page = (
+    <>
+      <ConfigBanner />
+      <ShellRouteBoundary>{firstRun ? <FirstRun /> : children}</ShellRouteBoundary>
+    </>
+  );
 
   useEffect(() => {
     if (openId) setLastId(openId);

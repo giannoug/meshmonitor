@@ -46,7 +46,6 @@
 import { lazy, useCallback } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import RouteLoading from '../../components/RouteLoading/RouteLoading';
 import { useAuth } from '../../contexts/AuthContext';
 import { WebSocketProvider } from '../../contexts/WebSocketContext';
 import { useDashboardSources } from '../../hooks/useDashboardData';
@@ -77,6 +76,7 @@ import { BUILTIN_IDS } from '../automations/ids';
 import { isMeshtasticFamily } from '../shell/deviceTabs';
 import { INFO_GROUPS, type InfoGroup } from '../tools/deviceTools';
 import styles from './WorkspaceSource.module.css';
+import StateView from '../patterns/StateView';
 
 // The same chunks Classic loads (main.tsx); Reticulum's page is the Workspace's own (Task 7.6).
 const PAGES: SourcePages = {
@@ -175,7 +175,7 @@ export default function WorkspaceSource() {
 
   // Every branch below renders its page next to any <Redirect>, never in its
   // place, so a URL fix-up does not remount the page.
-  if (isLoading && !source) return <RouteLoading />;
+  if (isLoading && !source) return <StateView kind="loading" page />;
   if (sources && !source) {
     // The Overview's own socket, as on every non-source route (Ruling N).
     return (
@@ -187,7 +187,7 @@ export default function WorkspaceSource() {
 
   if (source?.type === 'meshcore') {
     // The access rules need the grants; wait for them rather than redirect on an empty set.
-    if (authLoading) return <RouteLoading />;
+    if (authLoading) return <StateView kind="loading" page />;
     const requested = meshcoreViewForPath(splat, location.hash);
     const visible = visibleMeshCoreViews({
       canRead: (resource) => hasPermission(resource, 'read', { sourceId }),

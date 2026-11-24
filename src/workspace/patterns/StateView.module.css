@@ -1,9 +1,38 @@
-.state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 32px 16px; text-align: center; color: var(--color-text-subtle); }
+.state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 32px 16px; text-align: center; color: var(--color-text-subtle); }
+.state[data-kind='loading'] { min-height: 12rem; }
+.state[data-page] { min-height: 100dvh; }
+.state[data-page][data-kind='error'] { min-height: 80dvh; }
+/* Phone (17-11): the error reads from the left, its buttons full width. */
+.state[data-phone][data-kind='error'] { align-items: stretch; text-align: left; padding: 32px 28px; }
+.state[data-phone][data-kind='error'] .icon { align-self: flex-start; }
+.loading { margin: 0; font-size: 15px; color: var(--color-text-subtle); }
+.icon { display: inline-flex; color: var(--color-text-subtle); }
+.state[data-kind='error'] .icon { color: var(--color-error); }
+.state[data-kind='noPermission'] .icon { color: var(--color-warning); }
 .title { margin: 0; font-size: 15px; font-weight: 600; color: var(--color-text); }
-.state[data-kind='error'] .title { color: var(--color-error); }
+.state[data-kind='error'] .title { font-size: 20px; }
+.state[data-kind='noPermission'] .title { font-weight: 400; line-height: 1.45; }
+.state[data-kind='noPermission'] .title strong { font-weight: 700; }
 .detail { margin: 0; font-size: 13px; line-height: 1.45; max-width: 36ch; }
-.retry {
+.state[data-kind='error'] .detail { max-width: 52ch; font-size: 14px; }
+.card {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 44ch; padding: 24px 32px;
+  background: var(--color-bg-sunken); border: 1px solid var(--color-border); border-radius: 12px;
+}
+.details { align-self: stretch; max-width: 60ch; margin: 4px auto 0; text-align: left; width: 100%; }
+.details summary { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--color-text-subtle); font-size: 14px; min-height: 36px; list-style: none; }
+.details summary::-webkit-details-marker { display: none; }
+.details pre {
+  margin: 8px 0 0; padding: 12px 16px; overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+  font-size: 12px; line-height: 1.5; color: var(--color-text); background: var(--color-bg-sunken); border-radius: 8px;
+}
+.actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+.retry, .primary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 44px; padding: 0 16px; font: inherit; font-weight: 600; cursor: pointer;
   color: var(--color-text); background: var(--color-bg-raised); border: 1px solid var(--color-surface); border-radius: 8px;
 }
-@media (min-width: 768px) { .retry { min-height: 36px; } }
+.primary { color: var(--color-accent-text); background: var(--color-accent); border-color: var(--color-accent); }
+.state:not([data-phone]) .retry, .state:not([data-phone]) .primary { min-height: 36px; }
+.state[data-phone][data-kind='error'] .actions { flex-direction: column; align-items: stretch; }
+.state[data-phone][data-kind='error'] .details { margin: 4px 0 0; }

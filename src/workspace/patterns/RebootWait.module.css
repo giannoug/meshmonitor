@@ -1,0 +1,39 @@
+/* Over the page and its sheets, as today's modal (2000 over Classic); toasts stay above. */
+.layer {
+  position: fixed; inset: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: color-mix(in srgb, var(--color-bg-sunken) 45%, transparent);
+}
+.layer[data-phone] { padding: 16px; }
+.card {
+  box-sizing: border-box; width: min(540px, 100%); padding: 28px 36px;
+  display: flex; flex-direction: column; gap: 16px;
+  color: var(--color-text); background: var(--color-bg-raised);
+  border: 1px solid var(--color-border); border-radius: 14px;
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--color-bg-sunken) 60%, transparent);
+}
+.layer[data-phone] .card { padding: 24px 20px; }
+.head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.spin { display: inline-flex; color: var(--color-warning); animation: turn 1.6s linear infinite; }
+@keyframes turn { to { transform: rotate(360deg); } }
+.titles { flex: 1; min-width: 0; }
+.title { margin: 0; font-size: 20px; font-weight: 700; line-height: 1.3; }
+.device { font-weight: 600; color: var(--color-text-subtle); }
+.elapsed { color: var(--color-text-subtle); font-size: 15px; font-variant-numeric: tabular-nums; }
+.layer[data-phone] .elapsed { flex-basis: 100%; padding-left: 38px; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.step { display: flex; align-items: center; gap: 12px; font-size: 16px; color: var(--color-text-subtle); }
+.step[data-step='done'], .step[data-step='current'] { color: var(--color-text); }
+.mark { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex: none; }
+.step[data-step='done'] .mark { color: var(--color-success); }
+.dot { box-sizing: border-box; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--color-text-faint); }
+.step[data-step='current'] .dot { border-color: var(--color-accent); border-right-color: transparent; animation: turn 0.9s linear infinite; }
+.end { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--color-success); }
+.end[data-failed] { color: var(--color-error); }
+.warn {
+  display: flex; align-items: flex-start; gap: 12px; margin: 4px 0 0; padding: 14px 16px;
+  font-size: 15px; line-height: 1.45; color: var(--color-text);
+  background: var(--color-surface); border-radius: 8px;
+}
+.warn svg { flex: none; color: var(--color-warning); margin-top: 2px; }
+@media (prefers-reduced-motion: reduce) { .spin, .step[data-step='current'] .dot { animation: none; } }

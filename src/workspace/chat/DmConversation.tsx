@@ -16,7 +16,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { useMessaging, useUnreadDividerAnchors } from '../../contexts/MessagingContext';
@@ -221,7 +221,7 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
   if (!hasPermission('messages', 'read', scope)) {
     return (
       <section className={styles.page} data-phone={isPhone || undefined}>
-        <StateView kind="noPermission" />
+        <StateView kind="noPermission" title={<Trans i18nKey="messages.permission_denied" components={{ strong: <strong /> }} />} />
       </section>
     );
   }

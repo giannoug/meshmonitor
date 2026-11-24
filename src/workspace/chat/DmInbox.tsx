@@ -17,7 +17,7 @@
  */
 import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import { useToast } from '../../components/ToastContainer';
 import { DmFilterSelect } from '../../components/messages/DmFilterSelect';
@@ -168,7 +168,7 @@ function DmInbox({ sourceId, deviceName }: { sourceId: string; deviceName: strin
         )}
       </header>
       {!canRead ? (
-        <StateView kind="noPermission" />
+        <StateView kind="noPermission" title={<Trans i18nKey="messages.permission_denied" components={{ strong: <strong /> }} />} />
       ) : (
         <>
           <div className={styles.controls}>

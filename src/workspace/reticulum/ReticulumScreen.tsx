@@ -25,13 +25,13 @@ import { SourceProvider } from '../../contexts/SourceContext';
 import { WebSocketProvider } from '../../contexts/WebSocketContext';
 import type { DashboardSource } from '../../hooks/useDashboardData';
 import { appBasename } from '../../init';
-import RouteLoading from '../../components/RouteLoading/RouteLoading';
 import { useReticulum } from '../../components/Reticulum/hooks/useReticulum';
 import { useIsPhone } from '../shell/useIsPhone';
 import PhoneDeviceHeader from '../meshcore/PhoneDeviceHeader';
 import { RnsRuntimeContext, rnsKeys, type RnsLists } from './runtime';
 import ReticulumStatusLine from './ReticulumStatusLine';
 import styles from './Reticulum.module.css';
+import StateView from '../patterns/StateView';
 
 const ReticulumHome = lazy(() => import('./ReticulumHome.tsx'));
 const LxmfThread = lazy(() => import('./LxmfThread.tsx'));
@@ -110,7 +110,7 @@ function Runtime({ sourceId, deviceName, screen }: { sourceId: string; deviceNam
     <RnsRuntimeContext.Provider value={runtime}>
       <section className={styles.screen} data-phone={isPhone || undefined}>
         {statusLine}
-        <Suspense fallback={<RouteLoading />}>
+        <Suspense fallback={<StateView kind="loading" page />}>
           {screen.kind === 'home' ? (
             <ReticulumHome />
           ) : screen.kind === 'dm' ? (

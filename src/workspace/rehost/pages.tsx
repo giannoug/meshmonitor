@@ -6,8 +6,8 @@
  */
 import { lazy, Suspense, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation, type To } from 'react-router-dom';
-import RouteLoading from '../../components/RouteLoading/RouteLoading';
 import { ShellContext } from '../../contexts/ShellContext';
+import StateView from '../patterns/StateView';
 
 // The same chunks Classic loads (main.tsx).
 const DashboardPage = lazy(() => import('../../pages/DashboardPage.tsx'));
@@ -17,7 +17,7 @@ const EMBEDDED = { embedded: true };
 export function Rehost({ children }: { children: ReactNode }) {
   return (
     <ShellContext.Provider value={EMBEDDED}>
-      <Suspense fallback={<RouteLoading />}>{children}</Suspense>
+      <Suspense fallback={<StateView kind="loading" page />}>{children}</Suspense>
     </ShellContext.Provider>
   );
 }

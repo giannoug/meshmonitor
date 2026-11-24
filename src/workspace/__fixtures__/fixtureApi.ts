@@ -34,6 +34,8 @@ const defaults: Record<string, FixtureHandler> = {
   'GET /api/config': () => A.config,
   'GET /api/csrf-token': () => ({ csrfToken: 'fixture-csrf-token' }),
   'GET /api/auth/status': () => A.authStatus,
+  // Today's config issues (ConfigBanner): none.
+  'GET /api/auth/check-config-issues': () => ({ issues: [] }),
   'GET /api/users/:id/channel-database-permissions': () => ({ data: [] }),
   'GET /api/user/preferences': () => ({ success: true, data: { preferences: A.userPreferences } }),
   'GET /api/settings': () => A.settings,

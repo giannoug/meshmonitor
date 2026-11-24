@@ -3,7 +3,7 @@
  * Positions, Settings Management and Danger Zone of the source's Settings.
  * Every action deletes rows in MeshMonitor's database (or this browser's
  * layout) and sends nothing on the mesh. Each destructive one asks in a
- * ConfirmSheet with today's words (window.confirm today), plainly.
+ * ConfirmSheet with today's words (today's browser confirm), plainly.
  *
  * - Erase nodes, Purge telemetry and Reset traceroutes act on this source;
  *   Purge messages purges every source, as today's call does.

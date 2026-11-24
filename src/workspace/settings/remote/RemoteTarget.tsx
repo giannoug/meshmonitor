@@ -59,7 +59,7 @@ export default function RemoteTarget({ sourceId, node, nodes, showBar, guard, ch
   const api = useRef<RemoteTargetApi | null>(null);
   const label = `${node.longName || node.shortName || node.nodeId} (${node.nodeId})`;
   const security = useSecuritySaveGuard(state, { label, shortName: node.shortName, fallbackWord: node.nodeId });
-  // Today's first confirm before a security save to a remote node (window.confirm there).
+  // Today's first confirm before a security save to a remote node (today's browser confirm there).
   const [overwrite, setOverwrite] = useState<((ok: boolean) => void) | null>(null);
   const askOverwrite = () => new Promise<boolean>((resolve) => setOverwrite(() => resolve));
   const answer = (ok: boolean) => {

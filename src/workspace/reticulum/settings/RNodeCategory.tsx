@@ -19,7 +19,6 @@ import { UiIcon } from '../../../components/icons';
 import { NumberInputScope } from '../../../components/common/NumberInputScope';
 import { useNumberInputScope } from '../../../components/common/numberInputScopeContext';
 import { useReticulumRadioConfig, type RadioConfig } from '../../../components/Reticulum/hooks/useReticulumRadioConfig';
-import RouteLoading from '../../../components/RouteLoading/RouteLoading';
 import type { CategoryProps } from '../../settings/categories';
 import SettingGroup from '../../settings/kit/SettingGroup';
 import SettingNumber from '../../settings/kit/SettingNumber';
@@ -30,6 +29,7 @@ import { McDock, McPage } from '../../meshcore/settings/mcShared';
 import { useDraft } from '../../meshcore/settings/useDraft';
 import mc from '../../meshcore/settings/McSettings.module.css';
 import styles from '../Reticulum.module.css';
+import StateView from '../../patterns/StateView';
 
 type NumberKey = Exclude<keyof RadioConfig, 'radioState'>;
 
@@ -57,7 +57,7 @@ export default function RNodeCategory({ sourceId }: CategoryProps) {
   const off = !canWrite || radio.saving;
 
   // The first read only: a read again after Apply keeps the page.
-  if (radio.loading && radio.saved.frequency === null && !radio.error) return <RouteLoading />;
+  if (radio.loading && radio.saved.frequency === null && !radio.error) return <StateView kind="loading" page />;
 
   const label = (k: keyof RadioConfig) =>
     k === 'radioState' ? t('reticulum.config.radioOn', 'Radio on') : (() => {

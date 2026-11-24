@@ -13,8 +13,6 @@ import { lazy, Suspense, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import '../styles/fonts.css';
-import RouteLoading from '../../components/RouteLoading/RouteLoading';
-import { ToastProvider } from '../../components/ToastContainer';
 import { UiIcon } from '../../components/icons';
 import PacketHiddenChip from '../../components/PacketHiddenChip';
 import { usePacketMonitor } from '../../components/usePacketMonitor';
@@ -31,6 +29,8 @@ import PacketDetailPanel from '../overview/PacketDetailPanel';
 import { PacketList, PacketTable } from '../overview/PacketStream';
 import { packetKey } from '../overview/packetRows';
 import styles from './PacketsPopout.module.css';
+import StateView from '../patterns/StateView';
+import ToastHost from '../patterns/ToastHost';
 
 // Today's MeshCore window, in its own chunk as Classic loads it.
 const PacketMonitorPage = lazy(() => import('../../pages/PacketMonitorPage.tsx'));
@@ -61,7 +61,7 @@ function PopoutWindow() {
   );
 
   // The grants decide what shows: no "no permission" flash while they load.
-  if (authLoading) return <RouteLoading />;
+  if (authLoading) return <StateView kind="loading" page />;
   if (!m.canView) {
     return (
       <div className={styles.window} data-phone={isPhone ? '' : undefined}>
@@ -214,11 +214,11 @@ function PopoutDispatch() {
   const requested = params.get('sourceId');
   const { data: sources, isLoading } = useDashboardSources();
   if (requested) {
-    if (isLoading && !sources) return <RouteLoading />;
+    if (isLoading && !sources) return <StateView kind="loading" page />;
     const type = sources?.find((s) => s.id === requested)?.type;
     if (type === 'meshcore' || type === 'meshcore_mqtt') {
       return (
-        <Suspense fallback={<RouteLoading />}>
+        <Suspense fallback={<StateView kind="loading" page />}>
           <PacketMonitorPage />
         </Suspense>
       );
@@ -232,9 +232,9 @@ export default function PacketsPopout() {
     <CsrfProvider>
       <AuthProvider>
         <SettingsProvider>
-          <ToastProvider>
+          <ToastHost>
             <PopoutDispatch />
-          </ToastProvider>
+          </ToastHost>
         </SettingsProvider>
       </AuthProvider>
     </CsrfProvider>

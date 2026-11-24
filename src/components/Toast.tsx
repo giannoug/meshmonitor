@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { UiIcon, type UiIconName } from './icons';
+import { useToastTimeout } from './toastQueue';
 
 export interface ToastProps {
   id: string;
@@ -10,13 +11,7 @@ export interface ToastProps {
 }
 
 const Toast: React.FC<ToastProps> = ({ id, message, type, duration = 5000, onClose }) => {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onClose(id);
-    }, duration);
-
-    return () => clearTimeout(timer);
-  }, [id, duration, onClose]);
+  useToastTimeout(id, duration, onClose);
 
   const backgroundColor = {
     success: 'var(--color-success)',

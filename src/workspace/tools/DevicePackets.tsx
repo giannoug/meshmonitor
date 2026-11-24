@@ -40,6 +40,7 @@ import { useIsPhone } from '../shell/useIsPhone';
 import { PacketFilters, PacketFiltersSheetBody, PacketSearch } from './PacketFilters';
 import PacketSheet from './PacketSheet';
 import mc from '../meshcore/McTools.module.css';
+import StateView from '../patterns/StateView';
 import styles from './Tools.module.css';
 
 type Monitor = ReturnType<typeof usePacketMonitor>;
@@ -189,9 +190,9 @@ function DevicePackets({ sourceId, deviceName }: { sourceId: string; deviceName:
       )}
       {m.rateLimitError && <p className={mc.note}><UiIcon name="alert" size={16} />{t('packet_monitor.rate_limit_warning')}</p>}
       {m.loading ? (
-        <p className={mc.note}>{t('packet_monitor.loading')}</p>
+        <StateView kind="loading" title={t('packet_monitor.loading')} />
       ) : m.packets.length === 0 ? (
-        <p className={mc.note}>{t('packet_monitor.no_packets')}</p>
+        <StateView kind="empty" icon="list" title={t('packet_monitor.no_packets')} />
       ) : null}
     </>
   );

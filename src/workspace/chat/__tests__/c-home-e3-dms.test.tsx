@@ -86,7 +86,7 @@ describe('c-home-e3-dms', () => {
 
   it('without messages:read shows no conversations', async () => {
     renderChat(`${g2}/dms`, { phone: true, permissions: { bySource: { [SOURCE_IDS.g2]: { channel_0: { read: true, write: false } } } } });
-    expect(await screen.findByText("You don't have permission to do this")).toBeInTheDocument();
+    expect(await screen.findByText(/permission to view direct messages/)).toHaveTextContent('You need messages:read permission to view direct messages.');
     expect(screen.queryByRole('list', { name: 'Direct messages' })).toBeNull();
   });
 });

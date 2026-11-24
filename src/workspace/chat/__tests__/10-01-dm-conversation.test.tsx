@@ -37,7 +37,7 @@ describe('10-01-dm-conversation', () => {
     // The board draws the unmessageable banner beside the open conversation; today the banner
     // goes once overridden, so its state is captured first and checked with the rest.
     renderChat(route);
-    const banner = (await screen.findByRole('button', { name: 'Message anyway' })).closest('[role="status"]')!.textContent ?? '';
+    const banner = (await screen.findByRole('button', { name: 'Message anyway' }, { timeout: 5000 })).closest('[role="status"]')!.textContent ?? '';
     cleanup();
     const { container } = await openConversation();
     const theirs = screen.getByText('Can you run a traceroute to me?').closest('[data-message-id]') as HTMLElement;

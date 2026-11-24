@@ -14,7 +14,6 @@
 import { useId, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import RouteLoading from '../../components/RouteLoading/RouteLoading';
 import { UiIcon } from '../../components/icons';
 import { NumberInput } from '../../components/common/NumberInput';
 import type { MqttGroupedPacket, MqttReception } from '../../components/MQTT/mqttPacketTypes';
@@ -504,7 +503,7 @@ function MonitorPage({ sourceId, source }: { sourceId: string; source: Dashboard
 export default function MqttReceptions({ sourceId, source }: { sourceId: string; source: DashboardSource }) {
   const isPhone = useIsPhone();
   const { hasPermission, loading } = useAuth();
-  if (loading) return <RouteLoading />;
+  if (loading) return <StateView kind="loading" page />;
   if (!hasPermission('packetmonitor', 'read', { sourceId })) {
     return (
       <div className={styles.page} data-phone={isPhone ? '' : undefined}>

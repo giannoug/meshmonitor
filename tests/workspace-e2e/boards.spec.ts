@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import { test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { BOARDS } from './boards';
 import { routeFixtures } from './fixtureRoutes';
 
@@ -13,7 +13,7 @@ const SHOTS = fileURLToPath(new URL('../../test-results/workspace-boards/', impo
 for (const board of BOARDS) {
   test.describe(board.id, () => {
     // The boards are drawn in Mocha, the dark default (Latte follows a light OS scheme).
-    test.use({ viewport: VIEWPORTS[board.size], colorScheme: 'dark' });
+    test.use({ viewport: VIEWPORTS[board.size], colorScheme: board.theme === 'latte' ? 'light' : 'dark' });
 
     test(board.id, async ({ page }) => {
       await routeFixtures(page, board.fixtures);
@@ -21,6 +21,7 @@ for (const board of BOARDS) {
       await page.goto(board.path);
       await page.waitForLoadState('networkidle');
       await board.setup?.(page);
+      if (board.theme) await expect(page.locator('html')).toHaveAttribute('data-theme', board.theme);
       await page.screenshot({ path: `${SHOTS}${board.id}.png` });
     });
   });

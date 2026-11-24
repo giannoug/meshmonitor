@@ -13,14 +13,14 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import './styles/fonts.css';
-import RouteLoading from '../components/RouteLoading/RouteLoading';
-import { ToastProvider } from '../components/ToastContainer';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { CsrfProvider } from '../contexts/CsrfContext';
 import { SettingsProvider } from '../contexts/SettingsContext';
 import { WebSocketProvider } from '../contexts/WebSocketContext';
 import { appBasename } from '../init';
 import WorkspaceShell from './shell/WorkspaceShell';
+import StateView from './patterns/StateView';
+import ToastHost from './patterns/ToastHost';
 import { useIsPhone } from './shell/useIsPhone';
 import WorkspaceSource from './source/WorkspaceSource';
 import YouHome from './you/YouHome';
@@ -70,11 +70,11 @@ function WorkspaceRoutes() {
   if (!location.pathname.startsWith('/source/')) {
     const to = workspaceRedirect(location, { isAdmin: authStatus?.user?.isAdmin === true });
     // `/settings` depends on the role: wait for it.
-    if (to) return loading ? <RouteLoading /> : <Navigate replace to={to} />;
+    if (to) return loading ? <StateView kind="loading" page /> : <Navigate replace to={to} />;
   }
 
   return (
-    <Suspense fallback={<RouteLoading />}>
+    <Suspense fallback={<StateView kind="loading" page />}>
       <Routes>
         {/* The per-source socket only (renderSourceApp), as in Classic. */}
         <Route path="source/:sourceId/*" element={<WorkspaceSource />} />
@@ -144,7 +144,7 @@ function WorkspaceRoutes() {
  */
 function SignInGate() {
   const { authStatus } = useAuth();
-  if (!authStatus) return <RouteLoading />;
+  if (!authStatus) return <StateView kind="loading" page />;
   if (authStatus.anonymousDisabled && !authStatus.authenticated) return <SignInPage />;
   return (
     <WorkspaceShell>
@@ -159,9 +159,10 @@ export default function WorkspaceApp() {
       <AuthProvider>
         {/* The basename, not a guess from the URL: a Workspace path such as /preferences/map is no Classic route (Task 6.3). */}
         <SettingsProvider baseUrl={appBasename}>
-          <ToastProvider>
+          {/* Today's toast queue, drawn for the Workspace (17-03 / 17-10). */}
+          <ToastHost>
             <SignInGate />
-          </ToastProvider>
+          </ToastHost>
         </SettingsProvider>
       </AuthProvider>
     </CsrfProvider>

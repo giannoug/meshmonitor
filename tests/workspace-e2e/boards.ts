@@ -37,6 +37,8 @@ export interface Board {
   init?: (page: Page) => Promise<void>;
   /** Fixture overrides for this board (`routeFixtures`). */
   fixtures?: Partial<Record<string, FixtureHandler>>;
+  /** Latte: the light theme (a light OS scheme); default Mocha, as the boards are drawn. */
+  theme?: 'latte';
 }
 
 const PINS: Board['fixtures'] = {
@@ -270,6 +272,20 @@ const GUEST: Board['fixtures'] = {
     user: null,
     permissions: { global: {}, bySource: { 'src-g2': { nodes: GUEST_READ, dashboard: GUEST_READ, channel_0: GUEST_READ, channel_1: GUEST_READ } } },
   }),
+};
+
+/** Task 9.1: Station G2's LoRa page, with today's COOKIE_SECURE error from the server. */
+const REBOOT_WAIT: Board['fixtures'] = {
+  ...PINS,
+  'GET /api/auth/check-config-issues': () => ({
+    issues: [{
+      type: 'cookie_secure',
+      severity: 'error',
+      message: 'Secure cookies are enabled but you are accessing via HTTP. Session cookies will not work. Set COOKIE_SECURE=false or access via HTTPS.',
+      docsUrl: 'https://meshmonitor.org/faq.html#i-see-a-blank-white-screen-when-accessing-meshmonitor',
+    }],
+  }),
+  'POST /api/config/lora': () => ({ success: true }),
 };
 
 export const BOARDS: Board[] = [
@@ -2134,7 +2150,47 @@ export const BOARDS: Board[] = [
     await page.getByRole('button', { name: 'Delete 2 node(s)' }).click();
     await page.getByRole('dialog').waitFor();
   } },
+  // Task 9.1: the shared confirm (one state per screenshot, D9c), the reboot wait with toasts and the config banner, and the route states.
+  { id: '17-01-confirm-patterns', size: 'desktop', path: '/source/src-g2/settings/maintenance/danger', fixtures: MAINTENANCE(), setup: async (page) => {
+    await page.getByRole('button', { name: 'Reboot Device' }).click();
+    await page.getByRole('dialog', { name: 'Reboot the device?' }).waitFor();
+  } },
+  { id: '17-02-confirm-sheets', size: 'phone', path: '/source/src-g2/settings/channels/2', fixtures: CHANNELS, setup: async (page) => {
+    await page.getByLabel('Channel Name').fill('Athens');
+    await page.getByRole('switch', { name: 'Uplink Enabled' }).click();
+    await page.getByTestId('settings-back').click();
+    await page.getByRole('dialog', { name: 'Discard unsaved changes?' }).waitFor();
+  } },
+  { id: '17-03-toasts-reboot', size: 'desktop', path: '/source/src-g2/settings/lora', fixtures: REBOOT_WAIT, init: holdConnection, setup: saveLoraAndWait },
+  { id: '17-10-toasts-reboot', size: 'phone', path: '/source/src-g2/settings/lora', fixtures: REBOOT_WAIT, init: holdConnection, setup: saveLoraAndWait },
+  { id: '17-04-states', size: 'desktop', path: '/source/src-g2/packetmonitor', fixtures: { ...TOOLS(), 'GET /api/packets': () => ({ packets: [], total: 0, offset: 0, limit: 100 }) }, setup: (page) => page.getByText('No packets logged yet').waitFor() },
+  // A Users row that is not a user: the page throws while it renders, and the shell shows the route error state.
+  { id: '17-11-states', size: 'phone', path: '/overview/users', fixtures: { ...usersFixtures, 'GET /api/users': () => ({ users: [null] }) }, setup: (page) => page.getByText('Something went wrong').waitFor() },
 ];
+
+// Review Focus 5 (Task 9.1): three boards again in Latte, the light theme.
+for (const id of ['10-01-dm-conversation', '12-04-security', '13-01-appearance']) {
+  const board = BOARDS.find((b) => b.id === id)!;
+  const settings = board.fixtures?.['GET /api/settings'];
+  // 13-01's install is set to dark: the light appearance, so the light theme (Latte) applies.
+  const light: FixtureHandler = (url, init) => ({ ...((settings?.(url, init) ?? athensFixture.settings) as object), appearanceMode: 'light' });
+  BOARDS.push({ ...board, id: `${id}-latte`, theme: 'latte', fixtures: { ...board.fixtures, 'GET /api/settings': light } });
+}
+
+/** The connection check never answers, so the wait holds on "Verifying device connection…" as 17-03 / 17-10 draw it. */
+async function holdConnection(page: Page) {
+  await page.clock.install();
+  await page.route('**/api/connection*', () => {});
+}
+
+/** Saves a Hop Limit change (the radio restarts), then runs the wait's clock to 34 s. */
+async function saveLoraAndWait(page: Page) {
+  await page.getByLabel('Hop Limit').fill('4');
+  await page.getByRole('region', { name: 'Unsaved radio changes' }).getByRole('button', { name: /^Save/ }).click();
+  await page.getByRole('dialog', { name: /Device Reboot/ }).waitFor();
+  await page.clock.runFor(34_000);
+  await page.getByText('Elapsed: 34s').waitFor();
+}
 
 /** Task 8.5: Station G2's tools, with capture on. */
 function TOOLS(): Board['fixtures'] {

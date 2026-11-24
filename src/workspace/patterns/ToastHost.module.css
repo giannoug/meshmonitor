@@ -1,0 +1,30 @@
+/* Above sheets (10000), as today's toasts (10001). */
+.host {
+  position: fixed; right: 24px; bottom: 24px; z-index: 10001;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 12px;
+  width: min(460px, calc(100vw - 32px)); pointer-events: none;
+}
+.host[data-phone] { left: 16px; right: 16px; width: auto; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+.toast {
+  pointer-events: auto; box-sizing: border-box; width: 100%;
+  display: flex; align-items: flex-start; gap: 12px; padding: 14px 12px 14px 16px;
+  color: var(--color-text); background: var(--color-bg-raised);
+  border: 1px solid var(--color-border); border-left: 4px solid var(--color-accent); border-radius: 10px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-bg-sunken) 60%, transparent);
+  font-size: 15px; line-height: 1.45;
+}
+.toast[data-type='success'] { border-left-color: var(--color-success); }
+.toast[data-type='warning'] { border-left-color: var(--color-warning); }
+.toast[data-type='error'] { border-left-color: var(--color-error); }
+.icon { display: inline-flex; flex: none; padding-top: 2px; color: var(--color-accent); }
+.toast[data-type='success'] .icon { color: var(--color-success); }
+.toast[data-type='warning'] .icon { color: var(--color-warning); }
+.toast[data-type='error'] .icon { color: var(--color-error); }
+.message { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.close {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; margin: -6px -2px -6px 0; padding: 0; cursor: pointer;
+  color: var(--color-text-subtle); background: none; border: none; border-radius: 8px;
+}
+.close:hover { color: var(--color-text); background: var(--color-surface-hover); }
+.host[data-phone] .close { width: 44px; height: 44px; margin: -10px -6px -10px 0; }

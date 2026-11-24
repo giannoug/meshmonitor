@@ -18,7 +18,6 @@
 import { useId, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import RouteLoading from '../../components/RouteLoading/RouteLoading';
 import { UiIcon } from '../../components/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import type { CrossSourcePacketFilter, UnifiedPacketFilters } from '../../types/packet';
@@ -34,6 +33,7 @@ import { PacketList, PacketTable } from './PacketStream';
 import { packetKey } from './packetRows';
 import { useReadableSourceIds } from './readableSources';
 import styles from './OverviewPackets.module.css';
+import StateView from '../patterns/StateView';
 
 type Monitor = ReturnType<typeof useUnifiedPacketMonitor>;
 
@@ -236,7 +236,7 @@ export default function OverviewPackets() {
   const title = t('unified.packets.title');
 
   // The grants decide what shows: no "no permission" flash while they load.
-  if (authLoading) return <RouteLoading />;
+  if (authLoading) return <StateView kind="loading" page />;
   if (!m.canView) {
     return (
       <div className={styles.page} data-phone={isPhone ? '' : undefined}>

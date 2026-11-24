@@ -5,7 +5,8 @@
  * (Ruling BH).
  *
  * - Reboot (plain) and Purge node database (types PURGE): today's danger zone,
- *   through the frame's saves (configuration:write), busy while they run.
+ *   through the frame's saves (configuration:write), busy while they run. A
+ *   local reboot that was sent opens the frame's RebootWait (Task 9.1).
  * - Shut down and Reboot into DFU mode (plain), Reset config and Full device
  *   reset (type the short name): moved here from Admin Commands, admins only
  *   as its route, one admin command each, never retried. DFU and the resets are
@@ -243,7 +244,12 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
             </>
           ) : (
             <>
-              <p className={pages.para}>{t('config.reboot_dialog_message')}</p>
+              {/* Board 17-01: what happens, today's words plus the wait that now follows (RebootWait). */}
+              <p className={pages.para}>{t('workspace.settings.maintenance.reboot_what_happens')}</p>
+              <ul className={pages.list}>
+                <li>{t('config.reboot_dialog_message')}</li>
+                <li>{t('workspace.settings.maintenance.reboot_reconnects')}</li>
+              </ul>
               {sends}
             </>
           )
@@ -254,8 +260,10 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
         submitOnEnter={false}
         onConfirm={async () => {
           if (remote) return sendRemote('reboot', { seconds: delay ?? 5 });
-          await saves.reboot();
+          const sentOk = await saves.reboot();
           close();
+          // Today's admin command went to the connected radio: wait for it to come back (RebootWait).
+          if (sentOk) config.expectReboot?.('always');
         }}
         onCancel={close}
       />

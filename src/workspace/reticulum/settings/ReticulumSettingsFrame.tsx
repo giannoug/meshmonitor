@@ -14,7 +14,6 @@
  */
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import RouteLoading from '../../../components/RouteLoading/RouteLoading';
 import { useAuth } from '../../../contexts/AuthContext';
 import { SettingsProvider } from '../../../contexts/SettingsContext';
 import { SourceProvider } from '../../../contexts/SourceContext';
@@ -50,7 +49,7 @@ function Frame({ sourceId, source, path }: ReticulumSettingsFrameProps) {
   const isPhone = useIsPhone();
   const { hasPermission } = useAuth();
   const { ready, categories } = useVisibleCategories(sourceId, 'reticulum', false, undefined, reticulumFacts(source.config));
-  if (!ready) return <RouteLoading />;
+  if (!ready) return <StateView kind="loading" page />;
   const base = `/source/${encodeURIComponent(sourceId)}/settings`;
   const { categoryId, sub } = resolveSettingsPath(path);
   const def = categories.find((c) => c.id === categoryId);

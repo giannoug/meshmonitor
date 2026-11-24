@@ -1,5 +1,6 @@
-import React, { useState, useCallback, createContext, useContext } from 'react';
+import React, { createContext, useContext } from 'react';
 import Toast, { ToastProps } from './Toast';
+import { useToastQueue } from './toastQueue';
 
 interface ToastContextType {
   showToast: (message: string, type: ToastProps['type'], duration?: number) => void;
@@ -17,16 +18,7 @@ export const useToast = () => {
 };
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [toasts, setToasts] = useState<Array<Omit<ToastProps, 'onClose'>>>([]);
-
-  const showToast = useCallback((message: string, type: ToastProps['type'], duration = 5000) => {
-    const id = `toast-${Date.now()}-${Math.random()}`;
-    setToasts(prev => [...prev, { id, message, type, duration }]);
-  }, []);
-
-  const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  }, []);
+  const { toasts, showToast, removeToast } = useToastQueue();
 
   return (
     <ToastContext.Provider value={{ showToast, toasts }}>

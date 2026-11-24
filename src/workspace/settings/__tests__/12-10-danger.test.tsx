@@ -117,7 +117,7 @@ describe('the danger zone', () => {
     expect(sent().some((r) => r.what === 'POST /api/device/purge-nodedb')).toBe(false);
     fireEvent.click(confirm);
     await waitFor(() => expect(sent().some((r) => r.what === 'POST /api/device/purge-nodedb')).toBe(true));
-    // TypedConfirmDialog's busy (Ruling DL): the field, Cancel and the confirm are off, with a spinner.
+    // Today's typed confirm dialog's busy (Ruling DL): the field, Cancel and the confirm are off, with a spinner.
     expect(await within(sheet).findByTestId('confirm-spinner')).toBeInTheDocument();
     expect(within(sheet).getByRole('button', { name: 'Cancel' })).toBeDisabled();
     expect(word).toBeDisabled();

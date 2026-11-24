@@ -28,7 +28,6 @@ import { useTxStatus } from '../../hooks/useTxStatus';
 import { appBasename } from '../../init';
 import { useMeshCore } from '../../components/MeshCore/hooks/useMeshCore';
 import { useReadStateSync } from '../../components/MeshCore/hooks/useReadStateSync';
-import RouteLoading from '../../components/RouteLoading/RouteLoading';
 import MeshCoreChannelThread from './MeshCoreChannelThread';
 import MeshCoreHome from './MeshCoreHome';
 import MeshCoreRoom from './MeshCoreRoom';
@@ -39,6 +38,7 @@ import { RuntimeContext } from './runtime';
 import PhoneDeviceHeader from './PhoneDeviceHeader';
 import { useIsPhone } from '../shell/useIsPhone';
 import styles from './MeshCoreScreen.module.css';
+import StateView from '../patterns/StateView';
 
 /** A repeater's or room server's Settings and Console (Task 7.3), in the settings frame's parts. */
 const MeshCoreSettingsFrame = lazy(() => import('./remote/MeshCoreSettingsFrame.tsx'));
@@ -135,7 +135,7 @@ function Runtime({ sourceId, deviceName, screen }: { sourceId: string; deviceNam
       ) : screen.kind === 'node' ? (
         <ContactPage key={screen.key} publicKey={screen.key} tab={screen.tab} />
       ) : !readReady ? (
-        <RouteLoading />
+        <StateView kind="loading" page />
       ) : screen.kind === 'channel' ? (
         <MeshCoreChannelThread idx={screen.idx} />
       ) : screen.kind === 'room' ? (

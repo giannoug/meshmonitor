@@ -16,7 +16,7 @@
  * through `useSharedDeviceConfig()` (sharedDeviceConfig.ts); no category page loads its own.
  *
  * Task 5.3: radio edits queue in the frame's one save queue (useRadioSaveQueue)
- * and save from RadioSaveBar, with one reboot notice. Since Task 5.6 every
+ * and save from RadioSaveBar, with one reboot wait (RebootWait, Task 9.1). Since Task 5.6 every
  * queued category is built on the row kit. MQTT keeps today's own save (radioSections.ts),
  * as do the In MeshMonitor categories. With edits queued, a link out of the
  * device's settings asks first (LeaveGuard).
@@ -29,8 +29,6 @@
  */
 import { lazy, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import RouteLoading from '../../components/RouteLoading/RouteLoading';
-import { RebootModal } from '../../components/RebootModal';
 import { SaveBar } from '../../components/SaveBar';
 import { useAuth } from '../../contexts/AuthContext';
 import { DataProvider } from '../../contexts/DataContext';
@@ -44,6 +42,7 @@ import { useDeviceConfigState } from '../../hooks/deviceConfig/useDeviceConfigSt
 import { useDeviceConfigSaves } from '../../hooks/deviceConfig/useDeviceConfigSaves';
 import { appBasename } from '../../init';
 import StateView from '../patterns/StateView';
+import RebootWait from '../patterns/RebootWait';
 import { Redirect } from '../rehost/pages';
 import { useIsPhone } from '../shell/useIsPhone';
 import { readOnlyFor, resolveSettingsPath, type CategoryTarget } from './categories';
@@ -102,7 +101,7 @@ function Frame({ sourceId, source, path: rest }: SettingsFrameProps) {
   const remoteAllowed = authStatus?.user?.isAdmin === true && source.type === 'meshtastic_tcp';
   const pick = useTargetNode(sourceId, remoteAllowed);
   const { ready, categories } = useVisibleCategories(sourceId, source.type, !!pick.node);
-  if (!ready || pick.pending) return <RouteLoading />;
+  if (!ready || pick.pending) return <StateView kind="loading" page />;
   const target: CategoryTarget = pick.node ? { kind: 'remote', nodeNum: pick.node.nodeNum } : LOCAL;
 
   const base = `/source/${encodeURIComponent(sourceId)}/settings`;
@@ -192,7 +191,7 @@ function RadioConfig({ sourceId, deviceName, base, compact, remote, nodes, remot
   }, []);
   // Every number field on a radio page reports here, so an invalid one holds the queue's Save (#5649).
   const numbers = useNumberInputScope();
-  const config = { state, saves };
+  const config = { state, saves, expectReboot: (e: Reboot) => setReboot((prev) => stronger(prev, e)) };
   const security = useSecuritySaveGuard(state);
   const queue = useRadioSaveQueueState(config, {
     numberScope: numbers,
@@ -248,9 +247,10 @@ function RadioConfig({ sourceId, deviceName, base, compact, remote, nodes, remot
         {!remote && <LeaveGuard base={base} pending={pending} />}
         {security.sheets}
       </RadioSaveQueueContext.Provider>
-      <RebootModal
-        isOpen={reboot !== null}
+      <RebootWait
+        open={reboot !== null}
         expectation={reboot ?? 'always'}
+        deviceName={deviceName}
         onClose={() => {
           setReboot(null);
           setRefresh((n) => n + 1);

@@ -6,6 +6,8 @@ import type { DeviceConfigSaves } from '../../hooks/deviceConfig/useDeviceConfig
 export interface SharedDeviceConfig {
   state: DeviceConfigState;
   saves: DeviceConfigSaves;
+  /** Opens the frame's reboot wait, as a save that restarts the radio does (a sent Maintenance reboot, Task 9.1). */
+  expectReboot?(e: 'always' | 'possible'): void;
 }
 
 export const DeviceConfigContext = createContext<SharedDeviceConfig | null>(null);

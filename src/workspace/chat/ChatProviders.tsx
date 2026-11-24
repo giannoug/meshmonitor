@@ -14,6 +14,7 @@ import { SettingsProvider } from '../../contexts/SettingsContext';
 import { SourceProvider } from '../../contexts/SourceContext';
 import { UIProvider } from '../../contexts/UIContext';
 import { WebSocketProvider } from '../../contexts/WebSocketContext';
+import DeviceNotices from '../patterns/DeviceNotices';
 import type { DashboardSource } from '../../hooks/useDashboardData';
 import { appBasename } from '../../init';
 
@@ -30,6 +31,8 @@ export default function ChatProviders({ sourceId, source, classicTab, children }
   return (
     <SourceProvider sourceId={sourceId} sourceName={source.name} sourceType={source.type}>
       <WebSocketProvider>
+        {/* Today's device notification toasts, on this device's socket (Classic mounts them inside App's). */}
+        <DeviceNotices />
         <SettingsProvider baseUrl={appBasename}>
           <DataProvider>
             <Routes location={classic}>

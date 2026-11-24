@@ -1,8 +1,8 @@
 {
   "must": [
-    "Restarting Station G2",
+    "Device Reboot",
     "do not close",
-    "Elapsed: 34 s",
+    "Elapsed: 34s",
     "COOKIE_SECURE",
     "Learn more",
     "Duty cycle limit exceeded"

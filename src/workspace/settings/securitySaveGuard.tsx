@@ -6,7 +6,7 @@
  *
  * 1. An admin key that is not base64: today's message, nothing is sent.
  * 2. A new private key: not a valid key → today's message; else today's
- *    confirm (window.confirm there, a ConfirmSheet here).
+ *    confirm (today's browser confirm there, a ConfirmSheet here).
  * 3. A Protection Level change: Balanced asks plainly with today's body,
  *    Strict types the node's short name (usePolicyChangeConfirm).
  *

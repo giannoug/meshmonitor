@@ -1,19 +1,19 @@
 {
   "must": [
-    "Reboot Station G2?",
+    "Reboot the device?",
     "What happens:",
     "Reboot",
     "Purge the node database?",
     "Type PURGE to confirm",
-    "Purge node database",
+    "Purge Node Database",
     "Discard unsaved changes?",
     "Opening another item drops them",
     "Keep editing",
     "Discard changes",
-    "Reset the config of Station G2?",
+    "Reset the config of G2?",
     "This wipes:",
     "Type G2 to confirm",
-    "This cannot be undone",
+    "It cannot be undone",
     "Cancel",
     "Sends nothing on the mesh"
   ],

@@ -9,7 +9,7 @@
  *   with today's device picker, since this map shows every device;
  * - a waypoint popup's Edit / Delete… with the lock reason as text, and the
  *   delete confirms (one waypoint delete on its channel; a marker sends
- *   nothing), in place of `window.confirm`.
+ *   nothing), in place of today's browser confirm.
  *
  * Placing a pin sends nothing; only a sheet's button does, through today's
  * calls (`createWaypoint` / `updateWaypoint` / `deleteWaypoint`, and the marker

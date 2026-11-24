@@ -24,7 +24,6 @@ import { Suspense, lazy, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
-import RouteLoading from '../../components/RouteLoading/RouteLoading';
 import { rebootExpectation } from '../../utils/configRebootRules';
 import StateView from '../patterns/StateView';
 import { useIsPhone } from '../shell/useIsPhone';
@@ -95,7 +94,7 @@ export default function CategoryPage({ def, group, sub = '', categories, sourceI
       {reads && <RemoteReadBar id={def.id} />}
       {/* A remote category's rows wait for its first read: until then they hold nothing the node said. */}
       {(!reads || remote.lastRead[def.id]) && (
-        <Suspense fallback={<RouteLoading />}>
+        <Suspense fallback={<StateView kind="loading" page />}>
           <SettingsHeaderContext.Provider value={setHeader}>
             <SettingsHeaderSlotContext.Provider value={slot}>
               <def.component sourceId={sourceId} target={target} readOnly={readOnly} sub={sub} />
@@ -105,7 +104,7 @@ export default function CategoryPage({ def, group, sub = '', categories, sourceI
       )}
     </SettingsCategoryContext.Provider>
   ) : group === 'maintenance' ? (
-    <Suspense fallback={<RouteLoading />}>
+    <Suspense fallback={<StateView kind="loading" page />}>
       <MaintenanceIndex base={base} sourceId={sourceId} items={categories.filter((c) => c.group === 'maintenance')} target={target} readOnly={readOnly} />
     </Suspense>
   ) : group === 'modules' ? (
