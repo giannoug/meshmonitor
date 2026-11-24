@@ -68,7 +68,7 @@ describe('classicSourceLocation (what App sees for a Workspace URL)', () => {
   it.each([
     // Device settings are the Workspace's own, the remote target too (Task 5.9): App never sees them.
     ['/source/s1/settings?node=', '/source/s1/settings', ''],
-    ['/source/s1/settings/lora?node=!a1b2c3d4', '/source/s1/settings', ''],
+    ['/source/s1/settings/lora?node=!a1b2c3d4', '/source/s1/configuration', '#config-lora'],
     ['/source/s1/node/!a1b2c3d4/telemetry', '/source/s1/messages', ''],
     ['/source/s1/dm/!a1b2c3d4', '/source/s1/messages', ''],
     ['/source/s1/channel/2', '/source/s1/channels', ''],

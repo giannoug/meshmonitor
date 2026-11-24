@@ -14,11 +14,9 @@ import { useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { skipToken, useQuery } from '@tanstack/react-query';
-import { useAuth } from '../../contexts/AuthContext';
-import { appBasename } from '../../init';
 import { sourcePollQueryKey } from '../../hooks/pollQueryKey';
 import type { PollData } from '../../hooks/usePoll';
-import { useUnreadCounts } from '../../hooks/useUnreadCounts';
+import { useOpenDeviceUnread } from '../shell/shellUnread';
 import { isHeardRecently } from './channelLabel';
 import styles from './ChannelList.module.css';
 
@@ -33,13 +31,8 @@ interface DmListProps {
 
 export default function DmList({ sourceId, onNavigate, large, limit }: DmListProps) {
   const { t } = useTranslation();
-  const { authStatus } = useAuth();
   const { data: poll } = useQuery<PollData>({ queryKey: sourcePollQueryKey(sourceId), queryFn: skipToken });
-  const { data: unread } = useUnreadCounts({
-    baseUrl: appBasename,
-    sourceId,
-    enabled: authStatus?.authenticated === true,
-  });
+  const { data: unread } = useOpenDeviceUnread(sourceId);
 
   const peers = useMemo(() => {
     const local = (poll?.deviceConfig?.basic?.nodeId as string | undefined) || poll?.config?.localNodeInfo?.nodeId;

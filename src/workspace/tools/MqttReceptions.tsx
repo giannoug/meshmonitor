@@ -325,6 +325,7 @@ function MonitorPage({ sourceId, source }: { sourceId: string; source: Dashboard
   const detail = selected && <Detail m={m} packet={selected} onClose={() => setSelectedKey(null)} />;
   const confirm = (
     <ConfirmSheet
+      submitOnEnter={false}
       open={clearOpen}
       title={t('common.clear', 'Clear')}
       body={t('mqtt.packets.clearConfirm')}

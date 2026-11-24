@@ -17,12 +17,11 @@
  */
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { skipToken, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { useToast } from '../../components/ToastContainer';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOptionalSocket } from '../../contexts/WebSocketContext';
-import type { UnreadCountsData } from '../../hooks/useUnreadCounts';
-import { appBasename } from '../../init';
+import { useOpenDeviceUnread } from '../shell/shellUnread';
 import apiService from '../../services/api';
 import type { ActivityItem, ActivityPage } from '../../types/activity';
 import { useUserPreferences } from '../prefs/useUserPreferences';
@@ -91,11 +90,8 @@ export function useActivity(sourceId: string | null | undefined, { enabled = tru
     };
   }, [socket, on, sourceId, refresh]);
 
-  // The key useUnreadCounts({ baseUrl: appBasename, sourceId }) polls under (the shell's open-device poll).
-  const { data: unread } = useQuery<UnreadCountsData>({
-    queryKey: ['unreadCounts', appBasename, sourceId ?? null, false],
-    queryFn: skipToken,
-  });
+  // The shell's open-device poll, read without polling.
+  const { data: unread } = useOpenDeviceUnread(sourceId);
   const prevUnread = useRef(unread);
   useEffect(() => {
     const prev = prevUnread.current;

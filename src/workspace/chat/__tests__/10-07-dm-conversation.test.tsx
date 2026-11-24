@@ -52,3 +52,19 @@ describe('10-07-dm-conversation', () => {
     expect(screen.queryByRole('button', { name: /switch device/ })).toBeNull();
   });
 });
+
+// F.2 A23-M1: Escape closes only the top layer. In the 768–1023 px drawer layout a
+// header menu open over the content closes on Escape, and the drawer stays.
+describe('Escape with a header menu open in the drawer layout', () => {
+  it('closes the menu only', async () => {
+    renderChat(route, { width: 900 });
+    fireEvent.click(await screen.findByRole('button', { name: 'Show sidebar' }));
+    await screen.findByRole('complementary', { name: 'Station G2' });
+    const ask = await screen.findByRole('button', { name: /Ask the node/ });
+    fireEvent.click(ask);
+    expect(ask).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.keyDown(ask, { key: 'Escape' });
+    expect(ask).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('complementary', { name: 'Station G2' })).toBeInTheDocument();
+  });
+});

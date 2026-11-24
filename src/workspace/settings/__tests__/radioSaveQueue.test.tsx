@@ -170,4 +170,30 @@ describe('useRadioSaveQueueState', () => {
     });
     expect(result.current.queue.queue).toMatchObject([{ section: 'lora', changes: [{ field: 'hopLimit', from: 4, to: 5 }] }]);
   });
+
+  // F.2 C-M1: a section with no sender (a remote target's saves cover only what it sends) fails visibly.
+  it('a queued section with no sender is "not saved", and the others still save', async () => {
+    const saves = { owner: vi.fn(async () => true) };
+    const { result } = renderHook(() => useFakeConfig(saves));
+    act(() => result.current.state.setLoading(false));
+    act(() => {
+      result.current.state.setHopLimit(4);
+      result.current.state.setLongName('Station G3');
+    });
+    let outcome: SaveResult | undefined;
+    await act(async () => {
+      outcome = await result.current.queue.saveAll();
+    });
+    expect(outcome).toEqual({ ok: ['owner'], failed: ['lora'], cancelled: [] });
+    expect(result.current.queue.saving).toBe(false);
+  });
+
+  // F.2 C-M4: while the configuration reloads, half-loaded values are not counted as changes.
+  it('counts nothing while the configuration loads', () => {
+    const { result } = renderHook(() => useFakeConfig({}));
+    act(() => result.current.state.setLoading(false));
+    act(() => result.current.state.setLoading(true));
+    act(() => result.current.state.setHopLimit(6));
+    expect(result.current.queue.queue).toEqual([]);
+  });
 });

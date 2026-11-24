@@ -211,6 +211,7 @@ function DataRows({ sourceId }: { sourceId: string }) {
       </DangerZone>
 
       <ConfirmSheet
+        submitOnEnter={false}
         open={!!w}
         title={w?.title ?? ''}
         body={

@@ -18,12 +18,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
+import { useUI } from '../../contexts/UIContext';
 import { useData } from '../../contexts/DataContext';
 import { useMessaging, useUnreadDividerAnchors } from '../../contexts/MessagingContext';
 import { useNotificationMuteSettings, useSettings } from '../../contexts/SettingsContext';
 import { useSource } from '../../contexts/SourceContext';
 import type { DashboardSource } from '../../hooks/useDashboardData';
-import { useFirstUnread } from '../../hooks/useFirstUnread';
+import { useProviderFirstUnread } from '../shell/shellUnread';
 import { useNodes } from '../../hooks/useServerData';
 import { useTxStatus } from '../../hooks/useTxStatus';
 import { useViewTranslations } from '../../hooks/useViewTranslations';
@@ -115,7 +116,8 @@ function DmConversation({ nodeId, deviceName }: { nodeId: string; deviceName: st
 
   // Opening a DM selects it, as a click in Classic's list does; wait (latched) for the
   // first-unread read so the provider pins the "New" line. useMessagingView marks it read.
-  const firstUnread = useFirstUnread({ baseUrl: appBasename, enabled: signedIn, sourceId });
+  const { showMqttMessages } = useUI();
+  const firstUnread = useProviderFirstUnread(sourceId, showMqttMessages);
   const [anchorsReady, setAnchorsReady] = useState(false);
   useEffect(() => {
     if (!authLoading && (!signedIn || !firstUnread.isPending)) setAnchorsReady(true);

@@ -448,12 +448,14 @@ function useRunFailure() {
   };
 }
 
-function AnnounceExtra({ values, saved, canWrite }: ExtraProps) {
+function AnnounceExtra({ b, values, saved, dirty, canWrite }: ExtraProps) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { sourceId, receiveOnly } = useMeshCoreRuntime();
   const fail = useRunFailure();
   const [sending, setSending] = useState(false);
+  // Send Now asks first, as the Meshtastic one (Ruling 8.3, F IX).
+  const [confirm, setConfirm] = useState(false);
   const [lastRunAt, setLastRunAt] = useState<number | null>((saved.lastRunAt as number | null) ?? null);
   // Today's live preview: the message, 300 ms after the last keystroke.
   const message = String(values.message ?? '');
@@ -462,19 +464,37 @@ function AnnounceExtra({ values, saved, canWrite }: ExtraProps) {
     const handle = setTimeout(() => setDebounced(message), 300);
     return () => clearTimeout(handle);
   }, [message]);
+  const previewOf = (text: string) => async () =>
+    (await apiService.get<{ preview?: string }>(`${autoPath(sourceId, 'announce/preview')}?message=${encodeURIComponent(text)}`))?.preview ?? '';
   const { data: preview } = useQuery({
     queryKey: ['workspace', 'meshcore', 'announce-preview', sourceId, debounced],
-    queryFn: async () => (await apiService.get<{ preview?: string }>(`${autoPath(sourceId, 'announce/preview')}?message=${encodeURIComponent(debounced)}`))?.preview ?? '',
+    enabled: debounced !== '',
+    queryFn: previewOf(debounced),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
   });
-  const channels = Array.isArray(saved.channelIndexes) ? saved.channelIndexes.length : 0;
+  // The server sends the stored announcement (runAutoAnnounceCycle): the confirm quotes it, read when the confirm opens.
+  const savedMessage = String(saved.message ?? '');
+  const { data: savedPreview } = useQuery({
+    queryKey: ['workspace', 'meshcore', 'announce-preview', sourceId, savedMessage],
+    enabled: confirm && savedMessage !== '',
+    queryFn: previewOf(savedMessage),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  });
+  const indexes = Array.isArray(saved.channelIndexes) ? (saved.channelIndexes as unknown[]) : [];
+  const channels = indexes.length;
+  const options = b.fields(saved).find((f) => f.key === 'channelIndexes')?.options ?? [];
+  const names = indexes.map((i) => options.find((o) => o.value === String(i))?.label ?? t('forwarding.channel_n', { index: i })).join(', ');
+  const sendsLine = t('workspace.automations.send_now_sends', { count: channels, channels: names });
   const send = async () => {
+    if (sending) return;
     setSending(true);
     try {
       const reply = await apiService.post<{ data?: { lastRunAt?: number } }>(autoPath(sourceId, 'announce/send'));
       if (typeof reply?.data?.lastRunAt === 'number') setLastRunAt(reply.data.lastRunAt);
       showToast(t('meshcore.automation.announce.sent', 'Announcement sent'), 'success');
+      setConfirm(false);
     } catch (err) {
       fail(err, t('meshcore.automation.announce.send_failed', 'Failed to send announcement'));
     } finally {
@@ -489,11 +509,27 @@ function AnnounceExtra({ values, saved, canWrite }: ExtraProps) {
       <div className={styles.actions}>
         <button type="button" className={styles.button} disabled={!canWrite || sending || channels === 0 || receiveOnly}
           title={receiveOnly ? t('meshcore.receive_only.control_tooltip', 'Receive-only mode is on for this MeshCore source. Turn it off in MeshCore Settings to use this.') : undefined}
-          onClick={() => void send()}>
+          onClick={() => setConfirm(true)}>
           {sending ? t('meshcore.automation.announce.sending', 'Sending…') : t('meshcore.automation.announce.send_now', 'Send Now')}
         </button>
       </div>
-      <SendsLine>{t('workspace.meshcore.auto.send_now_sends', { count: channels })}</SendsLine>
+      <SendsLine>{sendsLine}</SendsLine>
+      <ConfirmSheet
+        open={confirm}
+        title={t('meshcore.automation.announce.send_now', 'Send Now')}
+        body={
+          <>
+            <p className={styles.quote}>{savedPreview || savedMessage}</p>
+            {dirty && <p className={styles.muted}>{t('workspace.automations.send_now_unsaved')}</p>}
+            <SendsLine>{sendsLine}</SendsLine>
+          </>
+        }
+        confirmLabel={t('meshcore.automation.announce.send_now', 'Send Now')}
+        busy={sending}
+        submitOnEnter={false}
+        onCancel={() => setConfirm(false)}
+        onConfirm={send}
+      />
     </section>
   );
 }
@@ -504,8 +540,8 @@ function TimersExtra({ saved, dirty, canWrite }: ExtraProps) {
   const { sourceId, receiveOnly } = useMeshCoreRuntime();
   const fail = useRunFailure();
   const [running, setRunning] = useState<string | null>(null);
-  // s8n1: a flood advert asks first (stricter than today's Run now, Ruling 7.5 HQ).
-  const [confirmFlood, setConfirmFlood] = useState<Values | null>(null);
+  // s8n1: a flood advert asks first with today's warning (Ruling 7.5 HQ); every other Run now transmits too, so it asks as well (F IX).
+  const [confirmRun, setConfirmRun] = useState<Values | null>(null);
   const triggers = (Array.isArray(saved.triggers) ? saved.triggers : []) as Values[];
   if (triggers.length === 0) return null;
   const floods = (tr: Values) => tr.responseType === 'advert' && (tr.advertMode ?? LEGACY_MESHCORE_ADVERT_MODE) === 'flood';
@@ -530,28 +566,35 @@ function TimersExtra({ saved, dirty, canWrite }: ExtraProps) {
           </span>
           <button type="button" className={styles.button} disabled={!canWrite || dirty || receiveOnly || running !== null}
             title={dirty ? t('meshcore.automation.timers.save_before_run', 'Save your changes before running this trigger.') : undefined}
-            onClick={() => (floods(tr) ? setConfirmFlood(tr) : void run(String(tr.id)))}>
+            onClick={() => setConfirmRun(tr)}>
             {running === tr.id ? t('meshcore.automation.timers.running', 'Running…') : t('meshcore.automation.timers.run_now', 'Run now')}
           </button>
         </div>
       ))}
       <SendsLine>{t('workspace.meshcore.auto.run_timer_sends')}</SendsLine>
       <ConfirmSheet
-        open={!!confirmFlood}
+        open={!!confirmRun}
         title={t('meshcore.automation.timers.run_now', 'Run now')}
         body={
-          <>
-            <p>{t('meshcore.advert.flood_automated_warning')}</p>
-            <SendsLine>{t('workspace.meshcore.sends_flood')}</SendsLine>
-          </>
+          confirmRun && floods(confirmRun) ? (
+            <>
+              <p>{t('meshcore.advert.flood_automated_warning')}</p>
+              <SendsLine>{t('workspace.meshcore.sends_flood')}</SendsLine>
+            </>
+          ) : (
+            <>
+              <p>{String(confirmRun?.name || t('meshcore.automation.timers.untitled', 'New trigger'))}</p>
+              <SendsLine>{t('workspace.meshcore.auto.run_timer_sends')}</SendsLine>
+            </>
+          )
         }
         confirmLabel={t('meshcore.automation.timers.run_now', 'Run now')}
         busy={running !== null}
         submitOnEnter={false}
-        onCancel={() => setConfirmFlood(null)}
+        onCancel={() => setConfirmRun(null)}
         onConfirm={async () => {
-          const id = String(confirmFlood?.id);
-          setConfirmFlood(null);
+          const id = String(confirmRun?.id);
+          setConfirmRun(null);
           await run(id);
         }}
       />

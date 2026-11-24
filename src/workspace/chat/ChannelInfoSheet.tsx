@@ -188,6 +188,7 @@ export default function ChannelInfoSheet(props: ChannelInfoSheetProps) {
         </div>
       </Sheet>
       <ConfirmSheet
+        submitOnEnter={false}
         open={confirming}
         title={t('channels.purge_all_messages')}
         body={t('workspace.chat.purge_confirm', { channel: props.channelName })}

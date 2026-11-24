@@ -55,6 +55,7 @@ import StateView from '../patterns/StateView';
 import TwoLineRow from '../patterns/TwoLineRow';
 import { useIsPhone } from '../shell/useIsPhone';
 import DiscoverMenu from './DiscoverMenu';
+import { runSweep, useSweep } from './settings/sweepStore';
 import { shortMark } from './meshcoreLabels';
 import { useMeshCoreRuntime } from './runtime';
 import styles from './MeshCoreNodesTable.module.css';
@@ -169,7 +170,10 @@ export default function MeshCoreNodesTable({ feed = false }: MeshCoreNodesTableP
 
   const base = `/source/${encodeURIComponent(sourceId)}`;
   const nodeUrl = (key: string) => `${base}/node/${encodeURIComponent(key)}`;
-  const canDiscover = !feed && (status?.connected ?? false) && status?.deviceType === 1;
+  // Today's gate, and the server's: discover needs nodes:write.
+  const canDiscover = !feed && (status?.connected ?? false) && status?.deviceType === 1 && hasPermission('nodes', 'write', { sourceId });
+  // One radio sweep at a time on this source (Ruling HN N3): Contacts and Path & scope hold this, and it holds them.
+  const sweep = useSweep(sourceId);
   const isRepeaterSource = status?.deviceType === 2;
   const canFavourite = hasPermission('nodes', 'write', { sourceId });
 
@@ -278,7 +282,8 @@ export default function MeshCoreNodesTable({ feed = false }: MeshCoreNodesTableP
   );
   const discover = canDiscover && (
     <DiscoverMenu
-      onDiscover={actions.discoverNodes}
+      onDiscover={(mode) => runSweep(sourceId, 'nodes', () => actions.discoverNodes(mode))}
+      busy={sweep !== null}
       reason={receiveOnly ? t('meshcore.receive_only.control_tooltip', 'Receive-only mode is on for this MeshCore source. Turn it off in MeshCore Settings to use this.') : undefined}
       onNew={setNewKeys}
     />

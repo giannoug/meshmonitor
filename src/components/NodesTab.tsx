@@ -1821,22 +1821,22 @@ const NodesTabComponent: React.FC<NodesTabProps> = ({
         tracerouteNodeNums,
         lineColor: overlayColors.neighborLine,
         decorate: (ni, { positions: [[nodeLat, nodeLng], [neighborLat, neighborLng]], isBidirectional }) => {
-          // Calculate distance between nodes (coordinates guaranteed non-null by early return above)
+          // Distance between nodes (buildNeighborLinks drops links without both positions)
           const distKm = calculateDistance(nodeLat, nodeLng, neighborLat, neighborLng);
           const distStr = formatDistance(distKm, distanceUnit);
-    
+
           // Normalize timestamp: old data may be in seconds, new data in milliseconds
           const tsMs = ni.timestamp < 10_000_000_000 ? ni.timestamp * 1000 : ni.timestamp;
           // Data age (clamped to 0 to handle clock skew)
           const ageMs = Math.max(0, Date.now() - tsMs);
           const ageMin = Math.floor(ageMs / 60000);
           const ageStr = ageMin < 60 ? `${ageMin}m ago` : `${Math.floor(ageMin / 60)}h ago`;
-    
+
           // SNR text color for popup (canonical 4-band scale, #4047 P3 D4)
           const snrTextColor = ni.snr != null
             ? snrToColor(ni.snr, overlayColors.snrColors)
             : undefined;
-    
+
           return {
             children: (
               <Popup>

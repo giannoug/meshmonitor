@@ -114,6 +114,7 @@ export function DeleteMarkerSheet({ marker, onClose, onDelete }: { marker: MapMa
   if (!marker) return null;
   return (
     <ConfirmSheet
+      submitOnEnter={false}
       open
       danger
       title={t('localMarkers.confirmDelete', { label: marker.label })}

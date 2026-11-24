@@ -112,6 +112,7 @@ export default function PurgeDataSheet({ open, sourceId, node, onClose, purgeNod
 
   return (
     <ConfirmSheet
+      submitOnEnter={false}
       open={open}
       title={
         <span className={styles.title}>

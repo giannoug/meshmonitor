@@ -37,7 +37,6 @@ describe('classicFallback', () => {
     ['/server/backup', '/settings'],
     ['/you', '/'],
     ['/you/security', '/'],
-    ['/source/abc/settings/lora', '/source/abc/settings'],
     ['/source/abc/node/123', '/source/abc/messages'],
     ['/source/abc/node/123/telemetry', '/source/abc/messages'],
     ['/source/abc/dm/123', '/source/abc/messages'],
@@ -60,4 +59,39 @@ describe('classicFallback', () => {
       expect(classicFallback(path)).toBeNull();
     },
   );
+});
+
+// F.2 A23-I1: a Workspace device-settings link opens today's section; the remote target is Admin Commands.
+describe('classicFallback for device settings', () => {
+  it.each([
+    ['/source/abc/settings/lora', '', '/source/abc/configuration#config-lora'],
+    ['/source/abc/settings/identity', '', '/source/abc/configuration#config-node-identity'],
+    ['/source/abc/settings/channels', '', '/source/abc/configuration#config-channels'],
+    ['/source/abc/settings/security', '', '/source/abc/configuration#config-security'],
+    ['/source/abc/settings/device/position', '', '/source/abc/configuration#config-position'],
+    ['/source/abc/settings/device/network/', '', '/source/abc/configuration#config-network'],
+    ['/source/abc/settings/modules/mqtt', '', '/source/abc/configuration#config-mqtt'],
+    ['/source/abc/settings/modules/telemetry', '', '/source/abc/configuration#config-telemetry'],
+    ['/source/abc/settings/maintenance/firmware', '', '/source/abc/configuration#config-firmware'],
+    ['/source/abc/settings/maintenance/danger', '', '/source/abc/configuration#config-danger'],
+    ['/source/abc/settings/modules', '', '/source/abc/configuration'],
+    ['/source/abc/settings/maintenance', '', '/source/abc/configuration'],
+    // MeshMonitor categories stay on the Settings tab.
+    ['/source/abc/settings/telemetry', '', '/source/abc/settings#settings-telemetry'],
+    ['/source/abc/settings/notifications', '', '/source/abc/settings#settings-notifications'],
+    ['/source/abc/settings/data', '', '/source/abc/settings#settings-reset-ui'],
+    ['/source/abc/settings/mqtt-bridge', '', '/source/abc/settings#settings-mqtt-bridge'],
+    // A MeshCore page: Classic's MeshCore page ignores the path.
+    ['/source/abc/settings/radio', '', '/source/abc/settings'],
+    // The remote target.
+    ['/source/abc/settings', '?node=', '/source/abc/admin'],
+    ['/source/abc/settings', '?node=!a1b2c3d4', '/source/abc/admin'],
+    ['/source/abc/settings/lora', '?node=!a1b2c3d4', '/source/abc/admin'],
+  ])('%s%s → %s', (path, search, expected) => {
+    expect(classicFallback(path, search)).toBe(expected);
+  });
+
+  it('leaves the bare Settings tab alone', () => {
+    expect(classicFallback('/source/abc/settings', '')).toBeNull();
+  });
 });

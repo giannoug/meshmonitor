@@ -71,6 +71,33 @@ describe('13-07 / 13-24 backup & maintenance', () => {
     );
   });
 
+  // F.2 C-M3: each schedule write carries the earlier edits, one at a time, so a quick second edit cannot undo the first.
+  it('a second schedule edit made while the first is in flight keeps the first', async () => {
+    const { log } = renderServer(PATH);
+    const time = await screen.findByLabelText('Backup Time (24-hour format)');
+    const keep = await screen.findByLabelText('Maximum Backups to Keep');
+    const fetchMock = vi.mocked(fetch);
+    const real = fetchMock.getMockImplementation()!;
+    let release!: () => void;
+    let held = false;
+    fetchMock.mockImplementation((input, init) => {
+      if (!held && init?.method === 'POST' && String(input).endsWith('/api/system/backup/settings')) {
+        held = true;
+        return new Promise((resolve) => (release = () => resolve(real(input, init))));
+      }
+      return real(input, init);
+    });
+    fireEvent.change(time, { target: { value: '04:00' } });
+    await waitFor(() => expect(held).toBe(true));
+    fireEvent.change(keep, { target: { value: '14' } });
+    fireEvent.blur(keep);
+    await new Promise((r) => setTimeout(r, 50));
+    release();
+    await waitFor(() => expect(log.writes.filter((w) => w.path === '/api/system/backup/settings')).toHaveLength(2));
+    const last = log.writes.filter((w) => w.path === '/api/system/backup/settings').pop()!;
+    expect(last.body).toEqual({ enabled: true, maxBackups: 14, backupTime: '04:00' });
+  });
+
   it('retention saves on blur as today\'s key, and Run now runs once with no confirm (today has none)', async () => {
     const { log } = renderServer(PATH);
     const messages = await screen.findByLabelText('Message Retention');

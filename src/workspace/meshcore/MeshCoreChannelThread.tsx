@@ -513,6 +513,7 @@ export default function MeshCoreChannelThread({ idx }: { idx: number }) {
         onCancel={() => setResendFor(null)}
       />
       <ConfirmSheet
+        submitOnEnter={false}
         open={!!deleteFor}
         title={t('channels.delete_button_title')}
         body={t('meshcore.confirm_delete_message', 'Delete this message?')}
@@ -532,6 +533,7 @@ export default function MeshCoreChannelThread({ idx }: { idx: number }) {
         onCancel={() => setDeleteFor(null)}
       />
       <ConfirmSheet
+        submitOnEnter={false}
         open={clearOpen}
         title={t('meshcore.clear_channel', 'Clear channel messages')}
         body={t('meshcore.confirm_clear_channel', 'Clear all messages on this channel? This cannot be undone.')}

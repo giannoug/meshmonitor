@@ -86,12 +86,16 @@ function Overview({ table, results, setSaved }: ReturnType<typeof useBuiltins>) 
   const shown = filter === 'on' ? on : filter === 'sends' ? sends : rows;
   const changed = rows.filter((r) => r.saved && r.b.enabledKey && r.b.id in edits && edits[r.b.id] !== r.saved[r.b.enabledKey]);
 
+  // Each changed built-in saves on its own; one failing does not stop the rest, and the dock names both (as DeviceAutomations).
   const save = async () => {
+    if (saving) return;
     setSaving(true);
     setError(null);
-    try {
-      for (const { b, saved } of changed) {
-        const next = { ...saved!, [b.enabledKey!]: edits[b.id] };
+    const done: string[] = [];
+    const failed: string[] = [];
+    for (const { b, saved } of changed) {
+      const next = { ...saved!, [b.enabledKey!]: edits[b.id] };
+      try {
         await b.save(sourceId, next, saved!);
         setSaved(b, next);
         setEdits((e) => {
@@ -99,20 +103,30 @@ function Overview({ table, results, setSaved }: ReturnType<typeof useBuiltins>) 
           delete rest[b.id];
           return rest;
         });
+        done.push(b.title);
+      } catch (err) {
+        failed.push(`${b.title} (${err instanceof Error && err.message ? err.message : t('automation.settings_save_failed', 'Failed to save settings')})`);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('automation.settings_save_failed', 'Failed to save settings'));
-    } finally {
-      setSaving(false);
     }
+    if (failed.length > 0) {
+      setError(done.length > 0
+        ? t('workspace.automations.saved_and_failed', { saved: done.join(', '), failed: failed.join(', ') })
+        : t('workspace.automations.failed', { failed: failed.join(', ') }));
+    }
+    setSaving(false);
   };
+  const [ruleBusy, setRuleBusy] = useState<string | null>(null);
   const toggleRule = async (r: EngineRule) => {
+    // One request in flight per switch press; the switch waits for the re-read.
+    if (ruleBusy) return;
+    setRuleBusy(r.id);
     try {
       await apiService.post(`/api/automations/${encodeURIComponent(r.id)}/${r.enabled ? 'disable' : 'enable'}`);
     } catch (err) {
       showToast(err instanceof Error && err.message ? err.message : t('automation.settings_save_failed', 'Failed to save settings'), 'error');
     }
-    void queryClient.invalidateQueries({ queryKey: ['workspace', 'automations', 'rules'] });
+    await queryClient.invalidateQueries({ queryKey: ['workspace', 'automations', 'rules'] });
+    setRuleBusy(null);
   };
 
   const sendsText = (b: Builtin, v: Values) => b.sends(v) ?? t('workspace.settings.savebar.sends_nothing');
@@ -155,7 +169,7 @@ function Overview({ table, results, setSaved }: ReturnType<typeof useBuiltins>) 
           <p className={own.summary}>{r.sources === null ? t('workspace.meshcore.auto.all_devices') : t('workspace.meshcore.auto.devices_count', { count: r.sources.length })}</p>
           <SendsLine>{transmits ? t('workspace.meshcore.auto.rule_sends') : t('workspace.settings.savebar.sends_nothing')}</SendsLine>
         </div>
-        <input type="checkbox" role="switch" className={kit.switch} aria-label={r.name} checked={r.enabled} disabled={!canWriteRules} onChange={() => void toggleRule(r)} />
+        <input type="checkbox" role="switch" className={kit.switch} aria-label={r.name} checked={r.enabled} disabled={!canWriteRules || ruleBusy !== null} aria-busy={ruleBusy === r.id || undefined} onChange={() => void toggleRule(r)} />
         <Link className={styles.iconButton} to={ruleUrl(r.id)} title={r.name}>
           <UiIcon name="chevronRight" size={18} />
           <span className={styles.srOnly}>{t('workspace.meshcore.auto.open', { name: r.name })}</span>

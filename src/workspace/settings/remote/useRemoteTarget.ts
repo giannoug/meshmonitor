@@ -350,6 +350,9 @@ export function useRemoteTargetState({
       mark('sending');
       try {
         const result = await execute(cmd.command, cmd.params);
+        // As today's Admin Commands: a sent Protection Level is now the node's, so the next send neither asks for it nor resends it.
+        const policy = (cmd.params.config as { packetSignaturePolicy?: number } | undefined)?.packetSignaturePolicy;
+        if (section === 'security' && policy !== undefined) latest.current.setSecurityLoadedSignaturePolicy(policy);
         // Only favorite / ignore wait for a routing ACK today; a timed-out one is No reply, anything else is Sent.
         const outcome: SendOutcome = result.ack?.timedOut ? 'noReply' : 'sent';
         mark(outcome);

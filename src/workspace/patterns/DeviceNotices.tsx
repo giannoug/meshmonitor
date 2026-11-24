@@ -5,19 +5,11 @@
  * ToastHost. Mounted once per device page, inside its per-source socket
  * (ChatProviders), as Classic mounts it inside App's. Shows; sends nothing.
  */
-import { useWebSocketContext } from '../../contexts/WebSocketContext';
+import { useOptionalSocket } from '../../contexts/WebSocketContext';
 import { useDeviceNotificationToasts } from '../../hooks/useDeviceNotificationToasts';
 
-/** The socket of the WebSocketProvider above, or none outside one (nothing to listen to). */
-function useDeviceSocket() {
-  try {
-    return useWebSocketContext().state.socket;
-  } catch {
-    return null;
-  }
-}
-
+/** Listens on the socket of the WebSocketProvider above; outside one there is nothing to listen to. */
 export default function DeviceNotices(): null {
-  useDeviceNotificationToasts(useDeviceSocket());
+  useDeviceNotificationToasts(useOptionalSocket());
   return null;
 }

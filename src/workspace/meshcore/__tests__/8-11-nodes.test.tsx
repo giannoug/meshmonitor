@@ -7,10 +7,12 @@
  * node, Neighbour and NEW tags, RSSI, SNR, Voltage, Hops, Last Heard,
  * Position, Key, More details) grouped by role.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, onTestFinished } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { MC } from '../../__fixtures__/meshcore';
+import { SOURCE_IDS } from '../../__fixtures__/athens';
+import { runSweep } from '../settings/sweepStore';
 import { HELTEC, renderMeshCore } from './renderMeshCore';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('./mocks')).wsMock(orig));
@@ -48,6 +50,42 @@ describe('8-11-nodes', () => {
     expect(log.writes.find((w) => w.path.endsWith('/meshcore/discover'))!.body).toEqual({ mode: 'repeaters' });
     const row = screen.getByRole('link', { name: 'Penteli Repeater' }).closest('tr')!;
     expect(within(row).getByText('NEW')).toBeInTheDocument();
+  });
+
+  // F.2 D-I1: one radio sweep at a time per source (sweepStore, Ruling HN N3), and today's nodes:write gate.
+  it('Discover waits while another sweep runs on this radio, and sends nothing', async () => {
+    const { log } = renderMeshCore(route);
+    await screen.findByRole('link', { name: 'Penteli Repeater' });
+    let finish!: () => void;
+    const other = runSweep(SOURCE_IDS.heltec, 'regions', () => new Promise<void>((r) => (finish = r)));
+    onTestFinished(() => finish());
+    const repeaters = screen.getByRole('button', { name: /Discover Repeaters/ });
+    await waitFor(() => expect(repeaters).toBeDisabled());
+    fireEvent.click(repeaters);
+    expect(sends(log, '/meshcore/discover')).toBe(0);
+    finish();
+    await other;
+    await waitFor(() => expect(repeaters).toBeEnabled());
+  });
+
+  it('a Nodes discovery holds the other sweeps on this radio while it runs', async () => {
+    renderMeshCore(route);
+    await screen.findByRole('link', { name: 'Penteli Repeater' });
+    const repeaters = screen.getByRole('button', { name: /Discover Repeaters/ });
+    await waitFor(() => expect(repeaters).toBeEnabled());
+    fireEvent.click(repeaters);
+    const regions = vi.fn(async () => 'ran');
+    expect(await runSweep(SOURCE_IDS.heltec, 'regions', regions)).toBeNull();
+    expect(regions).not.toHaveBeenCalled();
+    await screen.findByText(/4 contacts returned/);
+  });
+
+  it('Discover needs nodes:write, as the server does', async () => {
+    renderMeshCore(route, {
+      permissions: { bySource: { [SOURCE_IDS.heltec]: { nodes: { read: true, write: false }, connection: { read: true, write: true }, messages: { read: true, write: true } } } } as never,
+    });
+    await screen.findByRole('link', { name: 'Penteli Repeater' });
+    expect(screen.queryByRole('button', { name: /Discover Repeaters/ })).toBeNull();
   });
 
   it('Import contact writes the radio once and says it sends nothing on the mesh', async () => {

@@ -15,6 +15,7 @@ import type { TemperatureUnit } from '../utils/temperature';
 import type { TimeFormat } from '../contexts/SettingsContext';
 import UnifiedTelemetryGraphs from '../components/unifiedTelemetry/UnifiedTelemetryGraphs';
 import UnifiedTelemetryLatest from '../components/unifiedTelemetry/UnifiedTelemetryLatest';
+import WorkspaceBanner from '../components/WorkspaceBanner/WorkspaceBanner';
 import '../styles/unified.css';
 
 type View = 'graphs' | 'latest';
@@ -76,6 +77,7 @@ export default function UnifiedTelemetryPage() {
 
   return (
     <div className="unified-page">
+      <WorkspaceBanner inline />
       {view === 'graphs' ? (
         <UnifiedTelemetryGraphs
           header={header}

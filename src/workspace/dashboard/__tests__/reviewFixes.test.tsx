@@ -70,6 +70,25 @@ describe('Task 8.1 fix round 1', () => {
     expect(JSON.parse(post.body?.telemetryFavorites as string)).toEqual([VOLTAGE, TEMPERATURE]);
   });
 
+  // F.2 B-M3: the board is written first, so a failed board write never leaves stars removed for everyone.
+  it('a failed board write unstars nothing', async () => {
+    const { log } = renderDashboard(undefined, {
+      fixtures: { 'PUT /api/user/preferences/:key': () => new Response(JSON.stringify({ error: 'nope' }), { status: 500 }) },
+    });
+    await boardLoaded();
+    await edit();
+    const battery = rows().find((r) => within(r).queryByText(/Battery Level/))!;
+    fireEvent.click(within(battery).getByRole('button', { name: 'Remove Kifisia Rooftop' }));
+    const button = screen.getByRole('button', { name: 'Done' });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+    expect(await screen.findByText('Could not save your dashboard')).toBeInTheDocument();
+    await pause();
+    expect(log.writes.filter((w) => w.path === '/api/settings')).toEqual([]);
+    // The draft stays open for a retry.
+    expect(screen.getByRole('list', { name: 'Your board' })).toBeInTheDocument();
+  });
+
   it('I2: the Dashboard adds no status poll of its own: the shell\'s observer is the only one with a timer', async () => {
     const { queryClient } = renderDashboard();
     await boardLoaded();

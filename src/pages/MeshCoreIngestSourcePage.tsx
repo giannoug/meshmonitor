@@ -22,6 +22,7 @@ import { useSource } from '../contexts/SourceContext';
 import { useShellEmbedded } from '../contexts/ShellContext';
 import LoginModal from '../components/LoginModal';
 import UserMenu from '../components/UserMenu';
+import WorkspaceBanner from '../components/WorkspaceBanner/WorkspaceBanner';
 import { appBasename } from '../init';
 import { MeshCoreIngestView } from '../components/MeshCore/MeshCoreIngestView';
 import '../components/MeshCore/MeshCoreTab.css';
@@ -80,6 +81,7 @@ function MeshCoreIngestInner() {
         </div>
       </header>
       )}
+      <WorkspaceBanner inline />
 
       {canReadConnection ? (
         <MeshCoreIngestView sourceId={sourceId} baseUrl={appBasename} />

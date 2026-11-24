@@ -6,13 +6,14 @@
  * Classic's location for the tab (`channels` or `messages`), as
  * WorkspaceSource does for App.
  */
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
+import { useToast } from '../../components/ToastContainer';
 import { DataProvider } from '../../contexts/DataContext';
 import { MessagingProvider } from '../../contexts/MessagingContext';
 import { SettingsProvider } from '../../contexts/SettingsContext';
 import { SourceProvider } from '../../contexts/SourceContext';
-import { UIProvider } from '../../contexts/UIContext';
+import { UIProvider, useUI } from '../../contexts/UIContext';
 import type { DashboardSource } from '../../hooks/useDashboardData';
 import { appBasename } from '../../init';
 
@@ -35,6 +36,7 @@ export default function ChatProviders({ sourceId, source, classicTab, children }
               path="*"
               element={
                 <UIProvider>
+                  <SendErrors />
                   <MessagingProvider baseUrl={appBasename}>{children}</MessagingProvider>
                 </UIProvider>
               }
@@ -44,4 +46,20 @@ export default function ChatProviders({ sourceId, source, classicTab, children }
       </SettingsProvider>
     </SourceProvider>
   );
+}
+
+/**
+ * The shared send handlers report a failed send, reaction, bell, position or
+ * resend through `useUI().setError` with today's words; Classic shows it in its
+ * error banner, the Workspace as an error toast (F.2 B-I1).
+ */
+function SendErrors() {
+  const { error, setError } = useUI();
+  const { showToast } = useToast();
+  useEffect(() => {
+    if (!error) return;
+    showToast(error, 'error');
+    setError(null);
+  }, [error, setError, showToast]);
+  return null;
 }

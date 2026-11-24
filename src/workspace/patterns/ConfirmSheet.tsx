@@ -1,5 +1,5 @@
 /**
- * ConfirmSheet (spec §5.7): the one destructive-action confirm. A `Sheet`
+ * ConfirmSheet (spec §5.7): the Workspace's confirm for destructive and transmitting actions. A `Sheet`
  * (right-docked on desktop, bottom on phone). With `confirmWord` the confirm
  * stays disabled until it is typed, case-sensitive and trimmed, as
  * today's typed confirm dialog (`typed_confirm.prompt` is its label). While `busy`

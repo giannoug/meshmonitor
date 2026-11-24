@@ -117,15 +117,51 @@ describe('8-14-automations', () => {
     expect(log.writes).toHaveLength(1);
   });
 
-  it('Auto-announce\'s Send now carries its Sends line and sends once per press', async () => {
+  // F.2 D-I2 (Ruling F IX): Send Now asks first, as the Meshtastic one (Ruling 8.3).
+  it('Auto-announce\'s Send Now asks first with the saved message and its channels; Enter does not send; confirm sends once', async () => {
     const { log } = renderMeshCore(`${HELTEC}/automations/auto-announce`);
     const send = await screen.findByRole('button', { name: 'Send Now' });
     const card = send.closest('section') as HTMLElement;
-    expect(within(card).getByText(/Sends 1 message/)).toBeInTheDocument();
+    expect(within(card).getByText(/Send now sends 1 announcement now, on \S/)).toBeInTheDocument();
+    await waitFor(() => expect(send).toBeEnabled());
     fireEvent.click(send);
+    const sheet = await screen.findByRole('dialog', { name: 'Send Now' });
+    expect(within(sheet).getByText('MeshMonitor {VERSION} online')).toBeInTheDocument();
+    expect(within(sheet).getByText(/Send now sends 1 announcement now, on \S/)).toBeInTheDocument();
+    fireEvent.submit(sheet.querySelector('form') ?? sheet);
+    await settle();
+    expect(posts(log, '/announce/send')).toHaveLength(0);
+    const go = within(sheet).getByRole('button', { name: 'Send Now' });
+    fireEvent.click(go);
+    fireEvent.click(go);
     await waitFor(() => expect(posts(log, '/announce/send')).toHaveLength(1));
     await settle();
     expect(posts(log, '/announce/send')).toHaveLength(1);
+  });
+
+  it('Auto-announce\'s Send Now says unsaved edits are not sent', async () => {
+    renderMeshCore(`${HELTEC}/automations/auto-announce`);
+    const message = await screen.findByLabelText('Announcement Message');
+    fireEvent.change(message, { target: { value: 'Draft text' } });
+    const send = screen.getByRole('button', { name: 'Send Now' });
+    await waitFor(() => expect(send).toBeEnabled());
+    fireEvent.click(send);
+    const sheet = await screen.findByRole('dialog', { name: 'Send Now' });
+    expect(within(sheet).getByText(/Your unsaved edits are not sent/)).toBeInTheDocument();
+    expect(within(sheet).getByText('MeshMonitor {VERSION} online')).toBeInTheDocument();
+  });
+
+  // F.2 D-M4: as the Meshtastic preview, an empty message is not sent for a preview.
+  it('the live preview does not ask about an empty message', async () => {
+    renderMeshCore(`${HELTEC}/automations/auto-announce`);
+    const message = await screen.findByLabelText('Announcement Message');
+    fireEvent.change(message, { target: { value: '' } });
+    await act(async () => new Promise((r) => setTimeout(r, 400)));
+    const empty = vi.mocked(fetch).mock.calls.filter(([u]) => {
+      const url = new URL(String(u), 'http://x');
+      return url.pathname.endsWith('/announce/preview') && url.searchParams.get('message') === '';
+    });
+    expect(empty).toHaveLength(0);
   });
 
   it('every built-in has a page on the kit', async () => {
@@ -183,6 +219,60 @@ describe('8-14-automations', () => {
     expect(posts(log, '/timers/t9/run')).toHaveLength(0);
     fireEvent.click(within(sheet).getByRole('button', { name: 'Run now' }));
     await waitFor(() => expect(posts(log, '/timers/t9/run')).toHaveLength(1));
+  });
+
+  // F.2 D-I2 (Ruling F IX): every Run now transmits, so a non-flood one asks first too.
+  it('a timer trigger\'s non-flood Run now asks first; Enter does not send', async () => {
+    const timers = { success: true, data: { triggers: [{ id: 't8', name: 'Hourly hello', enabled: true, scheduleType: 'interval', intervalMinutes: 60, responseType: 'text', channelIndex: 0, response: 'hello' }] } };
+    const { log } = renderMeshCore(`${HELTEC}/automations/timer-triggers`, { fixtures: { 'GET /api/sources/:id/meshcore/automation/timers': () => timers } });
+    fireEvent.click(await screen.findByRole('button', { name: 'Run now' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Run now' });
+    expect(within(sheet).queryByText(/asks first/)).toBeNull();
+    expect(within(sheet).getByText('Run now sends the saved trigger once, now')).toBeInTheDocument();
+    fireEvent.submit(sheet.querySelector('form') ?? sheet);
+    await settle();
+    expect(posts(log, '/timers/t8/run')).toHaveLength(0);
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Run now' }));
+    await waitFor(() => expect(posts(log, '/timers/t8/run')).toHaveLength(1));
+  });
+
+  // F.2 D-M1: as the Meshtastic overview: one failure does not stop the rest, the dock names both, one save at a time.
+  it('a failed built-in save does not stop the others, and the dock says what saved', async () => {
+    const { log } = renderMeshCore(`${HELTEC}/automations`, {
+      fixtures: { 'POST /api/sources/:id/meshcore/automation/auto-welcome': () => new Response(JSON.stringify({ error: 'Nope' }), { status: 500 }) },
+    });
+    await screen.findByText('Remote Telemetry');
+    fireEvent.click(screen.getByRole('switch', { name: 'Auto Welcome' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Auto Favorite' }));
+    const save = screen.getByRole('button', { name: 'Save' });
+    fireEvent.click(save);
+    fireEvent.click(save);
+    expect(await screen.findByText(/Saved: Auto Favorite\. Not saved: Auto Welcome/)).toBeInTheDocument();
+    expect(posts(log, '/automation/auto-favorite')).toHaveLength(1);
+  });
+
+  it('an engine rule switch sends one request per press and waits for it', async () => {
+    let release!: () => void;
+    const { log } = renderMeshCore(`${HELTEC}/automations`);
+    await screen.findByText('Welcome new nodes');
+    const fetchMock = vi.mocked(fetch);
+    const real = fetchMock.getMockImplementation()!;
+    let calls = 0;
+    fetchMock.mockImplementation((input, init) => {
+      if (init?.method === 'POST' && /\/api\/automations\/[^/]+\/(enable|disable)$/.test(String(input))) {
+        calls += 1;
+        return new Promise((resolve) => (release = () => resolve(new Response('{"success":true}', { status: 200 }))));
+      }
+      return real(input, init);
+    });
+    const rule = screen.getByRole('switch', { name: 'Welcome new nodes' });
+    fireEvent.click(rule);
+    await waitFor(() => expect(rule).toBeDisabled());
+    fireEvent.click(rule);
+    expect(calls).toBe(1);
+    release();
+    await waitFor(() => expect(rule).toBeEnabled());
+    expect(log.writes.filter((w) => w.path.includes('/api/automations/'))).toHaveLength(0);
   });
 
   it('an engine rule switch that fails shows the error, as a toast', async () => {

@@ -162,6 +162,15 @@ describe('10-08-message-actions', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  // F.2 B-I2: Enter activates a focused button on every auto-repeat keydown; a held key sends one tapback.
+  it('a held Enter on a reaction chip does not repeat the tapback', async () => {
+    await openDm();
+    const chip = within(rowOf(OURS)).getByRole('button', { name: /👍/ });
+    expect(fireEvent.keyDown(chip, { key: 'Enter' })).toBe(true);
+    expect(fireEvent.keyDown(chip, { key: 'Enter', repeat: true })).toBe(false);
+    expect(fireEvent.keyDown(chip, { key: ' ', repeat: true })).toBe(false);
+  });
+
   it('the row keeps a keyboard way in: Message actions opens the sheet', async () => {
     await openDm();
     fireEvent.click(within(rowOf(THEIRS)).getByRole('button', { name: 'Message actions' }));

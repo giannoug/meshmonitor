@@ -22,7 +22,7 @@ const POPOUT = /^\/packet-monitor(\/|$)/;
 
 export default function LayoutGate({ classic }: { classic: ReactNode }) {
   const { layout, ready } = useLayout();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
 
   if (BYPASS.test(pathname)) return <>{classic}</>;
   if (POPOUT.test(pathname)) {
@@ -44,7 +44,7 @@ export default function LayoutGate({ classic }: { classic: ReactNode }) {
   // on a new browser keeps the deep link they opened (Classic's catch-all
   // would otherwise mount and could jump to the default landing page).
   // Classic URLs still render at once.
-  const to = classicFallback(pathname);
+  const to = classicFallback(pathname, search);
   if (!to) return <>{classic}</>;
   return ready ? <Navigate replace to={to} /> : <RouteLoading />;
 }

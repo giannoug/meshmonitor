@@ -201,6 +201,8 @@ describe('Maintenance › Firmware: today\'s requests and safety rails', () => {
     fireEvent.click(within(list).getByRole('button', { name: 'Restore' }));
     const sheet = await screen.findByRole('dialog', { name: 'Restore configuration from backup "g2-pre-ota.yaml"?' });
     expect(within(sheet).getByText('Sends nothing on the mesh')).toBeInTheDocument();
+    // F.2 C-M5: it overwrites the device's configuration, so it is styled as dangerous.
+    expect(within(sheet).getByRole('button', { name: 'Restore' }).className).toMatch(/danger/);
     expect(posted('/api/firmware/restore')).toBeUndefined();
     fireEvent.click(within(sheet).getByRole('button', { name: 'Restore' }));
     await waitFor(() => expect(posted('/api/firmware/restore')).toEqual({ gatewayIp: '192.168.1.40', backupPath: backup.path }));

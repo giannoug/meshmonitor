@@ -6,8 +6,8 @@
  * gated as Classic's Channels tab gates them (the entry must be readable).
  */
 import type { ReactNode } from 'react';
-import { describe, it, expect, vi } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { describe, it, expect, vi, onTestFinished } from 'vitest';
+import { screen, waitFor, within } from '@testing-library/react';
 import { athensFixture, SOURCE_IDS } from '../../__fixtures__/athens';
 import { renderChat } from './renderChat';
 
@@ -74,5 +74,47 @@ describe('Channel Database channels (100+)', () => {
     expect(await screen.findByText('This channel is not available to you.')).toBeInTheDocument();
     expect(side.queryByRole('link', { name: /Athens Secret|Channel 104/ })).toBeNull();
     expect(screen.queryByText('Decrypted by the server')).toBeNull();
+    // F.2 B-M2: only the not-available state; no channel header, Mute, info, Beacons or subtitle.
+    const page = screen.getByText('This channel is not available to you.').closest('section')!;
+    expect(page.querySelector('header')).toBeNull();
+    expect(within(page).queryAllByRole('button')).toHaveLength(0);
+    expect(within(page).queryAllByRole('link')).toHaveLength(0);
+  });
+});
+
+// F.2 B-I3: one polling observer per polled query. The shell polls the open
+// device's unread counts and the conversation's MessagingProvider polls its
+// first-unread anchors; the lists and conversations only read those caches.
+describe('no second polling observer', () => {
+  it.each([
+    ['a channel (sidebar channel and DM lists)', `${g2}/channel/0`, {}],
+    ['the DM inbox', `${g2}/dms`, {}],
+    ['the phone device Home lists', g2, { phone: true }],
+  ])('%s: unread counts are polled once', async (_what, route, opts) => {
+    const { queryClient } = renderChat(route, opts);
+    await waitFor(() => expect(queryClient.getQueryData(['unreadCounts', '', SOURCE_IDS.g2, false])).toBeDefined());
+    await screen.findAllByText(/Athens Rover/);
+    // At most one polling observer per key (the MessagingProvider's own poll is another key: it excludes MQTT, Ruling AD).
+    for (const q of queryClient.getQueryCache().findAll({ queryKey: ['unreadCounts'] })) {
+      expect(q.observers.filter((o) => o.options.refetchInterval).length).toBeLessThanOrEqual(1);
+    }
+    const shell = queryClient.getQueryCache().find({ queryKey: ['unreadCounts', '', SOURCE_IDS.g2, false], exact: true })!;
+    expect(shell.observers.filter((o) => o.options.refetchInterval)).toHaveLength(1);
+  });
+
+  it.each([
+    ['a channel thread', `${g2}/channel/0`, false],
+    ['a channel thread with Show MQTT on', `${g2}/channel/0`, true],
+    ['a DM', `${g2}/dm/!a1b2c302`, false],
+    ['a DM with Show MQTT on', `${g2}/dm/!a1b2c302`, true],
+  ])('%s: first-unread anchors are polled once', async (_what, route, mqtt) => {
+    localStorage.setItem(`showMqttMessages:${SOURCE_IDS.g2}`, String(mqtt));
+    onTestFinished(() => localStorage.removeItem(`showMqttMessages:${SOURCE_IDS.g2}`));
+    const { queryClient } = renderChat(route);
+    await screen.findAllByText(/Athens Rover/);
+    await waitFor(() => expect(queryClient.getQueryCache().findAll({ queryKey: ['firstUnread'] }).length).toBeGreaterThan(0));
+    for (const q of queryClient.getQueryCache().findAll({ queryKey: ['firstUnread'] })) {
+      expect(q.observers.filter((o) => o.options.refetchInterval).length).toBeLessThanOrEqual(1);
+    }
   });
 });

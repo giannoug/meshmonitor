@@ -138,7 +138,8 @@ export function useRadioSaveQueueState({ state, saves }: SharedDeviceConfig, { n
   }
 
   const queue: QueueEntry[] = [];
-  for (const section of sections) {
+  // While the configuration (re)loads its values are partly read: nothing counts as a change yet.
+  for (const section of state.loading ? [] : sections) {
     const base = current[section];
     if (!base) continue;
     const keys = changedKeys(state, section, base);
@@ -173,7 +174,13 @@ export function useRadioSaveQueueState({ state, saves }: SharedDeviceConfig, { n
       if (sending.length > 0) await runBatch(async () => {
         for (const { section } of sending) {
           // Today's handlers report their own errors and resolve false; a throw counts as a failure too.
-          const ok = await (saves[section] as () => Promise<boolean>)().catch(() => false);
+          // A section with no sender (a remote target sends only some) fails too, rather than throwing.
+          let ok: boolean;
+          try {
+            ok = await (saves[section] as () => Promise<boolean>)();
+          } catch {
+            ok = false;
+          }
           result[ok ? 'ok' : 'failed'].push(section);
         }
       });

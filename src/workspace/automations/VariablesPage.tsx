@@ -202,6 +202,7 @@ export default function VariablesPage({ canWrite, rules }: { canWrite: boolean; 
       )}
       <Sheet open={help && isPhone} onClose={() => setHelp(false)} title={t('workspace.rules.var.help')}>{helpBody}</Sheet>
       <ConfirmSheet
+        submitOnEnter={false}
         open={!!del}
         danger
         title={t('workspace.rules.var.delete_title', { name: del?.name ?? '' })}

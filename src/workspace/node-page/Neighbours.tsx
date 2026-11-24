@@ -95,6 +95,7 @@ export default function Neighbours({ sourceId, node }: { sourceId: string; node:
         })}
       </ul>
       <ConfirmSheet
+        submitOnEnter={false}
         open={confirming}
         title={t('messages.purge_neighbors', 'Purge')}
         body={<p>{t('messages.confirm_purge_neighbors', 'Are you sure you want to delete all neighbor info for this node?')}</p>}

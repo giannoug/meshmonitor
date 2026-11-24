@@ -23,6 +23,7 @@ import { scrollInputIntoView } from '../../utils/scrollInputIntoView';
 import SendsLine from '../patterns/SendsLine';
 import { useIsPhone } from '../shell/useIsPhone';
 import TranslateComposerSheet from './TranslateComposerSheet';
+import { noKeyRepeat } from '../patterns/noKeyRepeat';
 import styles from './Composer.module.css';
 
 export type ComposerTarget =
@@ -100,6 +101,7 @@ export default function Composer(props: ComposerProps) {
               className={styles.chip}
               disabled={off}
               title={chipTitle(t('workspace.chat.send_position_title', { channel: target.name }))}
+              onKeyDown={noKeyRepeat}
               onClick={props.onSendPosition}
             >
               <UiIcon name="location" size={16} /> {t('workspace.chat.send_position')}
@@ -120,6 +122,7 @@ export default function Composer(props: ComposerProps) {
                   ? t('workspace.chat.bell_title', { channel: target.name })
                   : t('workspace.chat.bell_dm_title', { name: target.name }),
               )}
+              onKeyDown={noKeyRepeat}
               onClick={() => {
                 props.onBell?.(draft.get());
                 draft.set('');

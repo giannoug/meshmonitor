@@ -26,7 +26,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import type { DashboardSource } from '../../hooks/useDashboardData';
 import { useStickyDmNodes } from '../../hooks/useStickyDmNodes';
-import { useMarkAsRead, useUnreadCounts } from '../../hooks/useUnreadCounts';
+import { useMarkAsRead } from '../../hooks/useUnreadCounts';
+import { useOpenDeviceUnread } from '../shell/shellUnread';
 import { appBasename } from '../../init';
 import type { DeviceInfo } from '../../types/device';
 import type { DmFilter } from '../../types/ui';
@@ -70,11 +71,11 @@ interface Row extends DeviceInfo {
 function DmInbox({ sourceId, deviceName }: { sourceId: string; deviceName: string }) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
-  const { authStatus, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
   const { pollData: poll } = useChatRuntime(-1);
   const { nodeHopsCalculation, hideIncompleteNodes, timeFormat, dateFormat } = useSettings();
   const canRead = hasPermission('messages', 'read', { sourceId });
-  const { data: unread } = useUnreadCounts({ baseUrl: appBasename, sourceId, enabled: authStatus?.authenticated === true });
+  const { data: unread } = useOpenDeviceUnread(sourceId);
   const { mutateAsync: markRead } = useMarkAsRead({ baseUrl: appBasename });
   const { showToast } = useToast();
   const [sticky, toggleSticky] = useStickyDmNodes();

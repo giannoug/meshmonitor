@@ -62,3 +62,40 @@ for (const size of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) 
     });
   }
 }
+
+// F.2 A1-I1: the pages with a `.dashboard-topbar` (the landing page, MeshCore)
+// carry the banner in their flow, right under the fixed topbar; the body starts below it.
+const TOPBAR_CASES = [
+  { name: 'Dashboard', path: '/', body: '.dashboard-body' },
+  { name: 'MeshCore source', path: '/source/src-heltec', body: '.meshcore-page' },
+];
+
+for (const size of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+  for (const c of TOPBAR_CASES) {
+    test(`${c.name} at ${size.width} px: the banner sits under the topbar and above the page body`, async ({ page }) => {
+      await page.setViewportSize(size);
+      const puts: string[] = [];
+      await routeFixtures(page, {
+        ...NO_LAYOUT,
+        'PUT /api/user/preferences/:key': (url) => {
+          puts.push(decodeURIComponent(url.pathname.split('/').pop()!));
+          return { success: true };
+        },
+      });
+      await page.goto(c.path);
+      await page.waitForLoadState('networkidle');
+      const banner = page.getByRole('region', { name: 'Try the Workspace layout' });
+      await expect(banner).toBeVisible();
+      const box = (await banner.boundingBox())!;
+      const topbar = (await page.locator('header.dashboard-topbar').boundingBox())!;
+      expect(box.y).toBeGreaterThanOrEqual(topbar.y + topbar.height - 1);
+      expect((await page.locator(c.body).first().boundingBox())!.y).toBeGreaterThanOrEqual(box.y + box.height - 1);
+      for (const name of ['Try it', 'Not now', 'Dismiss']) {
+        const button = banner.getByRole('button', { name });
+        if (size.width < 768) expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      }
+      await banner.getByRole('button', { name: 'Not now' }).click();
+      await expect.poll(() => puts).toEqual(['layout', 'workspace.bannerDismissed']);
+    });
+  }
+}

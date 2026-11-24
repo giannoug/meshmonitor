@@ -16,6 +16,12 @@
   color: var(--color-text);
 }
 
+/* In the page's flow (`inline`): under a fixed `.dashboard-topbar`, or at the top of a unified page. */
+.inline {
+  position: static;
+  flex: none;
+}
+
 .icon {
   flex: none;
   color: var(--color-accent);
@@ -93,5 +99,15 @@
   .actions {
     width: 100%;
     justify-content: flex-end;
+  }
+
+  .primary,
+  .secondary,
+  .close {
+    min-height: 44px;
+  }
+
+  .close {
+    width: 44px;
   }
 }

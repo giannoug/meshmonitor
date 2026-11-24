@@ -40,6 +40,7 @@ import { NumberInputScope } from '../components/common/NumberInputScope';
 import { MqttDocsLinks } from '../components/MQTT/MqttDocsLinks';
 import LoginModal from '../components/LoginModal';
 import UserMenu from '../components/UserMenu';
+import WorkspaceBanner from '../components/WorkspaceBanner/WorkspaceBanner';
 import { NewsPopup } from '../components/NewsPopup';
 import { ToastProvider } from '../components/ToastContainer';
 import api, { ApiError } from '../services/api';
@@ -506,6 +507,7 @@ function DashboardInner() {
         </div>
       </header>
       )}
+      <WorkspaceBanner inline />
 
       {/* Body */}
       <div className="dashboard-body">

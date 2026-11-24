@@ -193,6 +193,7 @@ export function BackupBody({ sourceId, readOnly }: { sourceId: string; readOnly:
         onCancel={closeRestore}
       />
       <ConfirmSheet
+        submitOnEnter={false}
         open={toDelete !== null}
         title={t('backup_management.confirm_delete', { filename: toDelete ?? '' })}
         confirmLabel={t('backup_management.delete')}

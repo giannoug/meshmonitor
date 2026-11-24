@@ -117,6 +117,7 @@ export function useMessageActions(opts: UseMessageActionsOptions) {
         />
       )}
       <ConfirmSheet
+        submitOnEnter={false}
         open={!!toDelete}
         title={t('channels.delete_button_title')}
         body={t('messages.confirm_delete')}

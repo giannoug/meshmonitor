@@ -25,6 +25,7 @@ import { useSource } from '../contexts/SourceContext';
 import { useShellEmbedded } from '../contexts/ShellContext';
 import LoginModal from '../components/LoginModal';
 import UserMenu from '../components/UserMenu';
+import WorkspaceBanner from '../components/WorkspaceBanner/WorkspaceBanner';
 import { appBasename } from '../init';
 import { MeshCorePage } from '../components/MeshCore/MeshCorePage';
 import type { ConnectionStatus } from '../components/MeshCore/hooks/useMeshCore';
@@ -139,6 +140,7 @@ function MeshCoreSourceInner({ view, onViewChange, dmContact, dmRequest, dmDraft
         </div>
       </header>
       )}
+      <WorkspaceBanner inline />
 
       {canReadConnection ? (
         <MeshCorePage baseUrl={appBasename} sourceId={sourceId} onStatusChange={handleStatusChange} view={view} onViewChange={onViewChange} dmContact={dmContact} dmRequest={dmRequest} dmDraft={dmDraft} mapNode={mapNode} />

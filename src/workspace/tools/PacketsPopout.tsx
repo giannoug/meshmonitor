@@ -123,6 +123,7 @@ function PopoutWindow() {
   const detail = selected && <PacketDetailPanel packet={selected} onClose={() => setSelectedKey(null)} />;
   const confirm = (
     <ConfirmSheet
+      submitOnEnter={false}
       open={clearOpen}
       title={t('packet_monitor.clear_all')}
       body={t('packet_monitor.confirm_clear')}

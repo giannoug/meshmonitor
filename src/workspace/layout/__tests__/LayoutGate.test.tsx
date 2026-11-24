@@ -10,8 +10,8 @@ vi.mock('../../WorkspaceApp', () => ({ default: () => <div data-testid="workspac
 vi.mock('../../tools/PacketsPopout', () => ({ default: () => <div data-testid="packets-popout" /> }));
 
 function Where() {
-  const { pathname } = useLocation();
-  return <div data-testid="classic">{pathname}</div>;
+  const { pathname, hash } = useLocation();
+  return <div data-testid="classic">{pathname + hash}</div>;
 }
 
 const classic = (
@@ -103,6 +103,15 @@ describe('LayoutGate', () => {
     );
     // Under a basename, useLocation() reports the path below it.
     await waitFor(() => expect(screen.getByTestId('classic').textContent).toBe('/settings'));
+  });
+
+  it.each([
+    ['/meshmonitor/source/s1/settings/lora', '/source/s1/configuration#config-lora'],
+    ['/meshmonitor/source/s1/settings/notifications', '/source/s1/settings#settings-notifications'],
+    ['/meshmonitor/source/s1/settings?node=!a1b2c3d4', '/source/s1/admin'],
+  ])('sends a Classic user on %s to today\'s section under the basename', async (route, expected) => {
+    renderGate({ 'GET /api/user/preferences': prefs('classic') }, { route, basename: '/meshmonitor' });
+    await waitFor(() => expect(screen.getByTestId('classic').textContent).toBe(expected));
   });
 
   it('renders straight from the localStorage mirror before the fetches land', async () => {

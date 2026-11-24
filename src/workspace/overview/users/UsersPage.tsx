@@ -214,6 +214,7 @@ function UsersAdmin({ me }: { me: number }) {
       {selected && (
         <>
           <ConfirmSheet
+            submitOnEnter={false}
             open={layer === 'admin'}
             title={t('users.remove_admin')}
             body={t('workspace.users.remove_admin_body', { username: selected.username })}
@@ -224,6 +225,7 @@ function UsersAdmin({ me }: { me: number }) {
             onCancel={() => setLayer(null)}
           />
           <ConfirmSheet
+            submitOnEnter={false}
             open={layer === 'deactivate'}
             title={t('users.deactivate_confirm')}
             body={
@@ -242,6 +244,7 @@ function UsersAdmin({ me }: { me: number }) {
             onCancel={() => setLayer(null)}
           />
           <ConfirmSheet
+            submitOnEnter={false}
             open={layer === 'delete'}
             title={t('users.permanent_delete_confirm')}
             body={

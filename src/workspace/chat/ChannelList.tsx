@@ -15,10 +15,9 @@ import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { skipToken, useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
-import { appBasename } from '../../init';
 import { sourcePollQueryKey } from '../../hooks/pollQueryKey';
 import type { PollData } from '../../hooks/usePoll';
-import { useUnreadCounts } from '../../hooks/useUnreadCounts';
+import { useOpenDeviceUnread } from '../shell/shellUnread';
 import { CHANNEL_DB_OFFSET, canReadChannel } from '../../utils/channelReadAccess';
 import { channelLabel } from './channelLabel';
 import { useChannelDatabaseEntries } from './useChannelDatabaseEntries';
@@ -34,14 +33,10 @@ interface ChannelListProps {
 
 export default function ChannelList({ sourceId, sourceType, onNavigate, large }: ChannelListProps) {
   const { t } = useTranslation();
-  const { authStatus, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
   // The page's poll cache, read without fetching.
   const { data: poll } = useQuery<PollData>({ queryKey: sourcePollQueryKey(sourceId), queryFn: skipToken });
-  const { data: unread } = useUnreadCounts({
-    baseUrl: appBasename,
-    sourceId,
-    enabled: authStatus?.authenticated === true,
-  });
+  const { data: unread } = useOpenDeviceUnread(sourceId);
 
   const heard = useMemo(() => {
     const configs = poll?.channels ?? [];

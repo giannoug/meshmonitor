@@ -32,6 +32,7 @@ export default function MergeIdentitySheet({ sourceId, fromNodeNum, toNodeNum, f
 
   return (
     <ConfirmSheet
+      submitOnEnter={false}
       open
       title={
         <span className={styles.title}>

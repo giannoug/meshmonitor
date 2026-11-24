@@ -38,6 +38,7 @@ import { avatarToken } from './channelLabel';
 import MessageActionsSheet from './MessageActionsSheet';
 import MessageHoverBar from './MessageHoverBar';
 import { messageActionItems, type MessageActionContext, type MessageActionKind } from './messageActions';
+import { noKeyRepeat } from '../patterns/noKeyRepeat';
 import styles from './MessageRowD.module.css';
 
 export type { MessageActionKind } from './messageActions';
@@ -214,7 +215,7 @@ function MessageRowDImpl(props: MessageRowDProps) {
           <div className={styles.reactions}>
             {props.reactions.map((r) =>
               chipsSend ? (
-                <button key={r.id} type="button" className={styles.chip} title={react?.sends} onClick={() => onAction('react', msg, r.text)}>
+                <button key={r.id} type="button" className={styles.chip} title={react?.sends} onKeyDown={noKeyRepeat} onClick={() => onAction('react', msg, r.text)}>
                   {r.text}
                 </button>
               ) : (

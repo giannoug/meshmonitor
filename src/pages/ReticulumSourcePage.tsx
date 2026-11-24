@@ -26,6 +26,7 @@ import { useSource } from '../contexts/SourceContext';
 import { useShellEmbedded } from '../contexts/ShellContext';
 import LoginModal from '../components/LoginModal';
 import UserMenu from '../components/UserMenu';
+import WorkspaceBanner from '../components/WorkspaceBanner/WorkspaceBanner';
 import { appBasename } from '../init';
 import { ReticulumPage } from '../components/Reticulum/ReticulumPage';
 import { CyclingConnectionStatus } from '../components/AppHeader/CyclingConnectionStatus';
@@ -129,6 +130,7 @@ function ReticulumSourceInner({ view, onViewChange }: ReticulumSourcePageProps) 
         </div>
       </header>
       )}
+      <WorkspaceBanner inline />
 
       {canReadNodes ? (
         <ReticulumPage

@@ -39,7 +39,8 @@ import { useViewTranslations } from '../hooks/useViewTranslations';
 // Default PSK value (publicly known key - not truly secure) — shared
 // definition lives in utils/publicChannel.ts (#4705).
 import { pskEncryptionStatus } from '../utils/publicChannel';
-import { canReadChannel } from '../utils/channelReadAccess';
+// Device channels use indices 0-7, Channel Database channels start at CHANNEL_DB_OFFSET (100).
+import { canReadChannel, CHANNEL_DB_OFFSET } from '../utils/channelReadAccess';
 import { useSource } from '../contexts/SourceContext';
 import { sourceTypeMeshProtocol } from '../utils/meshProtocol';
 import { ChannelMessageRow } from './messages/ChannelMessageRow';
@@ -68,11 +69,6 @@ interface RowLatest {
   dismissTranslation: (msgId: string) => void;
   setDetailsState: (state: { message: MeshMessage; direction: MessageDirection } | null) => void;
 }
-
-// Offset for Channel Database channels
-// IMPORTANT: This value must match CHANNEL_DB_OFFSET in src/server/constants/meshtastic.ts
-// Device channels use indices 0-7, database channels start at 100
-const CHANNEL_DB_OFFSET = 100;
 
 // Encryption status types
 type EncryptionStatus = 'none' | 'default' | 'secure';

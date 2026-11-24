@@ -9,7 +9,7 @@
  */
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { SOURCE_IDS } from '../../__fixtures__/athens';
 import { clearRemote } from '../remote/remoteTargetStore';
 import { g2, renderSettings } from './renderSettings';
@@ -51,6 +51,33 @@ describe('remote sends', () => {
     expect(config).not.toHaveProperty('privateKey');
     expect(config).not.toHaveProperty('publicKey');
     expect(config).not.toHaveProperty('packetSignaturePolicy');
+  });
+
+  // F.2 C-M2: as today's Admin Commands, a sent Protection Level becomes the node's loaded one, so the next send does not ask for it again.
+  it('after a send that changed Protection Level, the next send does not ask the policy confirm again', async () => {
+    renderSettings(page('security'), { fixtures: remoteFixtures() });
+    fireEvent.click(await screen.findByRole('button', { name: 'Read from node' }, T));
+    const select = await screen.findByLabelText('Protection Level (packet authenticity)', {}, T);
+    await waitFor(() => expect(select).toBeEnabled());
+    fireEvent.change(select, { target: { value: '1' } });
+    await sendAll();
+    // Today's order: the overwrite question, then the Balanced confirm.
+    const save = await screen.findByRole('dialog', { name: /Save security config/ }, T);
+    fireEvent.click(within(save).getByRole('button', { name: 'Send to node' }));
+    const policy = await screen.findByRole('dialog', { name: /Protection Level/ }, T);
+    expect(commands()).toEqual([]);
+    fireEvent.click(within(policy).getByRole('button', { name: 'Set Balanced' }));
+    await waitFor(() => expect(commands()).toHaveLength(1), T);
+    expect(commands()[0]!.config).toMatchObject({ packetSignaturePolicy: 1 });
+
+    fireEvent.click(await screen.findByRole('switch', { name: 'Serial Console Enabled' }, T));
+    await sendAll();
+    const again = await screen.findByRole('dialog', { name: /Save security config/ }, T);
+    fireEvent.click(within(again).getByRole('button', { name: 'Send to node' }));
+    await act(async () => new Promise((r) => setTimeout(r, 300)));
+    expect(screen.queryByRole('dialog', { name: /Protection Level/ })).toBeNull();
+    await waitFor(() => expect(commands()).toHaveLength(2), T);
+    expect(commands()[1]!.config).not.toHaveProperty('packetSignaturePolicy');
   });
 
   it('declining the overwrite question sends nothing and keeps the edit', async () => {

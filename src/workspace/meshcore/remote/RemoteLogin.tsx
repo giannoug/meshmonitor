@@ -34,8 +34,9 @@ export default function RemoteLogin({ target, headerActions = false }: { target:
   const busyLabel = t('meshcore.remoteConsole.logging_in', 'Logging in…');
   const setGuest = (guest: boolean) => {
     setMode(guest ? 'guest' : 'admin');
-    // A guest login is today's blank password.
+    // A guest login is today's blank password, and never replaces a remembered admin password.
     s.setLoginPassword('');
+    if (guest) s.setRememberPassword(false);
   };
 
   const status = s.loggedIn ? (
@@ -76,7 +77,7 @@ export default function RemoteLogin({ target, headerActions = false }: { target:
               <input
                 type="checkbox"
                 checked={s.rememberPassword}
-                disabled={!s.capability?.canRemember || off}
+                disabled={!s.capability?.canRemember || off || mode === 'guest'}
                 onChange={(e) => s.setRememberPassword(e.target.checked)}
               />
               {t('meshcore.remoteConsole.remember_password', 'Remember this password on the server')}
@@ -200,9 +201,11 @@ export function SessionButtons({ target }: { target: MeshCoreTarget }) {
       <button type="button" className={styles.button} onClick={() => void s.handleLogout()}>
         <UiIcon name="power" size={16} /> {t('meshcore.remoteConsole.logout_button')}
       </button>
-      <button type="button" className={styles.button} onClick={() => void s.handleForgetCredential()}>
-        {t('meshcore.remoteConsole.forget_credential', 'Forget stored password')}
-      </button>
+      {s.hasSavedCredential && (
+        <button type="button" className={styles.button} onClick={() => void s.handleForgetCredential()}>
+          {t('meshcore.remoteConsole.forget_credential', 'Forget stored password')}
+        </button>
+      )}
     </>
   );
 }

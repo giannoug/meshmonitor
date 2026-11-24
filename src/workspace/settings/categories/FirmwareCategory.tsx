@@ -334,6 +334,7 @@ function FirmwarePage() {
           </>
         }
         confirmLabel={t('firmware.restore_backup', 'Restore')}
+        danger
         submitOnEnter={false}
         onConfirm={() => {
           const backup = restore!;

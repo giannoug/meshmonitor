@@ -50,6 +50,8 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => {
       return <>{children}</>;
     },
     useWebSocketContext: () => ({ state: { socket: ws.socket, connected: true }, enabled: true }),
+    // DeviceNotices reads the socket with useOptionalSocket (F.2 A23-M3).
+    useOptionalSocket: () => ws.socket,
   };
 });
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));

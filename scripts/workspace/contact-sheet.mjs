@@ -8,7 +8,7 @@ const argv = process.argv.slice(2);
 const arg = (n, d) => { const i = argv.indexOf(`--${n}`); return i >= 0 ? argv[i + 1] : d; };
 const phase = argv.find((a, i) => !a.startsWith('--') && !argv[i - 1]?.startsWith('--'));
 if (!phase) { console.error('usage: contact-sheet.mjs <phase> [--out dir]'); process.exit(2); }
-const out = arg('out', '/tmp/claude-0/-home-user-meshmonitor/697fcf85-bdab-47c7-b33d-4f155d7bd718/scratchpad');
+const out = arg('out', 'test-results/workspace-contact');
 const spec = arg('spec', 'docs/superpowers/specs/2026-11-13-workspace-redesign-design.md');
 const canvas = arg('canvas', 'design-scratch/out3/project/canvas.json');
 

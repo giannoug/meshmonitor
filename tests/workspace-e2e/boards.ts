@@ -336,6 +336,21 @@ export const BOARDS: Board[] = [
       await page.getByText('Try the Workspace layout.').waitFor();
     },
   },
+  // F.2 A1-I1: the banner on the Classic landing page and on a MeshCore source (under `.dashboard-topbar`).
+  {
+    id: 'r3-classic-banner-dashboard',
+    size: 'desktop',
+    path: '/',
+    fixtures: { 'GET /api/user/preferences': () => ({ success: true, data: { preferences: {} } }) },
+    setup: (page) => page.getByText('Try the Workspace layout.').waitFor(),
+  },
+  {
+    id: 'r3-classic-banner-meshcore',
+    size: 'desktop',
+    path: '/source/src-heltec',
+    fixtures: { 'GET /api/user/preferences': () => ({ success: true, data: { preferences: {} } }) },
+    setup: (page) => page.getByText('Try the Workspace layout.').waitFor(),
+  },
   { id: 'r2-you-layout', size: 'desktop', path: '/you/layout' },
   { id: 's3-layout', size: 'phone', path: '/you/layout' },
   { id: 'r4-server-general', size: 'desktop', path: '/server/general', fixtures: SERVER() },

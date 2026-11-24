@@ -2135,10 +2135,7 @@ function App() {
   // sortNodes, filterNodes, processedNodes, and centerMapOnNode moved to
   // useSourceView (#3962 5.4 PR4)
 
-  // toggleFavorite + toggleFavoriteLock moved to useSourceView (#3962 5.4
-  // PR4) — toggleIgnored/toggleHideFromMap below are messages-tab-only
-  // (not in the NodesTab census) and stay here until PR7.
-
+  // toggleFavorite + toggleFavoriteLock moved to useSourceView (#3962 5.4 PR4).
   // toggleIgnored/toggleHideFromMap bodies live in useMeshtasticNodeActions
   // (#6365 Task 2.2); the click must not also select the node.
   const toggleIgnored = (node: DeviceInfo, event: React.MouseEvent) => {

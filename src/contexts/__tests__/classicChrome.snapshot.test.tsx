@@ -175,6 +175,11 @@ const PAGES: PageCase[] = [
     ui: () => <DashboardPage />,
     route: '/',
     ready: testId('body-dashboard-map'),
+    // Snapshot the loaded sidebar (a source auto-selected, every count in), not
+    // a mid-load frame that any extra fetch on the page can shift (F.2).
+    settled: (c) =>
+      c.querySelector('.dashboard-source-card.selected') !== null &&
+      all(c, '.dashboard-node-count').every((el) => el.textContent !== '0 nodes'),
     // DashboardSidebar is the source list (add/edit/connect/delete): content.
     chrome: (c) => all(c, '.dashboard-topbar'),
   },
@@ -334,5 +339,38 @@ describe('ReticulumPage controlled view', () => {
     expect(await findByTestId('rns-view-interfaces')).toBeInTheDocument();
     fireEvent.click(getByRole('button', { name: 'Destinations' }));
     expect(onViewChange).toHaveBeenCalledWith('destinations');
+  });
+});
+
+// F.2 A1-I1 (spec §5.2(a)): the r3 banner is offered on every Classic page with
+// a header, not only inside App. On the `.dashboard-topbar` pages it sits in the
+// page's flow right under the fixed topbar; on the unified pages, at the top.
+describe('r3 banner on every Classic page', () => {
+  const offerPrefs = {
+    'GET /api/user/preferences': () => ({ success: true, data: { preferences: {} } }),
+  };
+  const UNDER_TOPBAR = ['DashboardPage', 'MeshCoreSourcePage', 'MeshCoreIngestSourcePage', 'ReticulumSourcePage'];
+  const AT_TOP = ['UnifiedMessagesPage', 'UnifiedTelemetryPage'];
+
+  it.each(UNDER_TOPBAR)('%s shows it right under its topbar', async (name) => {
+    const page = PAGES.find((p) => p.name === name)!;
+    const { container, findByText } = renderWorkspace(page.ui(), { route: page.route, fixtures: offerPrefs });
+    const banner = (await findByText('Try the Workspace layout.')).closest('section')!;
+    expect(container.querySelector('header.dashboard-topbar')!.nextElementSibling).toBe(banner);
+  });
+
+  it.each(AT_TOP)('%s shows it at the top of the page', async (name) => {
+    const page = PAGES.find((p) => p.name === name)!;
+    const { container, findByText } = renderWorkspace(page.ui(), { route: page.route, fixtures: offerPrefs });
+    const banner = (await findByText('Try the Workspace layout.')).closest('section')!;
+    expect(container.querySelector('.unified-page')!.firstElementChild).toBe(banner);
+  });
+
+  it.each([...UNDER_TOPBAR, ...AT_TOP])('%s shows nothing for a user who picked a layout', async (name) => {
+    const page = PAGES.find((p) => p.name === name)!;
+    const { container } = renderWorkspace(page.ui(), { route: page.route });
+    await waitFor(() => expect(page.ready(container)).not.toBeNull());
+    await new Promise((r) => setTimeout(r, 50));
+    expect(container.textContent).not.toContain('Try the Workspace layout.');
   });
 });

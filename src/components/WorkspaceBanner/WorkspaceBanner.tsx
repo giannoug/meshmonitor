@@ -24,13 +24,29 @@ import styles from './WorkspaceBanner.module.css';
 
 const HEADER_VAR = '--app-header-height';
 
-export default function WorkspaceBanner() {
-  // Inside the Workspace (a re-hosted Classic page) there is nothing to offer.
+/**
+ * `inline`: the page has no `.app-header` (the `.dashboard-topbar` pages and the
+ * unified pages), so the banner sits in the page's flow where it is mounted and
+ * moves the content below it down; it measures and sets nothing.
+ */
+export default function WorkspaceBanner({ inline = false }: { inline?: boolean }) {
+  // Inside the Workspace (a re-hosted Classic page) there is nothing to offer; nor without an AuthProvider
+  // (the app always has one; a page rendered alone, as in its own tests, gets no banner).
   const embedded = useShellEmbedded();
-  return WORKSPACE_ENTRY_ENABLED && !embedded ? <Offer /> : null;
+  const auth = useAuthIfProvided();
+  return WORKSPACE_ENTRY_ENABLED && !embedded && auth ? <Offer inline={inline} /> : null;
 }
 
-function Offer() {
+/** useAuth, or null outside an AuthProvider (useAuth throws there; the hook is called either way). */
+function useAuthIfProvided() {
+  try {
+    return useAuth();
+  } catch {
+    return null;
+  }
+}
+
+function Offer({ inline }: { inline: boolean }) {
   const { t } = useTranslation();
   const { authStatus } = useAuth();
   const signedIn = authStatus?.authenticated === true && !!authStatus.user;
@@ -53,7 +69,7 @@ function Offer() {
     const banner = ref.current;
     const shell = banner?.parentElement;
     const header = document.querySelector('.app-header');
-    if (!shown || !banner || !shell || !header || typeof ResizeObserver === 'undefined') return;
+    if (inline || !shown || !banner || !shell || !header || typeof ResizeObserver === 'undefined') return;
     const measure = () => {
       const bar = Math.ceil(header.getBoundingClientRect().bottom);
       // A zero bar is not a measurement (useAppHeaderHeightVar): leave the CSS offset alone.
@@ -72,7 +88,7 @@ function Offer() {
       observer.disconnect();
       shell.style.removeProperty(HEADER_VAR);
     };
-  }, [shown]);
+  }, [shown, inline]);
 
   if (!shown) return null;
 
@@ -87,7 +103,7 @@ function Offer() {
   };
 
   return (
-    <section ref={ref} className={styles.banner} aria-label={t('workspace.entry.menu_item')}>
+    <section ref={ref} className={inline ? `${styles.banner} ${styles.inline}` : styles.banner} aria-label={t('workspace.entry.menu_item')}>
       <UiIcon name="monitor" size={22} className={styles.icon} />
       <p className={styles.text}>
         <strong>{t('workspace.entry.title')}</strong> {t('workspace.entry.body')}

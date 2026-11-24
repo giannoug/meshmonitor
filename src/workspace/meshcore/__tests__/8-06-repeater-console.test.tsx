@@ -82,6 +82,33 @@ describe('8-06-repeater-console', () => {
     expect(log.writes.find((w) => w.path === `${ADMIN}/login`)!.body).toMatchObject({ password: '' });
   });
 
+  // F.2 D-M2: a guest login never overwrites a stored admin password.
+  it('Guest turns Remember off and disables it, so a guest login stores nothing', async () => {
+    const { log } = renderMeshCore(route);
+    await screen.findByLabelText('Password');
+    const remember = screen.getByRole('checkbox', { name: 'Remember this password on the server' });
+    await waitFor(() => expect(remember).toBeEnabled());
+    fireEvent.click(remember);
+    expect(remember).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Guest' }));
+    expect(remember).not.toBeChecked();
+    expect(remember).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
+    await waitFor(() => expect(log.writes.filter((w) => w.path === `${ADMIN}/login`)).toHaveLength(1));
+    expect(log.writes.find((w) => w.path === `${ADMIN}/login`)!.body).toMatchObject({ password: '', rememberPassword: false });
+  });
+
+  // F.2 D-M3: Forget stored password shows only when one is stored.
+  it('a logged-in session with no stored password has no Forget stored password', async () => {
+    renderMeshCore(route, {
+      meshcore: { adminSession: true },
+      fixtures: { 'GET /api/sources/:id/meshcore/admin/credentials-capability': () => ({ success: true, data: { canRemember: true, rotatedCount: 0, rotated: [], stored: [] } }) },
+    });
+    await resume();
+    expect(screen.getByRole('button', { name: /Log out/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Forget stored password' })).toBeNull();
+  });
+
   it('resuming sends nothing; one console command sends one message and shows the reply', async () => {
     const { log } = renderMeshCore(route, { meshcore: { adminSession: true } });
     await resume();

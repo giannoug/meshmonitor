@@ -52,6 +52,7 @@ import { meshcoreClockOffsetMs } from '../utils/meshcoreMessageTime';
 import { messageRowPropsEqual } from '../components/messages/messageRowSupport';
 import type { ReactionChip } from '../components/MeshCore/meshcoreReactionGroups';
 import MessageExportDialog from '../components/MessageExportDialog/MessageExportDialog';
+import WorkspaceBanner from '../components/WorkspaceBanner/WorkspaceBanner';
 import {
   channelTag,
   formatDateDivider,
@@ -275,6 +276,7 @@ export default function UnifiedMessagesPage() {
 
   return (
     <div className="unified-page unified-page--chat">
+      <WorkspaceBanner inline />
       <div className="unified-header">
         {!embedded && (
           <button className="unified-header__back" onClick={() => navigate('/', { state: { showList: true } })}>

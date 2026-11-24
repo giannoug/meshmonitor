@@ -18,7 +18,7 @@
  * lists its own tools, channels, rooms and DMs (MeshCoreSidebar, Task 7.1),
  * with a gear to today's Settings.
  */
-import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,6 +26,7 @@ import { UiIcon, type UiIconName } from '../../components/icons';
 import { deviceConfigurationNav, mapNav } from '../../components/nav/sourceNavEntries';
 import SidebarSection from './SidebarSection';
 import SettingsList from '../settings/SettingsList';
+import { isMac } from '../settings/kit/useFieldRegistry';
 import { reticulumFacts } from '../settings/categories';
 import { canReadMessages, isMeshtasticFamily, statusLabel, useDeviceTab } from './deviceTabs';
 import ActivityPanel from '../activity/ActivityPanel';
@@ -65,6 +66,8 @@ interface DeviceSidebarProps {
 export default function DeviceSidebar({ mode, source, onNavigate, onSearch }: DeviceSidebarProps) {
   const { t } = useTranslation();
   const tab = useDeviceTab(source);
+  // navigator.platform (deprecated) read once per mount, not on every render.
+  const mac = useMemo(isMac, []);
 
   const list = (rows: Row[]) => (
     <ul className={styles.list}>
@@ -140,8 +143,6 @@ export default function DeviceSidebar({ mode, source, onNavigate, onSearch }: De
   });
   const channels = tab('channels');
   const dms = tab('dms');
-
-  const mac = /Mac|iP(hone|ad|od)/.test(navigator.platform);
 
   return (
     <Frame title={source.name} header={header}>

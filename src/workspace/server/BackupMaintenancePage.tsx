@@ -22,7 +22,7 @@
  *
  * Mesh impact: none. This is the MeshMonitor server and its database.
  */
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -140,34 +140,44 @@ function BackupGroups() {
   const list = useQuery({ queryKey: BACKUP_LIST, queryFn: () => apiService.get<SystemBackupFile[]>('/api/system/backup/list'), enabled: isAdmin, ...ONCE });
   const settings = useQuery({ queryKey: BACKUP_SETTINGS, queryFn: () => apiService.get<Partial<BackupSettings>>('/api/system/backup/settings'), ...ONCE });
   // Today's defaults for a missing answer.
-  const stored: BackupSettings = {
-    enabled: settings.data?.enabled || false,
-    maxBackups: settings.data?.maxBackups || 7,
-    backupTime: settings.data?.backupTime || '03:00',
-  };
-  // Today's write: the whole schedule in one request.
-  const writeSchedule = async (next: BackupSettings) => {
-    await apiService.post('/api/system/backup/settings', next);
-    queryClient.setQueryData(BACKUP_SETTINGS, next);
+  const withDefaults = (d?: Partial<BackupSettings>): BackupSettings => ({
+    enabled: d?.enabled || false,
+    maxBackups: d?.maxBackups || 7,
+    backupTime: d?.backupTime || '03:00',
+  });
+  const stored = withDefaults(settings.data);
+  // Today's write: the whole schedule in one request. One at a time, each from the schedule the last
+  // write left in the cache, so a second edit made while the first is in flight does not undo it.
+  const chain = useRef<Promise<void>>(Promise.resolve());
+  const writeSchedule = (patch: Partial<BackupSettings>) => {
+    const run = chain.current
+      .catch(() => undefined)
+      .then(async () => {
+        const next = { ...withDefaults(queryClient.getQueryData<Partial<BackupSettings>>(BACKUP_SETTINGS)), ...patch };
+        await apiService.post('/api/system/backup/settings', next);
+        queryClient.setQueryData(BACKUP_SETTINGS, next);
+      });
+    chain.current = run;
+    return run;
   };
   const [enabled, setEnabled, enabledStatus] = useAutosaveValue<boolean>(stored.enabled, {
     commit: 'change',
     same: (v) => v === stored.enabled,
-    write: (v) => writeSchedule({ ...stored, enabled: v }),
+    write: (v) => writeSchedule({ enabled: v }),
     settled: () => void queryClient.invalidateQueries({ queryKey: BACKUP_SETTINGS }),
     errorText: (e) => t('system_backup.toast_settings_failed', { error: message(e) }),
   });
   const [time, setTime, timeStatus] = useAutosaveValue<string>(stored.backupTime, {
     commit: 'change',
     same: (v) => v === stored.backupTime,
-    write: (v) => writeSchedule({ ...stored, backupTime: v }),
+    write: (v) => writeSchedule({ backupTime: v }),
     settled: () => void queryClient.invalidateQueries({ queryKey: BACKUP_SETTINGS }),
     errorText: (e) => t('system_backup.toast_settings_failed', { error: message(e) }),
   });
   const [keep, setKeep, keepStatus] = useAutosaveValue<number>(stored.maxBackups, {
     commit: 'blur',
     same: (v) => v === stored.maxBackups,
-    write: (v) => writeSchedule({ ...stored, maxBackups: v }),
+    write: (v) => writeSchedule({ maxBackups: v }),
     settled: () => void queryClient.invalidateQueries({ queryKey: BACKUP_SETTINGS }),
     errorText: (e) => t('system_backup.toast_settings_failed', { error: message(e) }),
   });

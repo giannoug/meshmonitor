@@ -1,8 +1,9 @@
 /**
  * Discover (boards 8-11, 8-28): today's three node discoveries (Nearby,
  * Repeaters, Sensors) as one segmented control with its Sends line. One
- * `POST …/discover {mode}` per press, no retry, none while one runs; today's
- * gate (shown only for a connected Companion, off in receive-only). The
+ * `POST …/discover {mode}` per press, no retry, none while any sweep runs on
+ * the radio; today's gate (shown only for a connected Companion and to
+ * nodes:write, off in receive-only). The
  * answer shows as a line under it, in today's words, and which rows are new.
  */
 import { useState } from 'react';
@@ -27,13 +28,15 @@ export interface DiscoverMenuProps {
   onDiscover(mode: DiscoverMode): Promise<{ returned: number; newCount: number; nodes: DiscoveredNode[] } | null>;
   /** Today's receive-only reason, else undefined. */
   reason?: string;
+  /** Another radio sweep is running on this source (sweepStore): wait for it. */
+  busy?: boolean;
   /** The keys the last discovery found for the first time (the rows' New tag). */
   onNew(keys: Set<string>): void;
 }
 
 type Outcome = { mode: DiscoverMode; ok: true; returned: number; newCount: number; at: number } | { mode: DiscoverMode; ok: false };
 
-export default function DiscoverMenu({ onDiscover, reason, onNew }: DiscoverMenuProps) {
+export default function DiscoverMenu({ onDiscover, reason, busy = false, onNew }: DiscoverMenuProps) {
   const { t } = useTranslation();
   const { timeFormat, dateFormat } = useSettings();
   const isPhone = useIsPhone();
@@ -45,7 +48,7 @@ export default function DiscoverMenu({ onDiscover, reason, onNew }: DiscoverMenu
   };
 
   const run = async (mode: DiscoverMode) => {
-    if (running || reason) return;
+    if (running || reason || busy) return;
     setRunning(mode);
     try {
       const result = await onDiscover(mode);
@@ -72,7 +75,7 @@ export default function DiscoverMenu({ onDiscover, reason, onNew }: DiscoverMenu
               className={styles.segment}
               aria-pressed={(running ?? outcome?.mode) === mode}
               aria-busy={running === mode || undefined}
-              disabled={!!reason || running !== null}
+              disabled={!!reason || running !== null || busy}
               title={reason}
               onClick={() => void run(mode)}
             >

@@ -114,6 +114,7 @@ export function useRuleActions({ afterDelete }: { afterDelete?: string } = {}) {
         </form>
       </Sheet>
       <ConfirmSheet
+        submitOnEnter={false}
         open={!!del}
         danger
         title={t('workspace.rules.delete_title', { name: del?.name ?? '' })}

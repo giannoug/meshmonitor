@@ -9993,8 +9993,6 @@
   "workspace.meshcore.auto.plus_flood_advert": " + 1 flood advert",
   "workspace.meshcore.auto.announce_sends_one": "{{count}} message{{advert}} {{when}}",
   "workspace.meshcore.auto.announce_sends_other": "{{count}} messages{{advert}} {{when}}",
-  "workspace.meshcore.auto.send_now_sends_one": "Sends {{count}} message now, to the saved channel",
-  "workspace.meshcore.auto.send_now_sends_other": "Sends {{count}} messages now, one per saved channel",
   "workspace.meshcore.auto.tokens_hint": "Supports message tokens such as {NODE_NAME}, {HOPS} and {TIME}.",
   "workspace.meshcore.auto.responder": "Auto-responder",
   "workspace.meshcore.auto.responder_description": "Reply to messages that match a trigger, with text or a script.",

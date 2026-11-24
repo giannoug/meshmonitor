@@ -621,6 +621,7 @@ function PushToolsRows({ sourceId, isAdmin }: { sourceId: string; isAdmin: boole
         </SettingRow>
       )}
       <ConfirmSheet
+        submitOnEnter={false}
         open={asking}
         title={t('notifications.unsubscribe_all_button')}
         body={<p className={pages.para}>{t('notifications.unsubscribe_all_confirm')}</p>}

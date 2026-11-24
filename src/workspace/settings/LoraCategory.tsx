@@ -35,11 +35,12 @@ import { formatValue, sameValue } from './radioSections';
 import { useSharedDeviceConfig } from './sharedDeviceConfig';
 import { useRadioSaveQueue } from './useRadioSaveQueue';
 import type { DeviceConfigState } from '../../hooks/deviceConfig/useDeviceConfigState';
+import type { CategoryProps } from './categories';
 import styles from './LoraCategory.module.css';
 
 type Key = keyof DeviceConfigState;
 
-export default function LoraCategory() {
+export default function LoraCategory({ target }: CategoryProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const config = useSharedDeviceConfig();
@@ -148,9 +149,14 @@ export default function LoraCategory() {
           </SettingRow>,
         ]
       : []),
-    <SettingRow key="overrideFrequency" id="lora.overrideFrequency" label={t('lora_config.override_frequency')} help={t('lora_config.override_frequency_description')} was={was('overrideFrequency')}>
-      <SettingNumber value={s.overrideFrequency} step={0.001} onChange={s.setOverrideFrequency} />
-    </SettingRow>,
+    // A remote node gets overrideFrequency only in a custom (no preset) set_lora_config, as today's Admin Commands.
+    ...(target.kind === 'local' || !s.usePreset
+      ? [
+          <SettingRow key="overrideFrequency" id="lora.overrideFrequency" label={t('lora_config.override_frequency')} help={t('lora_config.override_frequency_description')} was={was('overrideFrequency')}>
+            <SettingNumber value={s.overrideFrequency} step={0.001} onChange={s.setOverrideFrequency} />
+          </SettingRow>,
+        ]
+      : []),
     <SettingRow key="channelNum" id="lora.channelNum" label={t('lora_config.channel_num')} help={t('lora_config.channel_num_description')} was={was('channelNum')}>
       <SettingNumber value={s.channelNum} min={0} max={255} onChange={s.setChannelNum} />
     </SettingRow>,
@@ -238,6 +244,7 @@ export default function LoraCategory() {
       <AdvancedCard count={advanced.length}>{advanced}</AdvancedCard>
 
       <ConfirmSheet
+        submitOnEnter={false}
         open={txConfirm}
         title={txTitle}
         body={txBody.join('\n\n')}

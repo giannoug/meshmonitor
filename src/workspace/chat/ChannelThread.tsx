@@ -32,7 +32,7 @@ import { useNotificationMuteSettings, useSettings } from '../../contexts/Setting
 import { useSource } from '../../contexts/SourceContext';
 import { useUI } from '../../contexts/UIContext';
 import type { DashboardSource } from '../../hooks/useDashboardData';
-import { useFirstUnread } from '../../hooks/useFirstUnread';
+import { useProviderFirstUnread } from '../shell/shellUnread';
 import { useChannels, useNodes } from '../../hooks/useServerData';
 import { useTxStatus } from '../../hooks/useTxStatus';
 import { useViewTranslations } from '../../hooks/useViewTranslations';
@@ -135,12 +135,7 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
 
   // Opening a channel selects it and marks it read, as a click in Classic's channel list does. The
   // provider pins the "New" line when the selection changes, so wait for its first-unread read (same query).
-  const firstUnread = useFirstUnread({
-    baseUrl: appBasename,
-    enabled: signedIn,
-    sourceId,
-    excludeMqtt: !showMqttMessages,
-  });
+  const firstUnread = useProviderFirstUnread(sourceId, showMqttMessages);
   // Latched: a later refetch (Show MQTT changes the query) must not re-open the channel and drop a reply.
   const [anchorsReady, setAnchorsReady] = useState(false);
   useEffect(() => {
@@ -328,9 +323,16 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
     </header>
   );
 
-  const thread = dbPending ? null : !canRead ? (
-    <p className={styles.empty}>{t('workspace.chat.not_available')}</p>
-  ) : (
+  // A channel the viewer cannot read (a direct URL) shows only that: no header, Mute, info or Beacons.
+  if (!dbPending && !canRead) {
+    return (
+      <section className={styles.page} data-phone={isPhone || undefined}>
+        <p className={styles.empty}>{t('workspace.chat.not_available')}</p>
+      </section>
+    );
+  }
+
+  const thread = dbPending ? null : (
     <div className={styles.split}>
       <div className={styles.column}>
         <div className={styles.messages} ref={view.channelMessagesContainerRef} role="log" aria-label={`# ${name}`}>

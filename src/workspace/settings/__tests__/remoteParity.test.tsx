@@ -57,6 +57,16 @@ describe('I1: what MeshMonitor knows of the node', () => {
     expect(meshRequests().map((r) => r.what)).not.toContain('POST /api/admin/get-device-metadata');
   });
 
+  // F.2 C-I1: today's Admin Commands sends overrideFrequency only with Use Preset off, and shows it only then.
+  it('LoRa on a remote node with Use Preset on has no Override Frequency row', async () => {
+    renderSettings(page('lora'), { fixtures: remoteFixtures() });
+    await readNow();
+    await screen.findByLabelText('Hop Limit', {}, T);
+    fireEvent.click(screen.getByRole('button', { name: /^Advanced/ }));
+    expect(await screen.findByLabelText('Channel Number')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Override Frequency (MHz)')).toBeNull();
+  });
+
   it('Identity names the node’s own id and role', async () => {
     renderSettings(page('identity'), { fixtures: remoteFixtures() });
     await readNow();

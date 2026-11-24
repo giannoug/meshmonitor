@@ -62,7 +62,8 @@ export function workspaceRedirect(loc: Loc, { isAdmin = false }: { isAdmin?: boo
  * target (`?node=`) included, are the Workspace's own (Tasks 5.2, 5.9).
  */
 export function classicSourceLocation(loc: Loc): { pathname: string; hash: string } {
-  return { pathname: classicFallback(loc.pathname) ?? loc.pathname, hash: loc.hash };
+  const [pathname, hash] = (classicFallback(loc.pathname) ?? loc.pathname).split('#');
+  return { pathname, hash: hash ? `#${hash}` : loc.hash };
 }
 
 const MESHCORE_ALIASES: Record<string, MeshCoreView> = { channel: 'channels', dm: 'dms', room: 'rooms', node: 'nodes', map: 'nodes' };

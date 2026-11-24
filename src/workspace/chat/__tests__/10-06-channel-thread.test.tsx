@@ -63,6 +63,28 @@ describe('10-06-channel-thread', () => {
     });
   });
 
+  // F.2 B-I2: Enter activates a focused button on every auto-repeat keydown; a held key sends once.
+  it.each(['Send position', 'Bell'])('a held Enter on %s does not repeat the send', async (name) => {
+    renderChat(route, { phone: true });
+    const chip = await screen.findByRole('button', { name: new RegExp(name) });
+    await waitFor(() => expect(chip).toBeEnabled());
+    expect(fireEvent.keyDown(chip, { key: 'Enter' })).toBe(true);
+    expect(fireEvent.keyDown(chip, { key: 'Enter', repeat: true })).toBe(false);
+  });
+
+  // F.2 B-I1: a failed send is not silent (Classic shows the same string in its error banner).
+  it('a failed send shows today\'s error', async () => {
+    renderChat(route, {
+      phone: true,
+      fixtures: { 'POST /api/messages/send': () => new Response(JSON.stringify({ error: 'Radio busy' }), { status: 500 }) },
+    });
+    await screen.findByText('Glyfada Beach checking in');
+    const box = screen.getByRole('combobox');
+    fireEvent.change(box, { target: { value: 'Heading out at 11' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+    expect(await screen.findByText('Failed to send message: Radio busy')).toBeInTheDocument();
+  });
+
   it('shows the signal line on the message: hops, SNR and where it was heard', async () => {
     renderChat(route, { phone: true });
     const row = (await screen.findByText('Glyfada Beach checking in')).closest('[data-message-id]') as HTMLElement;

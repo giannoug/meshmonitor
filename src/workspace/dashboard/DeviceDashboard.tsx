@@ -228,6 +228,8 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
     savingRef.current = true;
     setSaving(true);
     try {
+      // The user's board first: a failed board write must not leave stars removed install-wide.
+      await board.setBoard({ widgets, order, tiles: draft.tiles });
       if (remaining.length !== favorites.length) {
         const res = await csrfFetch(`${appBasename}/api/settings${sourceQuery}`, {
           method: 'POST',
@@ -238,7 +240,6 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
         setFavorites(remaining);
         removed.forEach(forgetChart);
       }
-      await board.setBoard({ widgets, order, tiles: draft.tiles });
       setSheet(null);
       setDraft(null);
     } catch {
