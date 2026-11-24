@@ -1612,3 +1612,34 @@ FINAL REPORT ITEM: Meshtastic Quiet nodes: favourites are not protected by the b
 FINAL REPORT ITEM: Pop out opens today's window with no source (the primary device's monitor), even from another device's monitor — today's behaviour, kept.
 FINAL REPORT ITEM: Today's InfoTab fetches LocalStats channel utilisation and airtime but never showed them; the Radio card shows them (no new request).
 Follow-up: Meshtastic pop-out ignores sourceId — from a non-primary device's monitor it opens the primary device's window (today's behaviour).
+
+## Phase 8 summary (gate)
+- Commits 780b0d4..805f9cb cover tasks 8.1–8.5: 18 commits (12 code, 6 ledger, including 1d8cab5, which restored truncated 8.1 ruling lines).
+  - Every task was reviewed.
+  - 8.1, 8.2, 8.4 and 8.5 each needed one fix round. 8.3 needed three; its third undid an extraction that broke two Classic source-reading tests (ID, Rule X).
+  - 8.3 redrew the built-ins on the kit instead of mounting today's sections (HX, following HH/HK/HN).
+- Boards accepted: 42 (j1–j3, k1–k3, 16-04, m1–m4, n1–n4, 14-01 to 14-16, o1–o3, q1–q3, 16-01, 16-02, 16-05 to 16-07). No `staged` board strings remain.
+- Contact sheet (private artifact): https://claude.ai/artifact/JE1HB2FGTjsdn77bdjRHGN. Screenshots re-encoded as JPEG to fit the 16 MB limit; the canonical PNGs come from `npm run test:workspace-e2e`.
+- CI has not run on this fork (Actions off). The gate was verified locally at 3eb2fe9 (805f9cb changes only this ledger):
+  - lint:ci filter: 0 FAIL lines
+  - tsc: client and server both clean
+  - full Vitest (`--maxWorkers=4`, PG and MySQL up): 41,508 total, 41,378 passed, 0 failed, 0 failed suites, 109 pending. The two load flakes accepted in 8.4 (h5-offline, 7-04-telemetry-latest) passed in this run.
+  - build and bundle check: pass
+  - Playwright: 352 passed
+- Backend changes this phase: none. No `src/server` file was touched.
+- Classic changes: extractions only, under Rule X. Classic DOM and tests are unchanged.
+  - Optional props: widget renderers' `bare`, `dmDraft` on `MeshCorePage` / `MeshCoreSourcePage` / `sourceDispatch`, an opt-in confirm on the shared ListField Delete.
+  - Hooks and helpers: `useChartSettings`, `widgetOptions`, `useDashboardData` (Dashboard and shared), `airtimeCutoffStatus`, `autoAckSample`, `scriptTestEnvironment`, `tracerouteNodeMatch`, `automationTesterHelpers`, `automationsPageLogic`, `templates/install`, `useLiveTrace`, `SubstitutionsHelp` split, `PatternExamples` data export (ID), `infoTabCharts`, `useInfoTabData`, `usePacketMonitor`, `security/{useSecurityData,useSecurityDigest,securityHelpers,deadNodesActions}`. `App.getAvailableChannels` now calls the shared `availableChannels`.
+- Mesh impact this phase:
+  - No new intervals (N/DM). The Overview board reads device nodes on open, focus or revisit; its only timer is the bundle's existing 15 s poll (HY).
+  - Every transmitting control (Send now, Run now, built-in tests) sends once per press behind a SendsLine; keyboard sends are repeat-guarded; destructive confirms use `submitOnEnter={false}`.
+  - Start capturing (8.5 IF) is today's packet-monitor flag: one POST per press, nothing on the mesh.
+  - No limits were chosen for rules that have none (Weather bot, Net check-in); that is the user's call.
+- FINAL REPORT ITEMs raised this phase:
+  - **Dashboard:** sort is replaced by the user's own order (HV); the Overview board has no filters and its Edit needs only a signed-in user (8.2).
+  - **Server re-arms on save (today's behaviour, unchanged):** Auto Announce, Auto Traceroute, LocalStats, Auto Time Sync, geofence timers, Auto Delete by Distance (8.3); every rule save re-creates all cron jobs, disabling a rule drops its in-memory baselines, and a step edit can re-arm a trace-path interval (8.4).
+  - **Per-source scheduler gaps (today):** Auto Key Management and Remote Admin Scanner per-source saves wait for a reconnect; Auto Welcome per source does not mark existing nodes welcomed (8.3).
+  - **Classic bug, not fixed (Rule X):** "export all" posts metadata objects the server rejects (8.3).
+  - **Run now** with no device named in a sending step has nothing to send through; the confirm says so (8.4).
+  - **Tools:** Meshtastic Quiet nodes bulk delete does not protect favourites (server); Pop out opens the primary device's window from any device; the Radio card now shows LocalStats utilisation and airtime that InfoTab fetched but never showed (8.5).
+- No PR created (requester's instruction).
