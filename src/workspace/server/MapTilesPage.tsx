@@ -329,7 +329,7 @@ function GeoJsonLayers() {
                 items={[
                   { key: 'style', label: t('workspace.server.geojson_style'), icon: 'edit', onSelect: () => setStyling(layer.id) },
                   { key: 'visible', label: t('workspace.server.geojson_visible'), icon: 'visibility', checked: layer.visible, onSelect: () => void g.updateLayer(layer.id, { visible: !layer.visible }) },
-                  { key: 'popup', label: t('workspace.server.geojson_no_popup'), icon: 'blocked', checked: layer.disablePopup ?? false, onSelect: () => void g.updateLayer(layer.id, { disablePopup: !(layer.disablePopup ?? false) }) },
+                  { key: 'popup', label: t('workspace.server.geojson_no_popup'), icon: 'blocked', hint: t('workspace.server.geojson_no_popup_hint'), checked: layer.disablePopup ?? false, onSelect: () => void g.updateLayer(layer.id, { disablePopup: !(layer.disablePopup ?? false) }) },
                   { key: 'delete', label: t('common.delete'), icon: 'delete', danger: true, onSelect: () => setDeleting({ id: layer.id, name: layer.name }) },
                 ]}
               />

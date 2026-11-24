@@ -21,7 +21,7 @@ vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/p
 
 const route = `/source/${SOURCE_IDS.g2}/dm/!a1b2c301`;
 const DRAFT = 'Running one now, should be 2 hops via Halandri, then I will try the Hymettus relay at noon';
-// 236 bytes of Greek: over one LoRa packet.
+// 212 bytes of Greek: over one LoRa packet.
 const GREEK = 'Τρέχω ένα τώρα, θα πρέπει να είναι 2 βήματα μέσω Χαλανδρίου, μετά θα δοκιμάσω τον αναμεταδότη του Υμηττού το μεσημέρι';
 
 async function openSheet() {

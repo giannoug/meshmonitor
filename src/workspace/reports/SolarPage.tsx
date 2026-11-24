@@ -95,7 +95,7 @@ export default function SolarPage() {
             isPhone
               ? (n) => (
                   <button type="button" className={`${parts.rowButton} ${styles.patternsRow}`} onClick={() => setPatternsOf(n)}>
-                    <span className={parts.rowTitle}>{t('analysis.solar_monitoring.patterns', 'Recent daily patterns')}</span>
+                    <span className={parts.rowTitle}>{t('workspace.reports.solar_patterns')}</span>
                     <span className={parts.rowMeta}>{n.recent_patterns.length}</span>
                   </button>
                 )
@@ -158,7 +158,7 @@ export default function SolarPage() {
                     <li key={d.date} className={styles.day} data-low={d.is_low || undefined}>
                       <span>{new Date(`${d.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short' })}</span>
                       <strong>{d.forecast_wh.toFixed(0)} Wh</strong>
-                      <span className={parts.tag} data-tone={d.is_low ? 'warn' : undefined}>{d.is_low ? 'Low' : 'OK'}</span>
+                      <span className={parts.tag} data-tone={d.is_low ? 'warn' : undefined}>{d.is_low ? t('workspace.reports.solar_low') : t('workspace.reports.solar_ok')}</span>
                     </li>
                   ))}
                 </ul>

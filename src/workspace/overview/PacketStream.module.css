@@ -52,7 +52,7 @@
 }
 
 .colNum { width: 32px; }
-.colSource { width: 52px; }
+.colSource { width: 64px; }
 .colDir { width: 36px; }
 .colVia { width: 50px; }
 .colTime { width: 56px; }

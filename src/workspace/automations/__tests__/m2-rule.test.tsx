@@ -174,13 +174,23 @@ describe('m2-rule', () => {
 
   it('Export on the Runs tab writes the runs that are shown', async () => {
     let blob: Blob | undefined;
-    Object.assign(window.URL, { createObjectURL: (b: Blob) => { blob = b; return 'blob:x'; }, revokeObjectURL: vi.fn() });
-    renderRules(`${WEATHER}/runs`);
-    const all = await screen.findAllByRole('button', { name: /^(Sent|Skipped|Failed)/ });
-    fireEvent.click(all[0]);
-    fireEvent.click(await enabled('Export'));
-    const shown = JSON.parse(await blob!.text()) as unknown[];
-    expect(shown.length).toBe(Number(all[0].textContent?.match(/\d+/)?.[0]));
+    const create = vi.spyOn(URL, 'createObjectURL' as never).mockImplementation(((b: Blob) => { blob = b; return 'blob:x'; }) as never);
+    const revoke = vi.spyOn(URL, 'revokeObjectURL' as never).mockImplementation((() => {}) as never);
+    try {
+      renderRules(`${WEATHER}/runs`);
+      const all = await screen.findAllByRole('button', { name: /^(Sent|Skipped|Failed)/ });
+      const count = (b: HTMLElement) => Number(b.textContent?.match(/\d+/)?.[0]);
+      const total = all.reduce((n, b) => n + count(b), 0);
+      const chip = all.find((b) => count(b) > 0 && count(b) < total);
+      expect(chip, 'fixture needs a status chip below the total').toBeDefined();
+      fireEvent.click(chip!);
+      fireEvent.click(await enabled('Export'));
+      const shown = JSON.parse(await blob!.text()) as unknown[];
+      expect(shown.length).toBe(count(chip!));
+    } finally {
+      create.mockRestore();
+      revoke.mockRestore();
+    }
   });
 
   it('a new rule saves with today\'s POST and opens it', async () => {

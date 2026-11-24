@@ -197,7 +197,7 @@ function Charts({ m, readable, title }: { m: Monitor; readable: Set<string>; tit
         <div className={styles.segmented} role="group" aria-label={t('unified.telemetry.range_aria')}>
           {RANGE_OPTIONS.map((r) => (
             <button key={r} type="button" aria-pressed={m.rangeHours === r} onClick={() => m.setRangeHours(r)}>
-              {r === 0 ? t('unified.packets.range_all') : `${r} h`}
+              {r === 0 ? t('unified.packets.range_all') : t('workspace.overview.range_hours', { count: r })}
             </button>
           ))}
         </div>

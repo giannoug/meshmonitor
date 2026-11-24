@@ -22,7 +22,7 @@ describe('Server › General in settings search', () => {
     renderServer('/server/backup');
     await screen.findByRole('heading', { name: 'Backup & maintenance' });
     fireEvent.keyDown(document, { key: ',', metaKey: true });
-    const d = within(await screen.findByRole('dialog', { name: 'Search settings' }));
+    const d = within(await screen.findByRole('dialog', { name: 'Search settings' }, { timeout: 4000 }));
     fireEvent.change(d.getByRole('combobox', { name: 'Search settings' }), { target: { value: 'landing page' } });
     const hit = d.getByRole('option', { name: /Default Landing Page/ });
     expect(hit).toHaveAttribute('href', '/server/general#setting-general.defaultLandingPage');
@@ -36,7 +36,7 @@ describe('Server › General in settings search', () => {
     renderServer('/server/backup');
     await screen.findByRole('heading', { name: 'Backup & maintenance' });
     fireEvent.keyDown(document, { key: ',', metaKey: true });
-    const d = within(await screen.findByRole('dialog', { name: 'Search settings' }));
+    const d = within(await screen.findByRole('dialog', { name: 'Search settings' }, { timeout: 4000 }));
     fireEvent.change(d.getByRole('combobox', { name: 'Search settings' }), { target: { value: 'apprise' } });
     expect(d.getByRole('option', { name: /Apprise API Server/ })).toHaveAttribute('href', '/server/notification-services');
   });

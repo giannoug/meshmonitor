@@ -67,7 +67,7 @@ describe('8-15-mqtt-region-feed', () => {
     expect(await screen.findByText('Athens MeshCore feed is offline. History stays here.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('link', { name: 'Channels' }));
     expect(await screen.findByText(/Morning, anyone on the coast road\?/)).toBeInTheDocument();
-    expect(screen.getByText("This MQTT source has no radio of its own, so it cannot send. Open a Meshtastic source to send.")).toBeInTheDocument();
+    expect(screen.getByText("This region feed is receive-only: it shows what MeshCore nodes publish to the broker and cannot send.")).toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: /message/i })).toBeNull();
   });
 

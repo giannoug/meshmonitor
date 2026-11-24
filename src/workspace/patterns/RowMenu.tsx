@@ -21,6 +21,8 @@ export interface RowMenuItem {
   icon: UiIconName;
   danger?: boolean;
   disabled?: boolean;
+  /** Help text, shown as the item's tooltip. */
+  hint?: string;
   /** On/off items (menuitemcheckbox). */
   checked?: boolean;
   onSelect(): void;
@@ -129,6 +131,7 @@ export default function RowMenu({ label, items, heading, trigger: triggerContent
                 data-phone={isPhone || undefined}
                 data-danger={item.danger ? '' : undefined}
                 disabled={item.disabled}
+                title={item.hint}
                 onClick={() => {
                   setOpen(false);
                   item.onSelect();

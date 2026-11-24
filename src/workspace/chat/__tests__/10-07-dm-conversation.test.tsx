@@ -22,7 +22,9 @@ const route = `/source/${SOURCE_IDS.g2}/dm/!a1b2c301`;
 async function openSheet() {
   const result = renderChat(route, { phone: true });
   await screen.findByTestId('key-mismatch-warning');
-  fireEvent.click(screen.getByRole('button', { name: 'Node actions' }));
+  const actions = await screen.findByRole('button', { name: 'Node actions' });
+  await waitFor(() => expect(actions).toBeEnabled());
+  fireEvent.click(actions);
   return { ...result, sheet: await screen.findByRole('dialog', { name: /Kifisia Rooftop/ }) };
 }
 

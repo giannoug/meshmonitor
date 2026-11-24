@@ -19,6 +19,12 @@ type Log = { writes: Array<{ method: string; path: string; body: unknown }> };
 const posts = (log: Log, tail: string) => log.writes.filter((w) => w.method !== 'GET' && w.path.endsWith(tail));
 const settle = () => act(async () => new Promise((r) => setTimeout(r, 50)));
 
+async function enabledButton(name: string | RegExp) {
+  const b = await screen.findByRole('button', { name });
+  await waitFor(() => expect(b).toBeEnabled());
+  return b;
+}
+
 describe('8-14-automations', () => {
   it('8-14-automations shows the board', async () => {
     const { container } = renderMeshCore(`${HELTEC}/automations`);
@@ -37,9 +43,9 @@ describe('8-14-automations', () => {
   it('counts On and Sends on the mesh, and filters by them', async () => {
     renderMeshCore(`${HELTEC}/automations`);
     await screen.findByText('Remote Telemetry');
-    fireEvent.click(screen.getByRole('button', { name: /^On/ }));
+    fireEvent.click(await enabledButton(/^On/));
     expect(screen.queryByText('Auto Welcome')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /^Sends on the mesh/ }));
+    fireEvent.click(await enabledButton(/^Sends on the mesh/));
     expect(screen.queryByText('Auto Delete by Distance')).toBeNull();
     expect(screen.getByText('Auto-announce')).toBeInTheDocument();
   });
@@ -52,7 +58,7 @@ describe('8-14-automations', () => {
     fireEvent.click(screen.getByRole('switch', { name: 'Auto Welcome' }));
     expect(await screen.findByText('1 change in Automations')).toBeInTheDocument();
     expect(log.writes).toHaveLength(0);
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(await enabledButton('Save'));
     await waitFor(() => expect(posts(log, '/automation/auto-welcome')).toHaveLength(1));
     expect(posts(log, '/automation/auto-welcome')[0].body).toEqual({
       enabled: true, message: 'Welcome to the Athens mesh, {NAME}!', target: 'dm', waitForName: true, maxHops: 3, delaySeconds: 30, maxPerHour: 4,

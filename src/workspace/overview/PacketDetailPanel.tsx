@@ -83,7 +83,7 @@ export default function PacketDetailPanel({ packet: p, onClose, meshcore = false
         title={relayByte ? t('packet_monitor.click_for_relay') : t('packet_monitor.estimated_relay')}
         onClick={() => setRelayOpen(true)}
       >
-        via {relayByte ?? '?'}
+        {t('workspace.overview.relay_via', { relay: relayByte ?? '?' })}
       </button>
     </>
   );

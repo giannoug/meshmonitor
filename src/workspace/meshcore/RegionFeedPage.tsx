@@ -473,7 +473,7 @@ function FeedChannels({ sourceId, name, messages }: { sourceId: string; name: st
           <strong>#?</strong> {t('workspace.meshcore.feed_unreadable', { count: unreadable, older: t('meshcore.ingest.channel_legacy', '(older, key unknown)') })}
         </p>
       )}
-      <ReadOnlyNote kind="receive-only" />
+      <ReadOnlyNote kind="reason" text={t('workspace.meshcore.feed_receive_only')} />
     </section>
   );
 }

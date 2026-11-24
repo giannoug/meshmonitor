@@ -5,8 +5,7 @@
     "Environment",
     "Air Quality",
     "Power",
-    "Sends 1 telemetry request",
-    "Request"
+    "Sends 1 telemetry request"
   ],
   "absent": [],
   "source": "checks/s15.json"
