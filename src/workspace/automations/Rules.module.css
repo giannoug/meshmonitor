@@ -205,7 +205,8 @@
 }
 
 .stepSheet[data-phone] .fields input:not([type='checkbox']):not([type='radio']),
-.stepSheet[data-phone] .fields select {
+.stepSheet[data-phone] .fields select,
+.stepSheet[data-phone] .fields button {
   min-height: 44px;
 }
 

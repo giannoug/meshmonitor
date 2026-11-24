@@ -16,6 +16,11 @@ import { READ_ONLY, nonGet, renderRules, settle } from './renderRules';
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('./socketMock')).socketMock(orig));
 
 const WEATHER = '/automations/e3';
+const enabled = async (name: string) => {
+  const b = await screen.findByRole('button', { name });
+  await waitFor(() => expect(b).toBeEnabled());
+  return b;
+};
 const loaded = () => screen.findByRole('button', { name: /^WHEN: A message arrives in #Local/ });
 
 describe('m2-rule', () => {
@@ -150,6 +155,32 @@ describe('m2-rule', () => {
     expect(screen.getByRole('button', { name: 'Run now' })).toBeDisabled();
     expect(screen.getByRole('switch', { name: 'Weather bot on' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Add a step' })).toBeNull();
+  });
+
+  it('without automations:write Test is off', async () => {
+    renderRules(WEATHER, { permissions: READ_ONLY });
+    await loaded();
+    expect(screen.getByRole('button', { name: 'Test' })).toBeDisabled();
+  });
+
+  it('phone: a clean draft offers Test once, in the dock and not in the menu', async () => {
+    renderRules(WEATHER, { phone: true });
+    await loaded();
+    expect(screen.getByRole('button', { name: 'Test' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'More for Weather bot' }));
+    await screen.findByRole('menuitem', { name: 'Run now' });
+    expect(screen.queryByRole('menuitem', { name: 'Test' })).toBeNull();
+  });
+
+  it('Export on the Runs tab writes the runs that are shown', async () => {
+    let blob: Blob | undefined;
+    Object.assign(window.URL, { createObjectURL: (b: Blob) => { blob = b; return 'blob:x'; }, revokeObjectURL: vi.fn() });
+    renderRules(`${WEATHER}/runs`);
+    const all = await screen.findAllByRole('button', { name: /^(Sent|Skipped|Failed)/ });
+    fireEvent.click(all[0]);
+    fireEvent.click(await enabled('Export'));
+    const shown = JSON.parse(await blob!.text()) as unknown[];
+    expect(shown.length).toBe(Number(all[0].textContent?.match(/\d+/)?.[0]));
   });
 
   it('a new rule saves with today\'s POST and opens it', async () => {

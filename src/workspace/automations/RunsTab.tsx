@@ -64,7 +64,7 @@ export default function RunsTab({ ruleId, name, limited }: { ruleId: string; nam
   const sentDay = rows.filter((r) => r.kind === 'sent' && r.run.startedAt >= dayAgo).length;
 
   const exportRuns = () => {
-    const blob = new Blob([JSON.stringify(runs, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(shown.map((r) => r.run), null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `${name.replace(/[^\w.-]+/g, '_')}-runs.json`;
@@ -108,7 +108,7 @@ export default function RunsTab({ ruleId, name, limited }: { ruleId: string; nam
             </button>
           ))}
         </div>
-        {!isPhone && <button type="button" className={styles.button} disabled={runs.length === 0} onClick={exportRuns}><UiIcon name="download" size={16} />{t('workspace.rules.export')}</button>}
+        {!isPhone && <button type="button" className={styles.button} disabled={shown.length === 0} onClick={exportRuns}><UiIcon name="download" size={16} />{t('workspace.rules.export')}</button>}
       </div>
       {runs.length === 0 ? <p className={styles.note}>{t('workspace.rules.runs_tab.none')}</p> : isPhone ? (
         <ul className={`${styles.card} ${own.list}`} aria-label={t('workspace.rules.runs')}>

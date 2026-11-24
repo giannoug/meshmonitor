@@ -291,7 +291,7 @@ function Rule({ rule, isNew }: { rule: Automation; isNew: boolean }) {
       items={[
         // Phone: + Step and Test stay reachable while the dock holds unsaved changes (the bottom dock gives way to it).
         ...(isPhone && tab === '' && canWrite && mode === 'steps' ? [{ key: 'step', label: t('workspace.rules.add_step'), icon: 'plus' as const, onSelect: () => setPhonePicker('step') }] : []),
-        ...(isPhone && tab === '' ? [{ key: 'test', label: t('workspace.rules.test.button'), icon: 'test' as const, onSelect: () => setTestOpen(true) }] : []),
+        ...(isPhone && tab === '' && changes.length > 0 ? [{ key: 'test', label: t('workspace.rules.test.button'), icon: 'test' as const, disabled: !canWrite, onSelect: () => setTestOpen(true) }] : []),
         ...(isPhone && !isNew ? [{ key: 'run', label: t('workspace.rules.run.button'), icon: 'zap' as const, disabled: !canWrite, onSelect: () => setRunAsk(true) }] : []),
         { key: 'names', label: t('workspace.rules.names'), icon: 'edit' as const, onSelect: () => setNamesOpen(true) },
         mode === 'steps'
@@ -306,7 +306,7 @@ function Rule({ rule, isNew }: { rule: Automation; isNew: boolean }) {
     />
   );
   const testButton = (
-    <button type="button" className={styles.button} aria-pressed={testOpen} onClick={() => setTestOpen((x) => !x)}>
+    <button type="button" className={styles.button} aria-pressed={testOpen} disabled={!canWrite} onClick={() => setTestOpen((x) => !x)}>
       <UiIcon name="test" size={16} />{t('workspace.rules.test.button')}
     </button>
   );
@@ -416,7 +416,7 @@ function Rule({ rule, isNew }: { rule: Automation; isNew: boolean }) {
       {isPhone && tab === '' && changes.length === 0 && (
         <div className={own.phoneDock}>
           {canWrite && mode === 'steps' && <button type="button" className={styles.button} onClick={() => setPhonePicker('step')}><UiIcon name="plus" size={16} />{t('workspace.rules.step')}</button>}
-          <button type="button" className={`${styles.button} ${styles.primary}`} onClick={() => setTestOpen(true)}><UiIcon name="test" size={16} />{t('workspace.rules.test.button')}</button>
+          <button type="button" className={`${styles.button} ${styles.primary}`} disabled={!canWrite} onClick={() => setTestOpen(true)}><UiIcon name="test" size={16} />{t('workspace.rules.test.button')}</button>
         </div>
       )}
       <McDock
@@ -481,7 +481,7 @@ function Rule({ rule, isNew }: { rule: Automation; isNew: boolean }) {
                 {s.text && <p className={own.sentBox}>{s.text}</p>}
               </div>
             ))}
-            <SendsLine>{sends.length ? t('workspace.rules.run.sends', { count: sends.reduce((n, s) => n + s.sourceIds.length, 0) }) : t('workspace.settings.savebar.sends_nothing')}</SendsLine>
+            <SendsLine>{sends.length ? (sends.some((s) => s.sourceIds.length) ? t('workspace.rules.run.sends', { count: sends.reduce((n, s) => n + s.sourceIds.length, 0) }) : t('workspace.rules.run.no_source')) : t('workspace.settings.savebar.sends_nothing')}</SendsLine>
           </div>
         }
         confirmLabel={t('workspace.rules.run.button')}

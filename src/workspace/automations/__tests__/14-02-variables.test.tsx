@@ -8,6 +8,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
+import { RULES } from '../../__fixtures__/rules';
 import { READ_ONLY, nonGet, renderRules, settle } from './renderRules';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('./socketMock')).socketMock(orig));
@@ -82,5 +83,16 @@ describe('14-02-variables', () => {
     const item = (await screen.findByText('welcomed')).closest('li') as HTMLElement;
     expect(within(item).getByRole('button', { name: 'Delete' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Create variable' })).toBeDisabled();
+  });
+
+  it('"read by" matches the whole variable name: var.relay is not var.relayCount', async () => {
+    const vars = [
+      { id: 'a', name: 'relay', description: null, type: 'integer', scope: 'global', readonly: false, config: '{}' },
+      { id: 'b', name: 'relayCount', description: null, type: 'integer', scope: 'global', readonly: false, config: '{}' },
+    ];
+    renderRules(VARS, { rules: [{ ...RULES[0], name: 'Counter', config: '{"p":"{{ var.relayCount }}"}' }], fixtures: { 'GET /api/automations/variables': () => vars } });
+    const count = (await screen.findByText('relayCount')).closest('li') as HTMLElement;
+    expect(count).toHaveTextContent('read by Counter');
+    expect((screen.getByText('relay', { selector: 'span' })).closest('li')).not.toHaveTextContent('read by');
   });
 });

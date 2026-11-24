@@ -159,7 +159,7 @@ export default function VariablesPage({ canWrite, rules }: { canWrite: boolean; 
       {items.length === 0 ? <p className={styles.note}>{t('workspace.rules.var.none')}</p> : (
         <ul className={`${styles.card} ${own.list}`}>
           {items.map((v) => {
-            const users = rules.filter((r) => r.config.includes(`var.${v.name}`)).map((r) => r.name);
+            const users = rules.filter((r) => new RegExp(`var\\.${v.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w])`).test(r.config)).map((r) => r.name);
             return (
               <li key={v.id} className={own.varRow} data-phone={isPhone || undefined}>
                 <div className={own.ruleText}>
