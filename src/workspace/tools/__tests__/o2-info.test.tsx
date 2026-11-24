@@ -61,6 +61,8 @@ describe('o2-info', () => {
 
   it('Radio, MQTT, Connection and Server show today\'s rows', async () => {
     renderTools(`${G2}/info/radio`);
+    // A cold deep link: the group page must wait for the first poll, not bounce to Info (Ruling JB).
+    await screen.findByText('Device Role', {}, { timeout: 5000 });
     for (const label of ['Device Role', 'Modem Preset', 'Channel Number', 'Frequency', 'TX Power', 'TX Enabled', 'Boosted RX Gain']) {
       expect(await screen.findByText(label)).toBeInTheDocument();
     }

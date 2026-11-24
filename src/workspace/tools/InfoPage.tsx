@@ -87,9 +87,9 @@ function Rows({ rows }: { rows: Row[] }) {
 function Info({ sourceId, source, group }: { sourceId: string; source: DashboardSource; group: InfoGroup | null }) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
-  const { authStatus, hasPermission } = useAuth();
+  const { authStatus, hasPermission, loading: authLoading } = useAuth();
   const settings = useSettings();
-  const { view } = useChatRuntime(-1);
+  const { view, pollData } = useChatRuntime(-1);
   const { connectionStatus, currentNodeId, deviceInfo: rawDeviceInfo, deviceConfig: rawDeviceConfig } = useData();
   const { nodes } = useNodes();
   const { channels } = useChannels();
@@ -99,7 +99,8 @@ function Info({ sourceId, source, group }: { sourceId: string; source: Dashboard
   const isMqttOnlySource = isMqttOnlySourceType(source.type);
   const showTransport = !isMqttOnlySource;
   // An MQTT feed has no local node: never show a device identity or config for it (#5367).
-  const deviceConfig = isMqttOnlySource ? null : (rawDeviceConfig as Record<string, any> | null); // eslint-disable-line @typescript-eslint/no-explicit-any -- today's untyped poll config
+  // The poll's config is read directly too: DataContext takes it one render later, which would bounce a deep link.
+  const deviceConfig = isMqttOnlySource ? null : ((rawDeviceConfig ?? pollData?.deviceConfig ?? null) as Record<string, any> | null); // eslint-disable-line @typescript-eslint/no-explicit-any -- today's untyped poll config
   const deviceInfo = rawDeviceInfo as Record<string, any> | null; // eslint-disable-line @typescript-eslint/no-explicit-any -- today's untyped poll config
   const canReadTraceroute = hasPermission('traceroute', 'read');
   const canWriteTraceroute = hasPermission('traceroute', 'write');
@@ -229,7 +230,11 @@ function Info({ sourceId, source, group }: { sourceId: string; source: Dashboard
     server: version,
   };
 
-  if (group && !shown[group]) return <Navigate replace to={`${base}/info`} />;
+  // A group's condition is unknown until the first poll and the auth check land: wait, don't bounce the deep link.
+  if (group && !shown[group]) {
+    if (!pollData || authLoading) return <p className={mc.note}>{t('common.loading_indicator')}</p>;
+    return <Navigate replace to={`${base}/info`} />;
+  }
 
   // ── A group's page ─────────────────────────────────────────────────────
   if (group) {
