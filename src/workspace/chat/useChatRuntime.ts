@@ -25,7 +25,7 @@ export function useChatRuntime(selectedChannel: number) {
 
   // App's connection state machine is not here; the shell's per-source status stands in for it.
   useEffect(() => setConnectionStatus(linkUp ? 'connected' : 'disconnected'), [linkUp, setConnectionStatus]);
-  const { data: pollData, refetch: refetchPoll } = usePoll({ enabled: connectionStatus === 'connected' });
+  const { data: pollData, refetch: refetchPoll, isError: pollFailed } = usePoll({ enabled: connectionStatus === 'connected' });
 
   const view = useMessagingView();
   const { applyPollMessages } = view;
@@ -77,5 +77,5 @@ export function useChatRuntime(selectedChannel: number) {
     homoglyphEnabledRef,
   });
 
-  return { view, actions, homoglyph, deviceConfig: pollData?.deviceConfig, pollData };
+  return { view, actions, homoglyph, deviceConfig: pollData?.deviceConfig, pollData, pollFailed };
 }

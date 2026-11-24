@@ -91,6 +91,12 @@ describe('o2-info', () => {
     expect(nonGets()).toEqual(['DELETE /api/route-segments/record-holder?sourceId=src-g2&transport=rf']);
   });
 
+  it('a group deep link on a disconnected device still goes back to Info', async () => {
+    renderTools('/source/src-rak/info/radio');
+    expect(await screen.findByRole('link', { name: 'Connection: all of it' }, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.queryByText('Device Role')).not.toBeInTheDocument();
+  });
+
   it('an unknown group goes back to Info', async () => {
     renderTools(`${G2}/info/nope`);
     expect(await screen.findByRole('link', { name: 'Radio: all of it' })).toBeInTheDocument();

@@ -89,18 +89,19 @@ function Info({ sourceId, source, group }: { sourceId: string; source: Dashboard
   const isPhone = useIsPhone();
   const { authStatus, hasPermission, loading: authLoading } = useAuth();
   const settings = useSettings();
-  const { view, pollData } = useChatRuntime(-1);
+  const { view, pollData, pollFailed } = useChatRuntime(-1);
   const { connectionStatus, currentNodeId, deviceInfo: rawDeviceInfo, deviceConfig: rawDeviceConfig } = useData();
   const { nodes } = useNodes();
   const { channels } = useChannels();
   const { sources } = useShellDevices();
-  const live = sources.find((s) => s.id === sourceId)?.live;
+  const shellSource = sources.find((s) => s.id === sourceId);
+  const live = shellSource?.live;
   const isAuthenticated = authStatus?.authenticated === true;
   const isMqttOnlySource = isMqttOnlySourceType(source.type);
   const showTransport = !isMqttOnlySource;
   // An MQTT feed has no local node: never show a device identity or config for it (#5367).
-  // The poll's config is read directly too: DataContext takes it one render later, which would bounce a deep link.
-  const deviceConfig = isMqttOnlySource ? null : ((rawDeviceConfig ?? pollData?.deviceConfig ?? null) as Record<string, any> | null); // eslint-disable-line @typescript-eslint/no-explicit-any -- today's untyped poll config
+  // The poll's config first: DataContext takes it one render later (which would bounce a deep link) and keeps the last source's.
+  const deviceConfig = isMqttOnlySource ? null : ((pollData?.deviceConfig ?? rawDeviceConfig ?? null) as Record<string, any> | null); // eslint-disable-line @typescript-eslint/no-explicit-any -- today's untyped poll config
   const deviceInfo = rawDeviceInfo as Record<string, any> | null; // eslint-disable-line @typescript-eslint/no-explicit-any -- today's untyped poll config
   const canReadTraceroute = hasPermission('traceroute', 'read');
   const canWriteTraceroute = hasPermission('traceroute', 'write');
@@ -230,9 +231,10 @@ function Info({ sourceId, source, group }: { sourceId: string; source: Dashboard
     server: version,
   };
 
-  // A group's condition is unknown until the first poll and the auth check land: wait, don't bounce the deep link.
+  // A group's condition is unknown until auth, the shell's status and (with the link up) the first poll answer: wait, don't bounce the deep link.
+  const settling = authLoading || !shellSource || shellSource.status === 'connecting' || (shellSource.status === 'connected' && !pollData && !pollFailed);
   if (group && !shown[group]) {
-    if (!pollData || authLoading) return <p className={mc.note}>{t('common.loading_indicator')}</p>;
+    if (settling) return <p className={mc.note}>{t('common.loading_indicator')}</p>;
     return <Navigate replace to={`${base}/info`} />;
   }
 
