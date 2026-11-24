@@ -1,9 +1,8 @@
 /**
- * The layout this user should see (spec §5.1), from the server preview flag,
- * the user's `layout` preference and the install `defaultLayout` setting.
- * Until those answer, the localStorage mirror `mm.layout` decides, else
- * Classic, so Classic never waits on a fetch. Preference and setting are only
- * fetched when the preview flag is on.
+ * The layout this user should see (spec §5.1), from the user's `layout`
+ * preference and the install `defaultLayout` setting. Until those answer, the
+ * localStorage mirror `mm.layout` decides, else Classic, so Classic never
+ * waits on a fetch.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -31,24 +30,17 @@ function readMirror(): Layout | null {
   }
 }
 
-export function useLayout(): { layout: Layout; ready: boolean; preview: boolean; setLayout(l: Layout): Promise<void> } {
+export function useLayout(): { layout: Layout; ready: boolean; setLayout(l: Layout): Promise<void> } {
   const [mirror] = useState(readMirror);
-  const config = useQuery({
-    queryKey: ['config', 'workspacePreview'],
-    queryFn: () => apiService.get<{ workspacePreview?: boolean }>('/api/config'),
-    staleTime: 5 * 60_000,
-  });
-  const preview = config.data?.workspacePreview === true;
-  const settings = useQuery({ ...installSettingsQuery, enabled: preview });
+  const settings = useQuery(installSettingsQuery);
   const queryClient = useQueryClient();
-  const { prefs, isSuccess: prefsOk, isError: prefsFailed } = useUserPreferences({ enabled: preview });
+  const { prefs, isSuccess: prefsOk, isError: prefsFailed } = useUserPreferences();
 
   // Only a full successful answer replaces the mirror: a transient error must not.
-  const resolvedOk = config.isSuccess && (!preview || (settings.isSuccess && prefsOk));
+  const resolvedOk = settings.isSuccess && prefsOk;
   // A failed fetch settles on the mirror or Classic, so nothing waits on it forever.
-  const failed = config.isError || settings.isError || prefsFailed;
+  const failed = settings.isError || prefsFailed;
   const resolved = resolveLayout({
-    preview,
     userLayout: asLayout(prefs.layout),
     defaultLayout: asLayout(settings.data?.defaultLayout),
   });
@@ -75,7 +67,6 @@ export function useLayout(): { layout: Layout; ready: boolean; preview: boolean;
   return {
     layout: resolvedOk ? resolved : (mirror ?? 'classic'),
     ready: resolvedOk || mirror !== null || failed,
-    preview,
     setLayout,
   };
 }

@@ -4,14 +4,12 @@ import { classicFallback } from '../classicFallback';
 
 describe('resolveLayout', () => {
   it.each([
-    [{ preview: false, userLayout: 'workspace', defaultLayout: 'workspace' }, 'classic'],
-    [{ preview: false, userLayout: null, defaultLayout: 'workspace' }, 'classic'],
-    [{ preview: true, userLayout: 'workspace', defaultLayout: 'classic' }, 'workspace'],
-    [{ preview: true, userLayout: 'classic', defaultLayout: 'workspace' }, 'classic'],
-    [{ preview: true, userLayout: null, defaultLayout: 'workspace' }, 'workspace'],
-    [{ preview: true, defaultLayout: 'workspace' }, 'workspace'],
-    [{ preview: true, userLayout: null, defaultLayout: null }, 'classic'],
-    [{ preview: true }, 'classic'],
+    [{ userLayout: 'workspace', defaultLayout: 'classic' }, 'workspace'],
+    [{ userLayout: 'classic', defaultLayout: 'workspace' }, 'classic'],
+    [{ userLayout: null, defaultLayout: 'workspace' }, 'workspace'],
+    [{ defaultLayout: 'workspace' }, 'workspace'],
+    [{ userLayout: null, defaultLayout: null }, 'classic'],
+    [{}, 'classic'],
   ] as const)('%o → %s', (input, expected) => {
     expect(resolveLayout(input)).toBe(expected);
   });

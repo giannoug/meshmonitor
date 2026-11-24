@@ -1,5 +1,9 @@
 /* Classic's "Try the Workspace layout" banner (board r3-classic-banner). */
 .banner {
+  /* Classic's header and sidebar are fixed: sit below and beside them, and keep the banner's own height in the flow. */
+  position: sticky;
+  top: var(--app-header-height);
+  margin-left: var(--sidebar-width);
   display: flex;
   align-items: center;
   gap: 16px;

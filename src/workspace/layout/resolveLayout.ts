@@ -5,11 +5,7 @@ export function asLayout(v: unknown): Layout | null {
   return v === 'classic' || v === 'workspace' ? v : null;
 }
 
-/**
- * Which layout a user sees. Without the server preview flag (D3) everyone gets
- * Classic; otherwise the user's own choice wins over the install default.
- */
-export function resolveLayout(i: { preview: boolean; userLayout?: Layout | null; defaultLayout?: Layout | null }): Layout {
-  if (!i.preview) return 'classic';
+/** Which layout a user sees: their own choice, then the install default, then Classic. */
+export function resolveLayout(i: { userLayout?: Layout | null; defaultLayout?: Layout | null }): Layout {
   return i.userLayout ?? i.defaultLayout ?? 'classic';
 }

@@ -1,7 +1,7 @@
 /**
  * The Classic "Try the Workspace layout" banner (board r3-classic-banner,
- * D18, spec §5.2). Inert until Task 9.3 sets `WORKSPACE_ENTRY_ENABLED`; until
- * then it renders nothing and asks the server nothing.
+ * D18, spec §5.2). Rendered while `WORKSPACE_ENTRY_ENABLED` (on since Task 9.3);
+ * with it off it renders nothing and asks the server nothing.
  *
  * Shown to a signed-in user while the admin offers it (`offerWorkspaceBanner`,
  * Server › General) and the user has neither a `layout` preference nor

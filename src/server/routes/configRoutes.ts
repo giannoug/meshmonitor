@@ -108,7 +108,6 @@ router.get('/', optionalAuth(), async (req, res) => {
       meshtasticUseTls: false, // We're using TCP, not TLS
       meshtasticSourceType: conn.sourceType,
       baseUrl: BASE_URL,
-      workspacePreview: env.workspacePreview,
       deviceMetadata: deviceMetadata,
       localNodeInfo: localNodeInfo,
     });
@@ -119,7 +118,6 @@ router.get('/', optionalAuth(), async (req, res) => {
       meshtasticTcpPort: env.meshtasticTcpPort,
       meshtasticUseTls: false,
       baseUrl: BASE_URL,
-      workspacePreview: env.workspacePreview,
     });
   }
 });

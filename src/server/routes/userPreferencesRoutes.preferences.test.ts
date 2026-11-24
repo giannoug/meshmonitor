@@ -98,10 +98,10 @@ describe('user preferences API', () => {
     await h.db.auth.updateUser(h.limited.id, { isActive: true });
   });
 
-  it('GET /api/config includes workspacePreview', async () => {
+  it('GET /api/config no longer carries the removed workspacePreview gate', async () => {
     const res = await (await h.loginAs(null)).get('/api/config');
     expect(res.status).toBe(200);
-    expect(res.body.workspacePreview).toBe(false);
+    expect(res.body).not.toHaveProperty('workspacePreview');
   });
 
   it('settings POST rejects a non-boolean offerWorkspaceBanner', async () => {

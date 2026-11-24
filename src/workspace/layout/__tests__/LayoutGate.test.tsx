@@ -43,7 +43,6 @@ function renderGate(
   );
 }
 
-const config = (workspacePreview: boolean) => () => ({ baseUrl: '', workspacePreview });
 const prefs = (layout?: string) => () => ({ success: true, data: { preferences: layout ? { layout } : {} } });
 
 beforeEach(() => {
@@ -55,29 +54,51 @@ afterEach(() => {
 });
 
 describe('LayoutGate', () => {
-  it('renders Classic when the preview flag is off, whatever the user chose', async () => {
-    renderGate({ 'GET /api/config': config(false), 'GET /api/user/preferences': prefs('workspace') });
-    expect(await screen.findByTestId('classic')).toHaveTextContent('/');
-    expect(screen.queryByTestId('workspace-app')).toBeNull();
-  });
-
-  it('renders the Workspace when the preview flag is on and the user chose it', async () => {
-    renderGate({ 'GET /api/config': config(true), 'GET /api/user/preferences': prefs('workspace') });
+  it('renders the Workspace when the user chose it, with no server flag', async () => {
+    renderGate({ 'GET /api/config': () => ({ baseUrl: '' }), 'GET /api/user/preferences': prefs('workspace') });
     expect(await screen.findByTestId('workspace-app')).toBeInTheDocument();
     expect(localStorage.getItem('mm.layout')).toBe('workspace');
   });
 
+  it('follows the install default when the user has no layout', async () => {
+    renderGate({
+      'GET /api/user/preferences': prefs(),
+      'GET /api/settings': () => ({ defaultLayout: 'workspace' }),
+    });
+    expect(await screen.findByTestId('workspace-app')).toBeInTheDocument();
+  });
+
+  it('renders Classic when neither the user nor the install chose the Workspace', async () => {
+    renderGate({ 'GET /api/user/preferences': prefs(), 'GET /api/settings': () => ({}) });
+    await waitFor(() => expect(localStorage.getItem('mm.layout')).toBe('classic'));
+    expect(screen.getByTestId('classic')).toHaveTextContent('/');
+    expect(screen.queryByTestId('workspace-app')).toBeNull();
+  });
+
+  it('a user Classic choice wins over a Workspace default', async () => {
+    renderGate({
+      'GET /api/user/preferences': prefs('classic'),
+      'GET /api/settings': () => ({ defaultLayout: 'workspace' }),
+    });
+    await waitFor(() => expect(localStorage.getItem('mm.layout')).toBe('classic'));
+    expect(screen.queryByTestId('workspace-app')).toBeNull();
+  });
+
+  it('does not read /api/config', async () => {
+    renderGate({ 'GET /api/user/preferences': prefs('classic') });
+    await waitFor(() => expect(localStorage.getItem('mm.layout')).toBe('classic'));
+    const urls = vi.mocked(globalThis.fetch).mock.calls.map(([u]) => String(u));
+    expect(urls.some((u) => u.includes('/api/config'))).toBe(false);
+  });
+
   it('sends a Classic user on a Workspace-only URL to its Classic page', async () => {
-    renderGate(
-      { 'GET /api/config': config(true), 'GET /api/user/preferences': prefs('classic') },
-      { route: '/overview/reports' },
-    );
+    renderGate({ 'GET /api/user/preferences': prefs('classic') }, { route: '/overview/reports' });
     await waitFor(() => expect(screen.getByTestId('classic').textContent).toBe('/reports'));
   });
 
   it('keeps the basename when it redirects', async () => {
     renderGate(
-      { 'GET /api/config': config(false) },
+      { 'GET /api/user/preferences': prefs('classic') },
       { route: '/meshmonitor/preferences/appearance', basename: '/meshmonitor' },
     );
     // Under a basename, useLocation() reports the path below it.
@@ -97,26 +118,19 @@ describe('LayoutGate', () => {
   });
 
   it('never blocks Classic on a stalled /api/settings', async () => {
-    renderGate({ 'GET /api/config': config(true) }, { hang: '/api/settings' });
+    renderGate({}, { hang: '/api/settings' });
     expect(screen.getByTestId('classic')).toBeInTheDocument();
     await new Promise((r) => setTimeout(r, 50));
     expect(screen.getByTestId('classic')).toBeInTheDocument();
     expect(screen.queryByTestId('workspace-app')).toBeNull();
   });
 
-  it('keeps a workspace mirror when /api/config fails', async () => {
+  it('keeps a workspace mirror when /api/settings fails', async () => {
     localStorage.setItem('mm.layout', 'workspace');
-    renderGate({ 'GET /api/config': () => new Response('{}', { status: 500 }) });
+    renderGate({ 'GET /api/settings': () => new Response('{}', { status: 500 }) });
     expect(await screen.findByTestId('workspace-app')).toBeInTheDocument();
     await new Promise((r) => setTimeout(r, 50));
     expect(localStorage.getItem('mm.layout')).toBe('workspace');
-  });
-
-  it('fetches neither preferences nor settings when the preview flag is off', async () => {
-    renderGate({ 'GET /api/config': config(false) });
-    await new Promise((r) => setTimeout(r, 50));
-    const urls = vi.mocked(globalThis.fetch).mock.calls.map(([u]) => String(u));
-    expect(urls.some((u) => u.includes('/api/user/preferences') || u.includes('/api/settings'))).toBe(false);
   });
 
   it('holds a Workspace-only URL while the layout is unknown, so the deep link survives', async () => {
@@ -126,7 +140,7 @@ describe('LayoutGate', () => {
   });
 
   it('sends a Workspace-only URL to Classic when the layout cannot be fetched', async () => {
-    renderGate({ 'GET /api/config': () => new Response('{}', { status: 500 }) }, { route: '/overview/reports' });
+    renderGate({ 'GET /api/user/preferences': () => new Response('{}', { status: 500 }) }, { route: '/overview/reports' });
     await waitFor(() => expect(screen.getByTestId('classic').textContent).toBe('/reports'));
   });
 
@@ -134,17 +148,14 @@ describe('LayoutGate', () => {
     ['/packet-monitor', undefined],
     ['/meshmonitor/packet-monitor', '/meshmonitor'],
   ])('renders the Workspace pop-out window, without the shell, for %s and a Workspace user (18-01)', async (route, basename) => {
-    renderGate(
-      { 'GET /api/config': config(true), 'GET /api/user/preferences': prefs('workspace') },
-      { route, basename },
-    );
+    renderGate({ 'GET /api/user/preferences': prefs('workspace') }, { route, basename });
     expect(await screen.findByTestId('packets-popout')).toBeInTheDocument();
     expect(screen.queryByTestId('workspace-app')).toBeNull();
     expect(screen.queryByTestId('classic')).toBeNull();
   });
 
   it('keeps today\'s pop-out window for a Classic user', async () => {
-    renderGate({ 'GET /api/config': config(true), 'GET /api/user/preferences': prefs('classic') }, { route: '/packet-monitor' });
+    renderGate({ 'GET /api/user/preferences': prefs('classic') }, { route: '/packet-monitor' });
     await waitFor(() => expect(localStorage.getItem('mm.layout')).toBe('classic'));
     expect(screen.getByTestId('classic').textContent).toBe('/packet-monitor');
     expect(screen.queryByTestId('packets-popout')).toBeNull();
@@ -154,10 +165,7 @@ describe('LayoutGate', () => {
     ['/privacy/terms', undefined],
     ['/meshmonitor/privacy/terms', '/meshmonitor'],
   ])('renders Classic for public page %s even for a Workspace user', async (route, basename) => {
-    renderGate(
-      { 'GET /api/config': config(true), 'GET /api/user/preferences': prefs('workspace') },
-      { route, basename },
-    );
+    renderGate({ 'GET /api/user/preferences': prefs('workspace') }, { route, basename });
     await waitFor(() => expect(localStorage.getItem('mm.layout')).toBe('workspace'));
     expect(screen.getByTestId('classic').textContent).toBe(route.replace('/meshmonitor', ''));
     expect(screen.queryByTestId('workspace-app')).toBeNull();

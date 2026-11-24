@@ -2,8 +2,7 @@
  * @vitest-environment jsdom
  *
  * Board r3-classic-banner (Task 1.8): the Classic entry points to the
- * Workspace, the banner and the user-menu item (D18). Both are inert until
- * Task 9.3 flips `WORKSPACE_ENTRY_ENABLED`; here the flag is mocked both ways.
+ * Workspace, the banner and the user-menu item (D18), switched on by Task 9.3.
  * The board's tab names are today's Classic chrome (unchanged; the 1.4 chrome
  * snapshot guards it) and "Classic layout, unchanged" is the board's caption,
  * so only the banner's must strings are checked.
@@ -11,7 +10,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWorkspace, type RenderWorkspaceOptions } from '../../../workspace/test/renderWorkspace';
 import { athensFixture } from '../../../workspace/__fixtures__/athens';
@@ -19,13 +18,6 @@ import { prefsFixture } from '../../../workspace/__fixtures__/prefsFixture';
 import { ShellContext } from '../../../contexts/ShellContext';
 import UserMenu from '../../UserMenu';
 import WorkspaceBanner from '../WorkspaceBanner';
-
-const flag = vi.hoisted(() => ({ on: false }));
-vi.mock('../../../workspace/layout/workspaceEntry', () => ({
-  get WORKSPACE_ENTRY_ENABLED() {
-    return flag.on;
-  },
-}));
 
 const check = JSON.parse(
   readFileSync(
@@ -52,31 +44,7 @@ async function settle() {
   await new Promise((r) => setTimeout(r, 50));
 }
 
-beforeEach(() => {
-  flag.on = false;
-});
-
-describe('r3-classic-banner, flag off (as shipped)', () => {
-  it('the banner renders nothing and asks the server nothing', async () => {
-    const { container } = renderBanner();
-    await settle();
-    expect(container).toBeEmptyDOMElement();
-    expect(urls().some((u) => u.includes('/api/user/preferences'))).toBe(false);
-  });
-
-  it('the user menu has no Try the Workspace layout item', async () => {
-    renderWorkspace(<UserMenu />);
-    fireEvent.click(await screen.findByTitle(/Athens Ops/));
-    expect(await screen.findByText('API Token')).toBeInTheDocument();
-    expect(screen.queryByText('Try the Workspace layout')).toBeNull();
-  });
-});
-
-describe('r3-classic-banner, flag on', () => {
-  beforeEach(() => {
-    flag.on = true;
-  });
-
+describe('r3-classic-banner', () => {
   it('r3-classic-banner shows the board (banner)', async () => {
     const { container } = renderBanner();
     await screen.findByText('Try the Workspace layout.');
@@ -139,5 +107,11 @@ describe('r3-classic-banner, flag on', () => {
     fireEvent.click(await screen.findByTitle(/Athens Ops/));
     fireEvent.click(await screen.findByRole('button', { name: 'Try the Workspace layout' }));
     await waitFor(() => expect(p.puts).toEqual([['layout', 'workspace']]));
+  });
+
+  it('an anonymous user has no user menu, so no menu item', async () => {
+    const { container } = renderWorkspace(<UserMenu />, { anonymous: true });
+    await settle();
+    expect(container).toBeEmptyDOMElement();
   });
 });

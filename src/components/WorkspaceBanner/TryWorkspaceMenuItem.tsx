@@ -1,8 +1,7 @@
 /**
  * Classic's user-menu item "Try the Workspace layout" (D18): saves
  * `layout=workspace`, and the layout gate moves the user there. UserMenu
- * renders it only when `WORKSPACE_ENTRY_ENABLED` (Task 9.3), so until then
- * Classic's menu is unchanged.
+ * renders it while `WORKSPACE_ENTRY_ENABLED` (on since Task 9.3).
  */
 import { useTranslation } from 'react-i18next';
 import { logger } from '../../utils/logger';

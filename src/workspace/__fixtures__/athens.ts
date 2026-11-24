@@ -83,8 +83,8 @@ const authStatus: AuthStatus = {
   customLogoUrl: null,
 };
 
-/** `GET /api/config`; `workspacePreview` is the D3 gate the server adds in Phase 1. */
-const config: PollConfig & { workspacePreview: boolean } = {
+/** `GET /api/config`. */
+const config: PollConfig = {
   meshtasticNodeIp: '192.168.1.40',
   meshtasticTcpPort: 4403,
   meshtasticUseTls: false,
@@ -92,7 +92,6 @@ const config: PollConfig & { workspacePreview: boolean } = {
   baseUrl: '',
   deviceMetadata: { firmwareVersion: '2.7.15.567b8ea', rebootCount: 3 },
   localNodeInfo: { nodeId: '!a1b2c300', longName: 'Station G2', shortName: 'G2' },
-  workspacePreview: true,
 };
 
 /** `GET /api/user/preferences` (spec §7.1): the user's saved preference map. */
