@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ReactNode } from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, onTestFinished, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { createInstance } from 'i18next';
@@ -106,7 +106,9 @@ describe('17-05 / 17-12 privacy document (today\'s page)', () => {
 describe('17-06 / 17-13 embed map (today\'s page)', () => {
   it('draws the profile\'s nodes with names, popups, traceroute popups, the hop legend and the policy links', async () => {
     // The embed reads its API base from its own URL, as on /embed/<profile>.
+    const was = window.location.pathname + window.location.search + window.location.hash;
     window.history.pushState({}, '', `/embed/${EMBED_PROFILE}`);
+    onTestFinished(() => window.history.replaceState({}, '', was));
     renderWorkspace(<EmbedMap profileId={EMBED_PROFILE} />, { anonymous: true, fixtures: embedFixtures() });
     const map = await screen.findByTestId('map', {}, T);
     await within(map).findAllByText('Hymettus Relay', {}, T);

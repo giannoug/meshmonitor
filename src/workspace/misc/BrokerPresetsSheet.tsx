@@ -30,20 +30,23 @@ import {
   type EditorValues,
 } from '../../components/MQTT/useSavedBrokerPresetEditor';
 import type { SavedBrokerPreset } from '../../hooks/useMqttBrokerPresets';
+import type { BrokerPresetDialogsProps } from '../../components/MQTT/brokerPresetDialogsContext';
 import SendsLine from '../patterns/SendsLine';
 import Sheet from '../patterns/Sheet';
 import { useIsPhone } from '../shell/useIsPhone';
 import styles from './BrokerPresetsSheet.module.css';
 
-export interface BrokerPresetsSheetProps {
-  /** Save as preset: the form's broker values; null keeps it shut. */
-  saveDraft: BrokerPresetDraft | null;
-  onCloseSave(): void;
-  /** The bridge form never shows a stored password, so it cannot be saved from there. */
-  passwordNotIncluded?: boolean;
-  manageOpen: boolean;
-  onCloseManage(): void;
-  presets: SavedBrokerPreset[];
+export type BrokerPresetsSheetProps = BrokerPresetDialogsProps;
+
+/**
+ * Esc reaches every layer's document listener, ours first. A form sheet closes only when no dialog is
+ * open inside one (today's Find topics, a common/Modal drawn in place), so Esc closes just the top layer (CR).
+ */
+function whenTopLayer(close: () => void) {
+  return () => {
+    const top = Array.from(document.querySelectorAll('[role="dialog"][aria-modal="true"]')).pop();
+    if (!top?.parentElement?.closest('[role="dialog"]')) close();
+  };
 }
 
 export default function BrokerPresetsSheet({
@@ -70,7 +73,7 @@ function SavePresetSheet({ draft, onClose, passwordNotIncluded }: { draft: Broke
   return (
     <Sheet
       open={isOpen}
-      onClose={onClose}
+      onClose={whenTopLayer(onClose)}
       title={t('mqtt_presets.saved.save_title', 'Save as preset')}
       footer={
         <FormFooter
@@ -129,7 +132,7 @@ function ManagePresetsSheet({ open, onClose, presets }: { open: boolean; onClose
       <Sheet
         open={open}
         // The form is a step of this sheet: closing it goes back to the list, as today's Cancel.
-        onClose={m.cancelEdit}
+        onClose={whenTopLayer(m.cancelEdit)}
         title={
           m.target.mode === 'edit'
             ? t('mqtt_presets.saved.edit_title', 'Edit preset')
@@ -146,6 +149,13 @@ function ManagePresetsSheet({ open, onClose, presets }: { open: boolean; onClose
         }
       >
         <div className={styles.body} data-phone={phone}>
+          {/* Today's dialog keeps its intro above the editor. */}
+          <p className={styles.hint}>
+            {t(
+              'mqtt_presets.saved.manage_intro',
+              'Changing or deleting a preset does not change any source or radio already using its values. Pick the preset again in a form to apply the new values.',
+            )}
+          </p>
           <PresetForm values={m.values} onChange={m.setValues} />
           {m.error && (
             <p className={styles.error} role="alert">

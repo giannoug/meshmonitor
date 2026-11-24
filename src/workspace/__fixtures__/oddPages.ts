@@ -50,19 +50,25 @@ export const outlierFixtures = (extra: Record<string, FixtureHandler> = {}): Rec
   ...extra,
 });
 
-/** 17-08 / 17-15: three saved presets; the bridge's broker is Athens community's. */
+/** 17-08 / 17-15: three saved presets; the bridge's broker is Athens community's (Station G2's MQTT page draws them too). */
 export const SAVED_PRESETS = [
   { id: 1, name: 'Athens community', host: 'mqtt.athensmesh.gr', port: 8883, tls: true, rootTopic: 'msh/EU_868/GR', hasUsername: true, hasPassword: true, username: 'athens', password: 'athens-pw' },
   { id: 2, name: 'Piraeus test broker', host: '192.168.1.60', port: 1883, tls: false, rootTopic: null, hasUsername: false, hasPassword: false, username: null, password: null },
   { id: 3, name: 'Meshtastic EU mirror', host: 'mqtt.eu.example', port: 1883, tls: false, rootTopic: null, hasUsername: true, hasPassword: false, username: 'meshdev', password: null },
 ];
 
-export const brokerPresetFixtures = (extra: Record<string, FixtureHandler> = {}): Record<string, FixtureHandler> => ({
-  ...bridgeFixtures(),
+/** The saved preset routes alone. */
+export const presetRoutes = (): Record<string, FixtureHandler> => ({
   'GET /api/mqtt-broker-presets': () => ({ success: true, data: { canManage: true, presets: SAVED_PRESETS } }),
   'POST /api/mqtt-broker-presets': (_u, init) => ({ success: true, data: { id: 9, ...JSON.parse(String(init?.body)) } }),
   'PUT /api/mqtt-broker-presets/:id': (u, init) => ({ success: true, data: { id: Number(u.pathname.split('/').pop()), ...JSON.parse(String(init?.body)) } }),
   'DELETE /api/mqtt-broker-presets/:id': () => ({ success: true }),
+});
+
+/** The MQTT bridge source (12-13) with the saved presets. */
+export const brokerPresetFixtures = (extra: Record<string, FixtureHandler> = {}): Record<string, FixtureHandler> => ({
+  ...bridgeFixtures(),
+  ...presetRoutes(),
   ...extra,
 });
 

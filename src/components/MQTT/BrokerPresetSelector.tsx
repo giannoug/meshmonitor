@@ -13,13 +13,14 @@
  * one leaves those fields blank and the form sends the preset's id on save,
  * where the server fills them in (`KeptCredentials.serverFill`).
  */
-import React from 'react';
+import React, { useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../icons';
 import { PresetPicker } from '../shared/config/PresetPicker';
 import { BROKER_DISCOVERY_LINKS, type BrokerPreset, type KeptCredentials } from './brokerPresets';
 import { ManageBrokerPresetsDialog, SaveBrokerPresetDialog, type BrokerPresetDraft } from './SavedBrokerPresetDialogs';
 import { useBrokerPresetChoice } from './useBrokerPresetChoice';
+import { BrokerPresetDialogsContext } from './brokerPresetDialogsContext';
 import styles from './BrokerPresetSelector.module.css';
 
 interface BrokerPresetSelectorProps {
@@ -48,6 +49,8 @@ export const BrokerPresetSelector: React.FC<BrokerPresetSelectorProps> = ({
   draftPasswordNotIncluded = false,
 }) => {
   const { t } = useTranslation();
+  // A host may draw these dialogs itself (the Workspace's sheets); default: today's.
+  const HostDialogs = useContext(BrokerPresetDialogsContext);
   // The choice, kept-credential note, options and dialogs' state live in useBrokerPresetChoice (Rule X).
   const {
     canManage,
@@ -163,7 +166,17 @@ export const BrokerPresetSelector: React.FC<BrokerPresetSelectorProps> = ({
           </button>
         </div>
       )}
-      {canManage && (
+      {canManage && HostDialogs && (
+        <HostDialogs
+          saveDraft={saveDraft}
+          onCloseSave={() => setSaveDraft(null)}
+          passwordNotIncluded={draftPasswordNotIncluded}
+          manageOpen={manageOpen}
+          onCloseManage={() => setManageOpen(false)}
+          presets={savedRows}
+        />
+      )}
+      {canManage && !HostDialogs && (
         <>
           <SaveBrokerPresetDialog
             isOpen={saveDraft !== null}

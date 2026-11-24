@@ -30,7 +30,16 @@ export default function NewsSheet({ isOpen, onClose, forceShowAll = false, isAut
   const isPhone = useIsPhone();
   const phone = isPhone || undefined;
   const n = useNewsPopup({ isOpen, onClose, forceShowAll, isAuthenticated });
-  const close = () => void n.handleClose();
+  // Closing dismisses what it showed: one close per opening, however often ×, Esc or Close is pressed.
+  const closing = useRef(false);
+  useEffect(() => {
+    if (isOpen) closing.current = false;
+  }, [isOpen]);
+  const close = () => {
+    if (closing.current) return;
+    closing.current = true;
+    void n.handleClose();
+  };
   // Today scrolls the popup's body to the top on a page turn; here the sheet's body is the scroller.
   const bodyRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -57,7 +66,7 @@ export default function NewsSheet({ isOpen, onClose, forceShowAll = false, isAut
           {t('news.previous', 'Previous')}
         </button>
       )}
-      <button type="button" className={`${styles.button} ${styles.primary}`} onClick={n.handleNext}>
+      <button type="button" className={`${styles.button} ${styles.primary}`} onClick={isLast ? close : n.handleNext}>
         {isLast ? t('news.close', 'Close') : t('news.next', 'Next')}
       </button>
     </div>

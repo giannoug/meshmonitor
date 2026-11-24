@@ -26,7 +26,7 @@ import { dashboardFixtures, overviewBoard, phoneBoard, savedBoard } from '../../
 import { automationFixtures } from '../../src/workspace/__fixtures__/automations';
 import { rulesFixtures } from '../../src/workspace/__fixtures__/rules';
 import { toolsFixtures } from '../../src/workspace/__fixtures__/tools';
-import { brokerPresetFixtures, EMBED_PROFILE, embedFixtures, newsFixtures, outlierFixtures, privacyFixtures } from '../../src/workspace/__fixtures__/oddPages';
+import { EMBED_PROFILE, embedFixtures, newsFixtures, outlierFixtures, presetRoutes, privacyFixtures } from '../../src/workspace/__fixtures__/oddPages';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -2176,8 +2176,9 @@ export const BOARDS: Board[] = [
   { id: '17-13-embed-map', size: 'phone', path: `/embed/${EMBED_PROFILE}`, fixtures: embedFixtures(), init: serveEmbed, setup: (page) => page.getByText('13 nodes online').waitFor() },
   { id: '17-07-outlier-cleanup', size: 'desktop', path: '/source/src-g2/settings/data', fixtures: { ...PINS, ...outlierFixtures() }, setup: previewOutliers },
   { id: '17-14-outlier-cleanup', size: 'phone', path: '/source/src-g2/settings/data', fixtures: { ...PINS, ...outlierFixtures() }, setup: previewOutliers },
-  { id: '17-08-broker-presets', size: 'desktop', path: '/source/src-bridge/settings/mqtt-bridge', fixtures: { ...PINS, ...brokerPresetFixtures() }, setup: askDeletePreset },
-  { id: '17-15-broker-presets', size: 'phone', path: '/source/src-bridge/settings/mqtt-bridge', fixtures: { ...PINS, ...brokerPresetFixtures() }, setup: askDeletePreset },
+  // Station G2's Modules › MQTT, as the boards draw it (the bridge page opens the same sheets).
+  { id: '17-08-broker-presets', size: 'desktop', path: '/source/src-g2/settings/modules/mqtt', fixtures: { ...PINS, ...presetRoutes() }, setup: askDeletePreset },
+  { id: '17-15-broker-presets', size: 'phone', path: '/source/src-g2/settings/modules/mqtt', fixtures: { ...PINS, ...presetRoutes() }, setup: askDeletePreset },
   { id: '17-09-news', size: 'desktop', path: '/you/help', fixtures: { ...PREFS(), ...newsFixtures(), 'GET /api/news/unread': () => ({ items: [] }) }, setup: secondNewsItem },
   { id: '17-16-news', size: 'phone', path: '/you/help', fixtures: { ...PREFS(), ...newsFixtures(), 'GET /api/news/unread': () => ({ items: [] }) }, setup: secondNewsItem },
 ];

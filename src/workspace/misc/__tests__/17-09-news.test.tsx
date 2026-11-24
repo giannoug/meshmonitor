@@ -86,4 +86,16 @@ describe('17-09-news', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(writes).toEqual(['POST /api/news/dismiss/n3', 'POST /api/news/dismiss/n2', 'POST /api/news/user/status']);
   });
+  it('a second close while the first runs sends no more dismissals', async () => {
+    const writes: string[] = [];
+    renderPrefs('/you/help', { fixtures: newsFixtures(writes, { lastSeenNewsId: 'n1', dismissedNewsIds: [] }) });
+    const sheet = await screen.findByRole('dialog', {}, T);
+    await within(sheet).findByText('1 / 2');
+    const x = within(sheet).getAllByRole('button', { name: 'Close' })[0];
+    fireEvent.click(x);
+    fireEvent.click(x);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(writes).toEqual(['POST /api/news/dismiss/n3', 'POST /api/news/dismiss/n2', 'POST /api/news/user/status']);
+  });
 });

@@ -217,20 +217,28 @@ function useDashboardAuthGate(): { isAuthenticated: boolean; authResolved: boole
 const EMPTY: unknown[] = [];
 
 /**
+ * The sources list's key and request, for a reader that must not add a poll
+ * of its own to a list another observer already polls (#6365).
+ */
+export const dashboardSourcesQuery = {
+  queryKey: ['dashboard', 'sources'],
+  queryFn: async (): Promise<DashboardSource[]> => {
+    const res = await fetch(`${appBasename}/api/sources`, { credentials: 'include' });
+    if (!res.ok) {
+      throw new Error(`Failed to fetch sources: ${res.status}`);
+    }
+    return res.json();
+  },
+};
+
+/**
  * Hook to fetch the list of all configured sources
  *
  * @returns TanStack Query result with DashboardSource[]
  */
 export function useDashboardSources() {
   return useQuery<DashboardSource[]>({
-    queryKey: ['dashboard', 'sources'],
-    queryFn: async () => {
-      const res = await fetch(`${appBasename}/api/sources`, { credentials: 'include' });
-      if (!res.ok) {
-        throw new Error(`Failed to fetch sources: ${res.status}`);
-      }
-      return res.json();
-    },
+    ...dashboardSourcesQuery,
     refetchInterval: DASHBOARD_POLL_INTERVAL,
   });
 }

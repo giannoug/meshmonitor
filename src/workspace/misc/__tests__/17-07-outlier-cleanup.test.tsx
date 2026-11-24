@@ -95,6 +95,7 @@ describe('17-07-outlier-cleanup', () => {
     const yes = within(confirm).getByRole('button', { name: 'Yes, delete' });
     // A plain confirm: no typed word; Enter does not confirm.
     expect(within(confirm).queryByRole('textbox')).toBeNull();
+    await waitFor(() => expect(yes).toBeEnabled());
     fireEvent.click(yes);
     fireEvent.click(yes);
     expect(await screen.findByText('Removed 37 readings.')).toBeInTheDocument();
@@ -122,7 +123,9 @@ describe('17-07-outlier-cleanup', () => {
     });
     const sheet = await previewSweep();
     fireEvent.click(within(sheet).getByRole('button', { name: 'Delete 37 readings…' }));
-    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Yes, delete' }));
+    const yes = within(await screen.findByRole('dialog')).getByRole('button', { name: 'Yes, delete' });
+    await waitFor(() => expect(yes).toBeEnabled());
+    fireEvent.click(yes);
     const message = await screen.findByText('Telemetry changed since the preview. Run the preview again.');
     const back = message.closest('[role="dialog"]') as HTMLElement;
     expect(within(back).queryByTestId('outlier-preview')).toBeNull();
@@ -135,6 +138,31 @@ describe('17-07-outlier-cleanup', () => {
     });
     await screen.findByRole('button', { name: 'Erase Nodes' }, T);
     expect(screen.queryByRole('button', { name: 'Clean outliers…' })).toBeNull();
+  });
+});
+
+describe('the Source picker reads the shell\'s sources list', () => {
+  it('adds no polling observer and no request of its own to the shell\'s list', async () => {
+    const sourceReads = () => vi.mocked(fetch).mock.calls.filter(([u, init]) => (init?.method ?? 'GET') === 'GET' && new URL(String(u), 'http://x').pathname === '/api/sources').length;
+    const polling = (client: import('@tanstack/react-query').QueryClient) =>
+      client.getQueryCache().find({ queryKey: ['dashboard', 'sources'] })!.observers.filter((o) => o.options.refetchInterval).length;
+
+    // Another settings page of the same device: the shell's own observers.
+    const other = renderSettings(`${g2}/settings/node-display`, { fixtures: outlierFixtures() });
+    await screen.findAllByText('Node list & map window (hours)', {}, T);
+    const baseline = polling(other.queryClient);
+    other.unmount();
+
+    const view = renderSettings(`${g2}/settings/data`, { fixtures: outlierFixtures() });
+    await screen.findByRole('button', { name: 'Clean outliers…' }, T);
+    const query = view.queryClient.getQueryCache().find({ queryKey: ['dashboard', 'sources'] })!;
+    expect(polling(view.queryClient)).toBe(baseline);
+    expect(query.observers.some((o) => !o.options.refetchInterval)).toBe(true);
+    const before = sourceReads();
+    fireEvent.click(screen.getByRole('button', { name: 'Clean outliers…' }));
+    const source = within(await screen.findByRole('dialog')).getByRole('combobox', { name: 'Source' });
+    expect(within(source).getAllByRole('option').length).toBeGreaterThan(2);
+    expect(sourceReads()).toBe(before);
   });
 });
 

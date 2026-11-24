@@ -14,14 +14,14 @@
  *   defaults only on load.
  */
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../../components/icons';
 import { useToast } from '../../../components/ToastContainer';
 import { getTelemetryLabel } from '../../../components/TelemetryChart';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useSource } from '../../../contexts/SourceContext';
-import { useDashboardSources } from '../../../hooks/useDashboardData';
+import { dashboardSourcesQuery } from '../../../hooks/useDashboardData';
 import apiService from '../../../services/api';
 import { logger } from '../../../utils/logger';
 import OutlierCleanupPage from '../../misc/OutlierCleanupPage';
@@ -65,7 +65,8 @@ function DataRows({ sourceId }: { sourceId: string }) {
   const [pending, setPending] = useState<Action | null>(null);
   const [busy, setBusy] = useState(false);
   const [outliers, setOutliers] = useState(false);
-  const { data: allSources = [] } = useDashboardSources();
+  // The shell polls this list; reading its cache adds no poll and no request of its own.
+  const { data: allSources = [] } = useQuery({ ...dashboardSourcesQuery, staleTime: Infinity });
   const close = () => setPending(null);
 
   /** Today's confirm text: the title, "Impact:", the list, "cannot be undone". */

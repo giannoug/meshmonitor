@@ -3,7 +3,8 @@
  * Modules › MQTT keeps MQTTConfigSection (Ruling 5.6: its save also writes the
  * broker preset and the MQTT link), fed from the frame's one device-config
  * instance (Ruling DG) and saving through today's handler and SaveBar.
- * Lazily loaded by `categories.ts`.
+ * Lazily loaded by `categories.ts`. Its broker preset picker opens the
+ * Workspace's saved preset sheets (17-08), not today's dialogs.
  */
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +17,8 @@ import styles from './ClassicCategories.module.css';
 import { useRemoteTarget } from './remote/useRemoteTarget';
 import RemoteMqttCategory from './remote/RemoteMqttCategory';
 import StateView from '../patterns/StateView';
+import { BrokerPresetDialogsContext } from '../../components/MQTT/brokerPresetDialogsContext';
+import BrokerPresetsSheet from '../misc/BrokerPresetsSheet';
 
 type Stripped<T, P extends string> = {
   [K in keyof T as K extends `${P}${infer R}`
@@ -55,7 +58,9 @@ export function MqttCategory() {
     <Radio
       render={({ state, saves }) => (
         <ModuleAvailabilityGate available={state.supportedModules?.mqtt} moduleName="MQTT">
-          <MQTTConfigSection {...state} {...strip(state, 'mqtt')} loraRegion={state.region} onSave={saves.mqtt} />
+          <BrokerPresetDialogsContext.Provider value={BrokerPresetsSheet}>
+            <MQTTConfigSection {...state} {...strip(state, 'mqtt')} loraRegion={state.region} onSave={saves.mqtt} />
+          </BrokerPresetDialogsContext.Provider>
         </ModuleAvailabilityGate>
       )}
     />
