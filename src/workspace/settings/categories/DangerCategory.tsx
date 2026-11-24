@@ -26,6 +26,7 @@ import { UiIcon } from '../../../components/icons';
 import { useToast } from '../../../components/ToastContainer';
 import { FactoryResetWipeList } from '../../../components/shared/config/FactoryResetWipeList';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useSource } from '../../../contexts/SourceContext';
 import { usePoll } from '../../../hooks/usePoll';
 import apiService from '../../../services/api';
 import { isTxDisabledError } from '../../../utils/txDisabled';
@@ -71,6 +72,7 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { authStatus } = useAuth();
+  const { sourceName } = useSource();
   const isAdmin = authStatus?.user?.isAdmin === true;
   const config = useSharedDeviceConfig();
   // Today's fallback word when the node has no short name: its node id.
@@ -250,7 +252,8 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
                 <li>{t('config.reboot_dialog_message')}</li>
                 <li>{t('workspace.settings.maintenance.reboot_reconnects')}</li>
               </ul>
-              {sends}
+              {/* Today's admin command to the radio MeshMonitor is connected to, over its own link. */}
+              <SendsLine>{t('workspace.settings.maintenance.reboot_sends', { device: sourceName ?? state.longName })}</SendsLine>
             </>
           )
         }

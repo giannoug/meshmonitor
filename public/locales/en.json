@@ -9753,6 +9753,7 @@
   "workspace.settings.maintenance.firmware_restore_body": "This will overwrite current device configuration.",
   "workspace.settings.maintenance.reboot_what_happens": "What happens:",
   "workspace.settings.maintenance.reboot_reconnects": "MeshMonitor reconnects by itself and reads its config again",
+  "workspace.settings.maintenance.reboot_sends": "To {{device}}, over its link to MeshMonitor · Sends nothing on the mesh",
   "workspace.settings.remote.send": "Send to node",
   "workspace.settings.remote.sends_per_category": "Sends 1 admin packet per changed category",
   "workspace.settings.remote.no_changes": "No changes yet",

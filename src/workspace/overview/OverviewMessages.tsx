@@ -43,6 +43,7 @@ import { ExportMessagesDialog } from './ExportMessagesPage';
 import ReceptionsPanel from './ReceptionsPanel';
 import { readableChannels, readableMessage, useReadableSourceIds } from './readableSources';
 import styles from './OverviewMessages.module.css';
+import StateView from '../patterns/StateView';
 
 /** The feed is read-only: rows offer no actions. */
 const READ_ONLY: MessageActionContext = { canSend: false, canTranslate: false, translateHint: '', sendsTapback: '', sendsResend: '' };
@@ -241,8 +242,8 @@ export default function OverviewMessages() {
         </p>
       )}
       {feed.channelsError && <p className={styles.error}>{t('unified.messages.failed_channels')}</p>}
-      {feed.messagesError && <p className={styles.error}>{t('unified.messages.failed_messages')}</p>}
-      {feed.loadingMessages && rows.length === 0 && <p className={styles.state}>{t('unified.messages.loading')}</p>}
+      {feed.messagesError && <StateView kind="error" title={t('unified.messages.failed_messages')} />}
+      {feed.loadingMessages && rows.length === 0 && <StateView kind="loading" title={t('unified.messages.loading')} />}
       {!feed.loadingMessages && rows.length === 0 && !feed.messagesError && (
         <p className={styles.state}>
           {allChannels

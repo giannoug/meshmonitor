@@ -1,6 +1,7 @@
 .banner {
   display: flex; align-items: center; gap: 12px; padding: 12px 24px;
-  color: var(--color-accent-text); background: var(--color-error);
+  /* Classic's .warning-banner text token: legible on every theme's error/warning fill. */
+  color: var(--color-bg-sunken); background: var(--color-error);
 }
 .banner[data-severity='warning'] { background: var(--color-warning); }
 .banner[data-severity='info'] { background: var(--color-info); }

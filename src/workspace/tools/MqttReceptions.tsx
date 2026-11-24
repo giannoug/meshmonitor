@@ -22,7 +22,6 @@ import { useMqttPacketMonitor } from '../../components/MQTT/useMqttPacketMonitor
 import { useMqttReceptions } from '../../components/MQTT/useMqttReceptions';
 import { useAuth } from '../../contexts/AuthContext';
 import { SourceProvider } from '../../contexts/SourceContext';
-import { WebSocketProvider } from '../../contexts/WebSocketContext';
 import type { DashboardSource } from '../../hooks/useDashboardData';
 import { appBasename } from '../../init';
 import ConfirmSheet from '../patterns/ConfirmSheet';
@@ -319,7 +318,7 @@ function MonitorPage({ sourceId, source }: { sourceId: string; source: Dashboard
     </div>
   );
   const empty = m.loading ? (
-    <p className={styles.state}>{t('common.loading', 'Loading…')}</p>
+    <StateView kind="loading" title={t('common.loading', 'Loading…')} />
   ) : m.packets.length === 0 ? (
     <p className={styles.state}>{m.enabled ? t('mqtt.packets.empty') : t('mqtt.packets.emptyDisabled')}</p>
   ) : null;
@@ -511,12 +510,10 @@ export default function MqttReceptions({ sourceId, source }: { sourceId: string;
       </div>
     );
   }
-  // This device's poll (node names) and socket, as App gives today's monitor.
+  // This device's poll (node names); its socket is the device screen's (DeviceSocket).
   return (
     <SourceProvider sourceId={sourceId} sourceName={source.name} sourceType={source.type}>
-      <WebSocketProvider>
-        <MonitorPage sourceId={sourceId} source={source} />
-      </WebSocketProvider>
+      <MonitorPage sourceId={sourceId} source={source} />
     </SourceProvider>
   );
 }

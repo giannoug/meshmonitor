@@ -15,6 +15,7 @@ import '../../styles/settings.css';
 import styles from './ClassicCategories.module.css';
 import { useRemoteTarget } from './remote/useRemoteTarget';
 import RemoteMqttCategory from './remote/RemoteMqttCategory';
+import StateView from '../patterns/StateView';
 
 type Stripped<T, P extends string> = {
   [K in keyof T as K extends `${P}${infer R}`
@@ -42,7 +43,7 @@ function strip<P extends string>(state: DeviceConfigState, prefix: P): Stripped<
 function Radio({ render }: { render: (c: SharedDeviceConfig) => ReactNode }) {
   const { t } = useTranslation();
   const config = useSharedDeviceConfig();
-  if (!config || config.state.loading) return <p className={styles.loading}>{t('config.loading')}</p>;
+  if (!config || config.state.loading) return <StateView kind="loading" title={t('config.loading')} />;
   return <div className={styles.sections}>{render(config)}</div>;
 }
 

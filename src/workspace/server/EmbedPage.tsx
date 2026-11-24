@@ -34,6 +34,7 @@ import ServerFrame from './ServerFrame';
 import pages from '../settings/categories/SettingsPages.module.css';
 import prefs from '../you/preferences/Preferences.module.css';
 import styles from './Server.module.css';
+import StateView from '../patterns/StateView';
 
 type Embed = ReturnType<typeof useEmbedProfiles>;
 
@@ -55,7 +56,7 @@ function EmbedBody() {
   // The code shown: the one asked for, else the profile being edited.
   const codeId = e.copyProfileId ?? (e.editingId && e.editingId !== 'new' ? e.editingId : null);
 
-  if (e.loading) return <p className={styles.cardPara}>{t('settings.embed.loading', 'Loading embed profiles...')}</p>;
+  if (e.loading) return <StateView kind="loading" title={t('settings.embed.loading', 'Loading embed profiles...')} />;
 
   const list = (
     <SettingGroup title={t('workspace.server.embed_profiles')}>

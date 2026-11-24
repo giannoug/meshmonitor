@@ -69,7 +69,7 @@ function PopoutWindow() {
           <h1 className={styles.title}>{monitor}</h1>
           {closeWindow}
         </header>
-        <p className={styles.state}>{t('packet_monitor.no_permission')}</p>
+        <StateView kind="noPermission" title={t('packet_monitor.no_permission')} />
       </div>
     );
   }
@@ -110,9 +110,9 @@ function PopoutWindow() {
     <>
       {m.rateLimitError && <p className={styles.warning}><UiIcon name="alert" size={16} />{t('packet_monitor.rate_limit_warning')}</p>}
       {m.loading ? (
-        <p className={styles.state}>{t('packet_monitor.loading')}</p>
+        <StateView kind="loading" title={t('packet_monitor.loading')} />
       ) : m.packets.length === 0 ? (
-        <p className={styles.state}>{t('packet_monitor.no_packets')}</p>
+        <StateView kind="empty" icon="list" title={t('packet_monitor.no_packets')} />
       ) : null}
     </>
   );

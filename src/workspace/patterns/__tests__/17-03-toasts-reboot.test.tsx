@@ -97,7 +97,9 @@ async function saveLora() {
   await waitFor(() => expect(hops).toHaveValue(3));
   fireEvent.change(hops, { target: { value: '4' } });
   const bar = await screen.findByRole('region', { name: 'Unsaved radio changes' });
-  fireEvent.click(within(bar).getByRole('button', { name: /^Save/ }));
+  const save = within(bar).getByRole('button', { name: /^Save/ });
+  await waitFor(() => expect(save).toBeEnabled());
+  fireEvent.click(save);
   await screen.findByText('LoRa configuration saved! Device will reboot...');
   return screen.findByRole('dialog', { name: /Device Reboot/ });
 }

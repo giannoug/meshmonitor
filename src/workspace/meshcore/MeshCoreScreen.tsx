@@ -97,7 +97,7 @@ function Gate({ sourceId, deviceName, screen }: { sourceId: string; deviceName: 
     return (
       <section className={styles.page}>
         {isPhone && <PhoneDeviceHeader sourceId={sourceId} />}
-        <p className={styles.note} role="note">{t('meshcore.no_permission', 'You do not have permission to view this MeshCore source.')}</p>
+        <StateView kind="noPermission" title={t('meshcore.no_permission', 'You do not have permission to view this MeshCore source.')} />
       </section>
     );
   }

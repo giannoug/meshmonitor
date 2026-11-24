@@ -43,11 +43,12 @@
  *   (Task 7.5); any other URL keeps today's page.
  * - An unknown source shows the Overview with a "not found" note.
  */
-import { lazy, useCallback } from 'react';
+import { lazy, useCallback, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { WebSocketProvider } from '../../contexts/WebSocketContext';
+import DeviceSocket from './DeviceSocket';
 import { useDashboardSources } from '../../hooks/useDashboardData';
 import {
   MESHCORE_FALLBACK_VIEW,
@@ -307,6 +308,14 @@ export default function WorkspaceSource() {
     return <Rehost>{renderSourceApp(PAGES, sourceId, source, splat)}</Rehost>;
   }
 
+  // A Meshtastic-family device's pages share its one socket and notices (DeviceSocket, Ruling 9.1 IJ); the same
+  // root element on every page, keyed by device, so moving between its pages keeps the connection.
+  const device = (page: ReactNode) => (
+    <DeviceSocket key={sourceId} source={source!}>
+      {page}
+    </DeviceSocket>
+  );
+
   // Today's `#info` / `#security` / `#packetmonitor` anchors open their Workspace page (Task 8.5).
   const anchor = source && isMeshtasticFamily(source.type) && splat === '' && location.hash.match(TOOL_ANCHOR);
   if (anchor) return <Navigate replace to={`${base}/${anchor[1]}`} />;
@@ -315,7 +324,7 @@ export default function WorkspaceSource() {
   // tabPermissions); without the grant the URL falls through to App, which sends the viewer on as today.
   if (source && isMeshtasticFamily(source.type)) {
     if (TOOLS_PATH.test(splat)) {
-      return (
+      return device(
         <Rehost>
           <ToolsPage key={sourceId} sourceId={sourceId} deviceName={source.name} />
         </Rehost>
@@ -324,7 +333,7 @@ export default function WorkspaceSource() {
     const info = splat.match(INFO_PATH);
     if (info && hasPermission('info', 'read', { sourceId })) {
       const group = info[1] && (INFO_GROUPS as readonly string[]).includes(info[1]) ? (info[1] as InfoGroup) : null;
-      return (
+      return device(
         <Redirect to={info[1] && !group ? `${base}/info` : null}>
           <Rehost>
             <InfoPage key={sourceId} sourceId={sourceId} source={source} group={group} />
@@ -334,14 +343,14 @@ export default function WorkspaceSource() {
     }
     const security = splat.match(SECURITY_PATH);
     if (security && hasPermission('security', 'read', { sourceId })) {
-      return (
+      return device(
         <Rehost>
           <DeviceSecurity key={sourceId} sourceId={sourceId} source={source} quiet={!!security[1]} />
         </Rehost>
       );
     }
     if (!isMqttOnlySourceType(source.type) && PACKETS_PATH.test(splat) && hasPermission('packetmonitor', 'read', { sourceId })) {
-      return (
+      return device(
         <Rehost>
           <DevicePackets key={sourceId} sourceId={sourceId} source={source} />
         </Rehost>
@@ -355,7 +364,7 @@ export default function WorkspaceSource() {
     const to = workspaceRedirect(location);
     if (to || SETTINGS_PATH.test(splat)) {
       const path = (to ?? location.pathname).split('?')[0].replace(/^\/source\/[^/]+\/settings\/?/, '');
-      return (
+      return device(
         <Redirect to={to}>
           <Rehost>
             <SettingsFrame key={sourceId} sourceId={sourceId} source={source} path={path} />
@@ -370,7 +379,7 @@ export default function WorkspaceSource() {
   if (automation) {
     const anchor = !automation[1] ? location.hash.replace(/^#/, '') : '';
     const page = automation[1] ?? ((BUILTIN_IDS as readonly string[]).includes(anchor) ? anchor : '');
-    return (
+    return device(
       <Redirect to={page && !automation[1] ? `${base}/automation/${page}` : null}>
         <Rehost>
           <DeviceAutomations key={sourceId} sourceId={sourceId} source={source} path={page} />
@@ -381,7 +390,7 @@ export default function WorkspaceSource() {
 
   const chat = source && splat.match(CHAT_PATH);
   if (chat) {
-    return (
+    return device(
       <Rehost>
         <ChannelThread key={sourceId} sourceId={sourceId} source={source} channel={Number(chat[1])} view={chat[2] ? 'beacons' : 'thread'} />
       </Rehost>
@@ -390,7 +399,7 @@ export default function WorkspaceSource() {
 
   const dm = source && splat.match(DM_PATH);
   if (dm) {
-    return (
+    return device(
       <Rehost>
         <DmConversation key={sourceId} sourceId={sourceId} source={source} nodeId={dm[1]} />
       </Rehost>
@@ -398,7 +407,7 @@ export default function WorkspaceSource() {
   }
 
   if (source && DMS_PATH.test(splat)) {
-    return (
+    return device(
       <Rehost>
         <DmInbox key={sourceId} sourceId={sourceId} source={source} />
       </Rehost>
@@ -406,7 +415,7 @@ export default function WorkspaceSource() {
   }
 
   if (source && ACTIVITY_PATH.test(splat)) {
-    return (
+    return device(
       <Rehost>
         <ActivityFeed key={sourceId} sourceId={sourceId} source={source} />
       </Rehost>
@@ -414,7 +423,7 @@ export default function WorkspaceSource() {
   }
 
   if (source && MAP_PATH.test(splat)) {
-    return (
+    return device(
       <Rehost>
         <DeviceMap key={sourceId} sourceId={sourceId} source={source} />
       </Rehost>
@@ -422,7 +431,7 @@ export default function WorkspaceSource() {
   }
 
   if (source && DASHBOARD_PATH.test(splat)) {
-    return (
+    return device(
       <Rehost>
         <MeshtasticDashboard key={sourceId} sourceId={sourceId} source={source} />
       </Rehost>
@@ -430,7 +439,7 @@ export default function WorkspaceSource() {
   }
 
   if (source && NODES_PATH.test(splat)) {
-    return (
+    return device(
       <Rehost>
         <NodesPage key={sourceId} sourceId={sourceId} source={source} />
       </Rehost>
@@ -438,7 +447,7 @@ export default function WorkspaceSource() {
   }
 
   if (source && isMqttOnlySourceType(source.type) && PACKETS_PATH.test(splat)) {
-    return (
+    return device(
       <Rehost>
         <MqttReceptions key={sourceId} sourceId={sourceId} source={source} />
       </Rehost>
@@ -451,7 +460,7 @@ export default function WorkspaceSource() {
     const segment = nodePage[2];
     const known = !segment || NODE_TABS.includes(segment);
     // An unknown tab shows the Overview, and the URL follows.
-    return (
+    return device(
       <Redirect to={known ? null : `${base}/node/${encodeURIComponent(nodeId)}`}>
         <Rehost>
           <NodePage
@@ -468,7 +477,7 @@ export default function WorkspaceSource() {
 
   // The phone device Home (c-home-e1). A `#section` deep link still goes to App, which serves it.
   if (source && isPhone && splat === '' && !location.hash) {
-    return (
+    return device(
       <Rehost>
         <PhoneHome key={sourceId} sourceId={sourceId} source={source} />
       </Rehost>

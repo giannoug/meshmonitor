@@ -163,7 +163,7 @@ function DevicePackets({ sourceId, deviceName }: { sourceId: string; deviceName:
     return (
       <div className={`${mc.page} ${styles.phoneScope}`} data-phone={isPhone ? '' : undefined}>
         <ToolHead title={title} back={back} />
-        <p className={mc.note}>{t('packet_monitor.no_permission')}</p>
+        <StateView kind="noPermission" title={t('packet_monitor.no_permission')} />
       </div>
     );
   }

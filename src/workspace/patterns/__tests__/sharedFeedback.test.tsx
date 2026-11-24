@@ -182,7 +182,9 @@ describe('RebootWait', () => {
     renderSettings(`${g2}/settings/maintenance/danger`, {
       fixtures: { 'POST /api/device/reboot': () => ({ success: true }), 'GET /api/connection': () => new Response(new ReadableStream({ start() {} })) },
     });
-    fireEvent.click(await screen.findByRole('button', { name: 'Reboot Device' }, { timeout: 10_000 }));
+    const reboot = await screen.findByRole('button', { name: 'Reboot Device' }, { timeout: 10_000 });
+    await waitFor(() => expect(reboot).toBeEnabled());
+    fireEvent.click(reboot);
     const sheet = await screen.findByRole('dialog', { name: 'Reboot the device?' });
     expect(within(sheet).getByRole('button', { name: 'Reboot Device' })).toHaveAttribute('type', 'button');
     fireEvent.click(within(sheet).getByRole('button', { name: 'Reboot Device' }));

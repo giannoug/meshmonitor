@@ -25,7 +25,9 @@ vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/p
 afterEach(() => vi.restoreAllMocks());
 
 const open = async (name: string) => {
-  fireEvent.click(await screen.findByRole('button', { name }, { timeout: 10_000 }));
+  const button = await screen.findByRole('button', { name }, { timeout: 10_000 });
+  await waitFor(() => expect(button).toBeEnabled());
+  fireEvent.click(button);
   return screen.findByRole('dialog');
 };
 const close = async (sheet: HTMLElement) => {

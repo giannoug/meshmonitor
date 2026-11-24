@@ -10,7 +10,7 @@
  * save, as useSectionBaseline does on today's page.
  *
  * `saveAll` writes the queued sections one after another through today's
- * handlers (no parallel writes, no retries); the frame shows one RebootModal
+ * handlers (no parallel writes, no retries); the frame shows one RebootWait
  * with the strongest expectation afterwards (`runBatch`). A failed section
  * stays queued and is returned in `failed`, also across the reload that
  * follows that notice.

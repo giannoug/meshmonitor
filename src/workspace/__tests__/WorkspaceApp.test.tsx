@@ -546,10 +546,11 @@ describe('sockets (Ruling N)', () => {
     }
   });
 
-  it('device settings open no socket (nothing on them is live)', async () => {
+  // Ruling 9.1 IJ: the device screen holds its one socket on every page, settings included (device notices).
+  it('device settings have exactly one WebSocketProvider, the device screen\'s', async () => {
     const { container } = renderAt(`${g2}/settings/lora`);
     await expectPage('settings-frame');
-    expect(container.querySelectorAll('[data-ws-provider]')).toHaveLength(0);
+    expect(container.querySelectorAll('[data-ws-provider]')).toHaveLength(1);
   });
 });
 

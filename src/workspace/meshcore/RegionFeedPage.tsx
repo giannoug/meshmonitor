@@ -76,7 +76,7 @@ function Gate({ sourceId, source, tab }: { sourceId: string; source: DashboardSo
     return (
       <div className={styles.page} data-phone={isPhone || undefined}>
         {isPhone && <PhoneDeviceHeader sourceId={sourceId} />}
-        <p className={styles.note} role="note">{t('meshcore.no_permission', 'You do not have permission to view this MeshCore source.')}</p>
+        <StateView kind="noPermission" title={t('meshcore.no_permission', 'You do not have permission to view this MeshCore source.')} />
       </div>
     );
   }
@@ -299,7 +299,7 @@ function Feed({ sourceId, source, tab }: { sourceId: string; source: DashboardSo
         <NotificationsCategory sourceId={sourceId} target={{ kind: 'local' }} readOnly={false} />
       </Suspense>
     ) : (
-      <p className={styles.note}>{t('meshcore.no_permission', 'You do not have permission to view this MeshCore source.')}</p>
+      <StateView kind="noPermission" title={t('meshcore.no_permission', 'You do not have permission to view this MeshCore source.')} />
     );
   } else if (isPhone) {
     content = (

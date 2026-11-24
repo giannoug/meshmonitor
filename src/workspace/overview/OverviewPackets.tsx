@@ -241,7 +241,7 @@ export default function OverviewPackets() {
     return (
       <div className={styles.page} data-phone={isPhone ? '' : undefined}>
         <h1 className={styles.title}>{title}</h1>
-        <p className={styles.state}>{t('packet_monitor.no_permission')}</p>
+        <StateView kind="noPermission" title={t('packet_monitor.no_permission')} />
       </div>
     );
   }
@@ -275,9 +275,9 @@ export default function OverviewPackets() {
     <>
       {m.rateLimitError && <p className={styles.warning}><UiIcon name="alert" size={16} />{t('packet_monitor.rate_limit_warning')}</p>}
       {m.loading ? (
-        <p className={styles.state}>{t('packet_monitor.loading')}</p>
+        <StateView kind="loading" title={t('packet_monitor.loading')} />
       ) : packets.length === 0 ? (
-        <p className={styles.state}>{t('packet_monitor.no_packets')}</p>
+        <StateView kind="empty" icon="list" title={t('packet_monitor.no_packets')} />
       ) : null}
     </>
   );

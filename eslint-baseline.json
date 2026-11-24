@@ -19,14 +19,11 @@
   },
   "src/App.tsx": {
     "preserve-caught-error": 1,
-    "react-hooks/exhaustive-deps": 10
+    "react-hooks/exhaustive-deps": 8
   },
   "src/cli/migrate-db.ts": {
     "@typescript-eslint/no-explicit-any": 3,
     "no-useless-assignment": 1
-  },
-  "src/components/APITokenManagement.tsx": {
-    "react-hooks/exhaustive-deps": 1
   },
   "src/components/AdminCommandsTab.tsx": {
     "@typescript-eslint/no-explicit-any": 62,
@@ -36,16 +33,13 @@
     "preserve-caught-error": 2,
     "react-hooks/exhaustive-deps": 1
   },
-  "src/components/AuditLogTab.tsx": {
-    "react-hooks/exhaustive-deps": 1
-  },
   "src/components/AutoAcknowledgeSection.tsx": {
     "react-hooks/exhaustive-deps": 1
   },
   "src/components/AutoAnnounceSection.tsx": {
     "@typescript-eslint/no-explicit-any": 1,
     "meshmonitor-ui/no-hardcoded-color": 1,
-    "react-hooks/exhaustive-deps": 3
+    "react-hooks/exhaustive-deps": 2
   },
   "src/components/AutoDeleteByDistanceSection.tsx": {
     "@typescript-eslint/no-unused-vars": 1,
@@ -96,7 +90,7 @@
   "src/components/ConfigurationTab.tsx": {
     "@typescript-eslint/no-explicit-any": 4,
     "meshmonitor-ui/no-hardcoded-color": 13,
-    "react-hooks/exhaustive-deps": 2
+    "react-hooks/exhaustive-deps": 1
   },
   "src/components/CopyNodeInfoModal/CopyNodeInfoModal.tsx": {
     "@typescript-eslint/no-explicit-any": 3
@@ -148,8 +142,7 @@
   },
   "src/components/InfoTab.tsx": {
     "@typescript-eslint/no-explicit-any": 8,
-    "meshmonitor-ui/no-hardcoded-color": 9,
-    "react-hooks/exhaustive-deps": 7
+    "meshmonitor-ui/no-hardcoded-color": 9
   },
   "src/components/LinkPreview.tsx": {
     "react-hooks/exhaustive-deps": 2
@@ -247,8 +240,7 @@
   },
   "src/components/RebootModal.tsx": {
     "meshmonitor-ui/no-hardcoded-color": 1,
-    "prefer-const": 1,
-    "react-hooks/exhaustive-deps": 1
+    "prefer-const": 1
   },
   "src/components/RemoteAdminScannerSection.tsx": {
     "@typescript-eslint/no-explicit-any": 5,
@@ -263,8 +255,7 @@
   },
   "src/components/SecurityTab.tsx": {
     "@typescript-eslint/no-explicit-any": 2,
-    "meshmonitor-ui/no-hardcoded-color": 1,
-    "react-hooks/exhaustive-deps": 2
+    "meshmonitor-ui/no-hardcoded-color": 1
   },
   "src/components/SettingsTab.tsx": {
     "@typescript-eslint/no-explicit-any": 1,
@@ -287,8 +278,7 @@
     "@typescript-eslint/no-explicit-any": 5
   },
   "src/components/TimerTriggersSection.tsx": {
-    "@typescript-eslint/no-unused-vars": 1,
-    "react-hooks/exhaustive-deps": 1
+    "@typescript-eslint/no-unused-vars": 1
   },
   "src/components/Toast.tsx": {
     "meshmonitor-ui/no-hardcoded-color": 1
@@ -297,9 +287,6 @@
     "react-refresh/only-export-components": 2
   },
   "src/components/TracerouteHistoryModal.tsx": {
-    "react-hooks/exhaustive-deps": 1
-  },
-  "src/components/TracerouteWidget.tsx": {
     "react-hooks/exhaustive-deps": 1
   },
   "src/components/UsersTab.tsx": {
@@ -359,13 +346,11 @@
     "meshmonitor-ui/no-hardcoded-color": 3
   },
   "src/components/configuration/BackupManagementSection.tsx": {
-    "meshmonitor-ui/no-hardcoded-color": 2,
-    "react-hooks/exhaustive-deps": 1
+    "meshmonitor-ui/no-hardcoded-color": 2
   },
   "src/components/configuration/ChannelDatabaseSection.tsx": {
     "@typescript-eslint/no-explicit-any": 1,
-    "meshmonitor-ui/no-hardcoded-color": 6,
-    "react-hooks/exhaustive-deps": 2
+    "meshmonitor-ui/no-hardcoded-color": 6
   },
   "src/components/configuration/ChannelsConfigSection.tsx": {
     "@typescript-eslint/no-explicit-any": 1,
@@ -375,8 +360,7 @@
     "react-hooks/exhaustive-deps": 1
   },
   "src/components/configuration/DeviceConfigSection.tsx": {
-    "meshmonitor-ui/no-hardcoded-color": 31,
-    "react-hooks/exhaustive-deps": 1
+    "meshmonitor-ui/no-hardcoded-color": 31
   },
   "src/components/configuration/DisplayConfigSection.tsx": {
     "meshmonitor-ui/no-hardcoded-color": 2
@@ -387,8 +371,7 @@
   },
   "src/components/configuration/FirmwareUpdateSection.tsx": {
     "@typescript-eslint/no-explicit-any": 1,
-    "meshmonitor-ui/no-hardcoded-color": 6,
-    "react-hooks/exhaustive-deps": 1
+    "meshmonitor-ui/no-hardcoded-color": 6
   },
   "src/components/configuration/GpioPinSummary.tsx": {
     "meshmonitor-ui/no-hardcoded-color": 5

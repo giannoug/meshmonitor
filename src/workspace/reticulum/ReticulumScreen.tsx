@@ -83,9 +83,7 @@ function Gate({ sourceId, deviceName, screen }: { sourceId: string; deviceName: 
     return (
       <section className={styles.screen} data-phone={isPhone || undefined}>
         {isPhone && <PhoneDeviceHeader sourceId={sourceId} />}
-        <p className={styles.note} role="note">
-          {t('reticulum.no_permission', 'You do not have permission to view this Reticulum source.')}
-        </p>
+        <StateView kind="noPermission" title={t('reticulum.no_permission', 'You do not have permission to view this Reticulum source.')} />
       </section>
     );
   }

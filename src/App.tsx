@@ -1277,8 +1277,10 @@ function App() {
       }
     };
 
+    // Inside the Workspace shell, its ConfigBanner shows the issues once (#6365).
+    if (shellEmbedded) return;
     void checkConfigIssues();
-  }, [baseUrl]);
+  }, [baseUrl, shellEmbedded]);
 
   // TX status is now handled by useTxStatus hook
   // Version update checking is now handled by useVersionCheck hook (above)

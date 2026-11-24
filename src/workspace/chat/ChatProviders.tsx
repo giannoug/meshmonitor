@@ -1,6 +1,6 @@
 /**
  * The providers App mounts for itself, under the source's own SourceProvider
- * and socket, for a Workspace screen App is not mounted on (Ruling AD): a
+ * (the device's socket is DeviceSocket's, one per open device, Ruling 9.1 IJ), for a Workspace screen App is not mounted on (Ruling AD): a
  * conversation, or the device map (`nodes`). UIProvider and
  * useMessagingView read the tab from the location, so they are handed
  * Classic's location for the tab (`channels` or `messages`), as
@@ -13,8 +13,6 @@ import { MessagingProvider } from '../../contexts/MessagingContext';
 import { SettingsProvider } from '../../contexts/SettingsContext';
 import { SourceProvider } from '../../contexts/SourceContext';
 import { UIProvider } from '../../contexts/UIContext';
-import { WebSocketProvider } from '../../contexts/WebSocketContext';
-import DeviceNotices from '../patterns/DeviceNotices';
 import type { DashboardSource } from '../../hooks/useDashboardData';
 import { appBasename } from '../../init';
 
@@ -30,24 +28,20 @@ export default function ChatProviders({ sourceId, source, classicTab, children }
   const classic = { ...location, pathname: `/source/${encodeURIComponent(sourceId)}/${classicTab}` };
   return (
     <SourceProvider sourceId={sourceId} sourceName={source.name} sourceType={source.type}>
-      <WebSocketProvider>
-        {/* Today's device notification toasts, on this device's socket (Classic mounts them inside App's). */}
-        <DeviceNotices />
-        <SettingsProvider baseUrl={appBasename}>
-          <DataProvider>
-            <Routes location={classic}>
-              <Route
-                path="*"
-                element={
-                  <UIProvider>
-                    <MessagingProvider baseUrl={appBasename}>{children}</MessagingProvider>
-                  </UIProvider>
-                }
-              />
-            </Routes>
-          </DataProvider>
-        </SettingsProvider>
-      </WebSocketProvider>
+      <SettingsProvider baseUrl={appBasename}>
+        <DataProvider>
+          <Routes location={classic}>
+            <Route
+              path="*"
+              element={
+                <UIProvider>
+                  <MessagingProvider baseUrl={appBasename}>{children}</MessagingProvider>
+                </UIProvider>
+              }
+            />
+          </Routes>
+        </DataProvider>
+      </SettingsProvider>
     </SourceProvider>
   );
 }

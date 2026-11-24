@@ -95,7 +95,8 @@ describe('the danger zone', () => {
     const sheet = await open('Reboot Device');
     expect(within(sheet).getByRole('heading', { name: 'Reboot the device?' })).toBeInTheDocument();
     expect(within(sheet).getByText('The device restarts and is offline for about 30 to 60 seconds.')).toBeInTheDocument();
-    expect(within(sheet).getByText('Sends nothing on the mesh')).toBeInTheDocument();
+    // The SendsLine names the connected radio (Task 9.1).
+    expect(within(sheet).getByText('To Station G2, over its link to MeshMonitor · Sends nothing on the mesh')).toBeInTheDocument();
     expect(within(sheet).queryByRole('textbox')).toBeNull();
     fireEvent.click(within(sheet).getByRole('button', { name: 'Reboot Device' }));
     await waitFor(() => expect(sent().some((r) => r.what === 'POST /api/device/reboot')).toBe(true));

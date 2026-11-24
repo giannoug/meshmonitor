@@ -176,7 +176,7 @@ export default function MeshCoreInfoPage() {
     return (
       <div className={styles.page} data-phone={isPhone || undefined}>
         {head}
-        <p className={styles.error} role="alert">{t('meshcore.info.load_failed', 'Failed to load node info')}: {String(error)}</p>
+        <StateView kind="error" title={t('meshcore.info.load_failed', 'Failed to load node info')} detail={String(error)} />
       </div>
     );
   }

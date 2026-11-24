@@ -41,6 +41,7 @@ import Sheet from '../patterns/Sheet';
 import { useIsPhone } from '../shell/useIsPhone';
 import { useReadableSourceIds } from './readableSources';
 import styles from './OverviewTelemetry.module.css';
+import StateView from '../patterns/StateView';
 
 type View = 'graphs' | 'latest';
 
@@ -311,8 +312,8 @@ function GraphsView({ view, onView }: { view: View; onView(v: View): void }) {
       }
     >
       <div className={styles.body}>
-        {g.loading && g.series.length === 0 && <p className={styles.state}>{t('unified.telemetry.loading')}</p>}
-        {g.error && <p className={styles.error}>{g.error}</p>}
+        {g.loading && g.series.length === 0 && <StateView kind="loading" title={t('unified.telemetry.loading')} />}
+        {g.error && <StateView kind="error" detail={g.error} />}
         {!g.loading && !g.error && sections.length === 0 && <p className={styles.state}>{t('unified.telemetry.no_favorites')}</p>}
         {sections.map(({ category, items }) => {
           const label = t(`telemetry.category.${category}`, TELEMETRY_CATEGORY_LABELS[category]);
@@ -460,8 +461,8 @@ function LatestView({ view, onView }: { view: View; onView(v: View): void }) {
       }
     >
       <div className={styles.body}>
-        {l.loading && <p className={styles.state}>{t('unified.telemetry.loading')}</p>}
-        {l.error && <p className={styles.error}>{l.error}</p>}
+        {l.loading && <StateView kind="loading" title={t('unified.telemetry.loading')} />}
+        {l.error && <StateView kind="error" detail={l.error} />}
         {!l.loading && !l.error && groups.length === 0 && (
           <p className={styles.state}>
             {t(l.entries.some((e) => readable.has(e.sourceId)) ? 'unified.telemetry.empty_filters' : 'unified.telemetry.empty_range')}
