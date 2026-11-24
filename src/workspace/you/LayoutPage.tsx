@@ -62,7 +62,8 @@ export default function LayoutPage() {
           className={styles.select}
           aria-label={label}
           value={value}
-          disabled={!signedIn || busy}
+          disabled={!signedIn}
+          aria-busy={busy || undefined}
           onChange={(e) => save(key, e.target.value)}
         >
           {options.map(([v, text]) => (
@@ -101,7 +102,8 @@ export default function LayoutPage() {
               className={styles.radio}
               value={l}
               checked={l === layout}
-              disabled={!signedIn || busy}
+              disabled={!signedIn}
+          aria-busy={busy || undefined}
               onChange={() => choose(l)}
             />
             <span className={styles.preview} data-layout={l} aria-hidden="true">

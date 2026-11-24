@@ -110,6 +110,8 @@ describe('s1-you', () => {
     fireEvent.click(row);
     fireEvent.click(row);
     await waitFor(() => expect(calls).toBe(1));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(calls).toBe(1);
   });
 
   it('offers Login instead of the account rows to a guest', async () => {

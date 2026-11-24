@@ -139,6 +139,8 @@ describe('r3-classic-banner', () => {
     fireEvent.click(item);
     fireEvent.click(item);
     await waitFor(() => expect(p.puts).toEqual([['layout', 'workspace']]));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(p.puts).toEqual([['layout', 'workspace']]);
   });
 
   it('an anonymous user has no user menu, so no menu item', async () => {

@@ -81,7 +81,7 @@ function Cards() {
       </span>
     );
 
-  const select = (key: string, label: string, value: string, options: Array<[string, string]>, disabled = false) => (
+  const select = (key: string, label: string, value: string, options: Array<[string, string]>, disabled = false, describedBy?: string) => (
     <>
       {tick(key)}
       <select
@@ -89,6 +89,7 @@ function Cards() {
         aria-label={label}
         value={value}
         disabled={disabled}
+        aria-describedby={disabled ? describedBy : undefined}
         onChange={(e) => void save(key, e.target.value)}
       >
         {options.map(([v, text]) => (
@@ -121,7 +122,7 @@ function Cards() {
       <h2 className={styles.groupTitle}>{t('workspace.you.layout')}</h2>
       {settingsPending && <p role="status" className={styles.note}>{t('workspace.server.settings_loading')}</p>}
       {settingsError && <p role="alert" className={styles.note}>{t('workspace.server.settings_failed')}</p>}
-      {prefsError && <p role="alert" className={styles.note}>{t('workspace.server.prefs_failed')}</p>}
+      {prefsError && <p id="prefs-failed-note" role="alert" className={styles.note}>{t('workspace.server.prefs_failed')}</p>}
       <div className={styles.group}>
         <TwoLineRow
           data-testid="general-row"
@@ -137,6 +138,7 @@ function Cards() {
             ],
             // Until the admin's own choice is known, Ruling W cannot tell whether to keep it.
             !prefsLoaded,
+            prefsError ? 'prefs-failed-note' : undefined,
           )}
         />
         <TwoLineRow
