@@ -1845,3 +1845,7 @@ Visual checks from the regenerated boards: 7-05 shows the SOURCE header in full 
   - The switcher row name may run its parts together without separators.
   - Some new behaviours lack a dedicated test: theme rows, pin toast, repeater compare, `no_source`.
 - `tsc -p tsconfig.tests.json` reports errors in `prefFields.test.tsx`. Implementers reported them as pre-existing, and that config is not part of the gate. Not re-checked against 94deaa8.
+
+## Own-issues pass
+
+Plan: `docs/superpowers/plans/2026-11-24-workspace-own-issues.md`. Commits fa2b476..81b3ddd. Rulings JM–JX, with the verification and what is still open, are in `workspace-final-report.md` under "Own-issues pass".

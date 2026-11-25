@@ -2747,3 +2747,82 @@ Visual checks from the regenerated boards: 7-05 shows the SOURCE header in full 
   - The switcher row name may run its parts together without separators.
   - Some new behaviours lack a dedicated test: theme rows, pin toast, repeater compare, `no_source`.
 - `tsc -p tsconfig.tests.json` reports errors in `prefFields.test.tsx`. Implementers reported them as pre-existing, and that config is not part of the gate. Not re-checked against 94deaa8.
+
+## Own-issues pass
+
+The Workspace-side items left after the leftovers pass: every b3 item, the leftovers-pass minors, and the in-scope b2 items. The plan is [plans/2026-11-24-workspace-own-issues.md](plans/2026-11-24-workspace-own-issues.md) (544c117, decisions in fa2b476). It ran from fa2b476 to 81b3ddd as 14 tasks (W1–W14), each with an implementer and a task review, then an opus whole-branch review and one fix wave.
+
+Requester decisions:
+- D1–D3 done (W14): phone switcher focus ring, packet monitor toggle hidden on phone, merge no-undo line in the danger colour.
+- D4–D7 not done (rulings JM–JP).
+- Q1–Q7 skipped (JQ).
+- Every b1 item stays excluded.
+
+### Rulings
+
+- **JM.** D4 not done. Reticulum rate history keeps charting only favourites, matching Classic's Dashboard and avoiding one 24 h read per interface every 30 s.
+  - Cost if wrong: 9-03 differs from the board.
+- **JN.** D5 not done; Ruling JI stands. Enter in the AclManager does nothing.
+  - Cost if wrong: Enter in the ACL form still does nothing.
+- **JO.** D6 not done; Ruling BI stands while the Workspace is opt-in.
+  - Cost if wrong: coverage figures overstate Workspace translation.
+- **JP.** D7 not done. No guard on browser Back while the app uses BrowserRouter.
+  - Cost if wrong: Back out of settings drops queued edits.
+- **JQ.** Q1–Q7 skipped by the requester: change dots, shared-hook fixes, Classic tests, Classic extractions, console History, ConfirmSheet width, activity first-visit seeding.
+- **JR.** The rail unread badges follow `unreadIndicatorEnabled`, read through an unpolled `['user','map-preferences']` query. The preference gates only the rail and by-source badges, never the open device's counts (Classic parity). The final review caught the plan's wording here. The rail's DM badges wait for that query to settle.
+  - Cost if wrong: a retry delay before rail badges when the preference read fails.
+- **JS.** With Show MQTT off, the shell's unread key matches the one Classic's MessagingProvider polls, so both share it while a conversation is open. A fake-timer test pins the request rate: 2 per interval at base, 1 now. The shell reads Show MQTT from the map-preferences cache because it sits above UIProvider. `useOpenDeviceUnread` and `useProviderFirstUnread` read through `useCachedQueryData` (no `skipToken` observer, so there is no "Missing queryFn").
+  - Cost if wrong: one extra unread GET per interval.
+- **JT.** The message row is the keyboard stop. It has `tabIndex 0`, Enter/Space toggles details, and ArrowRight enters the action bar. Message text is not wrapped in a button, because it holds links. The row's label is the sender and time.
+  - Cost if wrong: one extra keydown handler per row.
+- **JU.** Plan defects reverted or changed during review:
+  - The activity first-page trim is reverted, because it dropped pages loaded with Load more.
+  - The M6a map-error observer is reverted, because it depended on a Classic test id.
+  - Map tool radios still turn off on a second click.
+  - Danger does one `usePoll({ pollInterval: 0 })` read, because nothing on that route polls.
+  - Reticulum settings get no device runtime (it added a socket and a 30 s poll).
+  - The region feed keeps its typed cast instead of an 87-action no-op file.
+  
+  Cost if wrong: each restores the base behaviour named in the item.
+- **JV.** Not done because each needs a Classic edit:
+  - O4a, the MeshCore reaction chips in Overview › Messages. **Visibility note:** a chip can count reactions sent from a source the viewer can't read. It shows counts only, never text or sender.
+  - The O7 favourite gap: an aged MeshCore favourite drops from the Direct tile, though the table keeps it.
+  - S15's expired flag is still read from the message text.
+  - Cost if wrong: these stay as they are until a Classic change.
+- **JW.** New cache readers use no observer:
+  - NodesPage reads `dataUpdatedAt` from the cache.
+  - The Dashboard tiles read traceroutes and the MeshCore settings from the cache.
+  - RelayModal reads the poll cache once.
+  - With nothing cached, each keeps today's value.
+  - Cost if wrong: a tile or name stays stale until the owning page loads.
+- **JX.** Map & tiles is open to settings readers, read-only, from the Server list and by URL. Writes stay behind the write gate.
+  - Cost if wrong: readers see tile-server URLs, as Classic already showed them.
+
+The per-task rulings (W1-a to W12-b, FW-a to FW-c) are listed in the session's final message. The SDD ledger was a scratch file.
+
+### Verification (at a6fc05e; the 81b3ddd e2e fix re-run on its boards)
+
+| Check | Result |
+|---|---|
+| `npm run lint:ci`, in-repo filter | No FAIL lines. |
+| `tsc` client / server | Exit 0 / exit 0. |
+| Vitest `--maxWorkers=4`, whole repo | `success: true` · 41,772 total · 39,728 passed · 0 failed · 2,023 pending · 21 todo · 11,205 suites, 0 failed. PostgreSQL and MySQL were not running (no Docker daemon), so their suites skipped. This pass changes no backend or schema. |
+| `npm run build` + `npm run check:bundle-size` | Exit 0 / exit 0. |
+| `npm run test:workspace-e2e` | 388 passed, 1 failed (10-16: the board helper still looked for a dialog on phone). Fixed in 81b3ddd; `-g "10-1"` then gave 7 passed. |
+
+Visual checks on the regenerated boards:
+- h2 draws the narrow port column.
+- 8-06's session row no longer truncates.
+- 7-01's receptions table and 8-15's observers table still run past their panel at 1280 px. They now scroll sideways instead of clipping, but a fit needs a column or width call.
+
+### Still open after this pass
+
+- Everything in "Out of scope" and "Skips" in the plan, plus JV above.
+- These final-review minors can wait:
+  - Keyboard delete leaves focus on `<body>` (as at base).
+  - Some new tests use absence sleeps.
+  - `useCachedQueryData` re-subscribes on every render.
+  - The NodeHeader `.tiles` duplicate rules.
+  - `mapSettled` has no explicit timeout.
+- The D1 focus ring and the W4 hit area are CSS only and were not eyeballed in a focused state.
+- 7-01 and 8-15 at 1280 px: a column or width call.
