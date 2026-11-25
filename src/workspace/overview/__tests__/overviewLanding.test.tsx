@@ -49,6 +49,8 @@ describe('default landing page through the Workspace routes', () => {
     await within(await screen.findByRole('list', { name: 'Devices' })).findByText('Station G2');
     // The setting resolved: SettingsContext stores the server's value.
     await waitFor(() => expect(localStorage.getItem('defaultLandingPage')).toBe('reports'), { timeout: 5000 });
-    expect(realUrl()).toBe(route);
+    // Two ticks later it is still there: the landing hook had its chance and did not move.
+    await waitFor(() => expect(realUrl()).toBe(route));
+    await waitFor(() => expect(realUrl()).toBe(route));
   });
 });

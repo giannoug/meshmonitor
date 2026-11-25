@@ -52,3 +52,8 @@
   color: var(--color-bg);
   font-size: 13px;
 }
+
+/* The Layers sheet's body: the drawer's scrolling body at phone row size. */
+.layers {
+  composes: body phone from '../../map/LayersDrawer.module.css';
+}

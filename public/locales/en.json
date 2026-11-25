@@ -8781,6 +8781,7 @@
   "workspace.overview.home_note": "Overview is the first row of the device switcher. Tap Overview at the top to go back to a device.",
   "workspace.overview.map_bar": "Map",
   "workspace.overview.tools": "Tools",
+  "workspace.overview.tools_on": "Tools, one on",
   "workspace.overview.tools_heading": "Tools · one at a time",
   "workspace.overview.tool_measure": "Two points; snaps to nodes",
   "workspace.overview.tool_link_profile": "Terrain from A to B · needs elevation",

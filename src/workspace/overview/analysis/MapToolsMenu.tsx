@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon, type UiIconName } from '../../../components/icons';
 import type { AnalysisTool, useAnalysisControls } from '../../../components/MapAnalysis/analysisControls';
+import { rovingKeyDown } from './roving';
 import SendsLine from '../../patterns/SendsLine';
 import styles from './MapToolsMenu.module.css';
 
@@ -35,11 +36,14 @@ type Tools = Record<ToolKey, AnalysisTool>;
  * tool shows today's reason and does nothing; picking one calls `onPicked`
  * (both close, so the next click lands on the map).
  */
-export function ToolItems({ tools, role, onPicked }: { tools: Tools; role: 'menuitemradio' | 'radio'; onPicked(): void }) {
+export function ToolItems({ tools, role, onPicked, className }: { tools: Tools; role: 'menuitemradio' | 'radio'; onPicked(): void; className?: string }) {
   const { t } = useTranslation();
+  const shown = ORDER.filter(({ key }) => tools[key].shown);
+  // One tab stop: the tool that is on, else the first.
+  const stop = Math.max(0, shown.findIndex(({ key }) => tools[key].active));
   return (
     <>
-      {ORDER.filter(({ key }) => tools[key].shown).map(({ key, icon, hint }) => {
+      {shown.map(({ key, icon, hint }, i) => {
         const tool = tools[key];
         return (
           <button
@@ -50,10 +54,13 @@ export function ToolItems({ tools, role, onPicked }: { tools: Tools; role: 'menu
             aria-disabled={tool.disabled}
             aria-label={tool.label}
             title={tool.title}
-            className={styles.item}
+            tabIndex={i === stop ? 0 : -1}
+            className={`${styles.item} ${className ?? ''}`}
+            onKeyDown={(e) => rovingKeyDown(e, role)}
             onClick={() => {
               if (tool.disabled) return;
-              tool.toggle();
+              // A radio only starts its tool: the one that is on stays on.
+              if (!tool.active) tool.toggle();
               onPicked();
             }}
           >

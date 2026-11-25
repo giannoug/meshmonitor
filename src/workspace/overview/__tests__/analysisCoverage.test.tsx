@@ -104,7 +104,6 @@ async function toolbarControls(): Promise<string[]> {
     </MapProvider>,
   );
   await screen.findByRole('button', { name: /^All sources \(5\)/ });
-  await screen.findByRole('menuitemcheckbox', { name: 'Add Waypoint' }).catch(() => undefined);
   const names = new Set<string>();
   for (const trigger of screen.getAllByRole('button').filter((b) => b.getAttribute('aria-haspopup') === 'menu')) {
     names.add(trigger.textContent!.replace(/\d+$/, '').trim());
@@ -224,7 +223,7 @@ describe('every control of today\'s Dashboard map is on the Overview map (Ruling
     const drawer = await openLayers();
     await within(drawer).findByRole('switch', { name: 'Hide nodes without a current position advert' }, { timeout: 5000 });
     const has = (scope: HTMLElement, name: string) =>
-      within(scope).queryAllByLabelText(name, { exact: false }).length > 0
+      within(scope).queryAllByLabelText(name).length > 0
       || within(scope).queryAllByRole('button', { name }).length > 0
       || within(scope).queryAllByRole('radio', { name }).length > 0
       || within(scope).queryAllByRole('switch', { name }).length > 0
@@ -283,7 +282,7 @@ async function phonePlace(place: PhonePlace): Promise<HTMLElement> {
 }
 
 const reachable = (scope: HTMLElement, name: string) =>
-  within(scope).queryAllByLabelText(name, { exact: false }).length > 0
+  within(scope).queryAllByLabelText(name).length > 0
   || within(scope).queryAllByRole('button', { name: new RegExp(`^${name.replace(/[()]/g, '\\$&')}`) }).length > 0
   || within(scope).queryAllByRole('radio', { name }).length > 0
   || within(scope).queryAllByRole('menuitemradio', { name }).length > 0

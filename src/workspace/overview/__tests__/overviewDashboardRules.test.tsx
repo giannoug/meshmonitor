@@ -11,9 +11,19 @@
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import L from 'leaflet';
 import { athensFixture as A, SOURCE_IDS } from '../../__fixtures__/athens';
 import { dbRow } from '../../__fixtures__/fixtureApi';
 import { marker, openLayers, renderOverview } from './renderOverview';
+
+// What the live-traffic layer is given to anchor flights on.
+const flightLayer = vi.hoisted(() => ({ nodes: null as null | Array<{ publicKey: string | null }> }));
+vi.mock('../../../components/map/layers/PacketFlightsLayer', () => ({
+  PacketFlightsLayer: ({ nodes }: { nodes: Array<{ publicKey: string | null }> }) => {
+    flightLayer.nodes = nodes;
+    return null;
+  },
+}));
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
@@ -100,7 +110,37 @@ describe('Overview map keeps the Dashboard map\'s controls (I2)', () => {
     await marker('KFR');
     const fit = screen.getByRole('button', { name: 'Zoom to fit all nodes' });
     expect(fit).toBeEnabled();
+    const fitBounds = vi.spyOn(L.Map.prototype, 'fitBounds');
     fireEvent.click(fit);
+    await waitFor(() => expect(fitBounds).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ maxZoom: 15 })));
+    fitBounds.mockRestore();
+  });
+
+  it('Colour nodes by: ArrowDown moves the checked radio, and only it is in the tab order', async () => {
+    renderOverview('/overview/map');
+    await marker('KFR');
+    const group = within(await openLayers()).getByRole('radiogroup', { name: 'Colour nodes by' });
+    const radios = within(group).getAllByRole('radio');
+    expect(radios.map((r) => r.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false']);
+    expect(radios.map((r) => r.tabIndex)).toEqual([0, -1, -1]);
+    radios[0].focus();
+    fireEvent.keyDown(radios[0], { key: 'ArrowDown' });
+    await waitFor(() => expect(radios[1]).toHaveAttribute('aria-checked', 'true'));
+    expect(radios[1]).toHaveFocus();
+    expect(radios.map((r) => r.tabIndex)).toEqual([-1, 0, -1]);
+    fireEvent.keyDown(radios[1], { key: 'ArrowUp' });
+    await waitFor(() => expect(radios[0]).toHaveAttribute('aria-checked', 'true'));
+  });
+
+  it('packet-flight anchors ignore nodes not on the map', async () => {
+    renderOverview('/overview/map', { fixtures: bundles([meshcore('NOADV', 'c', { lastAdvertHadPosition: false })]) });
+    await marker('NOADV');
+    const drawer = within(await openLayers());
+    fireEvent.click(drawer.getByRole('checkbox', { name: 'Live packet traffic' }));
+    await waitFor(() => expect(flightLayer.nodes?.some((n) => n.publicKey === 'c'.repeat(64))).toBe(true));
+    fireEvent.click(drawer.getByRole('switch', { name: 'Hide nodes without a current position advert' }));
+    await waitFor(() => expect(markerShown('NOADV')).toBe(false));
+    await waitFor(() => expect(flightLayer.nodes?.some((n) => n.publicKey === 'c'.repeat(64))).toBe(false));
   });
 
   it('Show Route Segments and Show Traceroute draw the Dashboard\'s traceroute hops', async () => {

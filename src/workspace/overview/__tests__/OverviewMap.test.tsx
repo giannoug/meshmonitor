@@ -9,7 +9,8 @@
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { renderWorkspace, type RenderWorkspaceOptions } from '../../test/renderWorkspace';
 import { athensFixture, SOURCE_IDS } from '../../__fixtures__/athens';
 import { SettingsProvider } from '../../../contexts/SettingsContext';
@@ -52,6 +53,19 @@ function renderMap(route: string, opts: RenderWorkspaceOptions & { landing?: boo
   );
 }
 
+/** Opens the page as Classic's "Sources" button does: `/` with `state.showList`. */
+function ShowList() {
+  const navigate = useNavigate();
+  // Once: a second navigation would undo the redirect this test checks for.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 one-shot on mount
+  useEffect(() => void navigate('/', { replace: true, state: { showList: true } }), []);
+  return null;
+}
+
+/** The devices are listed once the unified read, which waits for them, has gone out. */
+const devicesListed = () =>
+  waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([u]) => String(u).includes('/api/unified/dashboard'))).toBe(true), { timeout: 5000 });
+
 const map = () => screen.findByTestId('analysis-canvas');
 const realUrl = () => screen.getByTestId('real-url').textContent;
 const withLanding = (value: string) => ({ 'GET /api/settings': () => ({ ...athensFixture.settings, defaultLandingPage: value }) });
@@ -81,7 +95,28 @@ describe('OverviewMap', () => {
   ])('%s stays put (landing %s, setting %s)', async (route, landing, value) => {
     renderMap(route, { landing, fixtures: withLanding(value) });
     await map();
-    await new Promise((r) => setTimeout(r, 50));
-    expect(realUrl()).toBe(route);
+    // The landing hook has what it needs once the setting is stored and the devices are listed.
+    await devicesListed();
+    await waitFor(() => expect(localStorage.getItem('defaultLandingPage')).toBe(value), { timeout: 5000 });
+    await waitFor(() => expect(realUrl()).toBe(route));
+    await waitFor(() => expect(realUrl()).toBe(route));
+  });
+
+  it('/ with state.showList does not run the landing redirect', async () => {
+    renderWorkspace(
+      <SettingsProvider>
+        <ToastProvider>
+          <OverviewMap landing />
+          <ShowList />
+          <RealUrl />
+        </ToastProvider>
+      </SettingsProvider>,
+      { route: '/', fixtures: withLanding('reports') },
+    );
+    await map();
+    await devicesListed();
+    await waitFor(() => expect(localStorage.getItem('defaultLandingPage')).toBe('reports'), { timeout: 5000 });
+    await waitFor(() => expect(realUrl()).toBe('/'));
+    await waitFor(() => expect(realUrl()).toBe('/'));
   });
 });

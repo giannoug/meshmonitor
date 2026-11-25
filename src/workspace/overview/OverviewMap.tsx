@@ -54,7 +54,7 @@ import { DashboardDataOptionsContext } from '../../hooks/dashboardDataScope';
 import { useDefaultLandingRedirect } from '../../hooks/useDefaultLandingRedirect';
 import { useMaxInfraNodeAgeHoursAcross, useMaxNodeAgeHoursAcross } from '../../hooks/useNodeDisplaySettings';
 import { effectiveMapMaxAgeHours } from '../../utils/mapAge';
-import { readHidePositionlessAdverts, writeHidePositionlessAdverts } from '../../utils/meshcoreAdvertPosition';
+import { isHiddenByPositionlessAdvert, readHidePositionlessAdverts, writeHidePositionlessAdverts } from '../../utils/meshcoreAdvertPosition';
 import type { PacketFlightStats } from '../../utils/packetFlightEdges';
 import LayersDrawer from '../map/LayersDrawer';
 import type { LayerGroupSpec, LayerItem } from '../map/LayerGroup';
@@ -180,10 +180,11 @@ interface AllDevicesMapProps extends DashboardControls {
 function AllDevicesMap({ landing, colourKey, ...dashboard }: AllDevicesMapProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
-  const { pathname } = useLocation();
+  const { pathname, state } = useLocation();
   const { defaultLandingPage, defaultMapCenterLat, defaultMapCenterLon, defaultMapCenterZoom } = useSettings();
   const { data: sources = [], isSuccess } = useDashboardSources();
-  useDefaultLandingRedirect({ skip: !landing, isSuccess, defaultLandingPage, sources });
+  // Classic's "Sources" button opens `/` with `state.showList`: stay on the list.
+  useDefaultLandingRedirect({ skip: !landing || !!(state as { showList?: boolean } | null)?.showList, isSuccess, defaultLandingPage, sources });
 
   const ctx = useMapAnalysisCtx();
   const { config, nodeFilter, setNodeFilter } = ctx;
@@ -222,11 +223,20 @@ function AllDevicesMap({ landing, colourKey, ...dashboard }: AllDevicesMapProps)
     return [...byKey].map(([key, label]) => ({ key, label })).sort((a, b) => a.label.localeCompare(b.label));
   }, [analysisNodes]);
 
+  // The nodes with a marker: the markers layer also drops MeshCore nodes without a current position advert (#5578).
+  const markerNodes = useMemo(
+    () => dashboard.hidePositionless
+      ? analysisNodes.filter(({ node }) => !(node.isMeshCore && isHiddenByPositionlessAdvert(node as Parameters<typeof isHiddenByPositionlessAdvert>[0], true)))
+      : analysisNodes,
+    [analysisNodes, dashboard.hidePositionless],
+  );
+
   const onMap = useCallback((map: L.Map) => setLeaflet(map), []);
   const layers = (
     <OverviewOverlays
       sources={sources}
       nodes={analysisNodes}
+      markerNodes={markerNodes}
       lookbackHours={dashboard.maxNodeAgeHours}
       mapAgeHours={dashboard.mapAgeHours}
       transports={config.transports}
@@ -245,6 +255,7 @@ function AllDevicesMap({ landing, colourKey, ...dashboard }: AllDevicesMapProps)
     { id: 'transports', label: 'Transports', node: <TransportFilterControl /> },
     { id: 'nodes', label: 'Nodes', node: <NodeMultiSelect nodes={nodeOptions} value={config.selectedNodeIds} onChange={ctx.setSelectedNodeIds} /> },
   ];
+  const filterNode = (id: string) => filters.find((f) => f.id === id)?.node;
   const fit = (
     <button
       type="button"
@@ -305,11 +316,11 @@ function AllDevicesMap({ landing, colourKey, ...dashboard }: AllDevicesMapProps)
             ) : (
               <>
                 <div className={styles.filters}>
-                  {filters[0].node}
-                  {filters[1].node}
-                  {filters[2].node}
+                  {filterNode('sources')}
+                  {filterNode('node-types')}
+                  {filterNode('transports')}
                   {search}
-                  {filters[3].node}
+                  {filterNode('nodes')}
                 </div>
                 <div className={styles.actions}>
                   {fit}

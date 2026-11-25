@@ -8,12 +8,11 @@
  * Choosing a tool sends nothing. Add Waypoint's next tap opens the waypoint
  * sheet (3.6), whose Save sends one waypoint on the channel picked there.
  */
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { useAnalysisControls } from '../../../components/MapAnalysis/analysisControls';
 import { useMapAnalysisCtx } from '../../../components/MapAnalysis/MapAnalysisContext';
 import Sheet from '../../patterns/Sheet';
-import drawer from '../../map/LayersDrawer.module.css';
 import { ToolItems } from './MapToolsMenu';
 import styles from './PhoneToolsSheet.module.css';
 
@@ -21,29 +20,45 @@ export interface PhoneToolsSheetProps {
   open: boolean;
   onClose(): void;
   tools: ReturnType<typeof useAnalysisControls>['tools'];
+  /** `time`: opened from Time, so the sheet lands on that section. */
+  initialSection?: 'time';
 }
 
-export default function PhoneToolsSheet({ open, onClose, tools }: PhoneToolsSheetProps) {
+export default function PhoneToolsSheet({ open, onClose, tools, initialSection }: PhoneToolsSheetProps) {
+  const title = useTranslation().t('workspace.overview.tools');
+  return (
+    <Sheet open={open} onClose={onClose} title={title} side="bottom">
+      <ToolsBody title={title} onClose={onClose} tools={tools} initialSection={initialSection} />
+    </Sheet>
+  );
+}
+
+/** Mounted with the open sheet, so its effect runs once per opening. */
+function ToolsBody({ title, onClose, tools, initialSection }: Omit<PhoneToolsSheetProps, 'open'> & { title: string }) {
   const { t } = useTranslation();
   const { config, setTimeSlider } = useMapAnalysisCtx();
   const timeId = useId();
-  const title = t('workspace.overview.tools');
+  const heading = useRef<HTMLHeadingElement>(null);
+  // After the sheet's own focus-on-open (a child effect runs before it), so a microtask.
+  useEffect(() => {
+    if (initialSection === 'time') queueMicrotask(() => heading.current?.focus());
+  }, [initialSection]);
   return (
-    <Sheet open={open} onClose={onClose} title={title} side="bottom">
+    <>
       <p className={styles.hint}>{t('workspace.overview.tools_sheet_hint')}</p>
       <div className={styles.tools} role="radiogroup" aria-label={title}>
-        <ToolItems tools={tools} role="radio" onPicked={onClose} />
+        <ToolItems tools={tools} role="radio" onPicked={onClose} className={styles.tool} />
       </div>
-      <section className={`${drawer.group} ${drawer.phone} ${styles.time}`} aria-labelledby={timeId}>
-        <h3 id={timeId} className={drawer.groupTitle}>{t('workspace.overview.time')}</h3>
-        <ul className={drawer.card}>
-          <li className={drawer.item}>
-            <label className={drawer.row}>
-              <span className={drawer.label}>Time Slider</span>
+      <section className={styles.time} aria-labelledby={timeId}>
+        <h3 id={timeId} ref={heading} tabIndex={-1} className={styles.groupTitle}>{t('workspace.overview.time')}</h3>
+        <ul className={styles.card}>
+          <li className={styles.item}>
+            <label className={styles.row}>
+              <span className={styles.label}>Time Slider</span>
               <input
                 type="checkbox"
                 role="switch"
-                className={drawer.switch}
+                className={styles.switch}
                 checked={config.timeSlider.enabled}
                 onChange={(e) => setTimeSlider({ enabled: e.target.checked })}
               />
@@ -51,6 +66,6 @@ export default function PhoneToolsSheet({ open, onClose, tools }: PhoneToolsShee
           </li>
         </ul>
       </section>
-    </Sheet>
+    </>
   );
 }

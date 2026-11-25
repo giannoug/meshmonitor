@@ -5,12 +5,38 @@
   color: var(--color-text-subtle);
 }
 
-/* ToolItems' rows are buttons: at least 52 px tall, as every phone row. */
-.tools > button {
+/* ToolItems' rows (its `className`): at least 52 px tall, as every phone row; scoped to out-rank the menu's own row rule. */
+.tools .tool {
   min-height: 56px;
   padding: 14px 20px;
 }
 
+/* Time reuses the Layers drawer's group rules (phone rows), by composition. */
 .time {
+  composes: group phone from '../../map/LayersDrawer.module.css';
   padding: 8px 16px 16px;
+}
+
+.groupTitle {
+  composes: groupTitle from '../../map/LayersDrawer.module.css';
+}
+
+.card {
+  composes: card from '../../map/LayersDrawer.module.css';
+}
+
+.item {
+  composes: item from '../../map/LayersDrawer.module.css';
+}
+
+.row {
+  composes: row from '../../map/LayersDrawer.module.css';
+}
+
+.label {
+  composes: label from '../../map/LayersDrawer.module.css';
+}
+
+.switch {
+  composes: switch from '../../map/LayersDrawer.module.css';
 }

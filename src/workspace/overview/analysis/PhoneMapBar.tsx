@@ -15,7 +15,6 @@ import { UiIcon } from '../../../components/icons';
 import type { useAnalysisControls } from '../../../components/MapAnalysis/analysisControls';
 import Sheet from '../../patterns/Sheet';
 import LayerGroup, { type LayerGroupSpec } from '../../map/LayerGroup';
-import drawer from '../../map/LayersDrawer.module.css';
 import PhoneToolsSheet from './PhoneToolsSheet';
 import styles from './PhoneMapBar.module.css';
 
@@ -35,17 +34,23 @@ export interface PhoneMapBarProps {
 
 export default function PhoneMapBar({ tools, groups, layersOpen, onLayersOpen, layersOn, layersActions, fit }: PhoneMapBarProps) {
   const { t } = useTranslation();
-  const [toolsOpen, setToolsOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState<false | 'tools' | 'time'>(false);
   const layers = t('workspace.map.layers');
   const toolOn = Object.values(tools).some((tool) => tool.shown && tool.active);
   return (
     <>
       <div className={styles.bar} role="toolbar" aria-label={t('workspace.overview.map_tools')}>
-        <button type="button" className={styles.button} aria-pressed={toolOn} aria-haspopup="dialog" onClick={() => setToolsOpen(true)}>
+        <button
+          type="button"
+          className={styles.button}
+          aria-haspopup="dialog"
+          aria-label={toolOn ? t('workspace.overview.tools_on') : undefined}
+          onClick={() => setToolsOpen('tools')}
+        >
           <UiIcon name="wrench" size={18} />
           {t('workspace.overview.tools')}
         </button>
-        <button type="button" className={styles.button} aria-haspopup="dialog" onClick={() => setToolsOpen(true)}>
+        <button type="button" className={styles.button} aria-haspopup="dialog" onClick={() => setToolsOpen('time')}>
           <UiIcon name="time" size={18} />
           {t('workspace.overview.time')}
         </button>
@@ -62,9 +67,9 @@ export default function PhoneMapBar({ tools, groups, layersOpen, onLayersOpen, l
         </button>
         {fit}
       </div>
-      <PhoneToolsSheet open={toolsOpen} onClose={() => setToolsOpen(false)} tools={tools} />
+      <PhoneToolsSheet open={toolsOpen !== false} initialSection={toolsOpen === 'time' ? 'time' : undefined} onClose={() => setToolsOpen(false)} tools={tools} />
       <Sheet open={layersOpen} onClose={() => onLayersOpen(false)} title={layers} side="bottom" actions={layersActions}>
-        <div className={`${drawer.body} ${drawer.phone}`}>
+        <div className={styles.layers}>
           {groups.map((g) => <LayerGroup key={g.id} group={g} />)}
         </div>
       </Sheet>

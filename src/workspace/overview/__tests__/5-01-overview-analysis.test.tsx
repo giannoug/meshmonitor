@@ -12,7 +12,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { SOURCE_IDS } from '../../__fixtures__/athens';
-import { marker, renderOverview, storedConfig } from './renderOverview';
+import { marker, openLayers, renderOverview, storedConfig } from './renderOverview';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
@@ -67,6 +67,18 @@ describe('5-01-overview-analysis', () => {
     fireEvent.click(await marker('KFR'));
     const link = await screen.findByRole('link', { name: /Open node page/ }, { timeout: 5000 });
     expect(link).toHaveAttribute('href', `/source/${SOURCE_IDS.g2}/node/${encodeURIComponent('!a1b2c301')}`);
+  });
+
+  it('the Hop Shading switch shows and hides the legend\'s Role Badges (markers replace them)', async () => {
+    renderOverview('/overview/map');
+    await marker('KFR');
+    const legend = document.querySelector<HTMLElement>('.map-analysis-legend')!;
+    expect(within(legend).getByText('Role Badges')).toBeInTheDocument();
+    const hop = within(await openLayers()).getByRole('switch', { name: 'Hop Shading' });
+    fireEvent.click(hop);
+    await waitFor(() => expect(within(legend).queryByText('Role Badges')).toBeNull());
+    fireEvent.click(hop);
+    await waitFor(() => expect(within(legend).getByText('Role Badges')).toBeInTheDocument());
   });
 
   it('opening the map and the analysis layers sends nothing', async () => {

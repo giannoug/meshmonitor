@@ -47,6 +47,8 @@ export interface OverviewOverlaysProps {
   sources: DashboardSource[];
   /** The nodes the map draws (Map Analysis's `useAnalysisNodes`, with the Dashboard age gate). */
   nodes: AnalysisNode[];
+  /** Those of `nodes` that have a marker: packet flights anchor on these only. */
+  markerNodes: AnalysisNode[];
   /** The widest node-age setting across devices: MeshCore neighbours' lookback, as 4.1. */
   lookbackHours: number;
   /** The map age filter over that window: DashboardMap's `effectiveMaxAge`. */
@@ -114,14 +116,14 @@ export default function OverviewOverlays(p: OverviewOverlaysProps) {
 
   const flightNodes = useMemo<FlightNodeEntry[]>(
     () => (m.showPacketFlights
-      ? nodes.map(({ node, latLng }) => ({
+      ? p.markerNodes.map(({ node, latLng }) => ({
           nodeNum: node.isMeshCore ? null : node.nodeNum,
           publicKey: node.isMeshCore ? node.publicKey : null,
           lat: latLng[0],
           lng: latLng[1],
         }))
       : []),
-    [m.showPacketFlights, nodes],
+    [m.showPacketFlights, p.markerNodes],
   );
   // As DashboardMap's Unified map: a flight takes its device's colour.
   const idsKey = sourceIds.join('|');

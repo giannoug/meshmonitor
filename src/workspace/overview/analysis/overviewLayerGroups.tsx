@@ -18,6 +18,7 @@ import { UiIcon } from '../../../components/icons';
 import MapAgeFilterControl from '../../../components/map/MapAgeFilterControl';
 import MapAircraftDisplayControl from '../../../components/map/MapAircraftDisplayControl';
 import { DuctingControl } from '../../../components/map/DuctingControl';
+import { rovingKeyDown } from './roving';
 import { PacketFlightsControl } from '../../../components/map/PacketFlightsControl';
 import { TilesetSelector } from '../../../components/TilesetSelector';
 import { useMapAnalysisCtx } from '../../../components/MapAnalysis/MapAnalysisContext';
@@ -171,8 +172,18 @@ export function useOverviewLayerGroups({ controls, packetFlightsStats, aircraftC
                     () => m.setColorNodesBySource(true)],
                   ['gateway', t('map.colorNodesByGateway', 'Colour nodes by gateway'), t('map.colorNodesByGatewayHelp'), m.colorNodesByGateway,
                     () => m.setColorNodesByGateway(true)],
-                ] as const).map(([id, label, title, on, pick]) => (
-                  <button key={id} type="button" role="radio" aria-checked={on} aria-label={label} title={title} onClick={pick}>
+                ] as const).map(([id, label, title, on, pick], i, all) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    aria-label={label}
+                    title={title}
+                    tabIndex={i === Math.max(0, all.findIndex((r) => r[3])) ? 0 : -1}
+                    onKeyDown={(e) => rovingKeyDown(e, 'radio', true)}
+                    onClick={pick}
+                  >
                     {id === 'off' ? label : t(id === 'source' ? 'workspace.overview.colour_source' : 'workspace.overview.colour_gateway')}
                   </button>
                 ))}
