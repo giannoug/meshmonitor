@@ -45,7 +45,11 @@
   min-height: 24px;
 }
 
-/* The ring wraps the 44px square, not only the 24px name row. */
+/* One ring, on the 44px square: the button's own ring would only wrap the 24px name row. */
+.header[data-device] .switch:focus-visible {
+  outline: none;
+}
+
 .header[data-device] .switch:focus-visible .square {
   outline: 2px solid var(--color-accent);
   outline-offset: 3px;

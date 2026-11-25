@@ -1,6 +1,7 @@
 /**
  * Layout the unit tests can't see (follow-ups plan, #6365): the wide tables fit their
- * panel at 1280 px (boards 7-01, 8-15).
+ * panel at 1280 px (boards 7-01, 8-15), the phone switcher draws one focus ring (D1), and the
+ * Activity device button is a 44 px target (W4-e).
  */
 import { expect, test, type Page } from '@playwright/test';
 import { BOARDS } from './boards';
@@ -42,4 +43,32 @@ test('8-15 observers and nodes tables fit their column', async ({ page }) => {
     const { client, scroll } = await fits(page, table);
     expect(scroll, table).toBeLessThanOrEqual(client);
   }
+});
+
+const PHONE = { width: 390, height: 844 };
+
+test('phone switcher shows one focus ring, on the square', async ({ page }) => {
+  await open(page, 'c-home-e1-home', PHONE);
+  const button = page.locator('header[data-device] button').first();
+  await button.focus();
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Tab');
+  const rings = await button.evaluate((el) => ({
+    focused: el === document.activeElement && el.matches(':focus-visible'),
+    button: getComputedStyle(el).outlineStyle,
+    square: getComputedStyle(el.querySelector('[class*=square]')!).outlineStyle,
+  }));
+  expect(rings).toEqual({ focused: true, button: 'none', square: 'solid' });
+});
+
+test('Activity device button is a 44 px target', async ({ page }) => {
+  await open(page, 'c-home-e4-activity', PHONE);
+  const button = page.locator('header button[aria-haspopup=dialog]').first();
+  const box = (await button.boundingBox())!;
+  const hits = await button.evaluate((el, b) => {
+    const x = b.x + b.width / 2;
+    const y = b.y + b.height / 2;
+    return [y - 21, y + 21].map((py) => document.elementFromPoint(x, py)?.closest('button') === el);
+  }, box);
+  expect(hits).toEqual([true, true]);
 });

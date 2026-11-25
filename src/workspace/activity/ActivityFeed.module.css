@@ -25,7 +25,7 @@
 .device::before {
   content: '';
   position: absolute;
-  inset: -10px 0;
+  inset: calc((100% - 44px) / 2) 0;
 }
 
 .deviceName {
