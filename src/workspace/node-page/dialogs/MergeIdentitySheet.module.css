@@ -14,6 +14,7 @@
 .error { color: var(--color-error); font-size: 13px; }
 .warning { display: flex; gap: 8px; align-items: flex-start; }
 .warningIcon { color: var(--color-warning); flex-shrink: 0; margin-top: 2px; }
+.dangerIcon { color: var(--color-danger); flex-shrink: 0; margin-top: 2px; }
 .totals { display: flex; flex-wrap: wrap; gap: 4px 16px; }
 .tableWrap { overflow-x: auto; }
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }

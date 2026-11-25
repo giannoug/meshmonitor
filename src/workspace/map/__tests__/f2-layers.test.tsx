@@ -108,6 +108,7 @@ describe('every setShow* in MapContext has exactly one control in the Layers dra
   function Drawer() {
     const { groups } = useDeviceLayerGroups({
       mqttOnly: false,
+      isPhone: false,
       canUse3D: false,
       viewMode: '2d',
       setViewMode: () => {},

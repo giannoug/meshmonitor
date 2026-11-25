@@ -23,9 +23,9 @@ export default function MergeIdentitySheet({ sourceId, fromNodeNum, toNodeNum, f
   const showColumn = !useIsPhone();
   const merge = useNodeIdentityMerge({ sourceId, fromNodeNum, toNodeNum, onClose, onMerged });
   const { preview } = merge;
-  const warning = (title: string, body: string) => (
+  const warning = (title: string, body: string, { danger = false } = {}) => (
     <div className={styles.warning}>
-      <UiIcon name="alert" size={16} className={styles.warningIcon} />
+      <UiIcon name="alert" size={16} className={danger ? styles.dangerIcon : styles.warningIcon} />
       <p><strong>{title}</strong> {body}</p>
     </div>
   );
@@ -114,7 +114,7 @@ export default function MergeIdentitySheet({ sourceId, fromNodeNum, toNodeNum, f
               </details>
               {merge.needsAcknowledgement ? (
                 <>
-                  {warning(t('nodes.merge_no_undo_title'), t('nodes.merge_no_undo_body'))}
+                  {warning(t('nodes.merge_no_undo_title'), t('nodes.merge_no_undo_body'), { danger: true })}
                   <label className={styles.check}>
                     <input type="checkbox" checked={merge.acknowledged} onChange={(e) => merge.setAcknowledged(e.target.checked)} />
                     {t('nodes.merge_no_undo_ack')}

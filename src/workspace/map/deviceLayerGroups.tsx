@@ -38,6 +38,8 @@ import styles from './LayersDrawer.module.css';
 export interface DeviceLayerParams {
   /** MQTT bridge/broker: every node arrived over MQTT, so RF/UDP/MQTT are hidden (#5283). */
   mqttOnly: boolean;
+  /** The phone map has no Packet monitor panel, so no toggle for it (D2). */
+  isPhone: boolean;
   canUse3D: boolean;
   viewMode: '2d' | '3d';
   setViewMode(mode: '2d' | '3d'): void;
@@ -111,7 +113,7 @@ export function useDeviceLayerGroups(p: DeviceLayerParams) {
     enabled: canViewPacketMonitor,
     staleTime: 60_000,
   });
-  const packetMonitorAvailable = canViewPacketMonitor && packetStats?.enabled === true;
+  const packetMonitorAvailable = !p.isPhone && canViewPacketMonitor && packetStats?.enabled === true;
 
   const { geoJsonLayers, setLayerVisible } = useGeoJsonLayers();
 

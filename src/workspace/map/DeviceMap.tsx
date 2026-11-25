@@ -193,6 +193,7 @@ function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapP
   const [flightStats, setFlightStats] = useState<PacketFlightStats | null>(null);
   const layers = useDeviceLayerGroups({
     mqttOnly: data.mqttOnly,
+    isPhone,
     canUse3D,
     viewMode,
     setViewMode,

@@ -74,6 +74,13 @@ describe('15-06-identity-merge', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Merge node history' })).toBeNull());
   });
 
+  it('merge no-undo line uses the danger icon class', async () => {
+    const sheet = within(await openMerge());
+    const line = sheet.getByText('This merge cannot be undone').closest('div')!;
+    expect(line.querySelector('[class*="dangerIcon"]')).not.toBeNull();
+    expect(line.querySelector('[class*="warningIcon"]')).toBeNull();
+  });
+
   it('an admin also reaches it from Data › Merge history…', async () => {
     renderChat(kifisia, { fixtures });
     await screen.findByRole('heading', { level: 1, name: 'Kifisia Rooftop' }, { timeout: 5000 });
