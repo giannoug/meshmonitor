@@ -75,6 +75,28 @@ describe('c-home-e4-activity', () => {
     await waitFor(() => expect(within(screen.getByRole('navigation', { name: 'Tabs' })).getByRole('link', { name: 'Activity' })).toBeInTheDocument());
   });
 
+  it('an unseen row\'s accessible name contains Unread; a seen row\'s does not', async () => {
+    await open();
+    const rows = within(await feed()).getAllByRole('button');
+    expect(rows[0]).toHaveAccessibleName(/Unread/);
+    expect(rows[4]).not.toHaveAccessibleName(/Unread/);
+  });
+
+  it('a failed Mark all read shows the error (phone)', async () => {
+    await open({
+      fixtures: {
+        'PUT /api/user/preferences/:key': () =>
+          new Response(JSON.stringify({ success: false, error: 'boom', code: 'INTERNAL_ERROR' }), {
+            status: 500,
+            headers: { 'content-type': 'application/json' },
+          }),
+      },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Options' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Mark all read' }));
+    expect(await screen.findByText('Failed to mark activity as read. Please try again.')).toBeInTheDocument();
+  });
+
   it('a reaction opens its conversation at our reacted-to message', async () => {
     Element.prototype.scrollIntoView = () => {};
     const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');

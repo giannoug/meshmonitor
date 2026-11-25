@@ -74,7 +74,7 @@ describe('c-home-e1-home', () => {
   it('the Jump to pill opens message search as a page', async () => {
     await home();
     fireEvent.click(screen.getByRole('button', { name: /Search Messages/ }));
-    expect(await screen.findByRole('dialog', { name: 'Search Messages' })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Search Messages' })).toBeInTheDocument();
   });
 
   it('a viewer without search permission gets no pill; without messages:read no DMs', async () => {

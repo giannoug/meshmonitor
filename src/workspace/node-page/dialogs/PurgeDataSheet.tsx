@@ -84,6 +84,7 @@ export default function PurgeDataSheet({ open, sourceId, node, onClose, purgeNod
       if (!res.ok) throw new Error(t('toast.failed_purge_messages', { error: body.message || t('errors.unknown') }));
       showToast(t('toast.purged_messages_dm', { count: body.deletedCount, node: shortName }), 'success');
       onMessagesPurged?.();
+      void refetchPoll();
     }
     for (const what of ['traceroutes', 'telemetry', 'positionHistory'] as const) {
       if (choice[what]) await purgeNodeData(node.nodeNum, { what });

@@ -196,6 +196,19 @@ describe('Purge data', () => {
     expect(posted(`/api/messages/nodes/${KIF}/purge-from-device`)).toHaveLength(0);
   });
 
+  it('Purge All Messages refetches the poll', async () => {
+    const polls = () => vi.mocked(fetch).mock.calls.filter(([u]) => String(u).includes('/api/poll')).length;
+    const menu = await openMenu('Data', { fixtures });
+    await waitFor(() => expect(polls()).toBeGreaterThan(0));
+    const before = polls();
+    fireEvent.click(menu.getByRole('button', { name: /^Purge Data/ }));
+    const sheet = within(await screen.findByRole('dialog', { name: 'Purge Data for Kifisia Rooftop' }));
+    fireEvent.click(sheet.getByRole('checkbox', { name: 'Purge All Messages' }));
+    fireEvent.click(sheet.getByRole('button', { name: 'Purge' }));
+    await waitFor(() => expect(posted(`/api/messages/direct-messages/${KIF}`)).toHaveLength(1));
+    await waitFor(() => expect(polls()).toBeGreaterThan(before));
+  });
+
   it('Purge from Device AND Database posts today\'s request and says it sends nothing on the mesh', async () => {
     const menu = await openMenu('Data', { fixtures });
     fireEvent.click(menu.getByRole('button', { name: /^Purge Data/ }));

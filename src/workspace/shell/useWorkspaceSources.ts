@@ -12,14 +12,13 @@
  *   unread for every device is worth one poll per source.
  */
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { matchPath, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import apiService from '../../services/api';
 import { appBasename } from '../../init';
 import { useDashboardSources, useFailedSourceStatuses, useSourceStatuses, type DashboardSource, type SourceStatus } from '../../hooks/useDashboardData';
 import { useUnreadBySource } from '../../hooks/useUnreadBySource';
 import { useUnreadCounts } from '../../hooks/useUnreadCounts';
+import { useShellMapPreferences, useShowMqttMessages } from './shellUnread';
 import { SOURCEY_RESOURCES } from '../../types/permission';
 
 export type WorkspaceSourceStatus = 'connected' | 'connecting' | 'offline' | 'disabled';
@@ -48,16 +47,9 @@ function statusOf(source: DashboardSource, live: SourceStatus | null, failed: bo
   return live.connected ? 'connected' : 'offline';
 }
 
-/** The viewer's `unreadIndicatorEnabled` (Classic's map preference): one unpolled read, true until it says otherwise. */
-function useUnreadIndicatorEnabled(signedIn: boolean): boolean {
-  const { data } = useQuery({
-    queryKey: ['user', 'map-preferences'],
-    enabled: signedIn,
-    staleTime: 5 * 60_000,
-    queryFn: async () =>
-      (await apiService.get<{ preferences?: { unreadIndicatorEnabled?: boolean } | null }>('/api/user/map-preferences')).preferences ?? null,
-  });
-  return data?.unreadIndicatorEnabled !== false;
+/** The viewer's `unreadIndicatorEnabled` (Classic's map preference): true until it says otherwise. */
+function useUnreadIndicatorEnabled(): boolean {
+  return useShellMapPreferences().data?.unreadIndicatorEnabled !== false;
 }
 
 export function useWorkspaceSources(): { sources: WorkspaceSource[]; isLoading: boolean; openId: string | null } {
@@ -74,10 +66,11 @@ export function useWorkspaceSources(): { sources: WorkspaceSource[]; isLoading: 
   const statuses = useSourceStatuses(readable.map((s) => s.id));
   const failed = useFailedSourceStatuses(readable.map((s) => s.id));
   const signedIn = authStatus?.authenticated === true;
-  const badges = useUnreadIndicatorEnabled(signedIn);
+  const badges = useUnreadIndicatorEnabled();
   const { data: dms } = useUnreadBySource({ baseUrl: appBasename, enabled: signedIn && badges });
   const openReadable = readable.some((s) => s.id === openId);
-  const { data: openCounts } = useUnreadCounts({ baseUrl: appBasename, sourceId: openId, enabled: signedIn && openReadable && badges });
+  const showMqtt = useShowMqttMessages(openId);
+  const { data: openCounts } = useUnreadCounts({ baseUrl: appBasename, sourceId: openId, excludeMqtt: !showMqtt, enabled: signedIn && openReadable && badges });
 
   const sources = useMemo(() => {
     const ordered = [...readable.filter((s) => s.enabled), ...readable.filter((s) => !s.enabled)];

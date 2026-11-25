@@ -20,6 +20,7 @@
  * guest sees the channel and Login. Nothing here sends without a click.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
@@ -32,7 +33,7 @@ import { useNotificationMuteSettings, useSettings } from '../../contexts/Setting
 import { useSource } from '../../contexts/SourceContext';
 import { useUI } from '../../contexts/UIContext';
 import type { DashboardSource } from '../../hooks/useDashboardData';
-import { useProviderFirstUnread } from '../shell/shellUnread';
+import { useProviderFirstUnread, type ShellMapPreferences } from '../shell/shellUnread';
 import { useChannels, useNodes } from '../../hooks/useServerData';
 import { useTxStatus } from '../../hooks/useTxStatus';
 import { useViewTranslations } from '../../hooks/useViewTranslations';
@@ -95,6 +96,7 @@ interface ChannelThreadProps {
 function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isPhone = useIsPhone();
   const { authStatus, hasPermission, loading: authLoading } = useAuth();
   const { sourceId, sourceType } = useSource();
@@ -255,7 +257,13 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
     unreadCount: unreadCounts[channel] ?? 0,
     onMarkAll: () => void markMessagesAsRead(undefined, channel),
     showMqtt: isBridge ? null : showMqttMessages,
-    onToggleMqtt: () => setShowMqttMessages(!showMqttMessages),
+    onToggleMqtt: () => {
+      setShowMqttMessages(!showMqttMessages);
+      // The shell's unread query follows this flag (useShowMqttMessages).
+      queryClient.setQueryData<ShellMapPreferences | null>(['user', 'map-preferences'], (prev) =>
+        prev === undefined ? prev : { ...prev, showMqttMessagesBySource: { ...prev?.showMqttMessagesBySource, [sourceId!]: !showMqttMessages } },
+      );
+    },
     beaconsPending,
     onBeacons: () => void navigate(`${base}/channel/${channel}/beacons`),
   };

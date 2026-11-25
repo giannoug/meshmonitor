@@ -82,6 +82,7 @@ function SearchPanel({ source, phone, onClose, s, channels, nodes, local, canSea
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { contentRef, onKeyDown } = useDialogA11y(onClose);
+  // A phone page is not a modal: no trap, so the tab bar stays reachable (C14).
   const inputRef = useRef<HTMLInputElement>(null);
   const ids = { title: useId(), scope: useId(), channel: useId(), sender: useId(), from: useId(), to: useId() };
   useEffect(() => inputRef.current?.focus(), []);
@@ -94,7 +95,9 @@ function SearchPanel({ source, phone, onClose, s, channels, nodes, local, canSea
   const node = (id: string | undefined) => nodes.find((n) => n.nodeId === id);
   const contextLabel = (r: SearchResult) =>
     isDm(r)
-      ? t('search.dm_label', { name: node(peerOf(r))?.longName ?? peerOf(r) })
+      ? peerOf(r)
+        ? t('search.dm_label', { name: node(peerOf(r))?.longName ?? peerOf(r) })
+        : t('workspace.tabs.dms')
       : t('search.channel_label', {
           name: channels.find((c) => c.id === r.channel)?.name || t('channels.channel_fallback', { channelNum: r.channel }),
         });
@@ -125,11 +128,11 @@ function SearchPanel({ source, phone, onClose, s, channels, nodes, local, canSea
         ref={contentRef}
         className={styles.panel}
         data-phone={phone ? '' : undefined}
-        role="dialog"
-        aria-modal="true"
+        role={phone ? 'region' : 'dialog'}
+        aria-modal={phone ? undefined : 'true'}
         aria-labelledby={ids.title}
         tabIndex={-1}
-        onKeyDown={onKeyDown}
+        onKeyDown={phone ? undefined : onKeyDown}
       >
         <div className={styles.head}>
           {phone && (

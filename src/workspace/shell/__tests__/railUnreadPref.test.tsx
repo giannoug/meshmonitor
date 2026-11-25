@@ -10,14 +10,17 @@ import { SOURCE_IDS } from '../../__fixtures__/athens';
 import { ToastProvider } from '../../../components/ToastContainer';
 import WorkspaceShell from '../WorkspaceShell';
 
-const renderRail = (preferences: unknown) =>
+const renderRail = (preferences: unknown, extra: { route?: string; fixtures?: Record<string, never> } = {}) =>
   renderWorkspace(
     <ToastProvider>
       <WorkspaceShell>
         <span />
       </WorkspaceShell>
     </ToastProvider>,
-    { route: '/overview', fixtures: { 'GET /api/user/map-preferences': () => ({ preferences }) } },
+    {
+      route: extra.route ?? '/overview',
+      fixtures: { 'GET /api/user/map-preferences': () => ({ preferences }), ...(extra.fixtures as object) },
+    },
   );
 
 describe('rail unread badges', () => {
@@ -36,5 +39,24 @@ describe('rail unread badges', () => {
     const rail = await screen.findByRole('navigation', { name: 'Devices' });
     await waitFor(() => expect(within(rail).getByRole('link', { name: /Heltec MeshCore, 2 unread/ })).toBeInTheDocument());
     expect(SOURCE_IDS.heltec).toBeTruthy();
+  });
+
+  it('with Show MQTT off, a source whose only unread is MQTT shows no rail or sidebar badge', async () => {
+    renderRail(null, {
+      route: `/source/${SOURCE_IDS.g2}/channels`,
+      fixtures: {
+        'GET /api/messages/unread-by-source': () => ({ sources: {} }),
+        // Show MQTT is off by default: the server drops MQTT from the counts only when asked.
+        'GET /api/messages/unread-counts': (url: URL) =>
+          url.searchParams.get('excludeMqtt') === 'true'
+            ? { channels: {}, directMessages: {} }
+            : { channels: { 0: 2 }, directMessages: {} },
+      } as never,
+    });
+    const rail = await screen.findByRole('navigation', { name: 'Devices' });
+    await within(rail).findByRole('link', { name: /Station G2/ });
+    await new Promise((r) => setTimeout(r, 100));
+    expect(screen.queryByRole('link', { name: /Station G2, \d+ unread/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Station G2, \d+ unread/ })).toBeNull();
   });
 });

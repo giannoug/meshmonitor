@@ -92,14 +92,13 @@ describe('no second polling observer', () => {
     ['the phone device Home lists', g2, { phone: true }],
   ])('%s: unread counts are polled once', async (_what, route, opts) => {
     const { queryClient } = renderChat(route, opts);
-    await waitFor(() => expect(queryClient.getQueryData(['unreadCounts', '', SOURCE_IDS.g2, false])).toBeDefined());
+    await waitFor(() => expect(queryClient.getQueryData(['unreadCounts', '', SOURCE_IDS.g2, true])).toBeDefined());
     await screen.findAllByText(/Athens Rover/);
-    // At most one polling observer per key (the MessagingProvider's own poll is another key: it excludes MQTT, Ruling AD).
-    for (const q of queryClient.getQueryCache().findAll({ queryKey: ['unreadCounts'] })) {
-      expect(q.observers.filter((o) => o.options.refetchInterval).length).toBeLessThanOrEqual(1);
-    }
-    const shell = queryClient.getQueryCache().find({ queryKey: ['unreadCounts', '', SOURCE_IDS.g2, false], exact: true })!;
-    expect(shell.observers.filter((o) => o.options.refetchInterval)).toHaveLength(1);
+    // With Show MQTT off, the shell and the conversation's MessagingProvider (which excludes MQTT, Ruling AD)
+    // poll the same key: those two, and no list or conversation adds a third (they read it with skipToken).
+    const shell = queryClient.getQueryCache().find({ queryKey: ['unreadCounts', '', SOURCE_IDS.g2, true], exact: true })!;
+    expect(shell.observers.filter((o) => o.options.refetchInterval).length).toBeLessThanOrEqual(2);
+    expect(shell.observers.filter((o) => o.options.refetchInterval).length).toBeGreaterThanOrEqual(1);
   });
 
   it.each([

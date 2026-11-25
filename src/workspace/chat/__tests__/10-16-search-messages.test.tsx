@@ -25,7 +25,7 @@ const fourOf31 = () => ({ success: true, count: 4, total: 31, data: athensFixtur
 async function openPage() {
   const result = renderChat(g2, { phone: true, fixtures: { 'GET /api/messages/search': fourOf31 } });
   fireEvent.click(await screen.findByRole('button', { name: /Search Messages/ }));
-  const page = within(await screen.findByRole('dialog', { name: 'Search Messages' }));
+  const page = within(await screen.findByRole('region', { name: 'Search Messages' }));
   return { ...result, page };
 }
 
@@ -48,11 +48,23 @@ describe('10-16-search-messages', () => {
     expect(document.body.textContent).not.toContain('Ctrl+K');
   });
 
+  it('the phone page is not aria-modal and the tab bar is reachable by Tab', async () => {
+    await openPage();
+    const region = screen.getByRole('region', { name: 'Search Messages' });
+    expect(region).not.toHaveAttribute('aria-modal');
+    expect(screen.queryByRole('dialog', { name: 'Search Messages' })).toBeNull();
+    // No focus trap: Tab from the last control is left to the browser, not wrapped back into the page.
+    const focusable = region.querySelectorAll<HTMLElement>('button:not(:disabled), input, select');
+    const last = focusable[focusable.length - 1];
+    last.focus();
+    expect(fireEvent.keyDown(last, { key: 'Tab' })).toBe(true);
+  });
+
   it('Back closes the page and returns to Home', async () => {
     const { page } = await openPage();
     expect(page.getByText('Station G2')).toBeInTheDocument();
     fireEvent.click(page.getByRole('button', { name: 'Back' }));
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Search Messages' })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Search Messages' })).toBeNull());
     expect(screen.getByRole('navigation', { name: 'Device tools' })).toBeInTheDocument();
   });
 
@@ -61,7 +73,7 @@ describe('10-16-search-messages', () => {
     fireEvent.change(page.getByRole('textbox', { name: 'Search for text in messages...' }), { target: { value: 'relay' } });
     fireEvent.click(page.getByRole('button', { name: 'Search' }));
     fireEvent.click(await page.findByRole('button', { name: /DM with Kifisia Rooftop/ }));
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Search Messages' })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Search Messages' })).toBeNull());
     expect(await screen.findByTestId('dm-header')).toBeInTheDocument();
   });
 

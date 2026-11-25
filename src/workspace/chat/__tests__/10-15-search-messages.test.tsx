@@ -126,9 +126,23 @@ describe('10-15-search-messages', () => {
     const { athensFixture: A } = await import('../../__fixtures__/athens');
     const poll = { ...A.poll, deviceConfig: { ...A.poll.deviceConfig, basic: { ...A.poll.deviceConfig!.basic, nodeId: undefined } }, config: { ...A.poll.config!, localNodeInfo: undefined } };
     const { d } = await search(`${g2}/channel/0`, { fixtures: { 'GET /api/poll': () => poll } });
-    const dm = d.getAllByRole('button').find((b) => /DM with/.test(b.textContent ?? ''))!;
+    // No peer to name: the chip says DMs and the sender is still shown, never "DM with " and nothing.
+    const dm = d.getAllByRole('button').find((b) => /^DMs/.test(within(b).queryByText('DMs')?.textContent ?? ''))!;
+    expect(dm).toHaveTextContent('Kifisia Rooftop (KFR)');
+    expect(d.queryByText(/^DM with\s*$/)).toBeNull();
     await waitFor(() => expect(dm).toBeDisabled());
     fireEvent.click(dm);
+    expect(screen.getByRole('dialog', { name: 'Search Messages' })).toBeInTheDocument();
+  });
+
+  it('with no poll at all, a DM result does not navigate', async () => {
+    renderChat(`${g2}/channel/0`, { fixtures: { 'GET /api/poll': () => new Response('{}', { status: 500 }) } });
+    fireEvent.click(await within(await sidebar()).findByRole('button', { name: /^Search Messages/ }));
+    const d = within(await dialog());
+    fireEvent.change(d.getByRole('textbox', { name: 'Search for text in messages...' }), { target: { value: 'relay' } });
+    fireEvent.click(d.getByRole('button', { name: 'Search' }));
+    await d.findByText('Showing 5 of 31 results');
+    fireEvent.click(d.getAllByRole('button').find((b) => within(b).queryByText('DMs'))!);
     expect(screen.getByRole('dialog', { name: 'Search Messages' })).toBeInTheDocument();
   });
 

@@ -96,6 +96,28 @@ describe('useActivity', () => {
     expect(api.hasMore).toBe(true);
   });
 
+  it('a refresh after Load more refetches only the first page', async () => {
+    socket.current = fakeSocket();
+    renderWorkspace(<Probe />, {
+      route: `/source/${G2}/activity`,
+      fixtures: pages({
+        '': { items: [item('a', 3000)], nextBefore: 2000 },
+        '2000': { items: [item('b', 1000)], nextBefore: 500 },
+        '500': { items: [item('c', 400)], nextBefore: null },
+      }),
+    });
+    await waitFor(() => expect(api.hasMore).toBe(true));
+    await act(() => api.fetchMore());
+    await waitFor(() => expect(api.items).toHaveLength(2));
+    const before = activityCalls().length;
+    act(() => socket.current!.emit('message:new', { sourceId: G2 }));
+    await waitFor(() => expect(activityCalls().length).toBeGreaterThan(before));
+    await new Promise((r) => setTimeout(r, 50));
+    // One request, for the first page: the second page is not refetched in turn.
+    expect(activityCalls().slice(before)).toHaveLength(1);
+    expect(activityCalls().slice(before)[0]).not.toContain('before=');
+  });
+
   it('counts items newer than the last-seen pref, and markSeen writes the newest timestamp', async () => {
     const prefs = prefsFixture({ [activityPrefKey(G2)]: 250 });
     renderWorkspace(<Probe />, {
@@ -134,7 +156,7 @@ describe('useActivity', () => {
   it('with no socket, refetches when the shell’s polled unread counts change, without polling them itself', async () => {
     renderWorkspace(<Probe />, { route: `/source/${G2}/activity`, fixtures: pages({ '': { items: [], nextBefore: null } }) });
     await waitFor(() => expect(activityCalls()).toHaveLength(1));
-    const key = ['unreadCounts', appBasename, G2, false];
+    const key = ['unreadCounts', appBasename, G2, true];
     // The shell's poll lands, then changes (TanStack notifies observers on a 0 ms timeout).
     const tick = () => new Promise((r) => setTimeout(r, 20));
     await act(async () => {

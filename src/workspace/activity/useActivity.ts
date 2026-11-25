@@ -17,7 +17,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { useToast } from '../../components/ToastContainer';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOptionalSocket } from '../../contexts/WebSocketContext';
@@ -63,6 +63,7 @@ export function useActivity(sourceId: string | null | undefined, { enabled = tru
     getNextPageParam: (last) => last.nextBefore,
   });
   const { data, refetch, fetchNextPage } = query;
+  const queryClient = useQueryClient();
   const items = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data]);
   const last = data?.pages[data.pages.length - 1];
   const hasMore = !!last && last.nextBefore !== null;
@@ -77,7 +78,13 @@ export function useActivity(sourceId: string | null | undefined, { enabled = tru
   }, [hasMore, fetchNextPage]);
 
   // A burst of messages shares one in-flight refetch.
-  const refresh = useCallback(() => void refetch({ cancelRefetch: false }), [refetch]);
+  // Trim to the first page first: a refetch of an infinite query re-walks every loaded page.
+  const refresh = useCallback(() => {
+    queryClient.setQueryData<InfiniteData<ActivityPage, number | null>>(['workspace', 'activity', sourceId], (d) =>
+      d && d.pages.length > 1 ? { pages: d.pages.slice(0, 1), pageParams: d.pageParams.slice(0, 1) } : d,
+    );
+    void refetch({ cancelRefetch: false });
+  }, [queryClient, sourceId, refetch]);
   const socket = useOptionalSocket();
   useEffect(() => {
     if (!socket || !on) return;
