@@ -142,6 +142,25 @@ describe('m2-rule', () => {
     expect(await screen.findByRole('button', { name: 'Reset homes from history' })).toBeEnabled();
   });
 
+  it('JSON mode Reset homes saves the edited JSON first, then resets', async () => {
+    const cfg = { ...JSON.parse(BRANCHED_RULE.config), nodes: [{ id: 't', type: 'trigger.leftHome', params: {} }], edges: [] };
+    renderRules('/automations/x2', { rules: [...RULES, { ...BRANCHED_RULE, id: 'x2', name: 'Home rule', config: JSON.stringify(cfg) }] });
+    const box = await screen.findByRole('textbox', { name: /JSON/ });
+    fireEvent.change(box, { target: { value: JSON.stringify({ ...cfg, ui: { zoom: 2 } }) } });
+    const button = await enabled('Reset homes from history');
+    fireEvent.click(button);
+    await waitFor(() => expect(nonGet().map((r) => `${r.method} ${r.path}`)).toEqual(['PUT /api/automations/x2', 'POST /api/automations/x2/reset-homes']));
+    expect((nonGet()[0].body as { config: { ui: unknown } }).config.ui).toEqual({ zoom: 2 });
+  });
+
+  it('JSON mode Reset homes is hidden while the JSON does not parse', async () => {
+    const cfg = { ...JSON.parse(BRANCHED_RULE.config), nodes: [{ id: 't', type: 'trigger.leftHome', params: {} }], edges: [] };
+    renderRules('/automations/x2', { rules: [...RULES, { ...BRANCHED_RULE, id: 'x2', name: 'Home rule', config: JSON.stringify(cfg) }] });
+    fireEvent.change(await screen.findByRole('textbox', { name: /JSON/ }), { target: { value: '{ nope' } });
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Reset homes from history' })).toBeNull());
+    expect(nonGet()).toEqual([]);
+  });
+
   it('JSON mode hides Reset homes when the trigger does not support it', async () => {
     renderRules('/automations/x1', { rules: [...RULES, BRANCHED_RULE] });
     expect(await screen.findByText(/This rule has a shape the steps do not draw/)).toBeInTheDocument();

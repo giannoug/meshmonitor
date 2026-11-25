@@ -256,6 +256,19 @@ function Rule({ rule, isNew }: { rule: Automation; isNew: boolean }) {
         setBaseline({ name, description });
         setConfigDirty(false);
         await queryClient.invalidateQueries({ queryKey: rulesQuery.queryKey });
+      } else {
+        // JSON mode saves first too (W12-a); an unparsable draft stops here.
+        let config: unknown;
+        try {
+          config = JSON.parse(json);
+        } catch {
+          setErrors([t('workspace.rules.json_invalid')]);
+          return;
+        }
+        await apiService.put(`/api/automations/${encodeURIComponent(rule.id)}`, { name, description, enabled: rule.enabled, config });
+        setBaseline({ name, description });
+        setConfigDirty(false);
+        await queryClient.invalidateQueries({ queryKey: rulesQuery.queryKey });
       }
       const res = await apiService.post<{ reset: number; seeded: number; results: Array<{ nodeNum: number; seeded: boolean }> }>(`/api/automations/${encodeURIComponent(rule.id)}/reset-homes`, {});
       const pending = (res.results ?? []).filter((r) => !r.seeded).map((r) => r.nodeNum);
