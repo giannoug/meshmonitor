@@ -2839,7 +2839,7 @@ Requester decisions: A1 (no code for JV) and B1 (one focus ring). Native executi
 - **F2 (dcb4e7e).** The phone device switcher draws one focus ring, on the square. The Activity device button's hit area is 44 px tall, up from 37 px.
 - **F3 (64da7a1, 1028d29).** After a keyboard delete in a thread, focus moves to the next message, or the previous one when the last is deleted. A mouse delete, a cancel or a failed delete moves nothing.
 - **F4 dropped.** See KE.
-- New e2e spec: `tests/workspace-e2e/followups.spec.ts` (6 tests: table fit, one ring, 44 px target, keyboard delete, mouse delete).
+- New e2e spec: `tests/workspace-e2e/followups.spec.ts` (9 tests: table fit at 1280 px in en/pl/es, one ring, the 44 px target and its header clearance, keyboard delete, mouse delete).
 
 ### Rulings
 
@@ -2847,12 +2847,12 @@ Requester decisions: A1 (no code for JV) and B1 (one focus ring). Native executi
   - Cost if wrong: a chip could count a reaction the viewer can't see. Counts only, never text or sender.
 - **JZ.** The 7-01 desktop table shows `-7.0` and `-101`. SNR keeps one decimal; the board's integers come from round fixture values. The phone cards keep "SNR -7.0 dB", because they are prose.
   - Cost if wrong: a reader of the table has to look at the header for the unit.
-- **KA.** The 8-15 overview tables take a `.feedTable` modifier: 13 px body, 11 px headers and 10 px inline padding. The plan named only the font size. At 13/11 px the observers table was still 540 px in a 533 px column, so the padding was cut by 2 px a side. The shared `.table` is unchanged; MeshCore Packets and Automation runs use it on other boards. The fit is sized for English. Longer pl and es headers still scroll sideways at 1280 px; nothing clips.
-  - Cost if wrong: cells 2 px tighter than the board, and a sideways scroll in some locales.
+- **KA.** The 8-15 overview tables take a `.feedTable` modifier: 13 px body, 11 px headers and 10 px inline padding. The plan named only the font size. At 13/11 px the observers table was still 540 px in a 533 px column, so the padding was cut by 2 px a side. The shared `.table` is unchanged; MeshCore Packets and Automation runs use it on other boards. Its cells may wrap (8a3398c), so the longer pl and es words fit at 1280 px. English fits unwrapped, so the board is unchanged.
+  - Cost if wrong: cells 2 px tighter than the board, and two-line headers in some locales.
 - **KB.** D1 draws one ring, on the 44 px square (B1). The name text has no ring of its own.
   - Cost if wrong: a keyboard user's eye has to go to the square, not the name.
-- **KC.** The Activity device button's `::before` is `inset: calc((100% - 44px) / 2) 0`: a 44 px box centred on the button, whatever its height. It covers part of the non-interactive "Activity" title above it.
-  - Cost if wrong: a tap on the lower edge of the title opens the device switcher.
+- **KC.** The Activity device button's `::before` is `inset: -16px 0 -11px` (8a3398c): 44 px tall, more above than below. The 17 px button sits low in the 64 px header, so a centred box ran 1.5 px past the header into the list. It covers part of the non-interactive "Activity" title above it.
+  - Cost if wrong: a tap on the lower edge of the title opens the device switcher; a taller button font moves the box's bottom edge below the header again.
 - **KD.** F3 moves focus only when the deleted row is gone after the confirm closes. Classic `deleteMessage` resolves on failure too, so whether the row is still there is the only success signal. The final review found that a mouse delete also moved focus, which showed the next message's action bar and signal line. The hand-off now needs the Delete control to be `:focus-visible` (1028d29). The mouse-path test is a Playwright test, because jsdom matches `:focus-visible` on any focus.
   - Cost if wrong: none found.
 - **KE.** F4 (`useCachedQueryData` subscribing once) is dropped. A stable `subscribe` re-renders sooner on cache events. That lets DmConversation's first-unread latch trip before the DM's message is processed, and `useMessagingView`'s effect #7 then posts mark-read twice on DM open (`o3-security` pins one). Stabilising `useProviderFirstUnread` as well didn't help. The root cause is the latch not waiting for the poll, which is out of this plan's scope.
@@ -2883,10 +2883,11 @@ Final review (opus, d9cf4b1..64da7a1): 0 Critical, 1 Important (KD's mouse path,
 
 - The JV items that need Classic edits: the O7 favourite gap, and S15's expired flag.
 - DmConversation's first-unread latch doesn't wait for the poll, so mark-read can post twice on DM open (KE).
-- Deferred minors from the final review:
-  - `keyRows()` queries the whole document. Two editable threads mounted together could cross-focus; none are today.
-  - A neighbour that is removed while the confirm is open leaves focus on `<body>`.
-  - The Activity e2e selector could match the shell switcher if that header ever shows on Activity.
-  - No check that the 44 px box stays clear of the first activity row.
-  - The 8-15 fit is sized for English (KA).
+- The final review's five minors are fixed in 8a3398c:
+  - The delete focus hand-off stays in the deleted row's thread (`deleteFocus.ts`).
+  - A neighbour that disappears while the confirm is open falls back to the row now in its place.
+  - The Activity e2e selector is scoped to the Activity header.
+  - An e2e check keeps the 44 px box inside that header (KC).
+  - The 8-15 tables fit in pl and es (KA).
+  - Verification for 8a3398c: the touched folders (chat, activity, meshcore: 449 passed), `tsc` client, `lint:ci` (in-repo filter), and the followups, 7-01, 8-15, 8-23 and c-home e2e boards (19 passed). The full Vitest and e2e runs are from 1028d29.
 
