@@ -280,27 +280,35 @@ describe('message actions on a channel (desktop hover bar)', () => {
     renderChat(channel);
     await screen.findByText(THEIRS_CH);
     const row = rowOf(THEIRS_CH);
-    const stops = Array.from(row.querySelectorAll<HTMLElement>('button, a[href]')).filter((e) => e.tabIndex === 0);
-    expect(stops).toHaveLength(1);
+    const stops = [row, ...Array.from(row.querySelectorAll<HTMLElement>('button, a[href]'))].filter((e) => e.tabIndex === 0);
+    expect(stops).toEqual([row]);
+    row.focus();
+    fireEvent.keyDown(row, { key: 'ArrowRight' });
     const names = ['Reply', 'React', 'Translate message', 'More actions'].map((n) => barOf(THEIRS_CH).getByRole('button', { name: n }));
-    names[0].focus();
+    expect(names[0]).toHaveFocus();
     for (const next of names.slice(1)) {
       fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' });
       expect(next).toHaveFocus();
     }
     fireEvent.keyDown(document.activeElement!, { key: 'ArrowLeft' });
     expect(names[2]).toHaveFocus();
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+    expect(row).toHaveFocus();
   });
 
-  it('the message text toggle is a button and toggles with Enter', async () => {
+  it('Enter on the row toggles it (not on repeat); links stay links, never inside a button', async () => {
     renderChat(channel);
     await screen.findByText(THEIRS_CH);
-    const toggle = screen.getByText(THEIRS_CH).closest('button') as HTMLElement;
-    expect(toggle).not.toBeNull();
-    expect(rowOf(THEIRS_CH)).not.toHaveAttribute('data-open');
-    // A button's Enter is a click in the browser; user-event is not in use here, so the click stands for it.
-    fireEvent.click(toggle);
-    expect(rowOf(THEIRS_CH)).toHaveAttribute('data-open');
+    const row = rowOf(THEIRS_CH);
+    expect(row.querySelector('button a')).toBeNull();
+    expect(row).not.toHaveAttribute('data-open');
+    fireEvent.keyDown(row, { key: 'Enter', repeat: true });
+    expect(row).not.toHaveAttribute('data-open');
+    fireEvent.keyDown(row, { key: 'Enter' });
+    expect(row).toHaveAttribute('data-open');
+    // A key on a button inside the row is not the row's.
+    fireEvent.keyDown(barOf(THEIRS_CH).getByRole('button', { name: 'Reply' }), { key: 'Enter' });
+    expect(row).toHaveAttribute('data-open');
   });
 
   it('React and Resend are disabled with the TX-disabled reason', async () => {

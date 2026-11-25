@@ -62,7 +62,7 @@ export default function MessageHoverBar({ message, items, onAction }: MessageHov
         more.current?.focus();
       } else if (bar.current?.contains(document.activeElement)) {
         // Back to the row's Tab stop.
-        const target = bar.current.closest('[data-message-id]')?.querySelector<HTMLElement>('[data-row-target]');
+        const target = bar.current.closest<HTMLElement>('[data-row-target]');
         if (target) {
           e.stopPropagation();
           target.focus();

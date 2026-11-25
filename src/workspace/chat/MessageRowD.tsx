@@ -21,7 +21,7 @@
  * `actionContext` and `translationActions` stable, and the per-render
  * reaction arrays compare by content.
  */
-import { memo, useEffect, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+import { memo, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MeshMessage } from '../../types/message';
 import type { DateFormat, TimeFormat } from '../../contexts/SettingsContext';
@@ -179,25 +179,9 @@ function MessageRowDImpl(props: MessageRowDProps) {
   }
 
   const text = (
-    <button
-      type="button"
-      className={styles.textToggle}
-      data-row-target=""
-      aria-expanded={open}
-      onClick={() => setOpen((o) => !o)}
-      onKeyDown={(e) => {
-        // The row's one Tab stop: ArrowRight steps into the hover bar (desktop).
-        if (e.key === 'ArrowRight' && !props.phone) {
-          const first = e.currentTarget.closest('[data-message-id]')?.querySelector<HTMLElement>('[data-bar-item]:not(:disabled)');
-          if (first) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
-      }}
-    >
-      <span className={styles.text}>{renderMessageWithLinks(msg.text, props.mentionOptions)}</span>
-    </button>
+    <div className={styles.text} onClick={() => setOpen((o) => !o)}>
+      {renderMessageWithLinks(msg.text, props.mentionOptions)}
+    </div>
   );
   const quote: ReactNode = msg.replyId ? (
     <div className={styles.quote}>
@@ -254,6 +238,28 @@ function MessageRowDImpl(props: MessageRowDProps) {
       <MessageHoverBar message={msg} items={items} onAction={onAction} />
     </div>
   );
+  // Desktop: the row is the one keyboard stop (links in the text stay links); the hover bar is entered with ArrowRight.
+  const rowProps = props.phone || props.readOnly
+    ? {}
+    : {
+        tabIndex: 0,
+        role: 'article',
+        'aria-label': `${mine ? t('workspace.chat.you') : senderName}: ${msg.text}`,
+        'data-row-target': '',
+        onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
+          if (e.target !== e.currentTarget) return;
+          if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) {
+            e.preventDefault();
+            setOpen((o) => !o);
+          } else if (e.key === 'ArrowRight') {
+            const first = e.currentTarget.querySelector<HTMLElement>('[data-bar-item]:not(:disabled)');
+            if (first) {
+              e.preventDefault();
+              first.focus();
+            }
+          }
+        },
+      };
   const avatar = (
     <span className={styles.avatar} style={{ background: avatarToken(msg.from) }} aria-hidden="true">
       {senderShort}
@@ -272,6 +278,7 @@ function MessageRowDImpl(props: MessageRowDProps) {
         data-open={open || undefined}
         data-phone={props.phone || undefined}
         data-message-id={msg.id}
+        {...rowProps}
         {...pressProps}
       >
         {style === 'rows' ? (
