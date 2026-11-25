@@ -102,7 +102,7 @@ export function useDeviceLayerGroups(p: DeviceLayerParams) {
   const [showLegend, setShowLegend] = useStoredFlag('meshmonitor-showLegend');
   const [showPacketMonitor, setShowPacketMonitor] = useStoredFlag('showPacketMonitor');
   const [tilesOpen, setTilesOpen] = useState(false);
-  const off3D = p.effective3D ? 'Not available in 3D' : undefined;
+  const off3D = p.effective3D ? t('workspace.map.not_in_3d') : undefined;
 
   const canViewPacketMonitor = hasPermission('packetmonitor', 'read');
   const { data: packetStats } = useQuery({

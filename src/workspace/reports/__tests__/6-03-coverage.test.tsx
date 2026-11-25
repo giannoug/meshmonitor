@@ -46,7 +46,7 @@ describe('6-03-coverage', () => {
   });
 
   it('/reports?report=coverage&… opens Coverage with the linked sender and range', async () => {
-    const receptions = vi.fn(() => ({ success: true, data: { items: [], pageSize: 1000, hasMore: false, nextCursor: null } }));
+    const receptions = vi.fn((_url: URL) => ({ success: true, data: { items: [], pageSize: 1000, hasMore: false, nextCursor: null } }));
     renderReports('/reports?report=coverage&sender=!a1b2c302&range=6h', { fixtures: { 'GET /api/analysis/coverage/receptions': receptions } });
     expect(await screen.findByRole('heading', { level: 1, name: 'Coverage Report' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '6 h' })).toHaveAttribute('aria-pressed', 'true');

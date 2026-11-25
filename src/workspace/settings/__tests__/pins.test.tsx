@@ -51,6 +51,15 @@ describe('pins', () => {
     await waitFor(() => expect(pinnedList()).toBeNull());
   });
 
+  it('a failed pin save shows the settings_save_failed toast', async () => {
+    const prefs = prefsFixture();
+    renderSettings(`${g2}/settings/node-display`, {
+      fixtures: { ...prefs.fixtures, 'PUT /api/user/preferences/:key': () => new Response('{}', { status: 500 }) },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Pin Node Display' }, { timeout: 5000 }));
+    expect(await screen.findByText('Failed to save settings')).toBeInTheDocument();
+  });
+
   it('the phone page bar carries the ☆ too', async () => {
     const prefs = prefsFixture({ 'settings.pins': ['lora'] });
     renderSettings(`${g2}/settings/node-display`, { phone: true, fixtures: prefs.fixtures });

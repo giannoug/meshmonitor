@@ -58,7 +58,7 @@ Every line tagged `FINAL REPORT ITEM` in the committed ledger, in ledger order u
 
 **Task 5.7 — Maintenance, Backup, Firmware, Danger zone**
 
-- Ruling: 5.7 ER — Firmware unrestyled (today's FirmwareUpdateSection inside the Workspace page) is provisionally accepted pending review — why: the brief's first constraint was "do not change what it downloads or flashes"; a redraw of a 1,500-line flash flow with half-flash recovery is a separate risk class — cost if wrong: 12-09/12-19 do not match the board until a dedicated restyle lands; FINAL REPORT ITEM if the review does not force it.
+- Ruling: 5.7 EW — Firmware is restyled to boards 12-09/12-19 (`settings/categories/FirmwareCategory.tsx`, segmented channel control, release cards, wizard in the shared docked Sheet) via a Rule X extraction of FirmwareUpdateSection's state into a hook; every flash step and safety rail is kept. This supersedes the earlier provisional 5.7 ER ("unrestyled").
 
 **Task 5.9 — remote target in settings**
 

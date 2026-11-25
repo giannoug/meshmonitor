@@ -448,7 +448,7 @@ export default function MeshCoreNodesTable({ feed = false }: MeshCoreNodesTableP
             {discover}
           </div>
           <div className={nodesStyles.listHead}>
-            <span className={nodesStyles.count}>{t('workspace.nodes.count', { count: flat.length })}{age}</span>
+            <span className={nodesStyles.count}>{t('workspace.nodes.count', { count: flat.length })}{!feed && age}</span>
           </div>
           <div className={styles.headTools} data-phone="">
             {sort}

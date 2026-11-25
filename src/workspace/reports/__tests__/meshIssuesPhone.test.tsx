@@ -48,7 +48,7 @@ describe('phone Mesh Issues findings', () => {
   });
 
   it('Dismiss sends today’s dismiss for that finding and closes the sheet', async () => {
-    const dismiss = vi.fn(() => ({ success: true }));
+    const dismiss = vi.fn((_url: URL) => ({ success: true }));
     renderReports(ROUTE, { phone: true, meshIssuesView: VIEW, fixtures: { 'POST /api/analysis/mesh-issues/:id/dismiss': dismiss } });
     fireEvent.click(within(await openCluster()).getByRole('button', { name: 'Dismiss' }));
     await waitFor(() => expect(dismiss).toHaveBeenCalledTimes(1));

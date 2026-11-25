@@ -52,6 +52,15 @@ describe('8-07-repeater-settings', () => {
     expectBoard('8-07-repeater-settings', container);
   });
 
+  it('SettingValue: a value within the setting\'s tolerance (1 vs 1.0004) is not marked changed; a real change is', async () => {
+    renderMeshCore(route, { meshcore: { adminSession: true } });
+    await readAll();
+    await edit('Airtime factor', '1.0004');
+    expect(screen.getByRole('button', { name: 'Airtime factor' })).not.toHaveAttribute('data-changed');
+    await edit('Airtime factor', '1.5');
+    expect(screen.getByRole('button', { name: 'Airtime factor' })).toHaveAttribute('data-changed');
+  });
+
   it('logged out, Settings shows the login and today\'s words, and reads nothing', async () => {
     const { log } = renderMeshCore(route);
     expect(await screen.findByText('Log in as admin first. Settings never log in on their own.')).toBeInTheDocument();

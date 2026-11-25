@@ -262,8 +262,8 @@ function AllDevicesMap({ landing, colourKey, ...dashboard }: AllDevicesMapProps)
       className={styles.fit}
       onClick={() => setFitRequest((n) => n + 1)}
       disabled={analysisNodes.length === 0}
-      title={analysisNodes.length === 0 ? 'No positioned nodes to zoom to' : `Zoom to fit all ${analysisNodes.length} positioned nodes`}
-      aria-label="Zoom to fit all nodes"
+      title={analysisNodes.length === 0 ? t('workspace.overview.zoom_fit_none') : t('workspace.overview.zoom_fit_count', { count: analysisNodes.length })}
+      aria-label={t('workspace.map.fit_all')}
     >
       <UiIcon name="fitBounds" size={18} />
     </button>

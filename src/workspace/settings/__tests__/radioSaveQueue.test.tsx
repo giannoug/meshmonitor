@@ -16,7 +16,7 @@ import { saveLabel, useRadioSaveQueueState, type SaveResult } from '../useRadioS
 import { QUEUED_FIELDS, fieldLabel, formatValue, isQueued, setterOf } from '../radioSections';
 import en from '../../../../public/locales/en.json';
 
-const t = ((key: string, fallback?: unknown) => (en as Record<string, string>)[key] ?? fallback ?? key) as unknown as TFunction;
+const t = ((key: string, fallback?: unknown) => (en as unknown as Record<string, string>)[key] ?? fallback ?? key) as unknown as TFunction;
 
 describe('saveLabel', () => {
   it('LoRa on firmware 2.7.15 → Save & restart', () => {
@@ -159,7 +159,7 @@ describe('useRadioSaveQueueState', () => {
     const { result } = renderHook(() => useFakeConfig(saves));
     act(() => result.current.state.setLoading(false));
     act(() => result.current.state.setHopLimit(4));
-    let pending: Promise<SaveResult> = Promise.resolve({ ok: [], failed: [] });
+    let pending: Promise<SaveResult> = Promise.resolve({ ok: [], failed: [], cancelled: [] });
     act(() => {
       pending = result.current.queue.saveAll();
     });

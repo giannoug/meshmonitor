@@ -34,7 +34,7 @@ function renderShell(route: string) {
   );
 }
 
-const hashEvents = (spy: ReturnType<typeof vi.spyOn>) => spy.mock.calls.filter(([e]) => (e as Event).type === 'hashchange');
+const hashEvents = (spy: ReturnType<typeof vi.spyOn>) => spy.mock.calls.filter(([e]: unknown[]) => (e as Event).type === 'hashchange');
 
 describe('hashchange bridge', () => {
   it('Back fires one hashchange', async () => {

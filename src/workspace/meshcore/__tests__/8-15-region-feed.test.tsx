@@ -102,6 +102,12 @@ describe('8-15-mqtt-region-feed', () => {
     expect(screen.queryByRole('link', { name: 'Glyfada Beach' })).toBeNull();
   });
 
+  it('the phone feed Nodes toolbar has no quick-age chip (the feed skips the age filter)', async () => {
+    renderMeshCore(`${FEED}/nodes`, { phone: true, fixtures: regionFeedFixtures() });
+    await screen.findByText('Lycabettus Repeater');
+    expect(screen.queryByTestId('node-age-window')).toBeNull();
+  });
+
   it('the Nodes tab count equals its rows, with an old node present', async () => {
     const old = { publicKey: 'ff'.repeat(32), name: 'Ancient Repeater', advType: 2, lastHeard: Date.now() - 90 * 24 * 3_600_000 };
     const fixtures = { ...regionFeedFixtures(), [`GET /api/sources/:id/meshcore/ingest/nodes`]: () => ({ success: true, data: { nodes: [...regionFeedNodes, old] } }) };

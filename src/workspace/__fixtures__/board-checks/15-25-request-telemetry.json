@@ -8,5 +8,5 @@
     "Sends 1 telemetry request"
   ],
   "absent": [],
-  "source": "checks/s15.json"
+  "source": "written"
 }

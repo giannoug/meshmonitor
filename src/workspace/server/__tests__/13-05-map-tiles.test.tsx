@@ -26,7 +26,7 @@ const PATH = '/server/map';
 function captureMaps() {
   const maps: L.Map[] = [];
   const init = L.Map.prototype.initialize;
-  vi.spyOn(L.Map.prototype, 'initialize').mockImplementation(function (this: L.Map, ...args: Parameters<typeof init>) {
+  vi.spyOn(L.Map.prototype as unknown as { initialize: typeof init }, 'initialize').mockImplementation(function (this: L.Map, ...args: Parameters<typeof init>) {
     maps.push(this);
     return init.apply(this, args);
   });

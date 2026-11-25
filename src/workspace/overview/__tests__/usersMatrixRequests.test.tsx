@@ -46,7 +46,7 @@ async function classicSends(scope: string, change: () => void, save = 'Save Perm
 const rowOf = (label: string) => screen.getAllByText(label, { exact: true }).map((el) => el.closest<HTMLElement>('.permission-item')).find(Boolean)!;
 const tick = (row: string, box: string) => fireEvent.click(within(rowOf(row)).getByLabelText(box));
 
-async function workspaceSends(act: () => Promise<void>): Promise<Sent[]> {
+async function workspaceSends(act: () => Promise<unknown>): Promise<Sent[]> {
   renderUsers('/overview/users');
   await openUser('nikos');
   fireEvent.click(await screen.findByRole('tab', { name: 'Permissions' }));

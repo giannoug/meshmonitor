@@ -16,7 +16,7 @@ import { AUTO, nonGet, renderAutomations, requests, settle, writes } from './ren
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('../../meshcore/__tests__/mocks')).wsMock(orig));
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
 
-const enabled = async (name: string | RegExp, within_: HTMLElement | typeof screen = screen) => {
+const enabled = async (name: string | RegExp, within_: Pick<typeof screen, 'findByRole'> = screen) => {
   const button = await within_.findByRole('button', { name });
   await waitFor(() => expect(button).toBeEnabled());
   return button;

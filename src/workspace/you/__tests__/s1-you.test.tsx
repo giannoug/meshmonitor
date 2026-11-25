@@ -92,7 +92,7 @@ describe('s1-you', () => {
     const location = window.location;
     const reload = vi.fn();
     Object.defineProperty(window, 'location', { value: { ...location, reload }, writable: true });
-    onTestFinished(() => Object.defineProperty(window, 'location', { value: location, writable: true }));
+    onTestFinished(() => { Object.defineProperty(window, 'location', { value: location, writable: true }); });
     renderYou({ fixtures: { 'POST /api/auth/logout': () => { loggedOut = true; return { success: true }; } } });
     fireEvent.click(await screen.findByRole('button', { name: /^Logout/ }));
     await waitFor(() => expect(reload).toHaveBeenCalled());
@@ -102,7 +102,7 @@ describe('s1-you', () => {
   it('a double click on Logout sends one request', async () => {
     const location = window.location;
     Object.defineProperty(window, 'location', { value: { ...location, reload: vi.fn() }, writable: true });
-    onTestFinished(() => Object.defineProperty(window, 'location', { value: location, writable: true }));
+    onTestFinished(() => { Object.defineProperty(window, 'location', { value: location, writable: true }); });
     let calls = 0;
     renderYou({ fixtures: { 'POST /api/auth/logout': () => { calls += 1; return { success: true }; } } });
     const row = await screen.findByRole('button', { name: /^Logout/ });
@@ -117,7 +117,7 @@ describe('s1-you', () => {
   it('Logout is aria-disabled while signing out', async () => {
     const location = window.location;
     Object.defineProperty(window, 'location', { value: { ...location, reload: vi.fn() }, writable: true });
-    onTestFinished(() => Object.defineProperty(window, 'location', { value: location, writable: true }));
+    onTestFinished(() => { Object.defineProperty(window, 'location', { value: location, writable: true }); });
     let release!: () => void;
     const held = new Promise<void>((r) => (release = r));
     renderYou({ fixtures: { 'POST /api/auth/logout': async () => { await held; return { success: true }; } } });

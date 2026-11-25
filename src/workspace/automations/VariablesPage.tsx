@@ -70,7 +70,7 @@ export default function VariablesPage({ canWrite, rules }: { canWrite: boolean; 
       setFlagDuration('');
       await reload();
     } catch (e) {
-      setError(e instanceof Error && e.message ? e.message : 'Create failed');
+      setError(e instanceof Error && e.message ? e.message : t('workspace.automations.var.create_failed'));
     } finally {
       setBusy(false);
     }

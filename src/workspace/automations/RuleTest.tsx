@@ -6,6 +6,7 @@
  * and lists what matched and what it would send. One request per press.
  */
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useQuery } from '@tanstack/react-query';
 import apiService from '../../services/api';
 import { UiIcon } from '../../components/icons';
@@ -25,37 +26,37 @@ import own from './Rules.module.css';
 type F = { key: string; label: string; type?: 'number' | 'check'; options?: Array<{ value: string; label: string }>; fact?: boolean };
 
 /** Today's event inputs per trigger kind (AutomationTester's renderEventInputs), in its order. */
-function eventFields(kind: string, ev: EventState): F[] {
+function eventFields(t: TFunction, kind: string, ev: EventState): F[] {
   const n = (key: string, label: string): F => ({ key, label, type: 'number' });
   switch (kind) {
     case 'message':
-      return [{ key: 'text', label: 'Message text' }, n('from', 'From node #'), n('channel', 'Channel #'), { key: 'channelName', label: 'Channel name' },
-        n('hopStart', 'Hop start'), n('hopLimit', 'Hop limit'), n('snr', 'SNR'), n('rssi', 'RSSI'), { key: 'viaMqtt', label: 'Via MQTT', type: 'check' }];
+      return [{ key: 'text', label: t('workspace.automations.test.message_text') }, n('from', t('workspace.automations.test.from_node')), n('channel', t('workspace.automations.test.channel')), { key: 'channelName', label: t('workspace.automations.test.channel_name') },
+        n('hopStart', t('workspace.automations.test.hop_start')), n('hopLimit', t('workspace.automations.test.hop_limit')), n('snr', t('node_popup.snr')), n('rssi', t('packet_monitor.column.rssi')), { key: 'viaMqtt', label: t('node_details.via_mqtt'), type: 'check' }];
     case 'telemetry':
-      return [n('nodeNum', 'Node #'), { key: 'telemetryType', label: 'Metric', options: TELEMETRY_METRIC_OPTIONS }, n('value', 'Value')];
+      return [n('nodeNum', t('workspace.automations.test.node')), { key: 'telemetryType', label: t('telemetry_outliers.metric_label'), options: TELEMETRY_METRIC_OPTIONS }, n('value', t('common.value'))];
     case 'meshBeacon':
-      return [n('nodeNum', 'Node #'), { key: 'message', label: 'Beacon text' }, { key: 'offerChannelName', label: 'Offered channel name' }, n('offerRegion', 'Offered region code'), n('offerPreset', 'Offered modem preset')];
+      return [n('nodeNum', t('workspace.automations.test.node')), { key: 'message', label: t('workspace.automations.test.beacon_text') }, { key: 'offerChannelName', label: t('workspace.automations.test.offered_channel_name') }, n('offerRegion', t('workspace.automations.test.offered_region_code')), n('offerPreset', t('workspace.automations.test.offered_modem_preset'))];
     case 'nodeUpdated':
     case 'nodeDiscovered':
-      return [n('nodeNum', 'Node #'), { key: 'changed', label: 'Changed fields (csv)' }, { key: 'publicKey', label: 'MeshCore public key' },
-        ...(ev.publicKey ? [{ key: 'name', label: 'Name' }, { key: 'advType', label: 'Role', options: MESHCORE_ROLE_OPTIONS }, n('hops', 'Advert hops'), n('routeHops', 'Stored route hops'), n('lastHeard', 'Last heard (epoch ms; sets ageMinutes)')] : [])];
+      return [n('nodeNum', t('workspace.automations.test.node')), { key: 'changed', label: t('workspace.automations.test.changed_fields_csv') }, { key: 'publicKey', label: t('workspace.automations.test.meshcore_public_key') },
+        ...(ev.publicKey ? [{ key: 'name', label: t('common.name') }, { key: 'advType', label: t('workspace.automations.test.role'), options: MESHCORE_ROLE_OPTIONS }, n('hops', t('workspace.automations.test.advert_hops')), n('routeHops', t('workspace.automations.test.stored_route_hops')), n('lastHeard', t('workspace.automations.test.last_heard_epoch_ms_sets_ageminutes'))] : [])];
     case 'system':
-      return [{ key: 'event', label: 'Event', options: SYSTEM_EVENT_OPTIONS }, { key: 'latestVersion', label: 'Latest version' }, { key: 'currentVersion', label: 'Current version' }];
+      return [{ key: 'event', label: t('workspace.automations.test.event'), options: SYSTEM_EVENT_OPTIONS }, { key: 'latestVersion', label: t('workspace.automations.test.latest_version') }, { key: 'currentVersion', label: t('workspace.automations.test.current_version') }];
     case 'geofence':
     case 'becameMobile':
-      return [n('nodeNum', 'Node #')];
+      return [n('nodeNum', t('workspace.automations.test.node'))];
     case 'leftHome':
-      return [n('nodeNum', 'Node #'), n('homeLat', 'Home lat'), n('homeLon', 'Home lon'), { ...n('latitude', 'Current lat'), fact: true }, { ...n('longitude', 'Current lon'), fact: true }, n('distanceMeters', 'Distance from home (m)')];
+      return [n('nodeNum', t('workspace.automations.test.node')), n('homeLat', t('workspace.automations.test.home_lat')), n('homeLon', t('workspace.automations.test.home_lon')), { ...n('latitude', t('workspace.automations.test.current_lat')), fact: true }, { ...n('longitude', t('workspace.automations.test.current_lon')), fact: true }, n('distanceMeters', t('workspace.automations.test.distance_from_home_m'))];
     default:
       return [];
   }
 }
 
-const FACTS: F[] = [
-  ['batteryLevel', 'Battery %'], ['voltage', 'Voltage'], ['hopsAway', 'Hops away'], ['role', 'Role (#)'], ['channelUtilization', 'Channel util %'],
-  ['airUtilTx', 'Air util TX %'], ['snr', 'SNR (node)'], ['altitude', 'Altitude'], ['longName', 'Long name'], ['shortName', 'Short name'],
-  ['hwModel', 'HW model (#)'], ['latitude', 'Latitude'], ['longitude', 'Longitude'],
-].map(([key, label]) => ({ key, label, type: ['longName', 'shortName'].includes(key) ? undefined : 'number' }) as F);
+const factFields = (t: TFunction): F[] => [
+  ['batteryLevel', t('workspace.automations.test.battery')], ['voltage', t('nodes.voltage')], ['hopsAway', t('workspace.automations.test.hops_away')], ['role', t('workspace.automations.test.role')], ['channelUtilization', t('workspace.automations.test.channel_util')],
+  ['airUtilTx', t('workspace.automations.test.air_util_tx')], ['snr', t('workspace.automations.test.snr_node')], ['altitude', t('workspace.automations.test.altitude')], ['longName', t('workspace.automations.test.long_name')], ['shortName', t('workspace.automations.test.short_name')],
+  ['hwModel', t('workspace.automations.test.hw_model')], ['latitude', t('position_config.latitude')], ['longitude', t('position_config.longitude')],
+].map(([key, label]) => ({ key, label, type: ['longName', t('workspace.automations.test.shortname')].includes(key) ? undefined : 'number' }) as F);
 
 export interface RuleTestProps {
   /** The draft compiled to a graph, or why it cannot be. */
@@ -74,7 +75,7 @@ export default function RuleTest({ getConfig, draft, onTokens }: RuleTestProps) 
   const kind = KIND_BY_TRIGGER[cfg.triggerType ?? ''] ?? 'message';
   const { ev, setEv, facts, setFacts, overrides, setOverrides, samples, setSamples, more, setMore, advanced, setAdvanced, result, setResult, error, setError, running, setRunning } = draft;
   const outputs = namedStepOutputs(cfg.config);
-  const fields = eventFields(kind, ev);
+  const fields = eventFields(t, kind, ev);
   const [first, ...rest] = fields;
 
   const run = async () => {
@@ -82,7 +83,7 @@ export default function RuleTest({ getConfig, draft, onTokens }: RuleTestProps) 
     setError(null);
     setResult(null);
     if (!cfg.ok || !cfg.config) {
-      setError(cfg.error ?? 'Fix the workflow before testing.');
+      setError(cfg.error ?? t('workspace.automations.test.fix_first'));
       return;
     }
     setRunning(true);
@@ -93,7 +94,7 @@ export default function RuleTest({ getConfig, draft, onTokens }: RuleTestProps) 
       }));
     } catch (e) {
       const details = (e as { details?: unknown })?.details;
-      setError(details ? JSON.stringify(details) : e instanceof Error && e.message ? e.message : 'Test failed');
+      setError(details ? JSON.stringify(details) : e instanceof Error && e.message ? e.message : t('workspace.automations.test.failed'));
     } finally {
       setRunning(false);
     }
@@ -168,7 +169,7 @@ export default function RuleTest({ getConfig, draft, onTokens }: RuleTestProps) 
       </button>
       {advanced && (
         <div className={own.testGrid}>
-          {FACTS.map((f) => input(f, facts[f.key], (v) => setFacts((s) => ({ ...s, [f.key]: v }))))}
+          {factFields(t).map((f) => input(f, facts[f.key], (v) => setFacts((s) => ({ ...s, [f.key]: v }))))}
           {vars.map((v) => input({ key: `var-${v.name}`, label: `${v.name} (${v.type})` }, overrides[v.name], (x) => setOverrides((s) => ({ ...s, [v.name]: x }))))}
         </div>
       )}

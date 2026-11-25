@@ -54,7 +54,7 @@ function ToolsBody({ title, onClose, tools, initialSection }: Omit<PhoneToolsShe
         <ul className={styles.card}>
           <li className={styles.item}>
             <label className={styles.row}>
-              <span className={styles.label}>Time Slider</span>
+              <span className={styles.label}>{t('workspace.overview.time_slider')}</span>
               <input
                 type="checkbox"
                 role="switch"

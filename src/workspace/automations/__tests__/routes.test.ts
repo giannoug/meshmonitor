@@ -15,6 +15,6 @@ describe('automation routes', () => {
   });
 
   it('the built-in ids are exactly today\'s Automation tab anchors', () => {
-    expect([...BUILTIN_IDS].sort()).toEqual(automationNavItems((k: string) => k).map((i) => i.id).sort());
+    expect([...BUILTIN_IDS].sort()).toEqual(automationNavItems(((k: string) => k) as unknown as Parameters<typeof automationNavItems>[0]).map((i) => i.id).sort());
   });
 });

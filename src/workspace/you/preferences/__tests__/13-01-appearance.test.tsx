@@ -56,6 +56,13 @@ describe('13-01-appearance', () => {
     expect(within(screen.getByText('Athens Night', { selector: 'span' }).closest('div')!).getByRole('button', { name: 'Dark Active' })).toBeDisabled();
   });
 
+  it('Apply as Light shows the applied theme in the Light Theme row', async () => {
+    appearance();
+    const row = (await screen.findByText('Mesh green', { selector: 'span' })).closest('div')!;
+    fireEvent.click(within(row).getByRole('button', { name: 'Apply as Light' }));
+    await waitFor(() => expect(screen.getByLabelText('Light Theme')).toHaveDisplayValue('Mesh green'));
+  });
+
   it('phone: a select opens the bottom sheet of its options (b-set-p3), and tap targets carry data-phone', async () => {
     appearance({ phone: true });
     await screen.findByText('Official Pin Color');

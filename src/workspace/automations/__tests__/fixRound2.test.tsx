@@ -17,7 +17,7 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('../
 vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/pageStub')).pageStub('app') }));
 
 const RESPONDER = `${AUTO}/auto-responder`;
-const enabled = async (name: string | RegExp, scope: HTMLElement | typeof screen = screen) => {
+const enabled = async (name: string | RegExp, scope: Pick<typeof screen, 'findByRole'> = screen) => {
   const button = await scope.findByRole('button', { name });
   await waitFor(() => expect(button).toBeEnabled());
   return button;
