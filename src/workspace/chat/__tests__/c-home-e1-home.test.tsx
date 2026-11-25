@@ -65,7 +65,7 @@ describe('c-home-e1-home', () => {
   it('shows the other devices as quick squares, with their DM unread', async () => {
     await home();
     const header = within(screen.getByRole('banner'));
-    expect(header.getByRole('link', { name: 'Heltec MeshCore, 2 unread' })).toHaveAttribute('href', `/source/${SOURCE_IDS.heltec}`);
+    expect(await header.findByRole('link', { name: 'Heltec MeshCore, 2 unread' })).toHaveAttribute('href', `/source/${SOURCE_IDS.heltec}`);
     expect(header.getByRole('link', { name: 'Rooftop RAK' })).toHaveAttribute('href', `/source/${SOURCE_IDS.rak}`);
     // Two at most; the switcher holds the rest.
     expect(header.queryByRole('link', { name: /Reticulum node/ })).toBeNull();

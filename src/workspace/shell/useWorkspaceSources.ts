@@ -48,8 +48,9 @@ function statusOf(source: DashboardSource, live: SourceStatus | null, failed: bo
 }
 
 /** The viewer's `unreadIndicatorEnabled` (Classic's map preference): true until it says otherwise. */
-function useUnreadIndicatorEnabled(): boolean {
-  return useShellMapPreferences().data?.unreadIndicatorEnabled !== false;
+function useUnreadIndicatorEnabled(): { on: boolean; settled: boolean } {
+  const { data, isPending } = useShellMapPreferences();
+  return { on: data?.unreadIndicatorEnabled !== false, settled: !isPending };
 }
 
 export function useWorkspaceSources(): { sources: WorkspaceSource[]; isLoading: boolean; openId: string | null } {
@@ -66,11 +67,11 @@ export function useWorkspaceSources(): { sources: WorkspaceSource[]; isLoading: 
   const statuses = useSourceStatuses(readable.map((s) => s.id));
   const failed = useFailedSourceStatuses(readable.map((s) => s.id));
   const signedIn = authStatus?.authenticated === true;
-  const badges = useUnreadIndicatorEnabled();
-  const { data: dms } = useUnreadBySource({ baseUrl: appBasename, enabled: signedIn && badges });
+  const { on: badges, settled: prefsSettled } = useUnreadIndicatorEnabled();
+  const { data: dms } = useUnreadBySource({ baseUrl: appBasename, enabled: signedIn && badges && prefsSettled });
   const openReadable = readable.some((s) => s.id === openId);
   const showMqtt = useShowMqttMessages(openId);
-  const { data: openCounts } = useUnreadCounts({ baseUrl: appBasename, sourceId: openId, excludeMqtt: !showMqtt, enabled: signedIn && openReadable && badges });
+  const { data: openCounts } = useUnreadCounts({ baseUrl: appBasename, sourceId: openId, excludeMqtt: !showMqtt, enabled: signedIn && openReadable });
 
   const sources = useMemo(() => {
     const ordered = [...readable.filter((s) => s.enabled), ...readable.filter((s) => !s.enabled)];

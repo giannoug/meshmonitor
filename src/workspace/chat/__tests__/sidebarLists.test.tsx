@@ -7,7 +7,7 @@
  */
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi, onTestFinished } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { athensFixture, SOURCE_IDS } from '../../__fixtures__/athens';
 import { renderChat } from './renderChat';
 
@@ -19,6 +19,26 @@ vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/p
 
 const g2 = `/source/${SOURCE_IDS.g2}`;
 const sidebar = () => screen.findByRole('complementary', { name: 'Station G2' });
+
+describe('the unread indicator preference', () => {
+  it("off: the device's own channel counts still show and the rail shows no badge", async () => {
+    // Open the device once the preference is known, so its counts cannot have started before the preference landed.
+    renderChat('/overview', { fixtures: { 'GET /api/user/map-preferences': () => ({ preferences: { unreadIndicatorEnabled: false } }) } });
+    const rail = within(await screen.findByRole('navigation', { name: 'Devices' }));
+    const link = await rail.findByRole('link', { name: 'Station G2' });
+    await waitFor(() =>
+      expect(vi.mocked(globalThis.fetch).mock.calls.some(([u]) => String(u).includes('map-preferences'))).toBe(true),
+    );
+    await new Promise((r) => setTimeout(r, 50));
+    fireEvent.click(link);
+    await sidebar();
+    // The open device's counts (channel list, DM inbox, Activity) are fetched although the rail shows no badge.
+    await waitFor(() =>
+      expect(vi.mocked(globalThis.fetch).mock.calls.some(([u]) => String(u).includes('/api/messages/unread-counts'))).toBe(true),
+    );
+    expect(rail.queryByRole('link', { name: /unread/ })).toBeNull();
+  });
+});
 
 describe('Direct messages in the sidebar', () => {
   it('lists conversations from the poll, with unread, each linking to its DM', async () => {

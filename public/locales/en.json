@@ -8721,7 +8721,6 @@
   "workspace.tools.dashboard_line": "Mesh health and your board",
   "workspace.tools.overview_line": "Analysis, Reports, Users, Audit log",
   "workspace.tools.copy_failed": "Could not copy to the clipboard",
-  "workspace.patterns.copy_failed": "Could not copy to the clipboard",
   "workspace.info.subtitle": "{{device}} · what MeshMonitor knows about this connection and its radio",
   "workspace.info.phone_hint": "{{device}} · tap a group for all of it",
   "workspace.info.group_connection": "Connection",

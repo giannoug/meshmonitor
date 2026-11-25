@@ -82,6 +82,16 @@ describe('10-03-channel-menu', () => {
     expect(sheet.getByText('AQ==')).toBeInTheDocument();
   });
 
+  it('Escape on a sheet opened from the menu returns focus to the ⋯ trigger', async () => {
+    const menu = await openMenu();
+    const trigger = screen.getByRole('button', { name: 'Channel options' });
+    fireEvent.click(within(menu).getByRole('menuitem', { name: /Channel Information/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Channel Information' });
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Channel Information' })).toBeNull());
+    expect(trigger).toHaveFocus();
+  });
+
   it('ArrowDown/ArrowUp move focus between items; Home/End jump; a repeated Enter keydown is ignored', async () => {
     const menu = await openMenu();
     const items = Array.from(menu.querySelectorAll<HTMLElement>('button:not(:disabled)'));

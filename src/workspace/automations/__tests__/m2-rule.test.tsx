@@ -153,6 +153,20 @@ describe('m2-rule', () => {
     expect((nonGet()[0].body as { config: { ui: unknown } }).config.ui).toEqual({ zoom: 2 });
   });
 
+  it('JSON mode Reset homes ignores a stale invalid steps number', async () => {
+    const cfg = { version: 1, nodes: [{ id: 't', type: 'trigger.leftHome', params: { cooldownSeconds: 60 } }, { id: 'a', type: 'action.notify', params: { title: 'Left', body: 'x' } }], edges: [{ from: 't', to: 'a' }] };
+    renderRules('/automations/x3', { rules: [...RULES, { ...BRANCHED_RULE, id: 'x3', name: 'Home steps', config: JSON.stringify(cfg) }] });
+    fireEvent.click(await screen.findByRole('button', { name: /^WHEN:/ }));
+    const input = (await screen.findAllByRole('spinbutton')).find((i) => (i as HTMLInputElement).value === '60')!;
+    Object.defineProperty(input, 'validity', { configurable: true, value: { badInput: true } });
+    fireEvent.change(input, { target: { value: '' } });
+    await waitFor(() => expect(input).toHaveAttribute('aria-invalid', 'true'));
+    fireEvent.click(screen.getByRole('button', { name: 'More for Home steps' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit as JSON' }));
+    fireEvent.click(await enabled('Reset homes from history'));
+    await waitFor(() => expect(nonGet().map((r) => `${r.method} ${r.path}`)).toEqual(['PUT /api/automations/x3', 'POST /api/automations/x3/reset-homes']));
+  });
+
   it('JSON mode Reset homes is hidden while the JSON does not parse', async () => {
     const cfg = { ...JSON.parse(BRANCHED_RULE.config), nodes: [{ id: 't', type: 'trigger.leftHome', params: {} }], edges: [] };
     renderRules('/automations/x2', { rules: [...RULES, { ...BRANCHED_RULE, id: 'x2', name: 'Home rule', config: JSON.stringify(cfg) }] });

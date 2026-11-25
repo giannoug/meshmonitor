@@ -242,7 +242,7 @@ function Rule({ rule, isNew }: { rule: Automation; isNew: boolean }) {
 
   /** Today's Reset homes from history: saves the steps first, then re-seeds (local; sends nothing on the mesh). */
   const resetHomes = async () => {
-    if (homesBusy || numbers.invalid) return;
+    if (homesBusy || (mode === 'steps' && numbers.invalid)) return;
     setHomesBusy(true);
     setHomesMsg(null);
     try {

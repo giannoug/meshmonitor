@@ -2,7 +2,9 @@
  * Readers of queries something else already polls, so a list or a screen adds
  * no polling observer of its own (TanStack runs one refetch timer per observer).
  */
-import { skipToken, useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSyncExternalStore } from 'react';
+import { useCachedQueryData } from '../dashboard/useCachedQueryData';
 import { useAuth } from '../../contexts/AuthContext';
 import { readLocalShowMqttMessages } from '../../contexts/showMqttMessagesPreference';
 import apiService from '../../services/api';
@@ -38,10 +40,17 @@ export function useShowMqttMessages(sourceId: string | null | undefined): boolea
 /** The open device's unread counts: the key `useWorkspaceSources` polls with useUnreadCounts. */
 export function useOpenDeviceUnread(sourceId: string | null | undefined) {
   const excludeMqtt = !useShowMqttMessages(sourceId);
-  return useQuery<UnreadCountsData>({ queryKey: ['unreadCounts', appBasename, sourceId ?? null, excludeMqtt], queryFn: skipToken });
+  return { data: useCachedQueryData<UnreadCountsData>(['unreadCounts', appBasename, sourceId ?? null, excludeMqtt]) };
 }
 
-/** The conversation's first-unread anchors: the key its MessagingProvider polls with useFirstUnread. */
+/** The conversation's first-unread anchors: the key its MessagingProvider polls with useFirstUnread. `isPending` is true until that fetch has settled (data or error). */
 export function useProviderFirstUnread(sourceId: string | null | undefined, showMqttMessages: boolean) {
-  return useQuery<FirstUnreadData>({ queryKey: ['firstUnread', appBasename, sourceId ?? null, !showMqttMessages], queryFn: skipToken });
+  const queryKey = ['firstUnread', appBasename, sourceId ?? null, !showMqttMessages];
+  const queryClient = useQueryClient();
+  const data = useCachedQueryData<FirstUnreadData>(queryKey);
+  const status = useSyncExternalStore(
+    (cb) => queryClient.getQueryCache().subscribe(cb),
+    () => queryClient.getQueryState(queryKey)?.status,
+  );
+  return { data, isPending: status === undefined || status === 'pending' };
 }

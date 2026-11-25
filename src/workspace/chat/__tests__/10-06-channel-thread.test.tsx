@@ -30,6 +30,13 @@ describe('10-06-channel-thread', () => {
     expect(screen.queryByRole('button', { name: /switch device/ })).toBeNull();
   });
 
+  it('a desktop row is labelled with its sender and time, not the whole message', async () => {
+    renderChat(route);
+    const row = (await screen.findByText('Glyfada Beach checking in')).closest('[role="article"]') as HTMLElement;
+    expect(row.getAttribute('aria-label')).toMatch(/^Glyfada Beach, /);
+    expect(row.getAttribute('aria-label')).not.toContain('checking in');
+  });
+
   it('the composer says what Send transmits', async () => {
     renderChat(route, { phone: true });
     expect(await screen.findByText('Sends 1 message on # LongFast · hop limit 3')).toBeInTheDocument();

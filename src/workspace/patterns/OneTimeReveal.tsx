@@ -65,7 +65,7 @@ export default function OneTimeReveal({ secrets, mustAck, title, intro, label, o
         </button>
         {onDownload && <button type="button" className={styles.btn} onClick={onDownload}>{t('passkey_only.download')}</button>}
       </div>
-      {copyFailed && <p role="alert">{t('workspace.patterns.copy_failed')}</p>}
+      {copyFailed && <p role="alert">{t('workspace.tools.copy_failed')}</p>}
       {mustAck && (
         <label className={styles.ack}>
           <input type="checkbox" checked={acked} onChange={(e) => setAcked(e.target.checked)} />

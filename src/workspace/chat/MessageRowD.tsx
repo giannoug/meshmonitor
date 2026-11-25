@@ -244,7 +244,7 @@ function MessageRowDImpl(props: MessageRowDProps) {
     : {
         tabIndex: 0,
         role: 'article',
-        'aria-label': `${mine ? t('workspace.chat.you') : senderName}: ${msg.text}`,
+        'aria-label': `${mine ? t('workspace.chat.you') : senderName}, ${time}`,
         'data-row-target': '',
         onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
           if (e.target !== e.currentTarget) return;

@@ -64,6 +64,8 @@ export default function ChannelHeaderMenu(props: ChannelHeaderMenuProps) {
 
   const then = (fn: () => void) => () => {
     setOpen(false);
+    // Focus the trigger first, so a sheet the item opens records it as its opener.
+    triggerRef.current?.focus();
     fn();
   };
 

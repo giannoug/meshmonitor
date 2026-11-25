@@ -242,6 +242,8 @@ describe('13-05 / 13-22 map & tiles', () => {
     const message = await screen.findByText('URL must contain {z}, {x}, and {y} placeholders');
     expect(url).toHaveAttribute('aria-describedby', message.id);
     expect(message.id).not.toBe('');
+    // A description, not part of the accessible name.
+    expect(screen.getByRole('textbox', { name: /^Tile URL/ })).not.toHaveAccessibleName(/URL must contain/);
   });
 
   it('a user without settings access gets none', async () => {

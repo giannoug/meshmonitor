@@ -3,7 +3,7 @@
  *
  * S5 (#6365): the rail's unread badges follow the viewer's `unreadIndicatorEnabled` preference.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { renderWorkspace } from '../../test/renderWorkspace';
 import { SOURCE_IDS } from '../../__fixtures__/athens';
@@ -23,13 +23,18 @@ const renderRail = (preferences: unknown, extra: { route?: string; fixtures?: Re
     },
   );
 
+const requested = (path: string) =>
+  vi.mocked(globalThis.fetch).mock.calls.some(([u]) => String(typeof u === 'string' ? u : u instanceof URL ? u.href : (u as Request).url).includes(path));
+
 describe('rail unread badges', () => {
   it('unread badges follow unreadIndicatorEnabled', async () => {
     renderRail({ unreadIndicatorEnabled: false });
     const rail = await screen.findByRole('navigation', { name: 'Devices' });
     await within(rail).findByRole('link', { name: 'Station G2' });
-    // Give the preference and the unread poll time to land: with the preference off the poll never runs.
-    await new Promise((r) => setTimeout(r, 100));
+    // The preference read is a request that does happen; once it has landed the poll would have started.
+    await waitFor(() => expect(requested('/api/user/map-preferences')).toBe(true));
+    await waitFor(() => expect(within(rail).queryByRole('link', { name: 'Station G2' })).toBeInTheDocument());
+    expect(requested('/api/messages/unread-by-source')).toBe(false);
     expect(within(rail).queryByText('2')).toBeNull();
     expect(within(rail).queryByRole('link', { name: /unread/ })).toBeNull();
   });
@@ -55,7 +60,7 @@ describe('rail unread badges', () => {
     });
     const rail = await screen.findByRole('navigation', { name: 'Devices' });
     await within(rail).findByRole('link', { name: /Station G2/ });
-    await new Promise((r) => setTimeout(r, 100));
+    await waitFor(() => expect(requested('/api/messages/unread-counts')).toBe(true));
     expect(screen.queryByRole('link', { name: /Station G2, \d+ unread/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Station G2, \d+ unread/ })).toBeNull();
   });
