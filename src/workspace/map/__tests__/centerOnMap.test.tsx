@@ -21,14 +21,8 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
   WebSocketProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
-// A phone request waits for the 2D map; these two make it never come (a map error, a map with no instance).
-const broken = vi.hoisted(() => ({ mapError: false, noInstance: false }));
-vi.mock('../../../components/MapPositionHandler', () => ({
-  default: () => {
-    if (broken.mapError) throw new Error('map exploded');
-    return null;
-  },
-}));
+// A phone request waits for the 2D map; this makes it never come (a map with no instance).
+const broken = vi.hoisted(() => ({ noInstance: false }));
 vi.mock('../../../components/map/MapInstanceBridge', async (orig) => {
   const real = await orig<typeof import('../../../components/map/MapInstanceBridge')>();
   return { ...real, MapInstanceBridge: (p: Parameters<typeof real.MapInstanceBridge>[0]) => (broken.noInstance ? null : <real.MapInstanceBridge {...p} />) };
@@ -99,18 +93,6 @@ describe('Center on Map at the device map', () => {
     await centerOnMap(false);
     await screen.findByRole('complementary', { name: 'Kifisia Rooftop' }, { timeout: 5000 });
     await waitFor(() => expect(screen.getByTestId('probe')).toHaveTextContent(`${g2}/map null`));
-  });
-
-  it('on a phone, a map that errors still drops the request (it would wait for a map that never comes)', async () => {
-    broken.mapError = true;
-    try {
-      render(true);
-      await centerOnMap(true);
-      await screen.findByTestId('map-unavailable', {}, { timeout: 5000 });
-      await waitFor(() => expect(screen.getByTestId('probe')).toHaveTextContent(`${g2}/map null`));
-    } finally {
-      broken.mapError = false;
-    }
   });
 
   it('on a phone, switching to 3D while the request waits for the 2D map lets it through', async () => {

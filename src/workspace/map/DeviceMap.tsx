@@ -16,7 +16,7 @@
  * A node to centre on arrives as `location.state.focusNodeId` (Center on Map,
  * Ruling AJ); it opens that node's peek and is dropped from the history entry.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -255,26 +255,14 @@ function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapP
   };
 
   // Center on Map from elsewhere (Ruling AJ): handled once the nodes are in, then dropped. On a
-  // phone it also waits for the 2D map, which the peek offset needs (a warm cache has the nodes first),
-  // unless the map is unavailable (BaseMap's own boundary drew its panel) and so never comes.
-  const mapArea = useRef<HTMLDivElement>(null);
-  const [mapFailed, setMapFailed] = useState(false);
+  // phone it also waits for the 2D map, which the peek offset needs (a warm cache has the nodes first).
   useEffect(() => {
-    const el = mapArea.current;
-    if (!focusNodeId || !isPhone || !el) return;
-    const check = () => setMapFailed(!!el.querySelector('[data-testid="map-unavailable"]'));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(el, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, [focusNodeId, isPhone]);
-  useEffect(() => {
-    if (!focusNodeId || isLoading || (isPhone && !leaflet && !effective3D && !mapFailed)) return;
+    if (!focusNodeId || isLoading || (isPhone && !leaflet && !effective3D)) return;
     const node = nodes.find((n) => n.user?.id === focusNodeId);
     if (node) openNode(node, true);
     onFocusHandled();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 runs once per focus request, after the nodes (and on phone the map) load
-  }, [focusNodeId, isLoading, leaflet, effective3D, mapFailed]);
+  }, [focusNodeId, isLoading, leaflet, effective3D]);
 
   const peekNode = panel?.kind === 'node' ? nodes.find((n) => markerKey(n) === panel.key) : undefined;
   const fitPositions = data.visibleMapNodes.flatMap((n) => {
@@ -343,7 +331,7 @@ function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapP
 
   return (
     <div className={styles.page}>
-      <div ref={mapArea} className={styles.mapArea} data-panel={panel ? 'open' : undefined}>
+      <div className={styles.mapArea} data-panel={panel ? 'open' : undefined}>
         {effective3D ? (
           <Map3DView
             center={initial.center}
