@@ -1849,3 +1849,7 @@ Visual checks from the regenerated boards: 7-05 shows the SOURCE header in full 
 ## Own-issues pass
 
 Plan: `docs/superpowers/plans/2026-11-24-workspace-own-issues.md`. Commits fa2b476..81b3ddd. Rulings JM–JX, with the verification and what is still open, are in `workspace-final-report.md` under "Own-issues pass".
+
+## Follow-ups pass
+
+Plan: `docs/superpowers/plans/2026-11-25-workspace-followups.md`. Commits d9cf4b1..HEAD. Rulings JY–KG, with the verification and what is still open, are in `workspace-final-report.md` under "Follow-ups pass".

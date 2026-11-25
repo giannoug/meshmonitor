@@ -2826,3 +2826,67 @@ Visual checks on the regenerated boards:
   - `mapSettled` has no explicit timeout.
 - The D1 focus ring and the W4 hit area are CSS only and were not eyeballed in a focused state.
 - 7-01 and 8-15 at 1280 px: a column or width call.
+
+## Follow-ups pass
+
+The Workspace-side items left after the own-issues pass: the JV reaction-chip note, the two tables that overflowed at 1280 px, the two CSS-only fixes nobody had looked at in a browser, and the final-review minors. The plan is [plans/2026-11-25-workspace-followups.md](plans/2026-11-25-workspace-followups.md) (d9cf4b1). It ran inline, as tasks F1–F5, followed by one opus whole-branch review and one fix.
+
+Requester decisions: A1 (no code for JV) and B1 (one focus ring). Native execution.
+
+### What changed
+
+- **F1 (2f04f1f).** Board 7-01's receptions table shows bare SNR and RSSI numbers, because its headers name the units. The phone cards keep the units. Board 8-15's observers and nodes tables use the board's text size. Both now fit their panel at 1280 px.
+- **F2 (dcb4e7e).** The phone device switcher draws one focus ring, on the square. The Activity device button's hit area is 44 px tall, up from 37 px.
+- **F3 (64da7a1, 1028d29).** After a keyboard delete in a thread, focus moves to the next message, or the previous one when the last is deleted. A mouse delete, a cancel or a failed delete moves nothing.
+- **F4 dropped.** See KE.
+- New e2e spec: `tests/workspace-e2e/followups.spec.ts` (6 tests: table fit, one ring, 44 px target, keyboard delete, mouse delete).
+
+### Rulings
+
+- **JY.** JV's visibility note was wrong. The MeshCore reaction chips can't count a reaction from a source the viewer can't read. `unifiedRoutes.ts:443-518` keeps a MeshCore row, reactions included, only with `messages:read` or `channel_N:read` on its source, and `unifiedRoutes.meshcoreReactions.test.ts` pins this. The Workspace's readable set is a superset of that. No code change (A1).
+  - Cost if wrong: a chip could count a reaction the viewer can't see. Counts only, never text or sender.
+- **JZ.** The 7-01 desktop table shows `-7.0` and `-101`. SNR keeps one decimal; the board's integers come from round fixture values. The phone cards keep "SNR -7.0 dB", because they are prose.
+  - Cost if wrong: a reader of the table has to look at the header for the unit.
+- **KA.** The 8-15 overview tables take a `.feedTable` modifier: 13 px body, 11 px headers and 10 px inline padding. The plan named only the font size. At 13/11 px the observers table was still 540 px in a 533 px column, so the padding was cut by 2 px a side. The shared `.table` is unchanged; MeshCore Packets and Automation runs use it on other boards. The fit is sized for English. Longer pl and es headers still scroll sideways at 1280 px; nothing clips.
+  - Cost if wrong: cells 2 px tighter than the board, and a sideways scroll in some locales.
+- **KB.** D1 draws one ring, on the 44 px square (B1). The name text has no ring of its own.
+  - Cost if wrong: a keyboard user's eye has to go to the square, not the name.
+- **KC.** The Activity device button's `::before` is `inset: calc((100% - 44px) / 2) 0`: a 44 px box centred on the button, whatever its height. It covers part of the non-interactive "Activity" title above it.
+  - Cost if wrong: a tap on the lower edge of the title opens the device switcher.
+- **KD.** F3 moves focus only when the deleted row is gone after the confirm closes. Classic `deleteMessage` resolves on failure too, so whether the row is still there is the only success signal. The final review found that a mouse delete also moved focus, which showed the next message's action bar and signal line. The hand-off now needs the Delete control to be `:focus-visible` (1028d29). The mouse-path test is a Playwright test, because jsdom matches `:focus-visible` on any focus.
+  - Cost if wrong: none found.
+- **KE.** F4 (`useCachedQueryData` subscribing once) is dropped. A stable `subscribe` re-renders sooner on cache events. That lets DmConversation's first-unread latch trip before the DM's message is processed, and `useMessagingView`'s effect #7 then posts mark-read twice on DM open (`o3-security` pins one). Stabilising `useProviderFirstUnread` as well didn't help. The root cause is the latch not waiting for the poll, which is out of this plan's scope.
+  - Cost if wrong: `useCachedQueryData` keeps one unsubscribe/subscribe per render (no request, no timer).
+- **KF.** Skipped final-review minors:
+  - Absence sleeps: each asserts that something didn't happen, so there is no event to wait for.
+  - NodeHeader `.tiles` duplicates: the only overlap is needed for specificity.
+  - `mapSettled` timeout: the 30 s test timeout already ends a stuck wait.
+  - Cost if wrong: a slow false pass in a test, or a vaguer failure message.
+- **KG.** Two load flakes in untouched tests, each green when run alone: `meshcoreSettingsPages` "Filters: a new rule…" (2/2) and `8-10-maintenance` "Remove non-favourite contacts…" (3/3). Both are `findByRole` timeouts under the parallel run.
+  - Cost if wrong: a real MeshCore settings or maintenance regression goes unnoticed.
+
+### Verification (at 1028d29)
+
+| Check | Result |
+|---|---|
+| `npm run lint:ci`, in-repo filter | No in-repo FAIL. The one line is `design-scratch/render.mjs` (Ruling JL). The CSS colour check passes. |
+| `tsc` client / server | Exit 0 / exit 0. |
+| Vitest `--maxWorkers=4`, whole repo | `success: true` · 41,775 total · 39,731 passed · 0 failed · 2,023 pending · 21 todo · 11,205 suites, 0 failed. PostgreSQL and MySQL were not running (no Docker daemon), so their suites skipped. This pass changes no backend or schema. The run before the fix had one load flake (KG). |
+| `npm run build` + `npm run check:bundle-size` | Exit 0 / exit 0. |
+| `npm run test:workspace-e2e` | 395 passed (6.5 min). |
+
+Visual checks: the regenerated 7-01 and 8-15 boards show every column at 1280 px. Screenshots of the D1 ring and the W4-e hit area, before and after, were checked by eye; they aren't in git.
+
+Final review (opus, d9cf4b1..64da7a1): 0 Critical, 1 Important (KD's mouse path, fixed in 1028d29), 5 Minor (deferred, below).
+
+### Still open after this pass
+
+- The JV items that need Classic edits: the O7 favourite gap, and S15's expired flag.
+- DmConversation's first-unread latch doesn't wait for the poll, so mark-read can post twice on DM open (KE).
+- Deferred minors from the final review:
+  - `keyRows()` queries the whole document. Two editable threads mounted together could cross-focus; none are today.
+  - A neighbour that is removed while the confirm is open leaves focus on `<body>`.
+  - The Activity e2e selector could match the shell switcher if that header ever shows on Activity.
+  - No check that the 44 px box stays clear of the first activity row.
+  - The 8-15 fit is sized for English (KA).
+
