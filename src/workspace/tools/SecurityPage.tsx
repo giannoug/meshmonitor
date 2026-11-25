@@ -40,6 +40,7 @@ import StateView from '../patterns/StateView';
 import { useIsPhone } from '../shell/useIsPhone';
 import QuietNodes from './QuietNodes';
 import { nodeIdOf } from './deviceTools';
+import kit from '../settings/kit/kit.module.css';
 import mc from '../meshcore/McTools.module.css';
 import styles from './Tools.module.css';
 
@@ -560,7 +561,7 @@ function DigestCard({ sourceId, deviceName }: { sourceId: string; deviceName: st
             <span>{t('security.digest_enabled')}</span>
             <span className={styles.formHint}>{t('workspace.security.digest_hint', { device: deviceName })}</span>
           </span>
-          <input type="checkbox" role="switch" checked={g.enabled} onChange={(e) => g.setEnabled(e.target.checked)} />
+          <input type="checkbox" role="switch" className={kit.switch} checked={g.enabled} onChange={(e) => g.setEnabled(e.target.checked)} />
         </label>
         <label className={styles.formRow} data-stack="">
           <span>{t('security.digest_apprise_url')}</span>
@@ -580,7 +581,7 @@ function DigestCard({ sourceId, deviceName }: { sourceId: string; deviceName: st
         </div>
         <label className={styles.formRow}>
           <span>{t('security.digest_suppress_empty')}</span>
-          <input type="checkbox" role="switch" checked={g.suppressEmpty} onChange={(e) => g.setSuppressEmpty(e.target.checked)} />
+          <input type="checkbox" role="switch" className={kit.switch} checked={g.suppressEmpty} onChange={(e) => g.setSuppressEmpty(e.target.checked)} />
         </label>
         <div className={styles.formActions}>
           <button type="button" className={`${mc.button} ${mc.primary}`} disabled={g.saving} onClick={() => void g.save()}>

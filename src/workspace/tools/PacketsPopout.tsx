@@ -16,7 +16,7 @@ import '../styles/fonts.css';
 import { UiIcon } from '../../components/icons';
 import PacketHiddenChip from '../../components/PacketHiddenChip';
 import { usePacketMonitor } from '../../components/usePacketMonitor';
-import { PacketFilters } from './PacketFilters';
+import { PacketFilters, PacketFiltersSheetBody } from './PacketFilters';
 import { AuthProvider, useAuth } from '../../contexts/AuthContext';
 import { CsrfProvider } from '../../contexts/CsrfContext';
 import { SettingsProvider } from '../../contexts/SettingsContext';
@@ -169,7 +169,7 @@ function PopoutWindow() {
         {m.packets.length > 0 && <PacketList {...stream} />}
         {detail}
         <Sheet open={filtersOpen} onClose={() => setFiltersOpen(false)} title={t('common.filters')}>
-          <div className={styles.sheetBody}><PacketFilters m={m} /></div>
+          <PacketFiltersSheetBody m={m} />
         </Sheet>
         {confirm}
       </div>
@@ -209,8 +209,11 @@ function PopoutWindow() {
   );
 }
 
-/** `?sourceId=` naming a MeshCore device opens today's MeshCore window; anything else is the Meshtastic monitor. */
-function PopoutDispatch() {
+/**
+ * `?sourceId=` naming a MeshCore device opens today's MeshCore window, which brings its own providers
+ * (so none are mounted here); anything else is the Meshtastic monitor inside the Workspace's.
+ */
+export default function PacketsPopout() {
   const [params] = useSearchParams();
   const requested = params.get('sourceId');
   const { data: sources, isLoading } = useDashboardSources();
@@ -225,16 +228,12 @@ function PopoutDispatch() {
       );
     }
   }
-  return <PopoutWindow />;
-}
-
-export default function PacketsPopout() {
   return (
     <CsrfProvider>
       <AuthProvider>
         <SettingsProvider>
           <ToastHost>
-            <PopoutDispatch />
+            <PopoutWindow />
           </ToastHost>
         </SettingsProvider>
       </AuthProvider>

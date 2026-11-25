@@ -9,7 +9,7 @@ import PacketSearchInput from '../../components/packets/PacketSearchInput';
 import TimeWindowSelect from '../../components/packets/TimeWindowSelect';
 import SearchableSelect from '../../components/common/SearchableSelect';
 import { PORTNUM_FILTER_OPTIONS, type usePacketMonitor } from '../../components/usePacketMonitor';
-import styles from './PacketsPopout.module.css';
+import styles from './PacketFilters.module.css';
 
 type Monitor = ReturnType<typeof usePacketMonitor>;
 

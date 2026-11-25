@@ -12,7 +12,9 @@ import RelayNodeModal from '../../components/RelayNodeModal';
 import { relayModalNodes, type DirectNeighborStats } from '../../components/usePacketMonitor';
 import { useSettings } from '../../contexts/SettingsContext';
 import { SourceProvider } from '../../contexts/SourceContext';
-import { useNodes } from '../../hooks/useServerData';
+import { useQueryClient } from '@tanstack/react-query';
+import type { DeviceInfo } from '../../types/device';
+import { sourcePollQueryKey } from '../../hooks/pollQueryKey';
 import apiService from '../../services/api';
 import type { PacketLog } from '../../types/packet';
 import { formatPacketDateColumn, formatPacketTimestamp, getTransportMechanismName, toMs } from '../../utils/packetFormat';
@@ -28,7 +30,12 @@ import styles from './PacketDetailPanel.module.css';
  * the direct-neighbour stats fetched when it opens (PacketMonitorPanel's handleRelayClick).
  */
 function RelayModal({ packet, onClose }: { packet: PacketLog; onClose(): void }) {
-  const { nodes } = useNodes();
+  // The device's nodes, read once from the poll cache if its page already holds them (no poll of our own);
+  // a device nobody polls leaves the list empty, so the modal shows raw node ids.
+  const queryClient = useQueryClient();
+  const [nodes] = useState(
+    () => queryClient.getQueryData<{ nodes?: DeviceInfo[] }>(sourcePollQueryKey(packet.sourceId ?? null))?.nodes ?? [],
+  );
   const [stats, setStats] = useState<DirectNeighborStats | null>(null);
   useEffect(() => {
     let cancelled = false;

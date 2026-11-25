@@ -114,7 +114,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   const { authStatus, refreshAuth, hasPermission } = useAuth();
   const isPhone = useIsPhone();
   const narrow = useIsNarrowDesktop();
-  const { sources, openId } = useWorkspaceSources();
+  const { sources, openId, isLoading: sourcesLoading } = useWorkspaceSources();
   const { data: allSources } = useDashboardSources();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -252,7 +252,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
 
   if (isPhone) {
     return (
-      <ShellDevicesContext.Provider value={{ sources, home, openSearch, openSettingsSearch }}>
+      <ShellDevicesContext.Provider value={{ sources, loading: sourcesLoading, home, openSearch, openSettingsSearch }}>
         <div className={styles.shell} data-workspace-shell="">
           <div className={styles.main}>
             <PhoneShell sources={sources} openId={openId} home={home} mode={mode}>
@@ -272,7 +272,7 @@ export default function WorkspaceShell({ children }: { children: ReactNode }) {
   const frame = { '--ws-frame-width': `${narrow ? RAIL : RAIL + SIDEBAR}px` } as CSSProperties;
 
   return (
-    <ShellDevicesContext.Provider value={{ sources, home, openSearch, openSettingsSearch }}>
+    <ShellDevicesContext.Provider value={{ sources, loading: sourcesLoading, home, openSearch, openSettingsSearch }}>
       <div className={styles.shell} data-workspace-shell="" style={frame}>
         <DeviceRail
           sources={sources}

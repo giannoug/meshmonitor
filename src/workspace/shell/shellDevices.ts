@@ -4,6 +4,8 @@ import type { WorkspaceSource } from './useWorkspaceSources';
 
 export interface ShellDevices {
   sources: WorkspaceSource[];
+  /** The device list is still on its first load: a page holds its empty state until it is false. */
+  loading?: boolean;
   /** The device open in the URL, else the last one opened this session (in memory only), else null. */
   home: WorkspaceSource | null;
   /** Opens message search for the open device; null where the viewer cannot search it (Task 2.6). */

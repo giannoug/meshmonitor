@@ -14,12 +14,13 @@
  * Every row, tag, channel source and filter entry keeps to the devices the
  * viewer can read (Review Focus 2, `readableSources`).
  */
-import { useCallback, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
+import { memo, useCallback, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import { MeshCoreReactionChips, MeshCoreUnmatchedReaction } from '../../components/MeshCore/MeshCoreReactionChips';
 import { useSettings } from '../../contexts/SettingsContext';
+import type { ReactionChip } from '../../components/MeshCore/meshcoreReactionGroups';
 import type { MeshMessage } from '../../types/message';
 import type { TranslateFn } from '../../types/translate';
 import { ALL_CHANNELS_PARAM } from '../../utils/unifiedChannelFilter';
@@ -38,6 +39,7 @@ import {
 import MessageRowD from '../chat/MessageRowD';
 import type { MessageActionContext } from '../chat/messageActions';
 import DeviceTag from '../patterns/DeviceTag';
+import { useShellDevices } from '../shell/shellDevices';
 import { useIsPhone } from '../shell/useIsPhone';
 import { ExportMessagesDialog } from './ExportMessagesPage';
 import ReceptionsPanel from './ReceptionsPanel';
@@ -73,12 +75,114 @@ function clockOffset(m: UnifiedMessage, t: TranslateFn): string | null {
   return t(ms < 0 ? 'workspace.overview.messages.clock_ahead' : 'workspace.overview.messages.clock_behind', { span });
 }
 
+const NO_CHIPS: ReactionChip[] = [];
+const NO_UNIFIED: UnifiedMessage[] = [];
+
+const sameList = <T,>(a: readonly T[], b: readonly T[], eq: (x: T, y: T) => boolean = Object.is) =>
+  a === b || (a.length === b.length && a.every((x, i) => eq(x, b[i])));
+
+/**
+ * Equal plain data. A poll that inserts a message shifts the reply's items, so React Query's structural
+ * sharing hands back fresh copies of rows that did not change: identity alone cannot spare them.
+ */
+function sameData(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== 'object' || typeof b !== 'object' || !a || !b) return false;
+  const ka = Object.keys(a);
+  return ka.length === Object.keys(b).length && ka.every((k) => sameData((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]));
+}
+const sameMessage = (a: UnifiedMessage | null, b: UnifiedMessage | null) => sameData(a, b);
+
+const sameChip = (a: ReactionChip, b: ReactionChip) =>
+  a.emoji === b.emoji && a.count === b.count && a.mine === b.mine && a.pending === b.pending && sameList(a.reactors, b.reactors);
+
+interface FeedRowProps {
+  message: UnifiedMessage;
+  /** The message this one replies to, when the viewer can read it. */
+  parent: UnifiedMessage | null;
+  /** Readable tapbacks on this message. */
+  reactions: UnifiedMessage[];
+  chips: ReactionChip[];
+  allChannels: boolean;
+  open: boolean;
+  phone: boolean;
+  timeFormat: ReturnType<typeof useSettings>['timeFormat'];
+  dateFormat: ReturnType<typeof useSettings>['dateFormat'];
+  onOpen(key: string): void;
+}
+
+/** One feed row on plain props, so a poll that changes nothing for it re-renders nothing. */
+const FeedRow = memo(function FeedRow({ message: m, parent, reactions, chips, allChannels, open, phone, timeFormat, dateFormat, onOpen }: FeedRowProps) {
+  const { t } = useTranslation();
+  const clock = clockOffset(m, t);
+  const openMe = () => onOpen(m.dedupKey);
+  return (
+    <div className={styles.row} data-testid="feed-row" data-open={open || undefined} onClick={openMe}>
+      <MessageRowD
+        message={toMeshMessage(m)}
+        style="rows"
+        signalDetail="always"
+        mine={false}
+        senderName={senderLabel(m)}
+        senderShort={shortSenderLabel(m)}
+        reactions={reactions.length ? reactions.map(toMeshMessage) : NO_REACTIONS}
+        replied={parent && toMeshMessage(parent)}
+        repliedName={parent ? t('messages.replying_to', { name: shortSenderLabel(parent) }) : undefined}
+        showUnreadDivider={false}
+        dateSeparator={null}
+        timeFormat={timeFormat}
+        dateFormat={dateFormat}
+        mentionOptions={NO_MENTIONS}
+        actionContext={READ_ONLY}
+        phone={phone}
+        onAction={noop}
+        readOnly
+        headExtra={
+          (allChannels || clock) && (
+            <>
+              {allChannels && <span className={styles.channelTag}>#{channelTag(m)}</span>}
+              {clock && <span className={styles.clock}>{clock}</span>}
+            </>
+          )
+        }
+        footer={
+          <>
+            <p className={styles.heard}>
+              {m.receptions.map((r) => (
+                <span key={r.sourceId} className={styles.reception}>
+                  <DeviceTag sourceId={r.sourceId} />
+                  {hopDisplay(r, t)}
+                </span>
+              ))}
+              <button
+                type="button"
+                className={styles.heardBy}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openMe();
+                }}
+              >
+                {t('unified.messages.heard_by_count', { count: m.receptions.length })}
+              </button>
+            </p>
+            <MeshCoreReactionChips chips={chips} />
+          </>
+        }
+      />
+    </div>
+  );
+}, (a, b) =>
+  sameMessage(a.message, b.message) && sameMessage(a.parent, b.parent) && sameList(a.reactions, b.reactions, sameMessage) &&
+  sameList(a.chips, b.chips, sameChip) && a.allChannels === b.allChannels && a.open === b.open && a.phone === b.phone &&
+  a.timeFormat === b.timeFormat && a.dateFormat === b.dateFormat && a.onOpen === b.onOpen);
+
 export default function OverviewMessages() {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const { timeFormat, dateFormat } = useSettings();
   const feed = useUnifiedMessagesFeed();
   const readable = useReadableSourceIds();
+  const { loading: devicesLoading } = useShellDevices();
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const { selectedChannel, setSelectedChannel, canReadAnyMessages } = feed;
@@ -165,65 +269,23 @@ export default function OverviewMessages() {
     const reply = resolveReplyPreview(m.replyId, feed.byPacketId);
     const parent = reply.kind === 'resolved' ? readableMessage(reply.parent, readable) : null;
     const reactions = m.packetId != null
-      ? (feed.reactionsByParent.get(m.packetId) ?? []).flatMap((r) => (readableMessage(r, readable) ? [toMeshMessage(r)] : []))
-      : NO_REACTIONS;
-    const clock = clockOffset(m, t);
-    const open = () => setOpenKey(m.dedupKey);
+      ? (feed.reactionsByParent.get(m.packetId) ?? NO_UNIFIED).filter((r) => readableMessage(r, readable))
+      : NO_UNIFIED;
     return [
       divider,
-      <div key={m.dedupKey} className={styles.row} data-testid="feed-row" data-open={openKey === m.dedupKey || undefined} onClick={open}>
-        <MessageRowD
-          message={toMeshMessage(m)}
-          style="rows"
-          signalDetail="always"
-          mine={false}
-          senderName={senderLabel(m)}
-          senderShort={shortSenderLabel(m)}
-          reactions={reactions}
-          replied={parent && toMeshMessage(parent)}
-          repliedName={parent ? t('messages.replying_to', { name: shortSenderLabel(parent) }) : undefined}
-          showUnreadDivider={false}
-          dateSeparator={null}
-          timeFormat={timeFormat}
-          dateFormat={dateFormat}
-          mentionOptions={NO_MENTIONS}
-          actionContext={READ_ONLY}
-          phone={isPhone}
-          onAction={noop}
-          readOnly
-          headExtra={
-            (allChannels || clock) && (
-              <>
-                {allChannels && <span className={styles.channelTag}>#{channelTag(m)}</span>}
-                {clock && <span className={styles.clock}>{clock}</span>}
-              </>
-            )
-          }
-          footer={
-            <>
-              <p className={styles.heard}>
-                {m.receptions.map((r) => (
-                  <span key={r.sourceId} className={styles.reception}>
-                    <DeviceTag sourceId={r.sourceId} />
-                    {hopDisplay(r, t)}
-                  </span>
-                ))}
-                <button
-                  type="button"
-                  className={styles.heardBy}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    open();
-                  }}
-                >
-                  {t('unified.messages.heard_by_count', { count: m.receptions.length })}
-                </button>
-              </p>
-              <MeshCoreReactionChips chips={feed.mcReactions.chipsByTarget.get(m.dedupKey) ?? []} />
-            </>
-          }
-        />
-      </div>,
+      <FeedRow
+        key={m.dedupKey}
+        message={m}
+        parent={parent}
+        reactions={reactions}
+        chips={feed.mcReactions.chipsByTarget.get(m.dedupKey) ?? NO_CHIPS}
+        allChannels={allChannels}
+        open={openKey === m.dedupKey}
+        phone={isPhone}
+        timeFormat={timeFormat}
+        dateFormat={dateFormat}
+        onOpen={setOpenKey}
+      />,
     ];
   });
 
@@ -243,8 +305,8 @@ export default function OverviewMessages() {
       )}
       {feed.channelsError && <p className={styles.error}>{t('unified.messages.failed_channels')}</p>}
       {feed.messagesError && <StateView kind="error" title={t('unified.messages.failed_messages')} />}
-      {feed.loadingMessages && rows.length === 0 && <StateView kind="loading" title={t('unified.messages.loading')} />}
-      {!feed.loadingMessages && rows.length === 0 && !feed.messagesError && (
+      {(feed.loadingMessages || devicesLoading) && rows.length === 0 && <StateView kind="loading" title={t('unified.messages.loading')} />}
+      {!feed.loadingMessages && !devicesLoading && rows.length === 0 && !feed.messagesError && (
         <p className={styles.state}>
           {allChannels
             ? t('unified.messages.empty_all_channels')

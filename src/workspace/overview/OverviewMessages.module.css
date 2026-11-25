@@ -371,15 +371,12 @@
 }
 
 .chips .select {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .chips .button {
   flex: none;
-}
-
-.chips .button {
   border-radius: 10px;
 }
 

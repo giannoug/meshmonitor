@@ -47,7 +47,10 @@ export function TypeBadge({ packet: p, meshcore = false }: { packet: PacketLog; 
 /** Today's Dir cell: the spoof warning in place of RX/TX, with today's title. */
 function Dir({ packet: p }: { packet: PacketLog }) {
   const { t } = useTranslation();
-  if (!p.spoof_suspected) return <>{p.direction === 'tx' ? 'TX' : 'RX'}</>;
+  if (!p.spoof_suspected) {
+    const tx = p.direction === 'tx';
+    return <span title={t(tx ? 'packet_monitor.direction_tx' : 'packet_monitor.direction_rx')}>{tx ? 'TX' : 'RX'}</span>;
+  }
   const label = t('packet_monitor.spoof_suspected', 'Possible impersonation: claims your node id but arrived over RF');
   return (
     <span className={styles.spoof} title={label} role="img" aria-label={label}>

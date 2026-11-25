@@ -101,30 +101,32 @@ export default function ReceptionsPanel({ message, onClose }: { message: Unified
         <strong>{senderLabel(message)}</strong> · {formatTime(message.timestamp)}
         <span className={styles.quoteText}>{message.text || t('unified.no_text')}</span>
       </blockquote>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>{t('unified.messages.modal.col_source')}</th>
-            <th>{t('unified.messages.modal.col_hops')}</th>
-            <th>{t('unified.messages.modal.col_snr')}</th>
-            <th>{t('unified.messages.modal.col_rssi')}</th>
-            <th>{t('unified.messages.modal.col_heard')}</th>
-            <th>{t('workspace.overview.messages.signed')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {message.receptions.map((r) => (
-            <tr key={r.sourceId}>
-              <td><DeviceTag sourceId={r.sourceId} /></td>
-              <td>{hops(r, t)}</td>
-              <td>{snr(r)}</td>
-              <td>{rssi(r)}</td>
-              <td>{formatTime(r.timestamp)}</td>
-              <td><Signed r={r} /></td>
+      <div className={styles.tableWrap}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>{t('unified.messages.modal.col_source')}</th>
+              <th>{t('unified.messages.modal.col_hops')}</th>
+              <th>{t('unified.messages.modal.col_snr')}</th>
+              <th>{t('unified.messages.modal.col_rssi')}</th>
+              <th>{t('unified.messages.modal.col_heard')}</th>
+              <th>{t('workspace.overview.messages.signed')}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {message.receptions.map((r) => (
+              <tr key={r.sourceId}>
+                <td><DeviceTag sourceId={r.sourceId} /></td>
+                <td>{hops(r, t)}</td>
+                <td>{snr(r)}</td>
+                <td>{rssi(r)}</td>
+                <td>{formatTime(r.timestamp)}</td>
+                <td><Signed r={r} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <ul className={styles.list}>
         {message.receptions.map((r) => (
           <li key={r.sourceId}>

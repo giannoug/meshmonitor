@@ -166,7 +166,7 @@ function Filters({ m, sources }: { m: Monitor; sources: Monitor['sources'] }) {
   );
 }
 
-function ChartCard({ title, rows }: { title: string; rows: Array<{ key: string; label: ReactNode; value: number }> }) {
+function ChartCard({ title, rows }: { title: string; rows: Array<{ key: string; label: ReactNode; value: number; color?: string }> }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
   return (
     <section className={styles.chart} aria-label={title}>
@@ -176,7 +176,7 @@ function ChartCard({ title, rows }: { title: string; rows: Array<{ key: string; 
           <li key={r.key} className={styles.bar}>
             <span className={styles.barLabel}>{r.label}</span>
             <span className={styles.barTrack} aria-hidden="true">
-              <span className={styles.barFill} style={{ width: `${(r.value / max) * 100}%` }} />
+              <span className={styles.barFill} style={{ width: `${(r.value / max) * 100}%`, background: r.color }} />
             </span>
             <span className={styles.barValue}>{r.value}</span>
           </li>
@@ -190,6 +190,8 @@ function ChartCard({ title, rows }: { title: string; rows: Array<{ key: string; 
 function Charts({ m, readable, title }: { m: Monitor; readable: Set<string>; title?: ReactNode }) {
   const { t } = useTranslation();
   const bySource = (m.distribution?.bySource ?? []).filter((s) => readable.has(s.sourceId));
+  // The hook's By Source colours run parallel to the unfiltered distribution.
+  const colorOf = new Map((m.distribution?.bySource ?? []).map((s, i) => [s.sourceId, m.bySourceData[i]?.color]));
   return (
     <>
       <div className={styles.chartsHead}>
@@ -205,10 +207,10 @@ function Charts({ m, readable, title }: { m: Monitor; readable: Set<string>; tit
       <div className={styles.charts}>
         <ChartCard
           title={t('unified.packets.by_source')}
-          rows={bySource.map((s) => ({ key: s.sourceId, label: <DeviceTag sourceId={s.sourceId} />, value: s.count }))}
+          rows={bySource.map((s) => ({ key: s.sourceId, label: <DeviceTag sourceId={s.sourceId} />, value: s.count, color: colorOf.get(s.sourceId) }))}
         />
-        <ChartCard title={t('unified.packets.by_device')} rows={m.byDeviceData.map((d) => ({ key: d.name, label: d.name, value: d.value }))} />
-        <ChartCard title={t('unified.packets.by_type')} rows={m.byTypeData.map((d) => ({ key: d.name, label: d.name, value: d.value }))} />
+        <ChartCard title={t('unified.packets.by_device')} rows={m.byDeviceData.map((d) => ({ key: d.name, label: d.name, value: d.value, color: d.color }))} />
+        <ChartCard title={t('unified.packets.by_type')} rows={m.byTypeData.map((d) => ({ key: d.name, label: d.name, value: d.value, color: d.color }))} />
       </div>
     </>
   );
