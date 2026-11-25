@@ -151,7 +151,7 @@ describe('r4-server-general (Layout and Sources cards)', () => {
     it('keeps the admin in the Workspace: their layout is saved first, then the setting', async () => {
       const w = renderOnDefault();
       await waitFor(() => expect(screen.getByTestId('gate')).toHaveTextContent('workspace'));
-      const layout = screen.getByRole('combobox', { name: 'Default layout for new users' });
+      const layout = await screen.findByRole('combobox', { name: 'Default layout for new users' });
       await waitFor(() => expect(layout).toHaveDisplayValue('Workspace'));
       await waitFor(() => expect(layout).toBeEnabled());
       const prefReads = () => vi.mocked(fetch).mock.calls.filter(([u, i]) => String(u).endsWith('/api/user/preferences') && (i?.method ?? 'GET') === 'GET').length;
@@ -171,7 +171,7 @@ describe('r4-server-general (Layout and Sources cards)', () => {
     it('a failed default save leaves the layout unchanged and shows the error', async () => {
       renderOnDefault(() => new Response(JSON.stringify({ success: false, error: 'nope' }), { status: 500 }));
       await waitFor(() => expect(screen.getByTestId('gate')).toHaveTextContent('workspace'));
-      const layout = screen.getByRole('combobox', { name: 'Default layout for new users' });
+      const layout = await screen.findByRole('combobox', { name: 'Default layout for new users' });
       await waitFor(() => expect(layout).toHaveDisplayValue('Workspace'));
       await waitFor(() => expect(layout).toBeEnabled());
       fireEvent.change(layout, { target: { value: 'classic' } });

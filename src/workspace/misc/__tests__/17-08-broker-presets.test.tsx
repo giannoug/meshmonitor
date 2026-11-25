@@ -217,4 +217,17 @@ describe('17-08-broker-presets', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Find MQTT topics' })).toBeNull());
     expect(within(screen.getByRole('dialog', { name: 'Save as preset' })).getByLabelText('Preset name')).toHaveValue('Mine');
   });
+
+  it('Esc over a portalled dialog (not inside the form) leaves the form open', async () => {
+    renderSettings(route, { fixtures: brokerPresetFixtures() });
+    const save = await open('Save as preset');
+    const other = document.createElement('div');
+    other.setAttribute('role', 'dialog');
+    other.setAttribute('aria-modal', 'true');
+    document.body.appendChild(other);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(within(screen.getByRole('dialog', { name: 'Save as preset' })).getByLabelText('Preset name')).toBeInTheDocument();
+    expect(save).toBeInTheDocument();
+    other.remove();
+  });
 });
