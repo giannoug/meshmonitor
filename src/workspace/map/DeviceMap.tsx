@@ -16,7 +16,7 @@
  * A node to centre on arrives as `location.state.focusNodeId` (Center on Map,
  * Ruling AJ); it opens that node's peek and is dropped from the history entry.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -77,6 +77,7 @@ import MapToolbar, { MapControls } from './MapToolbar';
 import NeighbourPeek, { type NeighbourLink } from './NeighbourPeek';
 import NodePeek from './NodePeek';
 import NodeFiltersSheet from '../nodes/NodeFiltersSheet';
+import { neighborInfoKey } from '../node-page/Neighbours';
 import PhoneMap from './PhoneMap';
 import { peekCenterTarget } from './peekCenter';
 import { themeColors } from './themeColors';
@@ -160,7 +161,7 @@ function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapP
   }, [polledTraceroutes, setTraceroutes]);
   // Neighbour links: read while their layer is on; no refresh timer (Ruling N).
   const { data: neighbours } = useQuery({
-    queryKey: ['workspace', 'neighbor-info', sourceId],
+    queryKey: neighborInfoKey(sourceId),
     queryFn: () => api.get<EnrichedNeighborInfo[]>(`/api/sources/${encodeURIComponent(sourceId)}/neighbor-info`),
     enabled: map.showNeighborInfo && showData,
   });
@@ -209,6 +210,8 @@ function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapP
   const [measureActive, setMeasureActive] = useState(false);
   /** Where "Measure from here" starts; null when Measure Distance is turned on from its button. */
   const [measureStart, setMeasureStart] = useState<{ lat: number; lon: number } | null>(null);
+  /** Counts "Measure from here" picks: the controller's `key`, so a second one at the same spot starts over. */
+  const [measureNonce, setMeasureNonce] = useState(0);
   const [leaflet, setLeaflet] = useState<L.Map | null>(null);
   const edit = useMapEditing({
     sourceId,
@@ -221,6 +224,7 @@ function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapP
     measureDisabled: data.measurePoints.length < 2,
     onMeasure: (spot) => {
       setMeasureStart(spot);
+      setMeasureNonce((n) => n + 1);
       setMeasureActive(true);
     },
     onMarkerCreated: () => map.setShowLocalMarkers(true),
@@ -251,14 +255,26 @@ function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapP
   };
 
   // Center on Map from elsewhere (Ruling AJ): handled once the nodes are in, then dropped. On a
-  // phone it also waits for the 2D map, which the peek offset needs (a warm cache has the nodes first).
+  // phone it also waits for the 2D map, which the peek offset needs (a warm cache has the nodes first),
+  // unless the map is unavailable (BaseMap's own boundary drew its panel) and so never comes.
+  const mapArea = useRef<HTMLDivElement>(null);
+  const [mapFailed, setMapFailed] = useState(false);
   useEffect(() => {
-    if (!focusNodeId || isLoading || (isPhone && !leaflet && !effective3D)) return;
+    const el = mapArea.current;
+    if (!focusNodeId || !isPhone || !el) return;
+    const check = () => setMapFailed(!!el.querySelector('[data-testid="map-unavailable"]'));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(el, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [focusNodeId, isPhone]);
+  useEffect(() => {
+    if (!focusNodeId || isLoading || (isPhone && !leaflet && !effective3D && !mapFailed)) return;
     const node = nodes.find((n) => n.user?.id === focusNodeId);
     if (node) openNode(node, true);
     onFocusHandled();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 runs once per focus request, after the nodes (and on phone the map) load
-  }, [focusNodeId, isLoading, leaflet]);
+  }, [focusNodeId, isLoading, leaflet, effective3D, mapFailed]);
 
   const peekNode = panel?.kind === 'node' ? nodes.find((n) => markerKey(n) === panel.key) : undefined;
   const fitPositions = data.visibleMapNodes.flatMap((n) => {
@@ -290,6 +306,7 @@ function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapP
   }, [leaflet, startOnNodes, !!firstFix]);
 
   const sourceIds = useMemo(() => [sourceId], [sourceId]);
+  const visibleNodeNums = useMemo(() => new Set(data.visibleMapNodes.map((n) => n.nodeNum)), [data.visibleMapNodes]);
   const status = (
     <>
       {map.showNeighborInfo && (
@@ -326,7 +343,7 @@ function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapP
 
   return (
     <div className={styles.page}>
-      <div className={styles.mapArea} data-panel={panel ? 'open' : undefined}>
+      <div ref={mapArea} className={styles.mapArea} data-panel={panel ? 'open' : undefined}>
         {effective3D ? (
           <Map3DView
             center={initial.center}
@@ -340,7 +357,7 @@ function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapP
             showCrossSourceLinks={map.showCrossSourceLinks}
             showTracerouteConfirmedLinks={map.showCrossSourceLinks && map.showTracerouteConfirmedLinks}
             lookbackHours={data.effectiveMapMaxAge}
-            visibleNodeNums={new Set(data.visibleMapNodes.map((n) => n.nodeNum))}
+            visibleNodeNums={visibleNodeNums}
             renderPopup={(key) => {
               const node = data.visibleMapNodes.find((n) => markerKey(n) === key);
               const p = node && data.nodePositions.get(node.nodeNum);
@@ -370,7 +387,7 @@ function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapP
             {map.showWaypoints && <DashboardWaypoints sourceId={sourceId} actions={edit.waypointActions} />}
             {map.showLocalMarkers && <LocalMarkers sourceId={sourceId} actions={edit.markerActions} />}
             {map.showAtakContacts && <DashboardAtakContacts sourceId={sourceId} />}
-            {measureActive && <MeasureDistanceController active points={data.measurePoints} startAt={measureStart} onExit={() => setMeasureActive(false)} />}
+            {measureActive && <MeasureDistanceController key={measureNonce} active points={data.measurePoints} startAt={measureStart} onExit={() => setMeasureActive(false)} />}
             {map.showAircraftTrails && <AircraftTrailsLayer trails={trails.trails} formatTooltip={trails.formatTooltip} />}
             <DeviceMapLayers
               mapState={{ showPolarGrid: map.showPolarGrid, showPaths: map.showPaths, showRoute: map.showRoute }}

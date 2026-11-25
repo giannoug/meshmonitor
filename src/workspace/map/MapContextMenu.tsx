@@ -117,7 +117,7 @@ export default function MapContextMenu({ spot, phone, canWaypoint, canMarker, me
       <p className={styles.head}>{`${spot.lat.toFixed(4)}, ${spot.lon.toFixed(4)}`}</p>
       {canWaypoint && item('location', t('workspace.map_edit.add_waypoint'), t('workspace.map_edit.add_waypoint_hint'), onWaypoint)}
       {canMarker && item('pin', t('workspace.map_edit.add_marker'), t('workspace.map_edit.add_marker_hint'), onMarker)}
-      {item('ruler', t('workspace.map_edit.measure'), t('workspace.map_edit.measure_hint'), onMeasure, measureDisabled)}
+      {item('ruler', t('workspace.map_edit.measure'), t(measureDisabled ? 'workspace.map.measure_needs_nodes' : 'workspace.map_edit.measure_hint'), onMeasure, measureDisabled)}
     </div>
   );
 }

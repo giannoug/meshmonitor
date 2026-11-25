@@ -277,3 +277,33 @@
 .list[data-phone] .itemButton {
   min-height: 44px;
 }
+
+/* A `buttons` variant tile (the phone map peek, the phone node header). */
+.tileButton {
+  min-height: 64px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+
+.tileButton:hover {
+  background: var(--color-surface-hover);
+}
+
+.tileButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

@@ -246,4 +246,11 @@ describe('other protocols', () => {
     await screen.findByRole('group', { name: 'Organise' });
     expect(screen.queryByRole('group', { name: 'Ask the node' })).toBeNull();
   });
+
+  it('the buttons variant (phone peek tiles) says each button opens a dialog', async () => {
+    renderWorkspace(<NodeActionMenus protocol="reticulum" sourceId={SOURCE_IDS.rns} node={kifisia} variant="buttons" />);
+    const tiles = await screen.findAllByRole('button', { name: /Organise|Data/ });
+    expect(tiles.length).toBeGreaterThan(0);
+    for (const tile of tiles) expect(tile).toHaveAttribute('aria-haspopup', 'dialog');
+  });
 });

@@ -85,7 +85,8 @@ export default function NodeHeader({ sourceId, node, tab, parts }: NodeHeaderPro
   const fw = node.firmwareVersion ?? node.user?.firmwareVersion;
   const heard = node.lastHeard ? t('workspace.map.heard', { time: formatRelativeTime(node.lastHeard * 1000, timeFormat, dateFormat) }) : null;
   const signedIn = authStatus?.authenticated === true;
-  const canMessage = hasPermission('messages', 'read', { sourceId });
+  // A node with no user id (a MeshCore contact) has no DM to open.
+  const canMessage = !!node.user?.id && hasPermission('messages', 'read', { sourceId });
   const protocol = sourceType === 'mqtt_bridge' || sourceType === 'mqtt_broker' ? 'mqtt' : 'meshtastic';
 
   const avatar = (small?: boolean) => (

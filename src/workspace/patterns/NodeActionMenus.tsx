@@ -481,7 +481,7 @@ function NodeSheet({
     <>
       {perGroup ? (
         keys.map((k) => (
-          <button key={k} type="button" onClick={() => openOn(k)}>
+          <button key={k} type="button" className={styles.tileButton} aria-haspopup="dialog" onClick={() => openOn(k)}>
             <UiIcon name={GROUP_ICONS[k]} size={22} />
             {t(GROUP_LABELS[k])}
           </button>

@@ -78,13 +78,30 @@ describe('15-07-waypoint-editor', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'New waypoint' })).toBeNull());
   });
 
-  it("today's 10-minute floor: a shorter rebroadcast is refused and nothing is sent", async () => {
+  it("today's 10-minute floor: a shorter rebroadcast turns Create off, and nothing is sent", async () => {
     renderChat(mapRoute, { fixtures });
     const sheet = within(await openEditor());
     fireEvent.change(sheet.getByLabelText(/^Rebroadcast every/), { target: { value: '5' } });
+    await waitFor(() => expect(sheet.getByRole('button', { name: 'Create' })).toBeDisabled());
     fireEvent.click(sheet.getByRole('button', { name: 'Create' }));
     await new Promise((r) => setTimeout(r, 50));
     expect(sent(waypointsUrl, 'POST')).toHaveLength(0);
+    // Back at 10, Create is on again.
+    fireEvent.change(sheet.getByLabelText(/^Rebroadcast every/), { target: { value: '10' } });
+    await waitFor(() => expect(sheet.getByRole('button', { name: 'Create' })).toBeEnabled());
+  });
+
+  it('a double click on Create sends one waypoint', async () => {
+    renderChat(mapRoute, { fixtures });
+    const sheet = within(await openEditor());
+    fireEvent.change(sheet.getByLabelText('Name (≤29 bytes)'), { target: { value: 'Trailhead' } });
+    const create = sheet.getByRole('button', { name: 'Create' });
+    await waitFor(() => expect(create).toBeEnabled());
+    fireEvent.click(create);
+    fireEvent.click(create);
+    await waitFor(() => expect(sent(waypointsUrl, 'POST')).toHaveLength(1));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(sent(waypointsUrl, 'POST')).toHaveLength(1);
   });
 
   it('Enter in a text field does not send the waypoint', async () => {

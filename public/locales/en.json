@@ -9399,6 +9399,7 @@
   "workspace.map.packet_monitor": "Packet monitor",
   "workspace.map.fit_all": "Zoom to fit all nodes",
   "workspace.map.measure": "Measure Distance",
+  "workspace.map.measure_needs_nodes": "Needs two nodes with a position",
   "workspace.map.neighbours_hint": "Neighbours layer on · click a link for its peek",
   "workspace.map.neighbour_link": "Neighbour link",
   "workspace.map.link": "Link",

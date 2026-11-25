@@ -587,8 +587,7 @@ export const BOARDS: Board[] = [
       await page.getByRole('button', { name: 'Node list' }).click();
       await page.getByRole('list', { name: 'On the map' }).getByRole('button', { name: /Kifisia Rooftop/ }).click();
       await page.getByRole('dialog', { name: 'Kifisia Rooftop' }).getByText('Swipe up for the node page').waitFor();
-      // The centring fly-to runs up to ZOOM_ANIMATION_DURATION_MAX_SECONDS (2 s), then the tiles load.
-      await page.waitForTimeout(2500);
+      await mapSettled(page);
     },
   },
   {
@@ -2641,6 +2640,29 @@ async function serveRenumbering(page: Page): Promise<void> {
 async function showRenumbering(page: Page): Promise<void> {
   await serveRenumbering(page);
   await page.getByRole('button', { name: /Merge history…/ }).waitFor();
+}
+
+/**
+ * Waits for the map to stop moving and for its tiles to load, in place of a fixed sleep over the
+ * centring fly-to (up to 2 s) and the tile loads. The map instance is not reachable from the page, so
+ * "moved" is read off the DOM: the map pane's transform and the tile layers' z-order held for 20 frames
+ * with no tile loading and no zoom or pan animation class.
+ */
+async function mapSettled(page: Page): Promise<void> {
+  await page.waitForFunction(
+    () => {
+      const w = window as unknown as { __mapSettle?: { key: string; frames: number } };
+      const pane = document.querySelector<HTMLElement>('.leaflet-map-pane');
+      if (!pane) return false;
+      const busy = !!document.querySelector('.leaflet-tile-loading, .leaflet-zoom-anim, .leaflet-pan-anim');
+      const key = pane.style.transform + [...document.querySelectorAll<HTMLElement>('.leaflet-tile-container')].map((c) => c.style.zIndex).join();
+      const prev = w.__mapSettle;
+      w.__mapSettle = { key, frames: !busy && prev?.key === key ? prev.frames + 1 : 0 };
+      return w.__mapSettle.frames >= 20;
+    },
+    undefined,
+    { polling: 'raf' },
+  );
 }
 
 /** The phone node page's tile, opening the Node actions sheet on that tab. */

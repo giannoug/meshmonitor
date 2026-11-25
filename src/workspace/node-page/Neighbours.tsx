@@ -27,6 +27,10 @@ import styles from './Neighbours.module.css';
 /** Old rows carry seconds, new ones milliseconds (MessagesTab's rule). */
 const ms = (ts: number) => (ts < 10_000_000_000 ? ts * 1000 : ts);
 
+/** The neighbour-info query's key, shared with the device map (one cache entry per source). */
+// eslint-disable-next-line react-refresh/only-export-components -- #6365 the key is shared with the device map
+export const neighborInfoKey = (sourceId: string | null) => ['workspace', 'neighbor-info', sourceId];
+
 export default function Neighbours({ sourceId, node }: { sourceId: string; node: DeviceInfo }) {
   const { t } = useTranslation();
   const { showToast } = useToast();
@@ -36,7 +40,7 @@ export default function Neighbours({ sourceId, node }: { sourceId: string; node:
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const isPhone = useIsPhone();
-  const queryKey = ['workspace', 'neighbor-info', sourceId];
+  const queryKey = neighborInfoKey(sourceId);
   const { data } = useQuery({
     queryKey,
     queryFn: () => api.get<EnrichedNeighborInfo[]>(`/api/sources/${encodeURIComponent(sourceId)}/neighbor-info`),

@@ -31,6 +31,7 @@ import { getPacketStats } from '../../services/packetApi';
 import type { GeoJsonLayer } from '../../server/services/geojsonService.js';
 import type { PacketFlightStats } from '../../utils/packetFlightEdges';
 import { appBasename } from '../../init';
+import { logger } from '../../utils/logger';
 import { SubToggle, type LayerGroupSpec, type LayerItem, type LayerToggle } from './LayerGroup';
 import styles from './LayersDrawer.module.css';
 
@@ -87,7 +88,7 @@ export function useGeoJsonLayers() {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ visible }),
-    }).catch((err) => console.error('Failed to update layer visibility:', err));
+    }).catch((err) => logger.error('Failed to update layer visibility:', err));
   };
   return { geoJsonLayers, setLayerVisible };
 }

@@ -73,6 +73,32 @@ const NOT_ON_THE_DEVICE_MAP: Record<string, string> = {
   setShowMeshCoreNodes: 'MeshCore nodes are drawn on the Overview map (DashboardMap) only, never on a Meshtastic device map',
 };
 
+/** The state each layer checkbox flips, and the label it carries. */
+const LABELS: Record<string, string> = {
+  positionHistoryPointsOnly: 'Points only (no line)',
+  showAccuracyRegions: 'Show Accuracy Regions',
+  showAgedOutAircraft: 'Show aged-out',
+  showAircraftTrails: 'Flight trails',
+  showAnimations: 'Show Animations',
+  showAtakContacts: 'Show ATAK Contacts',
+  showCrossSourceLinks: 'Show Cross-Source Links',
+  showDucting: 'Ducting',
+  showEstimatedPositions: 'Show Estimated Positions',
+  showLocalMarkers: 'Show Local Markers',
+  showMotion: 'Show Position History',
+  showMqttNodes: 'Show MQTT',
+  showNeighborInfo: 'Show Neighbor Info',
+  showPacketFlights: 'Live packet traffic',
+  showPaths: 'Show Route Segments',
+  showPolarGrid: 'Show Polar Grid',
+  showRfNodes: 'Show RF',
+  showRoute: 'Show Traceroute',
+  showTracerouteConfirmedLinks: 'Traceroute-Confirmed Links',
+  showUdpNodes: 'Show UDP',
+  showWaypoints: 'Show Waypoints',
+  spreadNodes: 'Spread Nodes',
+};
+
 describe('every setShow* in MapContext has exactly one control in the Layers drawer', () => {
   let ctx: Ctx;
   function Probe() {
@@ -121,6 +147,7 @@ describe('every setShow* in MapContext has exactly one control in the Layers dra
     // Flip every switch and checkbox once, including the ones a parent reveals. Last first, so a
     // sub-toggle shown under a parent that starts on is flipped before the parent hides it.
     const controlsFor: Record<string, number> = {};
+    const labelFor: Record<string, string> = {};
     const seen = new Set<Element>();
     for (let pass = 0; pass < 5; pass++) {
       const fresh = Array.from(drawer.querySelectorAll('input[type="checkbox"]')).filter((el) => !seen.has(el)).reverse();
@@ -132,7 +159,12 @@ describe('every setShow* in MapContext has exactly one control in the Layers dra
         fireEvent.click(input);
         await waitFor(() => expect(flags(ctx!)).not.toEqual(before)).catch(() => {});
         const after = flags(ctx!);
-        for (const key of Object.keys(after)) if (after[key] !== before[key]) controlsFor[key] = (controlsFor[key] ?? 0) + 1;
+        for (const key of Object.keys(after)) {
+          if (after[key] === before[key]) continue;
+          controlsFor[key] = (controlsFor[key] ?? 0) + 1;
+          const el = input as HTMLInputElement;
+          labelFor[key] = el.getAttribute('aria-label') ?? el.labels?.[0]?.textContent?.trim() ?? '';
+        }
       }
     }
 
@@ -141,5 +173,7 @@ describe('every setShow* in MapContext has exactly one control in the Layers dra
     // Two more of today's map toggles that are not named show*.
     expect(controlsFor.spreadNodes).toBe(1);
     expect(controlsFor.positionHistoryPointsOnly).toBe(1);
+    // And each one is labelled for the setter it flips (a swapped pair would still be "one control each").
+    expect(labelFor).toEqual(LABELS);
   });
 });
