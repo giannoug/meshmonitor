@@ -2686,7 +2686,7 @@ async function collapseNodeHeader(page: Page): Promise<void> {
 }
 
 async function searchRelay(page: Page): Promise<void> {
-  const dialog = page.getByRole('dialog', { name: 'Search Messages' });
+  const dialog = page.getByRole('dialog', { name: 'Search Messages' }).or(page.getByRole('region', { name: 'Search Messages' }));
   await dialog.getByRole('textbox', { name: 'Search for text in messages...' }).fill('relay');
   await dialog.getByRole('button', { name: 'Search', exact: true }).click();
   await dialog.getByText(/Showing 5 of 31 results/).waitFor();
