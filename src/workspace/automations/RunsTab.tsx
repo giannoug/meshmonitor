@@ -47,7 +47,7 @@ export function StepLines({ steps }: { steps: TraceStep[] }) {
 export default function RunsTab({ ruleId, name, limited }: { ruleId: string; name: string; limited: boolean }) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
-  const { data: runs, isLoading, isError } = useQuery(runsQuery(ruleId));
+  const { data: runs, isLoading, isError } = useQuery({ ...runsQuery(ruleId), refetchOnMount: false }); // the rule page's own observer reads it once per open
   const [filter, setFilter] = useState<RunKind | 'all'>('all');
   const [open, setOpen] = useState<string | null>(null);
   if (isError) return <StateView kind="error" />;

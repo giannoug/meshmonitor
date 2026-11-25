@@ -9,7 +9,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
-import { READ_ONLY, nonGet, renderRules } from './renderRules';
+import { READ_ONLY, gets, nonGet, renderRules, settle } from './renderRules';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('./socketMock')).socketMock(orig));
 
@@ -54,5 +54,13 @@ describe('14-03-templates-wizard', () => {
     renderRules('/overview/automations/templates/auto-ack', { permissions: READ_ONLY });
     const wizard = await screen.findByRole('complementary', { name: 'Auto-Ack' });
     expect(within(wizard).getByRole('button', { name: 'Install' })).toBeDisabled();
+  });
+
+  it('without automations:read the wizard shows the denied view and fetches nothing', async () => {
+    renderRules('/overview/automations/templates/auto-ack', { permissions: { global: { messages: { read: true, write: false } }, bySource: {} } as never });
+    await settle(200);
+    expect(screen.queryByRole('button', { name: 'Install' })).toBeNull();
+    expect(screen.getByText(/permission/i)).toBeInTheDocument();
+    expect(gets(/^\/api\/automations/)).toBe(0);
   });
 });

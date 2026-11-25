@@ -11,7 +11,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { BRANCHED_RULE, RULES } from '../../__fixtures__/rules';
-import { READ_ONLY, nonGet, renderRules, settle } from './renderRules';
+import { READ_ONLY, gets, nonGet, renderRules, settle } from './renderRules';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('./socketMock')).socketMock(orig));
 
@@ -114,6 +114,38 @@ describe('m2-rule', () => {
     fireEvent.click(within(await screen.findByRole('region', { name: /save/i })).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(nonGet()).toHaveLength(1));
     expect((nonGet()[0].body as { config: unknown }).config).toEqual(JSON.parse(BRANCHED_RULE.config));
+  });
+
+  it('Run now with a step that names no source shows run.no_source', async () => {
+    renderRules('/automations/e1');
+    fireEvent.click(await screen.findByRole('button', { name: 'Run now' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Run this automation now?' });
+    expect(sheet).toHaveTextContent('No device chosen: Run now has no triggering device');
+    expect(sheet).not.toHaveTextContent('Sends now through');
+  });
+
+  it('reopening a rule re-reads its runs', async () => {
+    renderRules(WEATHER);
+    await loaded();
+    await waitFor(() => expect(gets('/api/automations/e3/runs')).toBe(1));
+    fireEvent.click(screen.getByRole('link', { name: /Automations/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Actions for Weather bot' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }));
+    await loaded();
+    await waitFor(() => expect(gets('/api/automations/e3/runs')).toBe(2));
+  });
+
+  it('JSON mode offers Reset homes from history when the trigger supports it', async () => {
+    const rule = { ...BRANCHED_RULE, id: 'x2', name: 'Home rule', config: JSON.stringify({ ...JSON.parse(BRANCHED_RULE.config), nodes: [{ id: 't', type: 'trigger.leftHome', params: {} }], edges: [] }) };
+    renderRules('/automations/x2', { rules: [...RULES, rule] });
+    expect(await screen.findByText(/This rule has a shape the steps do not draw/)).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Reset homes from history' })).toBeEnabled();
+  });
+
+  it('JSON mode hides Reset homes when the trigger does not support it', async () => {
+    renderRules('/automations/x1', { rules: [...RULES, BRANCHED_RULE] });
+    expect(await screen.findByText(/This rule has a shape the steps do not draw/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reset homes from history' })).toBeNull();
   });
 
   it('Test sends today\'s dry run once per press and shows what it would send', async () => {

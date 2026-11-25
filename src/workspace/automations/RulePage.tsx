@@ -328,7 +328,9 @@ function Rule({ rule, isNew }: { rule: Automation; isNew: boolean }) {
   );
 
   // ── Rule tab ──
-  const whenExtra = !isNew && mode === 'steps' && form.trigger.type === 'trigger.leftHome' && (
+  // The same predicate in both modes; JSON mode reads the trigger from the parsed text (none when it does not parse).
+  const homesTrigger = mode === 'steps' ? form.trigger.type : triggerOf(readGraph(json))?.type;
+  const whenExtra = !isNew && homesTrigger === 'trigger.leftHome' && (
     <div className={own.whenExtra}>
       <button type="button" className={styles.button} disabled={!canWrite || homesBusy} onClick={() => void resetHomes()}>
         {homesBusy ? t('workspace.rules.homes.busy') : t('workspace.rules.homes.button')}
@@ -368,6 +370,7 @@ function Rule({ rule, isNew }: { rule: Automation; isNew: boolean }) {
         <textarea className={`${own.textarea} ${own.code}`} spellCheck={false} value={json} disabled={!canWrite} onChange={(e) => { setJson(e.target.value); setConfigDirty(true); }} />
       </label>
       <button type="button" className={styles.button} onClick={toSteps}>{t('workspace.rules.edit_steps')}</button>
+      {whenExtra}
     </section>
   );
   const ruleTab = (

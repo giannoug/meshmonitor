@@ -23,6 +23,7 @@ import {
 } from '../../components/automations/templates/install';
 import type { AutomationTemplate } from '../../components/automations/templates/types';
 import SendsLine from '../patterns/SendsLine';
+import StateView from '../patterns/StateView';
 import { useIsPhone } from '../shell/useIsPhone';
 import ToolHead from '../meshcore/ToolHead';
 import { ENGINE, ENGINE_TEMPLATES, ruleUrl, rulesQuery } from './engineRules';
@@ -92,6 +93,7 @@ function Wizard({ template }: { template: AutomationTemplate }) {
   const [installing, setInstalling] = useState(false);
   const [outcomes, setOutcomes] = useState<InstallOutcome[] | null>(null);
   const multi = isMultiTemplate(template);
+  if (!hasPermission('automations', 'read')) return <StateView kind="noPermission" />;
   const close = () => navigate(ENGINE_TEMPLATES);
 
   // What the current answers would install (no request), for the note and the Sends line.

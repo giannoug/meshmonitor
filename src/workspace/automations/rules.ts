@@ -22,8 +22,8 @@ export const variablesQuery = {
 export const runsQuery = (id: string) => ({
   queryKey: ['workspace', 'automations', 'runs', id] as const,
   queryFn: () => apiService.get<Run[]>(`/api/automations/${encodeURIComponent(id)}/runs`),
-  // Read once per visit (today's RunLog); Run now re-reads it.
-  staleTime: Infinity,
+  // Re-read on each open, as Classic does; no interval, and a refetch only on mount.
+  staleTime: 0,
   refetchOnWindowFocus: false,
 });
 
