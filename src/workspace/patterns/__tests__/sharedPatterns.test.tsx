@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWorkspace } from '../../test/renderWorkspace';
@@ -91,6 +92,41 @@ describe('ConfirmSheet failure and busy', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Purge now' }));
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   });
+  it('danger tone sets the danger class', () => {
+    confirm({ confirmWord: undefined });
+    expect(screen.getByRole('button', { name: 'Purge now' }).className).toMatch(/danger/);
+  });
+  it('Cancel is enabled when not busy', () => {
+    confirm();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
+  });
+  it('a click on Confirm while busy does not call onConfirm', () => {
+    const { onConfirm } = confirm({ confirmWord: undefined, busy: true, submitOnEnter: false });
+    fireEvent.click(screen.getByRole('button', { name: /Purge now/ }));
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+  it('clicking the footer Confirm submits through form=', async () => {
+    const { onConfirm } = confirm({ confirmWord: undefined });
+    const btn = screen.getByRole('button', { name: 'Purge now' });
+    await waitFor(() => expect(btn).toBeEnabled());
+    fireEvent.click(btn);
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+  it('the busy live region is mounted empty before busy', () => {
+    const Host = () => {
+      const [busy, setBusy] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setBusy(true)}>go busy</button>
+          <ConfirmSheet open busy={busy} title="Purge" confirmLabel="Purge now" onConfirm={() => {}} onCancel={() => {}} />
+        </>
+      );
+    };
+    renderWorkspace(<Host />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    fireEvent.click(screen.getByRole('button', { name: 'go busy' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…');
+  });
   it('announces busy: aria-busy on confirm and a live status', () => {
     confirm({ busy: true });
     expect(screen.getByRole('button', { name: /Purge now/ })).toHaveAttribute('aria-busy', 'true');
@@ -116,7 +152,24 @@ describe('OneTimeReveal', () => {
   });
 });
 
+describe('OneTimeReveal rows and clipboard', () => {
+  it('two identical secrets render two rows', () => {
+    renderWorkspace(<OneTimeReveal secrets={['same', 'same']} />);
+    expect(screen.getAllByText('same')).toHaveLength(2);
+  });
+  it('a clipboard failure shows an error line', async () => {
+    Object.assign(navigator, { clipboard: { writeText: vi.fn().mockRejectedValue(new Error('denied')) } });
+    renderWorkspace(<OneTimeReveal secrets={['a']} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+    expect(await screen.findByText('Could not copy to the clipboard')).toBeInTheDocument();
+  });
+});
+
 describe('StateView', () => {
+  it('shows detail', () => {
+    renderWorkspace(<StateView kind="empty" detail="Try adding one" />);
+    expect(screen.getByText('Try adding one')).toBeInTheDocument();
+  });
   it.each([
     ['loading', 'Loading…'],
     ['empty', 'Nothing here yet'],
@@ -136,6 +189,10 @@ describe('StateView', () => {
 });
 
 describe('SendsLine and DeviceTag', () => {
+  it('SendsLine renders its icon', () => {
+    const { container } = renderWorkspace(<SendsLine>Sends 1 message</SendsLine>);
+    expect(container.querySelector('svg, [data-ui-icon]')).not.toBeNull();
+  });
   it('SendsLine shows its text', () => {
     renderWorkspace(<SendsLine>Sends 1 message</SendsLine>);
     expect(screen.getByText('Sends 1 message')).toBeInTheDocument();

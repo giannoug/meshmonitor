@@ -8,7 +8,7 @@
  * Show all news reopens the whole feed and dismisses nothing. The feed is read
  * when the sheet opens, as today; no interval.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { newsFixtures } from '../../__fixtures__/oddPages';
@@ -97,5 +97,20 @@ describe('17-09-news', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(writes).toEqual(['POST /api/news/dismiss/n3', 'POST /api/news/dismiss/n2', 'POST /api/news/user/status']);
+  });
+
+  it('changing page scrolls the body to top', async () => {
+    const scrollTo = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'scrollTo', { configurable: true, value: scrollTo });
+    try {
+      const { sheet } = await showAll();
+      scrollTo.mockClear();
+      fireEvent.click(within(sheet).getByRole('button', { name: 'Next' }));
+      await within(sheet).findByText('2 / 3');
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0 });
+      expect(scrollTo.mock.contexts.at(-1)).toContainElement(within(sheet).getByRole('article'));
+    } finally {
+      delete (HTMLElement.prototype as { scrollTo?: unknown }).scrollTo;
+    }
   });
 });

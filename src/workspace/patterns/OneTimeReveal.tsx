@@ -34,6 +34,7 @@ export default function OneTimeReveal({ secrets, mustAck, title, intro, label, o
   const { t } = useTranslation();
   const [acked, setAcked] = useState(false);
   const [copiedHere, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const copied = copiedProp ?? copiedHere;
 
   const copy = async () => {
@@ -42,7 +43,10 @@ export default function OneTimeReveal({ secrets, mustAck, title, intro, label, o
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-    } catch { /* clipboard unavailable: the codes stay on screen to copy by hand */ }
+      setCopyFailed(false);
+    } catch {
+      setCopyFailed(true); // the codes stay on screen to copy by hand
+    }
   };
 
   return (
@@ -53,7 +57,7 @@ export default function OneTimeReveal({ secrets, mustAck, title, intro, label, o
       </div>
       <p className={styles.intro}>{intro ?? t('passkey_only.codes_intro')}</p>
       <ol className={styles.secrets} data-single={secrets.length === 1 || undefined} aria-label={label ?? t('passkey_only.codes_title')}>
-        {secrets.map((s) => <li key={s}><code>{s}</code></li>)}
+        {secrets.map((s, i) => <li key={i}><code>{s}</code></li>)}
       </ol>
       <div className={styles.row}>
         <button type="button" className={styles.btn} onClick={copy}>
@@ -61,6 +65,7 @@ export default function OneTimeReveal({ secrets, mustAck, title, intro, label, o
         </button>
         {onDownload && <button type="button" className={styles.btn} onClick={onDownload}>{t('passkey_only.download')}</button>}
       </div>
+      {copyFailed && <p role="alert">{t('workspace.patterns.copy_failed')}</p>}
       {mustAck && (
         <label className={styles.ack}>
           <input type="checkbox" checked={acked} onChange={(e) => setAcked(e.target.checked)} />

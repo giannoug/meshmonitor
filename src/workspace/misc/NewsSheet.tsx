@@ -43,7 +43,7 @@ export default function NewsSheet({ isOpen, onClose, forceShowAll = false, isAut
   // Today scrolls the popup's body to the top on a page turn; here the sheet's body is the scroller.
   const bodyRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    bodyRef.current?.parentElement?.scrollTo?.({ top: 0 });
+    bodyRef.current?.scrollTo?.({ top: 0 });
   }, [n.currentIndex]);
   const item = n.loading ? undefined : n.newsItems[n.currentIndex];
   const isLast = n.currentIndex === n.newsItems.length - 1;
@@ -73,8 +73,8 @@ export default function NewsSheet({ isOpen, onClose, forceShowAll = false, isAut
   );
 
   return (
-    <Sheet open={isOpen} onClose={close} title={title} footer={footer}>
-      <div className={styles.body} data-phone={phone} ref={bodyRef}>
+    <Sheet open={isOpen} onClose={close} title={title} footer={footer} bodyRef={bodyRef}>
+      <div className={styles.body} data-phone={phone}>
         {n.loading ? (
           <StateView kind="loading" />
         ) : !item ? (

@@ -7,7 +7,7 @@
  * `dismissible={false}` drops all three (must-ack reveals, the forced
  * password change): only the sheet's own controls close it.
  */
-import { useEffect, useId, useRef, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type PointerEvent, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
@@ -28,6 +28,8 @@ export interface SheetProps {
   onSwipeUp?(): void;
   /** false: no close button, and Esc and the backdrop do nothing. Default true. */
   dismissible?: boolean;
+  /** The scroll container (the body between head and footer). */
+  bodyRef?: Ref<HTMLDivElement>;
 }
 
 const ignore = () => {};
@@ -42,7 +44,7 @@ export default function Sheet(props: SheetProps) {
 }
 
 /** Mounted only while open: the a11y hook focuses on mount and restores focus on unmount. */
-function OpenSheet({ onClose: close, title, side = 'auto', children, footer, actions, onSwipeUp, dismissible = true }: SheetProps) {
+function OpenSheet({ onClose: close, title, side = 'auto', children, footer, actions, onSwipeUp, dismissible = true, bodyRef }: SheetProps) {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const onClose = dismissible ? close : ignore;
@@ -95,7 +97,7 @@ function OpenSheet({ onClose: close, title, side = 'auto', children, footer, act
             </button>
           )}
         </div>
-        <div className={styles.body}>{children}</div>
+        <div className={styles.body} ref={bodyRef}>{children}</div>
         {footer && <div className={styles.footer}>{footer}</div>}
       </div>
     </div>

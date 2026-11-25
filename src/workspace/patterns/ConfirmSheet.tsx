@@ -88,7 +88,8 @@ function OpenConfirm({ title, body, consequences, confirmLabel, cancelLabel, con
         </div>
       }
     >
-      {busy && <span className={styles.visuallyHidden} role="status">{t('workspace.state.loading')}</span>}
+      {/* Mounted before busy so screen readers announce the change. */}
+      <span className={styles.visuallyHidden} role="status">{busy ? t('workspace.state.loading') : ''}</span>
       <form id={id} className={styles.form} onSubmit={submit}>
         {body && <div className={styles.text}>{body}</div>}
         {consequences && consequences.length > 0 && (

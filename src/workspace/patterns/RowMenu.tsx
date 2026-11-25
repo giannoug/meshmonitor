@@ -119,7 +119,20 @@ export default function RowMenu({ label, items, heading, trigger: triggerContent
       </button>
       {open &&
         createPortal(
-          <span className={styles.menu} role="menu" aria-label={label} ref={menu} style={place} data-phone={isPhone || undefined}>
+          <span
+            className={styles.menu}
+            role="menu"
+            aria-label={label}
+            ref={menu}
+            style={place}
+            data-phone={isPhone || undefined}
+            // Tab leaves the menu: close it and let Tab continue from ⋯.
+            onKeyDown={(e) => {
+              if (e.key !== 'Tab') return;
+              setOpen(false);
+              trigger.current?.focus();
+            }}
+          >
             {heading && <span className={styles.heading} role="presentation">{heading}</span>}
             {items.map((item) => (
               <button
@@ -134,6 +147,8 @@ export default function RowMenu({ label, items, heading, trigger: triggerContent
                 title={item.hint}
                 onClick={() => {
                   setOpen(false);
+                  // The menu unmounts with focus inside it; hand focus back first so a dialog the item opens restores to ⋯.
+                  trigger.current?.focus();
                   item.onSelect();
                 }}
               >

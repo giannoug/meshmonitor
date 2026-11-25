@@ -14,7 +14,7 @@
  * no source and no radio, and sends nothing on the mesh. Admins only (the
  * caller shows the buttons only when the list says `canManage`).
  */
-import { useId, useRef } from 'react';
+import { useId, useRef, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import { NumberInput } from '../../components/common/NumberInput';
@@ -39,13 +39,13 @@ import styles from './BrokerPresetsSheet.module.css';
 export type BrokerPresetsSheetProps = BrokerPresetDialogsProps;
 
 /**
- * Esc reaches every layer's document listener, ours first. A form sheet closes only when no dialog is
- * open inside one (today's Find topics, a common/Modal drawn in place), so Esc closes just the top layer (CR).
+ * Esc reaches every layer's document listener, ours first. A form sheet closes only when it is itself the
+ * topmost modal dialog (today's Find topics is a common/Modal, portalled after it), so Esc closes just the top layer (CR).
  */
-function whenTopLayer(close: () => void) {
+function whenTopLayer(close: () => void, own: RefObject<HTMLElement | null>) {
   return () => {
     const top = Array.from(document.querySelectorAll('[role="dialog"][aria-modal="true"]')).pop();
-    if (!top?.parentElement?.closest('[role="dialog"]')) close();
+    if (top === own.current?.closest('[role="dialog"]')) close();
   };
 }
 
@@ -70,10 +70,12 @@ function SavePresetSheet({ draft, onClose, passwordNotIncluded }: { draft: Broke
   const isOpen = draft !== null;
   const form = useSaveBrokerPresetForm({ isOpen, draft, onClose });
   const phone = useIsPhone() || undefined;
+  const bodyRef = useRef<HTMLDivElement>(null);
   return (
     <Sheet
       open={isOpen}
-      onClose={whenTopLayer(onClose)}
+      onClose={whenTopLayer(onClose, bodyRef)}
+      bodyRef={bodyRef}
       title={t('mqtt_presets.saved.save_title', 'Save as preset')}
       footer={
         <FormFooter
@@ -117,6 +119,7 @@ function ManagePresetsSheet({ open, onClose, presets }: { open: boolean; onClose
   const phone = useIsPhone() || undefined;
   // One delete request per press.
   const deleting = useRef(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const remove = async (id: number) => {
     if (deleting.current) return;
     deleting.current = true;
@@ -132,7 +135,8 @@ function ManagePresetsSheet({ open, onClose, presets }: { open: boolean; onClose
       <Sheet
         open={open}
         // The form is a step of this sheet: closing it goes back to the list, as today's Cancel.
-        onClose={whenTopLayer(m.cancelEdit)}
+        onClose={whenTopLayer(m.cancelEdit, bodyRef)}
+        bodyRef={bodyRef}
         title={
           m.target.mode === 'edit'
             ? t('mqtt_presets.saved.edit_title', 'Edit preset')

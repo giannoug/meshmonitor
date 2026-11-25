@@ -4,6 +4,7 @@
  * Sheet (spec §5.7): bottom on phone, docked right from 768 px, portaled to
  * <body>, aria-modal, Esc and the backdrop close it, Tab stays inside.
  */
+import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
 import { renderWorkspace } from '../../test/renderWorkspace';
@@ -58,6 +59,34 @@ describe('Sheet', () => {
     done.focus();
     fireEvent.keyDown(dialog, { key: 'Tab' });
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close' }));
+  });
+
+  it('focus returns to the opener on close', () => {
+    const Host = () => {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>opener</button>
+          <Sheet open={open} onClose={() => setOpen(false)} title="Devices">x</Sheet>
+        </>
+      );
+    };
+    renderWorkspace(<Host />, { phone: true });
+    const opener = screen.getByRole('button', { name: 'opener' });
+    opener.focus();
+    fireEvent.click(opener);
+    expect(document.activeElement).toBe(screen.getByRole('dialog'));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('Shift+Tab on the first element wraps to the last', () => {
+    renderSheet();
+    const dialog = screen.getByRole('dialog');
+    const first = screen.getAllByRole('button').find((b) => dialog.contains(b))!;
+    first.focus();
+    fireEvent.keyDown(dialog, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Done' }));
   });
 
   it('renders nothing while closed', () => {
