@@ -104,6 +104,7 @@ describe('f3-nodes', () => {
     fireEvent.keyDown(firmware, { key: 'ArrowUp', altKey: true });
     expect(prefs.puts).toEqual([]);
     expect(firmware.closest('li')).toHaveAttribute('draggable', 'false');
+    expect(firmware.closest('li')!.querySelector('[aria-disabled]')).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByRole('checkbox', { name: 'Hops' }).closest('li')).toHaveAttribute('draggable', 'true');
   });
 

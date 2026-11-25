@@ -574,3 +574,11 @@
   flex: none;
   color: var(--color-text-faint);
 }
+
+.gripWrap {
+  display: inline-flex;
+}
+
+.gripWrap[aria-disabled='true'] {
+  opacity: 0.4;
+}

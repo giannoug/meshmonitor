@@ -86,7 +86,7 @@ export default function ColumnPicker({ columns, onChange, options = NODE_COLUMNS
                 }}
                 onDragEnd={() => setDragging(null)}
               >
-                <UiIcon name="dragHandle" size={16} className={styles.grip} />
+                <span className={styles.gripWrap} aria-disabled={!columns.includes(id) || undefined}><UiIcon name="dragHandle" size={16} className={styles.grip} /></span>
                 <label>
                   <input type="checkbox" checked={columns.includes(id)} onChange={(e) => toggle(id, e.target.checked)} onKeyDown={onKeyDown(id)} />
                   {label(id)}

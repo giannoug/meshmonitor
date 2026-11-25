@@ -96,6 +96,7 @@ function Nodes({ sourceId, deviceName }: { sourceId: string; deviceName: string 
     (cb) => queryClient.getQueryCache().subscribe(cb),
     () => queryClient.getQueryState(sourcePollQueryKey(sourceId))?.dataUpdatedAt ?? 0,
   );
+  const now = dataUpdatedAt || Date.now();
   const { channels } = useChannels();
   const ui = useUI();
   const [nodeFilters, setNodeFilters] = usePersistedNodeFilters('nodeFilters');
@@ -141,7 +142,6 @@ function Nodes({ sourceId, deviceName }: { sourceId: string; deviceName: string 
 
   // Each chip's rows, worked out once per list change (a direct check can scan the traceroutes).
   const scoped = useMemo(() => {
-    const now = Date.now();
     const online = listed.filter((n) => isHeardRecently(n.lastHeard, now));
     return {
       all: listed,
@@ -151,12 +151,10 @@ function Nodes({ sourceId, deviceName }: { sourceId: string; deviceName: string 
       'low-battery': listed.filter(isLowBattery),
       'new-today': listed.filter((n) => isNewToday(n, now)),
     } satisfies Record<Scope, DeviceInfo[]>;
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 dataUpdatedAt only re-reads Date.now() each poll
-  }, [listed, hopsOf, dataUpdatedAt]);
+  }, [listed, hopsOf, now]);
   const shown = scoped[scope];
   const countOf = (s: Scope) => scoped[s].length;
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 dataUpdatedAt only re-reads Date.now() each poll
-  const onlineTotal = useMemo(() => nodes.filter((n) => isHeardRecently(n.lastHeard)).length, [nodes, dataUpdatedAt]);
+  const onlineTotal = useMemo(() => nodes.filter((n) => isHeardRecently(n.lastHeard, now)).length, [nodes, now]);
 
   const home = useMemo(() => nodes.find((n) => n.user?.id === currentNodeId), [nodes, currentNodeId]);
   const ctx = useMemo<CellContext>(

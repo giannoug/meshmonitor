@@ -66,5 +66,6 @@ describe('15-10-more-filters', () => {
     fireEvent.click(await screen.findByRole('button', { name: /More filters/ }, { timeout: 5000 }));
     const sheet = await screen.findByRole('dialog', { name: /More filters/ });
     expect(within(sheet).queryByText("The map's More filters opens the same panel. Sends nothing on the mesh.")).toBeNull();
+    expect(within(sheet).getByRole('button', { name: 'Reset All' })).toBeInTheDocument();
   });
 });
