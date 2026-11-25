@@ -179,9 +179,25 @@ function MessageRowDImpl(props: MessageRowDProps) {
   }
 
   const text = (
-    <div className={styles.text} onClick={() => setOpen((o) => !o)}>
-      {renderMessageWithLinks(msg.text, props.mentionOptions)}
-    </div>
+    <button
+      type="button"
+      className={styles.textToggle}
+      data-row-target=""
+      aria-expanded={open}
+      onClick={() => setOpen((o) => !o)}
+      onKeyDown={(e) => {
+        // The row's one Tab stop: ArrowRight steps into the hover bar (desktop).
+        if (e.key === 'ArrowRight' && !props.phone) {
+          const first = e.currentTarget.closest('[data-message-id]')?.querySelector<HTMLElement>('[data-bar-item]:not(:disabled)');
+          if (first) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }}
+    >
+      <span className={styles.text}>{renderMessageWithLinks(msg.text, props.mentionOptions)}</span>
+    </button>
   );
   const quote: ReactNode = msg.replyId ? (
     <div className={styles.quote}>

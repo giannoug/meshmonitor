@@ -10,6 +10,7 @@ import { UiIcon } from '../../components/icons';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useUI } from '../../contexts/UIContext';
 import type { DeviceInfo } from '../../types/device';
+import { avatarToken } from '../chat/channelLabel';
 import { formatRelativeTime } from '../../utils/datetime';
 import { getDeviceRoleName } from '../../utils/deviceRole';
 import styles from './DeviceMap.module.css';
@@ -70,7 +71,7 @@ export function MapNodeRows({ sourceId, nodes, selectedId, hopsOf, onPick }: Map
           return (
             <li key={node.nodeNum}>
               <button type="button" className={styles.row} aria-current={selectedId === node.user?.id || undefined} onClick={() => onPick(node)}>
-                <span className={styles.avatar} style={{ background: `var(--device-${(node.nodeNum % 8) + 1})` }} aria-hidden="true">
+                <span className={styles.avatar} style={{ background: avatarToken(`!${node.nodeNum.toString(16)}`) }} aria-hidden="true">
                   {node.user?.shortName?.trim() || String(node.nodeNum).slice(-4)}
                 </span>
                 <span className={styles.rowText}>

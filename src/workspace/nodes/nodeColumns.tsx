@@ -12,6 +12,7 @@ import { UiIcon } from '../../components/icons';
 import { useToast } from '../../components/ToastContainer';
 import { useAuth } from '../../contexts/AuthContext';
 import type { DeviceInfo } from '../../types/device';
+import { avatarToken } from '../chat/channelLabel';
 import type { SortField } from '../../types/ui';
 import type { DateFormat, TimeFormat } from '../../contexts/SettingsContext';
 import { formatRelativeTime } from '../../utils/datetime';
@@ -45,7 +46,7 @@ export const nodeIdOf = (n: DeviceInfo) => n.user?.id ?? `!${n.nodeNum.toString(
 export const nodeNameOf = (n: DeviceInfo) => n.user?.longName || n.user?.shortName || nodeIdOf(n);
 /** The avatar's text and colour, as the map's rows. */
 export const shortLabel = (n: DeviceInfo) => n.user?.shortName?.trim() || String(n.nodeNum).slice(-4);
-export const avatarStyle = (n: DeviceInfo) => ({ background: `var(--device-${(n.nodeNum % 8) + 1})` });
+export const avatarStyle = (n: DeviceInfo) => ({ background: avatarToken(`!${n.nodeNum.toString(16)}`) });
 const pct = (v: number | undefined) => (v == null ? dash : `${v.toFixed(1)}%`);
 
 /** Hops as today's list says them: Direct, a number, or nothing known. */

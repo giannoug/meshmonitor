@@ -12,7 +12,7 @@ import type { DeviceInfo } from '../../types/device';
 import { formatDateTime } from '../../utils/datetime';
 import { getDeviceRoleName } from '../../utils/deviceRole';
 import NodeActionMenus, { type NodeProtocol } from '../patterns/NodeActionMenus';
-import { isHeardRecently } from './channelLabel';
+import { avatarToken, isHeardRecently } from './channelLabel';
 import threadStyles from './ChannelThread.module.css';
 import styles from './DmHeader.module.css';
 
@@ -32,9 +32,6 @@ export interface DmHeaderProps {
   dateFormat: DateFormat;
   onMessagesPurged(): void;
 }
-
-/** A stable avatar colour per node, as MessageRowD's. */
-const avatarToken = (nodeId: string) => `var(--device-${((parseInt(nodeId.replace('!', ''), 16) || 0) % 8) + 1})`;
 
 export default function DmHeader(props: DmHeaderProps) {
   const { sourceId, nodeId, node, name, protocol, isPhone } = props;

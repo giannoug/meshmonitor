@@ -9,6 +9,7 @@
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { athensFixture } from '../../__fixtures__/athens';
 import { expectBoard } from '../../test/boardChecks';
 import { SOURCE_IDS } from '../../__fixtures__/athens';
 import { joined, renderChat } from './renderChat';
@@ -232,5 +233,116 @@ describe('message actions on a channel (desktop hover bar)', () => {
     const call = vi.mocked(fetch).mock.calls.find(([u, i]) => String(u).includes('/api/translate') && i?.method === 'POST');
     expect(JSON.parse(String(call![1]!.body))).toMatchObject({ sourceId: SOURCE_IDS.g2, messageId: `${SOURCE_IDS.g2}_${0xa1b2c303}_3` });
     expect(sent()).toHaveLength(0);
+  });
+
+  const THEIRS_CH = 'Glyfada Beach checking in';
+  const OURS_CH = 'Welcome back! Hearing you direct from Kifisia';
+  const TX_TOOLTIP = "Transmit is disabled on this node's radio. Re-enable TX in the LoRa configuration to use this.";
+  const txOff = { 'GET /api/device/tx-status': () => ({ ...athensFixture.txStatus, txEnabled: false, canTransmit: false }) };
+  const barOf = (text: string) => within(rowOf(text));
+  const more = (text: string) => barOf(text).getByRole('button', { name: 'More actions' });
+
+  it('Esc on the ⋯ menu returns focus to ⋯', async () => {
+    renderChat(channel);
+    await screen.findByText(THEIRS_CH);
+    fireEvent.click(more(THEIRS_CH));
+    barOf(THEIRS_CH).getByRole('button', { name: /^Details/ }).focus();
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+    expect(barOf(THEIRS_CH).queryByRole('button', { name: /^Details/ })).toBeNull();
+    expect(more(THEIRS_CH)).toHaveFocus();
+  });
+
+  it('choosing a ⋯ item returns focus to ⋯ (when the row still exists)', async () => {
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: vi.fn().mockResolvedValue(undefined) }, configurable: true });
+    renderChat(channel);
+    await screen.findByText(THEIRS_CH);
+    fireEvent.click(more(THEIRS_CH));
+    const copy = barOf(THEIRS_CH).getByRole('button', { name: /^Copy text/ });
+    copy.focus();
+    fireEvent.click(copy);
+    await waitFor(() => expect(more(THEIRS_CH)).toHaveFocus());
+  });
+
+  it('closing message details returns focus to the element that opened it', async () => {
+    renderChat(channel);
+    await screen.findByText(THEIRS_CH);
+    fireEvent.click(more(THEIRS_CH));
+    const details = barOf(THEIRS_CH).getByRole('button', { name: /^Details/ });
+    details.focus();
+    fireEvent.click(details);
+    const panel = await screen.findByRole('complementary', { name: /Details$/ });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByRole('complementary', { name: /Details$/ })).toBeNull());
+    expect(more(THEIRS_CH)).toHaveFocus();
+  });
+
+  it('a desktop message row is one Tab stop; ArrowRight/ArrowLeft move between reply/react/translate/⋯', async () => {
+    renderChat(channel);
+    await screen.findByText(THEIRS_CH);
+    const row = rowOf(THEIRS_CH);
+    const stops = Array.from(row.querySelectorAll<HTMLElement>('button, a[href]')).filter((e) => e.tabIndex === 0);
+    expect(stops).toHaveLength(1);
+    const names = ['Reply', 'React', 'Translate message', 'More actions'].map((n) => barOf(THEIRS_CH).getByRole('button', { name: n }));
+    names[0].focus();
+    for (const next of names.slice(1)) {
+      fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' });
+      expect(next).toHaveFocus();
+    }
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowLeft' });
+    expect(names[2]).toHaveFocus();
+  });
+
+  it('the message text toggle is a button and toggles with Enter', async () => {
+    renderChat(channel);
+    await screen.findByText(THEIRS_CH);
+    const toggle = screen.getByText(THEIRS_CH).closest('button') as HTMLElement;
+    expect(toggle).not.toBeNull();
+    expect(rowOf(THEIRS_CH)).not.toHaveAttribute('data-open');
+    // A button's Enter is a click in the browser; user-event is not in use here, so the click stands for it.
+    fireEvent.click(toggle);
+    expect(rowOf(THEIRS_CH)).toHaveAttribute('data-open');
+  });
+
+  it('React and Resend are disabled with the TX-disabled reason', async () => {
+    renderChat(channel, { fixtures: txOff });
+    await screen.findByText(THEIRS_CH);
+    await screen.findByText(TX_TOOLTIP);
+    const react = barOf(THEIRS_CH).getByRole('button', { name: 'React' });
+    expect(react).toBeDisabled();
+    expect(react).toHaveAttribute('title', TX_TOOLTIP);
+    fireEvent.click(more(OURS_CH));
+    const resend = barOf(OURS_CH).getByRole('button', { name: /^Resend/ });
+    expect(resend).toBeDisabled();
+    expect(resend).toHaveAttribute('title', TX_TOOLTIP);
+  });
+
+  it('React and Resend are disabled with the disconnected reason', async () => {
+    renderChat(channel, {
+      fixtures: { 'GET /api/sources/:id/status': () => ({ ...athensFixture.statuses[SOURCE_IDS.g2], connected: false }) },
+    });
+    await screen.findByText(THEIRS_CH);
+    const reason = 'Sending is paused while Station G2 is offline';
+    const react = barOf(THEIRS_CH).getByRole('button', { name: 'React' });
+    await waitFor(() => expect(react).toBeDisabled());
+    expect(react).toHaveAttribute('title', reason);
+    fireEvent.click(more(OURS_CH));
+    expect(barOf(OURS_CH).getByRole('button', { name: /^Resend/ })).toHaveAttribute('title', reason);
+  });
+
+  it('the ⋯ menu on the last row opens upward', async () => {
+    renderChat(channel);
+    await screen.findByText(THEIRS_CH);
+    const row = rowOf(OURS_CH);
+    const list = row.parentElement as HTMLElement;
+    const rect = (top: number, bottom: number) => ({ top, bottom, left: 0, right: 0, width: 0, height: bottom - top, x: 0, y: top, toJSON() {} }) as DOMRect;
+    vi.spyOn(list, 'getBoundingClientRect').mockReturnValue(rect(0, 500));
+    vi.spyOn(row, 'getBoundingClientRect').mockReturnValue(rect(460, 490));
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(200);
+    try {
+      fireEvent.click(more(OURS_CH));
+      expect(barOf(OURS_CH).getByRole('group', { name: 'More actions' })).toHaveAttribute('data-placement', 'up');
+    } finally {
+      vi.restoreAllMocks();
+    }
   });
 });

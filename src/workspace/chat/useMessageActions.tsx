@@ -45,6 +45,14 @@ export function useMessageActions(opts: UseMessageActionsOptions) {
   const [details, setDetails] = useState<{ message: MeshMessage; direction: MessageDirection } | null>(null);
   const [toDelete, setToDelete] = useState<MeshMessage | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // Where focus was when Details opened; closing hands it back (if that element is still there).
+  const opener = useRef<HTMLElement | null>(null);
+  const closeDetails = useCallback(() => {
+    setDetails(null);
+    const el = opener.current;
+    opener.current = null;
+    if (el?.isConnected) el.focus();
+  }, []);
   // The latest options behind the stable `onAction`.
   const latest = useRef(opts);
   useLayoutEffect(() => {
@@ -69,6 +77,7 @@ export function useMessageActions(opts: UseMessageActionsOptions) {
           void o.actions.resend(msg);
           break;
         case 'details':
+          opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
           setDetails({ message: msg, direction: o.isMine(msg) ? 'sent' : 'received' });
           break;
         case 'copy':
@@ -103,7 +112,7 @@ export function useMessageActions(opts: UseMessageActionsOptions) {
         setDetails(null);
         void navigate(`/source/${encodeURIComponent(opts.sourceId)}/node/${encodeURIComponent(nodeId)}`);
       }}
-      onClose={() => setDetails(null)}
+      onClose={closeDetails}
     />
   );
 

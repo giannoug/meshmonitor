@@ -32,6 +32,7 @@ import { useMeshtasticNodeActions } from '../../hooks/useMeshtasticNodeActions';
 import { useNodeIdentityChanges } from '../../hooks/useNodeIdentityChanges';
 import { sourcePollQueryKey } from '../../hooks/pollQueryKey';
 import { useChannels } from '../../hooks/useServerData';
+import type { Channel } from '../../types/device';
 import { useTxStatus } from '../../hooks/useTxStatus';
 import { appBasename } from '../../init';
 import type { DeviceInfo } from '../../types/device';
@@ -67,6 +68,8 @@ export interface NodeActionMenusProps {
 interface ChannelPick {
   label: string;
   value: number | '';
+  /** The radio's slots, already filtered by the menu. */
+  slots: Channel[];
   /** Traceroute: '' sends no channel and lets the server pick, as today's main button. */
   autoLabel?: string;
   onChange(v: number | ''): void;
@@ -189,7 +192,7 @@ function MeshtasticMenus(props: NodeActionMenusProps) {
       sends: t('workspace.node_menu.sends_traceroute'),
       reason: askReason('traceroute'),
       busy: tracerouteLoading === nodeId,
-      channel: { label: t('messages.traceroute_channel'), value: traceChannel, autoLabel: t('workspace.node_menu.channel_auto'), onChange: setTraceChannel },
+      channel: { slots, label: t('messages.traceroute_channel'), value: traceChannel, autoLabel: t('workspace.node_menu.channel_auto'), onChange: setTraceChannel },
       run: () => void actions.traceroute(node.nodeNum, withChannel(traceChannel)),
     },
     {
@@ -200,7 +203,7 @@ function MeshtasticMenus(props: NodeActionMenusProps) {
       sends: t('workspace.node_menu.sends_nodeinfo', { channel: channelName(infoChannel === '' ? nodeChannel : infoChannel) }),
       reason: askReason('messages'),
       busy: actions.loading.nodeInfo === nodeId,
-      channel: { label: t('messages.exchange_node_info_channel'), value: infoChannel, onChange: setInfoChannel },
+      channel: { slots, label: t('messages.exchange_node_info_channel'), value: infoChannel, onChange: setInfoChannel },
       run: () => void actions.exchangeNodeInfo(node.nodeNum, withChannel(infoChannel)),
     },
     {
@@ -210,7 +213,7 @@ function MeshtasticMenus(props: NodeActionMenusProps) {
       sends: t('workspace.node_menu.sends_position', { channel: channelName(positionChannel === '' ? nodeChannel : positionChannel) }),
       reason: askReason('messages'),
       busy: actions.loading.position === nodeId,
-      channel: { label: t('messages.exchange_position_channel'), value: positionChannel, onChange: setPositionChannel },
+      channel: { slots, label: t('messages.exchange_position_channel'), value: positionChannel, onChange: setPositionChannel },
       run: () => void actions.exchangePosition(node.nodeNum, withChannel(positionChannel)),
     },
     {
@@ -549,7 +552,7 @@ function ItemList({ label, items, extra, onDone }: { label: string; items: Item[
               onChange={(e) => item.channel!.onChange(e.target.value === '' ? '' : Number(e.target.value))}
             >
               {item.channel.autoLabel !== undefined && <option value="">{item.channel.autoLabel}</option>}
-              <ChannelOptions />
+              <ChannelOptions slots={item.channel.slots} />
             </select>
           )}
           {item.reason && <p className={styles.reason}>{item.reason}</p>}
@@ -563,12 +566,11 @@ function ItemList({ label, items, extra, onDone }: { label: string; items: Item[
 }
 
 /** Today's channel picker entries: the radio's slots, Primary marked. */
-function ChannelOptions() {
+function ChannelOptions({ slots }: { slots: Channel[] }) {
   const { t } = useTranslation();
-  const { channels } = useChannels();
   return (
     <>
-      {channels.filter((c) => isSlot(c.id)).map((c) => (
+      {slots.map((c) => (
         <option key={c.id} value={c.id}>
           # {c.displayName || c.name || t('channels.channel_fallback', { channelNum: c.id })}
           {c.id === 0 ? ` (${t('channels.primary')})` : ''}

@@ -69,4 +69,20 @@ describe('10-03-channel-menu', () => {
     fireEvent.click(sheet.getByRole('button', { name: 'Show' }));
     expect(sheet.getByText('AQ==')).toBeInTheDocument();
   });
+
+  it('ArrowDown/ArrowUp move focus between items; Home/End jump; a repeated Enter keydown is ignored', async () => {
+    const menu = await openMenu();
+    const items = Array.from(menu.querySelectorAll<HTMLElement>('button:not(:disabled)'));
+    expect(items[0]).toHaveFocus();
+    fireEvent.keyDown(items[0], { key: 'ArrowDown' });
+    expect(items[1]).toHaveFocus();
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowUp' });
+    expect(items[0]).toHaveFocus();
+    fireEvent.keyDown(items[0], { key: 'End' });
+    expect(items[items.length - 1]).toHaveFocus();
+    fireEvent.keyDown(document.activeElement!, { key: 'Home' });
+    expect(items[0]).toHaveFocus();
+    expect(fireEvent.keyDown(items[0], { key: 'Enter' })).toBe(true);
+    expect(fireEvent.keyDown(items[0], { key: 'Enter', repeat: true })).toBe(false);
+  });
 });

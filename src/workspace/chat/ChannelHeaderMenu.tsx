@@ -5,10 +5,14 @@
  * (asks first above today's threshold), Show MQTT/Bridge Messages, Beacons
  * with the pending count. Nothing here transmits.
  *
+ * Opening focuses the first item; ArrowUp / ArrowDown / Home / End move between
+ * items (wrapping), Escape closes and returns focus to ⋯, and a held Enter does
+ * not repeat an item.
+ *
  * On the phone the ⋯ opens ChannelInfoSheet directly, which carries the same
  * rows (board 10-12).
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import { MuteMenu } from '../../components/notifications/MuteMenu';
@@ -35,11 +39,18 @@ export default function ChannelHeaderMenu(props: ChannelHeaderMenuProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const label = t('channels.channel_options', 'Channel options');
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    menuRef.current?.querySelector<HTMLElement>('button:not(:disabled)')?.focus();
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
     const onDown = (e: MouseEvent) => {
       if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
     };
@@ -56,9 +67,24 @@ export default function ChannelHeaderMenu(props: ChannelHeaderMenuProps) {
     fn();
   };
 
+  const onMenuKeyDown = (e: KeyboardEvent) => {
+    // Enter on a focused button clicks on every auto-repeat; one press runs an item once.
+    if (e.repeat && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      return;
+    }
+    const list = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled)') ?? []);
+    const at = list.indexOf(document.activeElement as HTMLElement);
+    const to = { ArrowDown: at + 1, ArrowUp: at - 1, Home: 0, End: list.length - 1 }[e.key];
+    if (to === undefined || list.length === 0) return;
+    e.preventDefault();
+    list[(to + list.length) % list.length].focus();
+  };
+
   return (
     <div className={styles.wrap} ref={wrapRef}>
       <button
+        ref={triggerRef}
         type="button"
         className={styles.trigger}
         aria-haspopup="menu"
@@ -70,7 +96,7 @@ export default function ChannelHeaderMenu(props: ChannelHeaderMenuProps) {
         <UiIcon name="more" size={18} />
       </button>
       {open && (
-        <div className={styles.menu} role="menu" aria-label={label}>
+        <div className={styles.menu} role="menu" aria-label={label} ref={menuRef} onKeyDown={onMenuKeyDown}>
           <p className={styles.heading}># {props.channelName}</p>
           <button type="button" role="menuitem" className={styles.item} onClick={then(props.onInfo)}>
             <UiIcon name="info" size={18} />

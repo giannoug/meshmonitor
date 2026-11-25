@@ -29,6 +29,7 @@ import { getEffectiveHops } from '../../utils/nodeHops';
 import { getHardwareModelName, parseNodeId } from '../../utils/nodeHelpers';
 import NodeActionMenus from '../patterns/NodeActionMenus';
 import Sheet from '../patterns/Sheet';
+import { avatarToken } from '../chat/channelLabel';
 import { useIsPhone } from '../shell/useIsPhone';
 import styles from './NodePeek.module.css';
 
@@ -37,9 +38,6 @@ export interface NodePeekProps {
   sourceId: string;
   onClose(): void;
 }
-
-/** A stable avatar colour per node, as the DM header's. */
-const avatarToken = (nodeNum: number) => `var(--device-${(nodeNum % 8) + 1})`;
 
 export default function NodePeek({ node, sourceId, onClose }: NodePeekProps) {
   const { t } = useTranslation();
@@ -90,7 +88,7 @@ export default function NodePeek({ node, sourceId, onClose }: NodePeekProps) {
 
   const head = (
     <div className={styles.identity}>
-      <span className={styles.avatar} style={{ background: avatarToken(node.nodeNum) }} aria-hidden="true">
+      <span className={styles.avatar} style={{ background: avatarToken(`!${node.nodeNum.toString(16)}`) }} aria-hidden="true">
         {node.user?.shortName?.trim() || nodeId.slice(-4)}
       </span>
       <div className={styles.titles}>
