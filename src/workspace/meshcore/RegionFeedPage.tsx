@@ -194,7 +194,7 @@ function Feed({ sourceId, source, tab }: { sourceId: string; source: DashboardSo
     </div>
   ) : (
     <div className={`${styles.card} ${styles.tableWrap}`}>
-      <table className={styles.table}>
+      <table className={`${styles.table} ${styles.feedTable}`}>
         <thead>
           <tr>
             <th>{t('meshcore.ingest.observer', 'Observer')}</th>
@@ -223,7 +223,7 @@ function Feed({ sourceId, source, tab }: { sourceId: string; source: DashboardSo
     <p className={styles.note}>{t('meshcore.ingest.no_nodes', 'No nodes discovered from adverts yet.')}</p>
   ) : (
     <div className={`${styles.card} ${styles.tableWrap}`}>
-      <table className={styles.table}>
+      <table className={`${styles.table} ${styles.feedTable}`}>
         <thead>
           <tr>
             <th>{t('meshcore.ingest.node_name', 'Name')}</th>

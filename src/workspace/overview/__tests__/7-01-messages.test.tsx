@@ -45,7 +45,9 @@ describe('7-01-messages', () => {
     const panel = await openReceptions(PSY);
     const rows = within(panel).getAllByRole('row').slice(1);
     expect(rows).toHaveLength(3);
-    expect(rows[0]).toHaveTextContent(/SG2-7\.0 dB-101 dBm.*Yes/);
+    // Bare numbers, as board 7-01 draws them: the headers name the units.
+    expect(rows[0]).toHaveTextContent(/SG2-7\.0-101.*Yes/);
+    expect(rows[0]).not.toHaveTextContent('dB');
     expect(rows[2]).toHaveTextContent(/AM3——.*No/);
     expect(panel).toHaveTextContent('Heard by 3 devices');
     expect(panel).toHaveTextContent('Station G2');

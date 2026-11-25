@@ -373,6 +373,20 @@
   white-space: nowrap;
 }
 
+/* The region feed's overview tables, at board 8-15's size so they fit the split at 1280 px. */
+.feedTable {
+  font-size: 13px;
+}
+
+.feedTable th {
+  font-size: 11px;
+}
+
+.feedTable th,
+.feedTable td {
+  padding-inline: 10px;
+}
+
 .table tr[data-selected] td {
   background: var(--color-surface);
 }

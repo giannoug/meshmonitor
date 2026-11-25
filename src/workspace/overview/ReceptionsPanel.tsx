@@ -24,6 +24,7 @@ function hops(r: Reception, t: TranslateFn): string {
   return n != null ? String(n) : hopDisplay(r, t);
 }
 
+// The phone cards are prose, so they keep units; the desktop table's headers name them (board 7-01).
 const snr = (r: Reception) => (r.rxSnr != null ? `${r.rxSnr.toFixed(1)} dB` : '—');
 const rssi = (r: Reception) => (r.rxRssi != null ? `${r.rxRssi} dBm` : '—');
 
@@ -118,8 +119,8 @@ export default function ReceptionsPanel({ message, onClose }: { message: Unified
               <tr key={r.sourceId}>
                 <td><DeviceTag sourceId={r.sourceId} /></td>
                 <td>{hops(r, t)}</td>
-                <td>{snr(r)}</td>
-                <td>{rssi(r)}</td>
+                <td>{r.rxSnr != null ? r.rxSnr.toFixed(1) : '—'}</td>
+                <td>{r.rxRssi ?? '—'}</td>
                 <td>{formatTime(r.timestamp)}</td>
                 <td><Signed r={r} /></td>
               </tr>
