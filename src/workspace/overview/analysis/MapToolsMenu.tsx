@@ -59,8 +59,7 @@ export function ToolItems({ tools, role, onPicked, className }: { tools: Tools; 
             onKeyDown={(e) => rovingKeyDown(e, role)}
             onClick={() => {
               if (tool.disabled) return;
-              // A radio only starts its tool: the one that is on stays on.
-              if (!tool.active) tool.toggle();
+              tool.toggle();
               onPicked();
             }}
           >

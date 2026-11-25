@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  *
- * The Map tools are one choice (M13d): a radio only starts its tool, picking
- * the active one again keeps it on, and the arrow keys move between them with
+ * The Map tools are one choice (M13d, ruling W7-a): clicking the active tool
+ * turns it off (the only visible way to stop one), and the arrow keys move between them with
  * the checked one (or the first, with none) the only stop in the tab order.
  * Time on the phone opens the Tools sheet on its Time section (M13f).
  */
@@ -17,7 +17,7 @@ vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
 }));
 
 describe('Map tools radios', () => {
-  it('desktop: a second pick keeps the tool on; arrows move focus; one tab stop', async () => {
+  it('desktop: a second click turns the tool off; arrows move focus only; one tab stop', async () => {
     renderOverview('/overview/map');
     await marker('KFR');
     let menu = await openTools();
@@ -31,7 +31,8 @@ describe('Map tools radios', () => {
     expect(items().map((i) => i.tabIndex)).toEqual([0, -1, -1, -1, -1]);
     fireEvent.click(items()[0]);
     menu = await openTools();
-    expect(items()[0]).toHaveAttribute('aria-checked', 'true');
+    expect(items()[0]).toHaveAttribute('aria-checked', 'false');
+    expect(items().map((i) => i.tabIndex)).toEqual([0, -1, -1, -1, -1]);
 
     items()[0].focus();
     fireEvent.keyDown(items()[0], { key: 'ArrowDown' });
@@ -56,7 +57,7 @@ describe('Map tools radios', () => {
     expect(radios.map((r) => r.tabIndex)).toEqual([-1, 0, -1, -1, -1]);
     fireEvent.click(radios[1]);
     sheet = await openPhoneSheet('Tools');
-    expect(within(sheet).getByRole('radio', { name: 'Link Profile' })).toHaveAttribute('aria-checked', 'true');
+    expect(within(sheet).getByRole('radio', { name: 'Link Profile' })).toHaveAttribute('aria-checked', 'false');
     const again = within(sheet).getAllByRole('radio');
     again[1].focus();
     fireEvent.keyDown(again[1], { key: 'ArrowDown' });
