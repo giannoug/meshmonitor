@@ -27,8 +27,7 @@ import { useToast } from '../../../components/ToastContainer';
 import { FactoryResetWipeList } from '../../../components/shared/config/FactoryResetWipeList';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useSource } from '../../../contexts/SourceContext';
-import { sourcePollQueryKey } from '../../../hooks/pollQueryKey';
-import { useCachedQueryData } from '../../dashboard/useCachedQueryData';
+import { usePoll } from '../../../hooks/usePoll';
 import apiService from '../../../services/api';
 import { isTxDisabledError } from '../../../utils/txDisabled';
 import { mqttRootErrorMessage } from '../../../components/MQTT/mqttRootApiError';
@@ -77,8 +76,8 @@ export function DangerBody({ sourceId, target, readOnly }: CategoryProps) {
   const isAdmin = authStatus?.user?.isAdmin === true;
   const config = useSharedDeviceConfig();
   // Today's fallback word when the node has no short name: its node id.
-  // Read from the shell's poll cache: a second observer would be a second retrying poll.
-  const poll = useCachedQueryData<{ config?: { localNodeInfo?: unknown } }>(sourcePollQueryKey(sourceId));
+  // Read once on open (the shell does not poll this key), with no interval of its own (Ruling DM, as useTargetNode).
+  const { data: poll } = usePoll({ pollInterval: 0 });
   const [pending, setPending] = useState<Action | null>(null);
   // The typed word as the sheet opened, so a refetch that blanks the name can never make it plain.
   const [word, setWord] = useState('');

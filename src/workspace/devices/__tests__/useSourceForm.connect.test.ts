@@ -62,4 +62,30 @@ describe('connectSourceAndWait', () => {
     await vi.advanceTimersByTimeAsync(20_000);
     expect(pa.done).toBe(true);
   });
+
+  it('a caller whose signal is already aborted resolves at once and sends no wait', async () => {
+    const gone = new AbortController();
+    gone.abort();
+    const p = settled(connectSourceAndWait(queryClient, 's1', gone.signal));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(p.done).toBe(true);
+    await vi.advanceTimersByTimeAsync(20_000);
+  });
+
+  it('a caller arriving after the last one left starts a fresh run, and waits for the connection', async () => {
+    // The connect POST is slow, so the run is still registered, and already stopped, when the newcomer comes.
+    vi.mocked(api.post).mockImplementationOnce(() => new Promise((r) => setTimeout(() => r({}), 500)));
+    const a = new AbortController();
+    const pa = connectSourceAndWait(queryClient, 's1', a.signal);
+    await vi.advanceTimersByTimeAsync(100);
+    a.abort();
+    await pa;
+    const late = settled(connectSourceAndWait(queryClient, 's1', new AbortController().signal));
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(late.done).toBe(false);
+    connected = true;
+    await vi.advanceTimersByTimeAsync(1600);
+    expect(late.done).toBe(true);
+    expect(api.post).toHaveBeenCalledTimes(2);
+  });
 });

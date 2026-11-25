@@ -542,10 +542,12 @@ function refreshSources(queryClient: QueryClient) {
  */
 export function connectSourceAndWait(queryClient: QueryClient, id: string, signal?: AbortSignal): Promise<void> {
   let run = connectsInFlight.get(id);
+  // A run whose last caller left is stopping; a new caller starts its own instead of joining it.
+  if (run?.stop.signal.aborted) run = undefined;
   if (!run) {
     const stop = new AbortController();
     const done = connectOnce(queryClient, id, stop.signal).finally(() => {
-      connectsInFlight.delete(id);
+      if (connectsInFlight.get(id)?.done === done) connectsInFlight.delete(id);
       connectListeners.forEach((l) => l());
     });
     run = { done, stop, waiting: 0 };
@@ -555,7 +557,8 @@ export function connectSourceAndWait(queryClient: QueryClient, id: string, signa
   const mine = run;
   mine.waiting++;
   if (!signal) return mine.done;
-  // Each caller leaves on its own signal; the last one out stops the shared loop.
+  // Each caller leaves on its own signal; the last one out stops the shared loop. A caller with no signal never
+  // leaves, so it keeps the loop alive until its own 20 s end.
   const left = new Promise<void>((resolve) => {
     const leave = () => {
       if (--mine.waiting === 0) mine.stop.abort();

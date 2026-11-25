@@ -21,16 +21,9 @@ const polls = () => fetched().filter((u) => u.includes('/api/poll')).length;
 afterEach(() => vi.useRealTimers());
 
 describe('the poll on settings categories', () => {
-  it('maintenance/danger reads the shell\'s poll from the cache and requests none itself', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    renderSettings(`${g2}/settings/maintenance/danger`);
-    await screen.findByRole('heading', { level: 1, name: 'Danger zone' }, { timeout: 5000 });
-    await act(async () => { await vi.advanceTimersByTimeAsync(65_000); });
-    expect(polls()).toBe(0);
-  });
-
   it.each([
     ['channels', 'Channels'],
+    ['maintenance/danger', 'Danger zone'],
   ])('%s reads /api/poll once and keeps no timer', async (path, title) => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     renderSettings(`${g2}/settings/${path}`);
