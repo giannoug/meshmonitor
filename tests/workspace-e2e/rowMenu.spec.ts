@@ -94,3 +94,30 @@ test.describe('phone targets (M2)', () => {
     expect((await label.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   });
 });
+
+test.describe('RowMenu Tab', () => {
+  test.use({ viewport: { width: 1280, height: 800 }, colorScheme: 'dark' });
+
+  test('Tab and Shift+Tab from an open row menu close it and move one stop from the trigger', async ({ page }) => {
+    await routeFixtures(page, serverFixtures());
+    await page.goto('/server/embed');
+    const trigger = page.getByRole('button', { name: 'More for Club site' });
+    await trigger.waitFor();
+    // Learn the trigger's neighbours in tab order by tabbing the page itself.
+    const tag = (name: string) => page.evaluate((n) => document.activeElement?.setAttribute('data-e2e-stop', n), name);
+    await trigger.focus();
+    await page.keyboard.press('Tab');
+    await tag('next');
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Shift+Tab');
+    await tag('prev');
+    const focused = () => page.evaluate(() => document.activeElement?.getAttribute('data-e2e-stop') ?? document.activeElement?.tagName);
+    for (const [key, stop] of [['Tab', 'next'], ['Shift+Tab', 'prev']] as const) {
+      await trigger.click();
+      await page.getByRole('menuitem').first().waitFor();
+      await page.keyboard.press(key);
+      await expect(page.getByRole('menu')).toHaveCount(0);
+      expect(await focused()).toBe(stop);
+    }
+  });
+});
