@@ -7,10 +7,12 @@
  *   sees the hosted privacy documents (writers edit them); the page shows a
  *   non-admin only those.
  * - Background jobs: settings:write (s13n2).
- * - General, Map & tiles and Integrations: admins, and settings writers too,
- *   because today a non-admin writer can change MeshCore messaging, the
- *   Reticulum cap, custom tilesets, GeoJSON layers and map styles, and sees
- *   Virtual Node replay; the pages show such a user only those rows.
+ * - General and Integrations: admins, and settings writers too,
+ *   because today a non-admin writer can change MeshCore messaging and the
+ *   Reticulum cap, and sees Virtual Node replay; the pages show such a user
+ *   only those rows.
+ * - Map & tiles: settings:read opens it view only; writers change the tile
+ *   servers, GeoJSON layers and map styles (admins also the keys).
  * - Everything else: admins only.
  *
  * The list shows only what the user can open.
@@ -38,7 +40,7 @@ const ENTRIES: Array<Omit<ServerEntry, 'label'> & { labelKey: string }> = [
   { key: 'backup', labelKey: 'workspace.server.nav.backup', path: 'backup', icon: 'server', gate: 'read' },
   { key: 'channel-database', labelKey: 'workspace.server.nav.channel_database', path: 'channel-database', icon: 'key', gate: 'admin' },
   { key: 'scripts', labelKey: 'workspace.server.nav.scripts', path: 'scripts', icon: 'terminal', gate: 'admin' },
-  { key: 'map', labelKey: 'workspace.server.nav.map', path: 'map', icon: 'map', gate: 'write' },
+  { key: 'map', labelKey: 'workspace.server.nav.map', path: 'map', icon: 'map', gate: 'read' },
   { key: 'embed', labelKey: 'workspace.server.nav.embed', path: 'embed', icon: 'code', gate: 'admin' },
   { key: 'background-jobs', labelKey: 'workspace.server.nav.background_jobs', path: 'background-jobs', icon: 'time', gate: 'write' },
   { key: 'integrations', labelKey: 'workspace.server.nav.integrations', path: 'integrations', icon: 'package', gate: 'write' },

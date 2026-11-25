@@ -18,11 +18,11 @@ describe('13-16-server-list', () => {
     expect(screen.getByRole('link', { name: /Channel database/ })).toHaveAttribute('href', '/server/channel-database');
   });
 
-  it('a settings viewer gets Security & privacy (the hosted documents) and Backup & maintenance', async () => {
+  it('a settings viewer gets Security & privacy (the hosted documents), Backup & maintenance and Map & tiles (view only)', async () => {
     renderServer('/server', { phone: true, permissions: grants({ read: true }) });
     const row = await screen.findByRole('link', { name: /Backup & maintenance/ });
     const card = row.parentElement as HTMLElement;
-    expect(within(card).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual(['/server/security', '/server/backup']);
+    expect(within(card).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual(['/server/security', '/server/backup', '/server/map']);
   });
 
   it('a phone category page goes back to the list', async () => {

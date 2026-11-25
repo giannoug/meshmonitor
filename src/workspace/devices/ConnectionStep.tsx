@@ -128,7 +128,7 @@ export default function ConnectionStep({ form, sources }: { form: SourceForm; so
     body = (
       <>
         <Head type="meshtastic_tcp" title={t('workspace.devices.meshtastic_title')} lead={t('workspace.devices.meshtastic_lead')} />
-        <div className={styles.pair} data-phone={isPhone || undefined}>
+        <div className={`${styles.pair} ${styles.pairPort}`} data-phone={isPhone || undefined}>
           <Field label={t('source.form.host')}>
             <input className={styles.input} type="text" value={f.formHost} onChange={(e) => f.setFormHost(e.target.value)} placeholder={t('source.form.host_placeholder')} />
           </Field>
@@ -170,7 +170,7 @@ export default function ConnectionStep({ form, sources }: { form: SourceForm; so
           onChange={(v) => f.setFormMcTransport(v === 'tcp' ? 'tcp' : 'usb')}
         />
         {f.formMcTransport === 'tcp' ? (
-          <div className={styles.pair} data-phone={isPhone || undefined}>
+          <div className={`${styles.pair} ${styles.pairPort}`} data-phone={isPhone || undefined}>
             <Field label={t('source.form.host')} help={t('meshcore.form.tcp_host_help', 'Hostname or IP of the MeshCore companion reachable over TCP (e.g. esp-link, ser2net, or native TCP firmware).')}>
               <input className={styles.input} type="text" value={f.formMcTcpHost} onChange={(e) => f.setFormMcTcpHost(e.target.value)} placeholder={t('source.form.host_placeholder')} />
             </Field>

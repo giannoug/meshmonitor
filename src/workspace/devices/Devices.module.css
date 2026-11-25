@@ -433,8 +433,12 @@
 
 .pair {
   display: grid;
-  grid-template-columns: 1fr 120px;
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
+}
+
+.pairPort {
+  grid-template-columns: 1fr 120px;
 }
 
 .pair[data-phone] {

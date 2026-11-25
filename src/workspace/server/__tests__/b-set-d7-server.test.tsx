@@ -36,7 +36,14 @@ describe('b-set-d7-server', () => {
 
   it('a settings viewer sees Backup & maintenance and Security & privacy (its hosted documents, view only)', async () => {
     renderServer('/server/backup', { permissions: grants({ read: true }) });
-    await waitFor(() => expect(entries()).toEqual(['Security & privacy', 'Backup & maintenance']));
+    await waitFor(() => expect(entries()).toEqual(['Security & privacy', 'Backup & maintenance', 'Map & tiles']));
+  });
+
+  it('a settings viewer opens Map & tiles from the list, view only', async () => {
+    renderServer('/server/backup', { permissions: grants({ read: true }) });
+    fireEvent.click(await within(sidebar()).findByRole('link', { name: 'Map & tiles' }));
+    expect(await screen.findByText('View only')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('Athens dark (vector)')).toBeDisabled();
   });
 
   it('settings:write adds General, Map & tiles, Background jobs and Integrations (today\'s writer rows)', async () => {
