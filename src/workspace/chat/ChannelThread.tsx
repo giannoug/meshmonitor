@@ -260,9 +260,12 @@ function ChannelThread({ channel, view: page, deviceName }: ChannelThreadProps) 
     onToggleMqtt: () => {
       setShowMqttMessages(!showMqttMessages);
       // The shell's unread query follows this flag (useShowMqttMessages).
-      queryClient.setQueryData<ShellMapPreferences | null>(['user', 'map-preferences'], (prev) =>
-        prev === undefined ? prev : { ...prev, showMqttMessagesBySource: { ...prev?.showMqttMessagesBySource, [sourceId!]: !showMqttMessages } },
-      );
+      if (sourceId) {
+        queryClient.setQueryData<ShellMapPreferences | null>(['user', 'map-preferences'], (prev) => ({
+          ...prev,
+          showMqttMessagesBySource: { ...prev?.showMqttMessagesBySource, [sourceId]: !showMqttMessages },
+        }));
+      }
     },
     beaconsPending,
     onBeacons: () => void navigate(`${base}/channel/${channel}/beacons`),

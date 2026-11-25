@@ -82,7 +82,8 @@ function SearchPanel({ source, phone, onClose, s, channels, nodes, local, canSea
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { contentRef, onKeyDown } = useDialogA11y(onClose);
-  // A phone page is not a modal: no trap, so the tab bar stays reachable (C14).
+  // useDialogA11y still gives Esc and focus restore. On a phone the page is not a modal (C14): the Tab trap is
+  // skipped (no onKeyDown below), so the tab bar stays reachable.
   const inputRef = useRef<HTMLInputElement>(null);
   const ids = { title: useId(), scope: useId(), channel: useId(), sender: useId(), from: useId(), to: useId() };
   useEffect(() => inputRef.current?.focus(), []);

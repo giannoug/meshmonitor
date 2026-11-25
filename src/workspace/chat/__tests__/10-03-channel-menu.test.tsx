@@ -6,7 +6,7 @@
  * one at a time (D9c), so the check runs over the menu and then the sheet.
  */
 import type { ReactNode } from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, onTestFinished } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { SOURCE_IDS } from '../../__fixtures__/athens';
@@ -20,13 +20,13 @@ vi.mock('../../../App', async () => ({ default: (await import('../../__tests__/p
 
 const route = `/source/${SOURCE_IDS.g2}/channel/0`;
 
-async function openMenu() {
-  renderChat(route);
+async function openMenu(opts: Parameters<typeof renderChat>[1] = {}) {
+  const result = renderChat(route, opts);
   await screen.findByText('Glyfada Beach checking in');
   // The Beacons row waits for the count.
   await screen.findByRole('link', { name: /Beacons/ });
   fireEvent.click(screen.getByRole('button', { name: 'Channel options' }));
-  return screen.getByRole('menu', { name: 'Channel options' });
+  return Object.assign(screen.getByRole('menu', { name: 'Channel options' }), { queryClient: result.queryClient });
 }
 
 describe('10-03-channel-menu', () => {
@@ -49,6 +49,18 @@ describe('10-03-channel-menu', () => {
     // Off by default (today's per-source preference).
     expect(items.getByRole('menuitemcheckbox', { name: /Show MQTT\/Bridge Messages/ })).toHaveAttribute('aria-checked', 'false');
     expect(items.getByRole('menuitem', { name: /Beacons/ })).toHaveTextContent('2');
+  });
+
+  it("Show MQTT with no map preferences loaded still flips the shell's unread key", async () => {
+    onTestFinished(() => localStorage.clear());
+    const menu = await openMenu({ fixtures: { 'GET /api/user/map-preferences': () => new Response('{}', { status: 500 }) } });
+    const polled = (mqtt: boolean) =>
+      menu.queryClient.getQueryCache().find({ queryKey: ['unreadCounts', '', SOURCE_IDS.g2, !mqtt], exact: true })
+        ?.observers.some((o) => o.options.refetchInterval);
+    expect(polled(false)).toBe(true);
+    fireEvent.click(within(menu).getByRole('menuitemcheckbox', { name: /Show MQTT/ }));
+    await waitFor(() => expect(polled(true)).toBe(true));
+    expect(polled(false)).toBeFalsy();
   });
 
   it('Show MQTT toggles the filter; Beacons opens the beacons page', async () => {

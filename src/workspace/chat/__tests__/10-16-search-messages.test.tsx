@@ -48,16 +48,25 @@ describe('10-16-search-messages', () => {
     expect(document.body.textContent).not.toContain('Ctrl+K');
   });
 
-  it('the phone page is not aria-modal and the tab bar is reachable by Tab', async () => {
+  it('the phone page is not aria-modal, and the tab bar is neither inert nor hidden', async () => {
     await openPage();
     const region = screen.getByRole('region', { name: 'Search Messages' });
     expect(region).not.toHaveAttribute('aria-modal');
     expect(screen.queryByRole('dialog', { name: 'Search Messages' })).toBeNull();
-    // No focus trap: Tab from the last control is left to the browser, not wrapped back into the page.
-    const focusable = region.querySelectorAll<HTMLElement>('button:not(:disabled), input, select');
-    const last = focusable[focusable.length - 1];
-    last.focus();
-    expect(fireEvent.keyDown(last, { key: 'Tab' })).toBe(true);
+    const bar = screen.getByRole('navigation', { name: 'Tabs' });
+    expect(bar.closest('[inert], [aria-hidden="true"]')).toBeNull();
+    expect(within(bar).getAllByRole('link').length).toBeGreaterThan(0);
+  });
+
+  it('Esc closes the phone page and returns focus to its trigger', async () => {
+    renderChat(g2, { phone: true, fixtures: { 'GET /api/messages/search': fourOf31 } });
+    const trigger = await screen.findByRole('button', { name: /Search Messages/ });
+    trigger.focus();
+    fireEvent.click(trigger);
+    await screen.findByRole('region', { name: 'Search Messages' });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Search Messages' })).toBeNull());
+    expect(trigger).toHaveFocus();
   });
 
   it('Back closes the page and returns to Home', async () => {
