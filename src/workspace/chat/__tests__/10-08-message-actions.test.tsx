@@ -263,6 +263,50 @@ describe('message actions on a channel (desktop hover bar)', () => {
     await waitFor(() => expect(more(THEIRS_CH)).toHaveFocus());
   });
 
+  /** The desktop keyboard rows' message ids, in thread order. */
+  const keyRows = () => Array.from(document.querySelectorAll<HTMLElement>('[data-row-target][data-message-id]'));
+  const rowIds = () => keyRows().map((r) => r.dataset.messageId!);
+  const deleted = { 'DELETE /api/messages/:id': () => ({ message: 'Message deleted successfully' }) };
+
+  /** ⋯ › Delete by keyboard focus, then Confirm (or Cancel) once it is enabled. */
+  async function keyboardDelete(row: HTMLElement, choice: 'Delete' | 'Cancel' = 'Delete') {
+    fireEvent.click(within(row).getByRole('button', { name: 'More actions' }));
+    const item = within(row).getByRole('button', { name: /^Delete/ });
+    item.focus();
+    fireEvent.click(item);
+    const confirm = await screen.findByRole('dialog', { name: 'Delete this message' });
+    const button = within(confirm).getByRole('button', { name: choice });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Delete this message' })).toBeNull());
+  }
+
+  it('after a keyboard delete, focus moves to the next message', async () => {
+    renderChat(channel, { fixtures: deleted });
+    await screen.findByText(THEIRS_CH);
+    const ids = rowIds();
+    const i = ids.indexOf(rowOf(THEIRS_CH).dataset.messageId!);
+    expect(i).toBeLessThan(ids.length - 1);
+    await keyboardDelete(rowOf(THEIRS_CH));
+    await waitFor(() => expect(document.activeElement).toHaveAttribute('data-message-id', ids[i + 1]));
+  });
+
+  it('deleting the last message by keyboard moves focus to the one before it', async () => {
+    renderChat(channel, { fixtures: deleted });
+    await screen.findByText(THEIRS_CH);
+    const ids = rowIds();
+    await keyboardDelete(keyRows()[ids.length - 1]);
+    await waitFor(() => expect(document.activeElement).toHaveAttribute('data-message-id', ids[ids.length - 2]));
+  });
+
+  it('cancelling a keyboard delete leaves focus in the row, not on the page', async () => {
+    renderChat(channel, { fixtures: deleted });
+    await screen.findByText(THEIRS_CH);
+    await keyboardDelete(rowOf(THEIRS_CH), 'Cancel');
+    expect(screen.getByText(THEIRS_CH)).toBeInTheDocument();
+    await waitFor(() => expect(rowOf(THEIRS_CH).contains(document.activeElement)).toBe(true));
+  });
+
   it('closing message details returns focus to the element that opened it', async () => {
     renderChat(channel);
     await screen.findByText(THEIRS_CH);

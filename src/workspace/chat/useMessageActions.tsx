@@ -9,7 +9,7 @@
  * Translate is the server's provider (POST /api/translate); details read the
  * stored timeline; copy and delete stay in MeshMonitor. Nothing retries.
  */
-import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../../components/ToastContainer';
@@ -37,6 +37,9 @@ export interface UseMessageActionsOptions {
   dateFormat: DateFormat;
 }
 
+/** The desktop rows that are keyboard stops (MessageRowD), in thread order. Phone rows aren't. */
+const keyRows = () => Array.from(document.querySelectorAll<HTMLElement>('[data-row-target][data-message-id]'));
+
 export function useMessageActions(opts: UseMessageActionsOptions) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -53,6 +56,16 @@ export function useMessageActions(opts: UseMessageActionsOptions) {
     opener.current = null;
     if (el?.isConnected) el.focus();
   }, []);
+  // A keyboard delete removes the row and its ⋯ opener, so focus would fall to <body>: hand it to a neighbour.
+  const afterDelete = useRef<{ id: string; neighbour: string } | null>(null);
+  useEffect(() => {
+    if (toDelete) return;
+    const pending = afterDelete.current;
+    afterDelete.current = null;
+    // Cancelled, or the delete failed: the row is still there and the sheet already gave focus back.
+    if (!pending || keyRows().some((r) => r.dataset.messageId === pending.id)) return;
+    keyRows().find((r) => r.dataset.messageId === pending.neighbour)?.focus();
+  }, [toDelete]);
   // The latest options behind the stable `onAction`.
   const latest = useRef(opts);
   useLayoutEffect(() => {
@@ -90,9 +103,14 @@ export function useMessageActions(opts: UseMessageActionsOptions) {
             }
           })();
           break;
-        case 'delete':
+        case 'delete': {
+          const rows = keyRows();
+          const i = rows.findIndex((r) => r.dataset.messageId === msg.id);
+          const neighbour = i < 0 ? undefined : (rows[i + 1] ?? rows[i - 1])?.dataset.messageId;
+          afterDelete.current = neighbour ? { id: msg.id, neighbour } : null;
           setToDelete(msg);
           break;
+        }
       }
     },
     [showToast, t],
