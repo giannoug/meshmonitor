@@ -132,13 +132,14 @@ export default function MeshCoreNodesTable({ feed = false }: MeshCoreNodesTableP
   const [tileScope, setTileScope] = useState<TileScope | null>(() => (feed ? null : TILE_SCOPES.find((x) => x === params.get('show')) ?? null));
 
   const merged = useMemo(() => mergeNodesAndContacts(nodes, contacts, hidden), [nodes, contacts, hidden]);
+  // A region feed lists every advert it holds, so its count and its rows agree: no age window.
   const aged = useMemo(
-    () => filterMeshCoreRowsByAge(merged, {
+    () => feed ? merged : filterMeshCoreRowsByAge(merged, {
       companionAgeHours: quickAgeHours ?? display.maxNodeAgeHours,
       infraAgeHours: quickAgeHours ?? display.maxInfraNodeAgeHours,
       hideIncompleteNodes: display.hideIncompleteNodes,
     }),
-    [merged, quickAgeHours, display.maxNodeAgeHours, display.maxInfraNodeAgeHours, display.hideIncompleteNodes],
+    [feed, merged, quickAgeHours, display.maxNodeAgeHours, display.maxInfraNodeAgeHours, display.hideIncompleteNodes],
   );
   const filtered = useMemo(
     () =>
@@ -457,7 +458,7 @@ export default function MeshCoreNodesTable({ feed = false }: MeshCoreNodesTableP
       ) : (
         <>
           {feed ? (
-            <p className={nodesStyles.subtitle}>{t('workspace.meshcore.feed_nodes', { count: merged.length })}{age}</p>
+            <p className={nodesStyles.subtitle}>{t('workspace.meshcore.feed_nodes', { count: merged.length })}</p>
           ) : (
             <header className={nodesStyles.header}>
               <div className={nodesStyles.titles}>

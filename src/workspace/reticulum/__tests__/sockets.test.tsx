@@ -24,9 +24,9 @@ describe('Reticulum sockets (Ruling N)', () => {
     expect(container.querySelectorAll('[data-ws-provider]')).toHaveLength(1);
   });
 
-  it('device settings open no socket', async () => {
+  it('device settings share the device screen\'s one socket (W11 R5b: one runtime, nothing remounted)', async () => {
     const { container } = renderReticulum(`${RNS_URL}/settings/lxmf-identity`);
     await screen.findByLabelText('Display name');
-    expect(container.querySelectorAll('[data-ws-provider]')).toHaveLength(0);
+    expect(container.querySelectorAll('[data-ws-provider]')).toHaveLength(1);
   });
 });

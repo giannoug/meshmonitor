@@ -103,7 +103,6 @@ export function meshcoreSettingsRedirect(base: string, splat: string, hash: stri
 /** Destinations: the Reticulum page's default view. */
 export const RETICULUM_DEFAULT_VIEW: ReticulumView = 'destinations';
 
-
 /** Today's Reticulum views that are native screens now (Task 7.6), plus the Dashboard, by URL segment. */
 const RNS_SCREENS = ['destinations', 'interfaces', 'paths', 'map', 'dashboard', 'dms', 'info'] as const;
 

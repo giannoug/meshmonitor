@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, screen } from '@testing-library/react';
-import { regionFeedFixtures, REGION_FEED_ID } from '../../__fixtures__/meshcoreTools';
+import { regionFeedFixtures, regionFeedNodes, REGION_FEED_ID } from '../../__fixtures__/meshcoreTools';
 import { expectBoard } from '../../test/boardChecks';
 import { renderMeshCore, requests } from './renderMeshCore';
 
@@ -100,5 +100,15 @@ describe('8-15-mqtt-region-feed', () => {
     expect(screen.queryByRole('button', { name: /Import contact/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Add to favorites/ })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Glyfada Beach' })).toBeNull();
+  });
+
+  it('the Nodes tab count equals its rows, with an old node present', async () => {
+    const old = { publicKey: 'ff'.repeat(32), name: 'Ancient Repeater', advType: 2, lastHeard: Date.now() - 90 * 24 * 3_600_000 };
+    const fixtures = { ...regionFeedFixtures(), [`GET /api/sources/:id/meshcore/ingest/nodes`]: () => ({ success: true, data: { nodes: [...regionFeedNodes, old] } }) };
+    renderMeshCore(`${FEED}/nodes`, { fixtures });
+    await screen.findByText('Glyfada Beach');
+    const count = Number(screen.getByText(/Nodes · from adverts · \d+/).textContent!.match(/· (\d+)/)![1]);
+    expect(screen.getAllByRole('row').length - 1).toBe(count);
+    expect(screen.getByText('Ancient Repeater')).toBeInTheDocument();
   });
 });

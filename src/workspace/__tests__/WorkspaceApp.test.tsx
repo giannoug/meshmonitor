@@ -432,7 +432,8 @@ describe('MeshCore and Reticulum views come from the URL', () => {
     [`${heltec}/settings`, `${heltec}/settings`],
   ])('MeshCore device settings are the settings frame (Task 7.4): %s → %s', async (from, to) => {
     renderAt(from);
-    await expectPage('settings-frame');
+    await expectPage('meshcore-screen');
+    expect(screen.getByTestId('view')).toHaveTextContent('settings');
     await waitFor(() => expect(realUrl()).toBe(to));
     expect(mounts.meshcore).toBeUndefined();
   });
@@ -452,14 +453,14 @@ describe('MeshCore and Reticulum views come from the URL', () => {
 
   it('the node page\'s Console link opens the settings frame with that remote target, and the URL stays (Task 7.3)', async () => {
     renderAt(`${heltec}/settings/console?node=abcd`);
-    await expectPage('settings-frame');
+    await expectPage('meshcore-screen');
     expect(mounts.meshcore).toBeUndefined();
     expect(realUrl()).toBe(`${heltec}/settings/console?node=abcd`);
   });
 
   it('a MeshCore settings URL without a remote target is this radio\'s settings (Task 7.4)', async () => {
     renderAt(`${heltec}/settings/console`);
-    await expectPage('settings-frame');
+    await expectPage('meshcore-screen');
     expect(realUrl()).toBe(`${heltec}/settings/console`);
   });
 
@@ -503,13 +504,17 @@ describe('MeshCore and Reticulum views come from the URL', () => {
 
   it("today's Reticulum Configuration and Settings views are the settings frame (Task 7.6)", async () => {
     renderAt(`${rns}/configuration`);
-    await expectPage('settings-frame');
+    await expectPage('reticulum-screen');
+    expect(screen.getByTestId('view')).toHaveTextContent('settings');
     await waitFor(() => expect(realUrl()).toBe(`${rns}/settings`));
     goTo(`${rns}/settings/rnode`);
-    await expectPage('settings-frame');
+    await waitFor(() => expect(screen.getByTestId('view')).toHaveTextContent('settings'));
     expect(mounts.reticulum).toBeUndefined();
+    // One screen throughout (W11 R5b): going to settings and back remounts nothing.
+    goTo(`${rns}/paths`);
+    await waitFor(() => expect(screen.getByTestId('view')).toHaveTextContent('paths'));
+    expect(mounts['reticulum-screen']).toBe(1);
   });
-
 
 });
 

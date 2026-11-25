@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { SOURCE_IDS } from '../../__fixtures__/athens';
+import { athensFixture, SOURCE_IDS } from '../../__fixtures__/athens';
 import { HELTEC, renderMeshCore, requests } from './renderMeshCore';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('./mocks')).wsMock(orig));
@@ -280,5 +280,45 @@ describe('review round 2', () => {
     const sheet = await screen.findByRole('dialog');
     expect(within(sheet).getByText(/Region \/ Scope \(optional\)/)).toBeInTheDocument();
     expect(within(sheet).queryByText(/Secret \(hex, 32 chars\)/)).toBeNull();
+  });
+});
+
+describe('W11 own-issues (#6365)', () => {
+  it('node list to Settings keeps the one MeshCore runtime: one status and one snapshot read', async () => {
+    renderMeshCore(`${HELTEC}/nodes`, { fixtures });
+    await screen.findAllByRole('columnheader');
+    await pause();
+    const status = requests('GET', /\/meshcore\/status$/);
+    const snapshot = requests('GET', /\/meshcore\/snapshot$/);
+    expect(snapshot).toBe(1);
+    fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
+    await screen.findByRole('navigation', { name: 'Settings' });
+    await pause();
+    expect(requests('GET', /\/meshcore\/status$/)).toBe(status);
+    expect(requests('GET', /\/meshcore\/snapshot$/)).toBe(snapshot);
+  });
+
+  it('Observer: a typed broker password is gone after Cancel and reopening', async () => {
+    const withBroker = {
+      ...fixtures,
+      'GET /api/sources': () =>
+        athensFixture.sources.map((x) =>
+          x.id === SOURCE_IDS.heltec ? { ...x, config: { ...x.config, observer: { enabled: true, iataCode: 'ATH', brokers: [{ url: 'mqtts://broker.example', authMode: 'password', label: 'Region broker' }] } } } : x),
+      'GET /api/sources/:id/observer/status': () => ({
+        success: true,
+        data: {
+          running: true, configured: true, authMode: 'password', keyStored: false, connected: true, publishes: 0, dropped: 0,
+          lastPublishAt: null, lastError: null, tokenExpiresAt: null,
+          brokers: [{ key: 'b1', url: 'mqtts://broker.example', label: 'Region broker', authMode: 'password', tokenAudience: null, configured: true,
+            keyStored: false, connected: true, publishes: 0, dropped: 0, lastPublishAt: null, lastError: null, tokenExpiresAt: null }],
+        },
+      }),
+    };
+    renderMeshCore(`${HELTEC}/settings/observer`, { fixtures: withBroker });
+    fireEvent.click(await screen.findByRole('button', { name: /Set username and password/ }));
+    fireEvent.change(screen.getByPlaceholderText('Broker password'), { target: { value: 'hunter2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(screen.getByRole('button', { name: /Set username and password/ }));
+    expect(screen.getByPlaceholderText('Broker password')).toHaveValue('');
   });
 });

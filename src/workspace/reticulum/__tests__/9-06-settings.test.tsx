@@ -12,7 +12,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { expectBoard } from '../../test/boardChecks';
 import { RETICULUM_CATEGORIES } from '../../settings/categories';
 import { RETICULUM_FIELDS } from '../settings/reticulumSearch';
-import { RNS_URL, renderReticulum } from './renderReticulum';
+import { RNS_URL, renderReticulum, rnsRequests } from './renderReticulum';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => (await import('../../meshcore/__tests__/mocks')).wsMock(orig));
 
@@ -154,5 +154,21 @@ describe('settings search over Reticulum pages (RETICULUM_FIELDS)', () => {
     const d = within(await screen.findByRole('dialog', { name: 'Search settings' }));
     fireEvent.change(d.getByRole('combobox', { name: 'Search settings' }), { target: { value: 'spreading' } });
     expect(d.getByRole('option', { name: /Spreading Factor.*RNode radio/ })).toHaveAttribute('href', `${RNS_URL}/settings/rnode#setting-reticulum.spreadingFactor`);
+  });
+});
+
+describe('W11 own-issues (#6365)', () => {
+  it('settings and back keep the one runtime: no immediate status or destinations re-read', async () => {
+    renderReticulum(`${RNS_URL}/destinations`);
+    await screen.findAllByText('Kifisia Sideband');
+    await pause();
+    const status = rnsRequests('GET', '/reticulum/status');
+    const destinations = rnsRequests('GET', '/reticulum/destinations');
+    fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
+    fireEvent.click(await screen.findByTestId('settings-back'));
+    await screen.findAllByText('Kifisia Sideband');
+    await pause();
+    expect(rnsRequests('GET', '/reticulum/status')).toBe(status);
+    expect(rnsRequests('GET', '/reticulum/destinations')).toBe(destinations);
   });
 });

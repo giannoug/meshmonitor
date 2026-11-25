@@ -241,7 +241,8 @@ export default function WorkspaceSource() {
       return (
         <Redirect to={settingsTo}>
           <Rehost>
-            <SettingsFrame key={sourceId} sourceId={sourceId} source={source} path={path} />
+            {/* The same element as the screens above, so moving to settings keeps the one useMeshCore runtime. */}
+            <MeshCoreScreen key={sourceId} sourceId={sourceId} source={source} screen={{ kind: 'settings', path }} />
           </Rehost>
         </Redirect>
       );
@@ -279,7 +280,7 @@ export default function WorkspaceSource() {
       return (
         <Redirect to={configuration ? `${base}/settings` : null}>
           <Rehost>
-            <SettingsFrame key={sourceId} sourceId={sourceId} source={source} path={path} />
+            <ReticulumScreen key={sourceId} sourceId={sourceId} source={source} screen={{ kind: 'settings', path }} />
           </Rehost>
         </Redirect>
       );
