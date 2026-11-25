@@ -42,7 +42,6 @@ const PathsPage = lazy(() => import('./PathsPage.tsx'));
 const ReticulumMapPage = lazy(() => import('./ReticulumMapPage.tsx'));
 const ReticulumInfoPage = lazy(() => import('./ReticulumInfoPage.tsx'));
 const ReticulumDashboardPage = lazy(() => import('./ReticulumDashboardPage.tsx'));
-const ReticulumSettingsFrame = lazy(() => import('./settings/ReticulumSettingsFrame.tsx'));
 
 export type ReticulumScreenKind =
   | { kind: 'home' }
@@ -53,9 +52,7 @@ export type ReticulumScreenKind =
   | { kind: 'dashboard' }
   | { kind: 'dms' }
   | { kind: 'dm'; peer: string }
-  | { kind: 'info' }
-  /** Device settings (`path` follows `/settings/`), in the same runtime so going there and back re-reads nothing. */
-  | { kind: 'settings'; path: string };
+  | { kind: 'info' };
 
 export interface ReticulumScreenProps {
   sourceId: string;
@@ -69,7 +66,7 @@ export default function ReticulumScreen({ sourceId, source, screen }: ReticulumS
       <WebSocketProvider>
         <SettingsProvider baseUrl={appBasename}>
           <MapProvider>
-            <Gate sourceId={sourceId} source={source} screen={screen} />
+            <Gate sourceId={sourceId} deviceName={source.name} screen={screen} />
           </MapProvider>
         </SettingsProvider>
       </WebSocketProvider>
@@ -77,14 +74,12 @@ export default function ReticulumScreen({ sourceId, source, screen }: ReticulumS
   );
 }
 
-function Gate({ sourceId, source, screen }: { sourceId: string; source: DashboardSource; screen: ReticulumScreenKind }) {
+function Gate({ sourceId, deviceName, screen }: { sourceId: string; deviceName: string; screen: ReticulumScreenKind }) {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
   const isPhone = useIsPhone();
   // Today's gate (ReticulumSourcePage): the resource the Reticulum data routes enforce.
   if (!hasPermission('nodes', 'read', { sourceId })) {
-    // Settings answer to their own grants, not to the device screen's.
-    if (screen.kind === 'settings') return <SettingsBody sourceId={sourceId} source={source} path={screen.path} />;
     return (
       <section className={styles.screen} data-phone={isPhone || undefined}>
         {isPhone && <PhoneDeviceHeader sourceId={sourceId} />}
@@ -92,19 +87,10 @@ function Gate({ sourceId, source, screen }: { sourceId: string; source: Dashboar
       </section>
     );
   }
-  return <Runtime sourceId={sourceId} source={source} screen={screen} />;
+  return <Runtime sourceId={sourceId} deviceName={deviceName} screen={screen} />;
 }
 
-function SettingsBody({ sourceId, source, path }: { sourceId: string; source: DashboardSource; path: string }) {
-  return (
-    <Suspense fallback={<StateView kind="loading" page />}>
-      <ReticulumSettingsFrame sourceId={sourceId} source={source} path={path} />
-    </Suspense>
-  );
-}
-
-function Runtime({ sourceId, source, screen }: { sourceId: string; source: DashboardSource; screen: ReticulumScreenKind }) {
-  const deviceName = source.name;
+function Runtime({ sourceId, deviceName, screen }: { sourceId: string; deviceName: string; screen: ReticulumScreenKind }) {
   const isPhone = useIsPhone();
   const rns = useReticulum({ sourceId });
   const queryClient = useQueryClient();
@@ -115,13 +101,6 @@ function Runtime({ sourceId, source, screen }: { sourceId: string; source: Dashb
     queryClient.setQueryData(rnsKeys.lists(sourceId), lists);
   }, [conversations, destinations, status?.destinationCount, queryClient, sourceId]);
   const runtime = useMemo(() => ({ sourceId, deviceName, rns }), [sourceId, deviceName, rns]);
-  if (screen.kind === 'settings') {
-    return (
-      <RnsRuntimeContext.Provider value={runtime}>
-        <SettingsBody sourceId={sourceId} source={source} path={screen.path} />
-      </RnsRuntimeContext.Provider>
-    );
-  }
 
   // The phone's pages draw their own bar; Home carries the status in its header.
   const statusLine = !isPhone && <ReticulumStatusLine />;

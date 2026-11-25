@@ -504,18 +504,12 @@ describe('MeshCore and Reticulum views come from the URL', () => {
 
   it("today's Reticulum Configuration and Settings views are the settings frame (Task 7.6)", async () => {
     renderAt(`${rns}/configuration`);
-    await expectPage('reticulum-screen');
-    expect(screen.getByTestId('view')).toHaveTextContent('settings');
+    await expectPage('settings-frame');
     await waitFor(() => expect(realUrl()).toBe(`${rns}/settings`));
     goTo(`${rns}/settings/rnode`);
-    await waitFor(() => expect(screen.getByTestId('view')).toHaveTextContent('settings'));
+    await expectPage('settings-frame');
     expect(mounts.reticulum).toBeUndefined();
-    // One screen throughout (W11 R5b): going to settings and back remounts nothing.
-    goTo(`${rns}/paths`);
-    await waitFor(() => expect(screen.getByTestId('view')).toHaveTextContent('paths'));
-    expect(mounts['reticulum-screen']).toBe(1);
   });
-
 });
 
 describe('unknown sources (Review Focus 4)', () => {

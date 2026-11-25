@@ -280,7 +280,7 @@ export default function WorkspaceSource() {
       return (
         <Redirect to={configuration ? `${base}/settings` : null}>
           <Rehost>
-            <ReticulumScreen key={sourceId} sourceId={sourceId} source={source} screen={{ kind: 'settings', path }} />
+            <SettingsFrame key={sourceId} sourceId={sourceId} source={source} path={path} />
           </Rehost>
         </Redirect>
       );

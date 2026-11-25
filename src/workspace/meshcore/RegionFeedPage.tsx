@@ -30,7 +30,6 @@ import apiService from '../../services/api';
 import { UiIcon, type UiIconName } from '../../components/icons';
 import { MeshCoreClockOffset } from '../../components/MeshCore/MeshCoreClockOffset';
 import type { MeshCoreMessage, MeshCoreNode, UseMeshCoreState } from '../../components/MeshCore/hooks/useMeshCore';
-import { READ_ONLY_ACTIONS } from './readOnlyActions';
 import { useMeshCoreViewAccess } from '../../components/MeshCore/meshCoreViewAccess';
 import { formatTime, payloadLabel } from '../../components/MeshCore/meshcorePacketRows';
 import type { MeshCorePacketRow } from '../../hooks/useMeshCorePackets';
@@ -391,21 +390,19 @@ function Feed({ sourceId, source, tab }: { sourceId: string; source: DashboardSo
 
 /** The feed's nodes in a runtime of their own (no radio): what MeshCoreNodesTable reads, read-only. */
 function FeedNodes({ sourceId, name, nodes, loaded }: { sourceId: string; name: string; nodes: FeedNode[]; loaded: boolean }) {
-  const meshCore = useMemo<UseMeshCoreState>(
-    () => ({
-      nodes: nodes.map((n): MeshCoreNode => ({
-        publicKey: n.publicKey, name: n.name ?? '', advType: n.advType ?? 0, lastHeard: n.lastHeard ?? undefined,
-        latitude: n.latitude ?? undefined, longitude: n.longitude ?? undefined,
-      } as MeshCoreNode)),
-      contacts: [],
-      messages: [],
-      reactionResolutions: {},
-      status: null,
-      loading: !loaded,
-      error: null,
-      actions: READ_ONLY_ACTIONS,
-      hasLoadedOnce: loaded,
-    }),
+  // shortcut: the feed passes a read-only runtime with no actions; narrow MeshCoreNodesTable's prop type to what it reads if it grows
+  const meshCore = useMemo(
+    () =>
+      ({
+        nodes: nodes.map((n): MeshCoreNode => ({
+          publicKey: n.publicKey, name: n.name ?? '', advType: n.advType ?? 0, lastHeard: n.lastHeard ?? undefined,
+          latitude: n.latitude ?? undefined, longitude: n.longitude ?? undefined,
+        } as MeshCoreNode)),
+        contacts: [],
+        status: null,
+        actions: {},
+        hasLoadedOnce: loaded,
+      }) as unknown as UseMeshCoreState,
     [nodes, loaded],
   );
   return (
