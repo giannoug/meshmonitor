@@ -19,7 +19,7 @@
  * No reply), and REMOTE ONLY (Node management, Remote console); In
  * MeshMonitor is about this server, so it is not listed.
  */
-import { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UiIcon, type UiIconName } from '../../components/icons';
@@ -140,6 +140,8 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
   const isPhone = useIsPhone();
   const { openSettingsSearch } = useShellDevices();
   const [query, setQuery] = useState('');
+  // A query belongs to the page it was typed on: any move to another one (rail, link, Back) ends it.
+  useEffect(() => setQuery(''), [pathname]);
   const fieldId = useId();
   const keywords = useMemo(
     () => (meshcore ? meshcoreCategoryKeywords() : new Map(categoryIndex().map((c) => [c.id, c.keywords.join(' ')]))),
@@ -207,12 +209,14 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
   const found = categories
     .filter((c) => matchesQuery(`${t(c.labelKey)} ${keywords.get(c.id) ?? ''}`, tokens))
     .map((c) => row(c, c.scope === 'meshmonitor' ? 'meshmonitor' : c.group ? 'device' : 'radio'));
+  const placeholder = isPhone ? t('config_search.title') : t('workspace.settings.search.device_placeholder', { device: sourceName });
   const followed = () => {
     setQuery('');
     onNavigate?.();
   };
+  const Root = sidebar ? 'div' : 'main';
   return (
-    <div className={styles.frame} data-variant={variant}>
+    <Root className={styles.frame} data-variant={variant}>
       <div className={styles.head}>
         {sidebar ? (
           <Link to={device} className={styles.back} data-testid="settings-back" onClick={onNavigate}>
@@ -245,7 +249,8 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
           type="search"
           className={styles.searchInput}
           value={query}
-          placeholder={isPhone ? t('config_search.title') : t('workspace.settings.search.device_placeholder', { device: sourceName })}
+          placeholder={placeholder}
+          title={placeholder}
           onChange={(e) => setQuery(e.target.value)}
         />
         {!isPhone && (
@@ -308,7 +313,7 @@ export default function SettingsList({ sourceId, sourceName, sourceType, variant
           </>
         )}
       </nav>
-    </div>
+    </Root>
   );
 }
 

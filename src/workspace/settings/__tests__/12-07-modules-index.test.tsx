@@ -49,4 +49,11 @@ describe('12-07-modules-index', () => {
     fireEvent.click(screen.getByRole('button', { name: /3 not on this firmware/ }));
     expect(screen.getByRole('link', { name: /^Paxcounter/ })).toHaveAttribute('href', `${g2}/settings/modules/paxcounter`);
   });
+
+  it('the hidden-modules list has an accessible name', async () => {
+    renderSettings(`${g2}/settings/modules`);
+    await within(await supported()).findByText('Traffic Management');
+    fireEvent.click(screen.getByRole('button', { name: /3 not on this firmware/ }));
+    expect(within(screen.getByRole('list', { name: '3 not on this firmware' })).getAllByRole('link')).toHaveLength(3);
+  });
 });

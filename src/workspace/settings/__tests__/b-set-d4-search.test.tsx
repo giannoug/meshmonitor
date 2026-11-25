@@ -121,7 +121,8 @@ describe('b-set-d4-search', () => {
     fireEvent.keyDown(input, { key: 'ArrowDown' });
     expect(options[1]).toHaveAttribute('aria-selected', 'true');
     expect(input).toHaveAttribute('aria-activedescendant', options[1].id);
-    // Heltec MeshCore's Device actions ("zero hop") ranks second since Task 7.4 searches MeshCore pages.
+    // Order: this device's LoRa, then Heltec MeshCore's Device actions ("zero hop"; Task 7.4 searches MeshCore pages),
+    // then the other Meshtastic device's (Rak) LoRa, which Enter opens.
     fireEvent.keyDown(input, { key: 'ArrowDown' });
     expect(options[2]).toHaveAttribute('aria-selected', 'true');
     fireEvent.keyDown(input, { key: 'Enter' });

@@ -17,7 +17,7 @@
  *
  * Mesh impact: none. Tile tests and imports are browser or server requests.
  */
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMapEvents } from 'react-leaflet';
 import { useQueryClient } from '@tanstack/react-query';
@@ -38,6 +38,7 @@ import Sheet from '../patterns/Sheet';
 import SettingGroup from '../settings/kit/SettingGroup';
 import SettingRow from '../settings/kit/SettingRow';
 import { SavedLine } from '../settings/categories/autosave';
+import { useReadOnly } from '../settings/kit/useFieldRegistry';
 import { serverSettingsKey, useAutosaveValue, useServerSettings } from '../settings/useAutosaveSetting';
 import { useIsPhone } from '../shell/useIsPhone';
 import RowSwitch from './RowSwitch';
@@ -54,7 +55,7 @@ export default function MapTilesPage() {
   const isPhone = useIsPhone();
   const { isAdmin } = useServerAccess();
   return (
-    <ServerFrame categoryId="map" title={t('workspace.server.nav.map')} scope={t('workspace.server.scope_everyone')} icon="map" gate="write">
+    <ServerFrame categoryId="map" title={t('workspace.server.nav.map')} scope={t('workspace.server.scope_everyone')} icon="map" gate="read">
       <div className={prefs.columns} data-phone={isPhone || undefined}>
         <div className={prefs.column}>
           <TileServers />
@@ -84,7 +85,10 @@ function TileServers() {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const { report, clear, line } = useReport();
+  // A settings:read viewer sees the lists; every edit control below is off for them.
+  const readOnly = useReadOnly();
   const f = useCustomTilesetForm(report);
+  const urlErrorId = useId();
   const [deleting, setDeleting] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const formOpen = f.isAdding || !!f.editingId;
@@ -154,10 +158,10 @@ function TileServers() {
                   {t('tileset_manager.max_zoom')}: {ts.maxZoom} · {t('tileset_manager.attribution')}: {ts.attribution}
                 </span>
               </div>
-              <button type="button" className={pages.iconButton} aria-label={`${t('common.edit')} ${ts.name}`} title={t('common.edit')} disabled={f.isSaving} onClick={() => f.handleEdit(ts)}>
+              <button type="button" className={pages.iconButton} aria-label={`${t('common.edit')} ${ts.name}`} title={t('common.edit')} disabled={f.isSaving || readOnly} onClick={() => f.handleEdit(ts)}>
                 <UiIcon name="edit" size={18} />
               </button>
-              <button type="button" className={pages.iconButton} aria-label={`${t('common.delete')} ${ts.name}`} title={t('common.delete')} disabled={f.isSaving} onClick={() => setDeleting(ts.id)}>
+              <button type="button" className={pages.iconButton} aria-label={`${t('common.delete')} ${ts.name}`} title={t('common.delete')} disabled={f.isSaving || readOnly} onClick={() => setDeleting(ts.id)}>
                 <UiIcon name="delete" size={18} />
               </button>
             </div>
@@ -177,7 +181,11 @@ function TileServers() {
             <Field label={t('tileset_manager.field_name')} help={t('tileset_manager.name_help')}>
               <input className={pages.keyInput} value={f.formData.name} maxLength={100} required disabled={f.isSaving} placeholder={t('tileset_manager.name_placeholder')} onChange={(e) => set({ name: e.target.value })} />
             </Field>
-            <Field label={t('tileset_manager.field_url')} help={`${t('tileset_manager.url_help')} ${t('workspace.server.test_url_help')}`}>
+            <Field
+              label={t('tileset_manager.field_url')}
+              help={`${t('tileset_manager.url_help')} ${t('workspace.server.test_url_help')}`}
+              below={f.urlValidation?.error && <span id={urlErrorId} className={f.urlValidation.valid ? pages.warn : pages.error}>{f.urlValidation.error}</span>}
+            >
               <span className={styles.fieldLine}>
                 <input
                   className={pages.keyInput}
@@ -186,6 +194,7 @@ function TileServers() {
                   required
                   disabled={f.isSaving || f.isTesting}
                   aria-invalid={f.urlValidation && !f.urlValidation.valid ? true : undefined}
+                  aria-describedby={f.urlValidation?.error ? urlErrorId : undefined}
                   placeholder="https://example.com/{z}/{x}/{y}.png"
                   onChange={(e) => f.handleUrlChange(e.target.value)}
                 />
@@ -194,7 +203,6 @@ function TileServers() {
                 </button>
               </span>
             </Field>
-            {f.urlValidation?.error && <p className={f.urlValidation.valid ? pages.warn : pages.error}>{f.urlValidation.error}</p>}
             {f.testResult && (
               <div className={styles.result} data-ok={f.testResult.status === 'success' || undefined} role="status">
                 <UiIcon name={f.testResult.status === 'success' ? 'check' : f.testResult.status === 'warning' ? 'alert' : 'error'} size={14} />
@@ -262,7 +270,7 @@ function TileServers() {
       )}
       {!formOpen && (
         <div className={styles.cardActions}>
-          <button type="button" className={pages.button} disabled={f.isSaving} onClick={() => f.setIsAdding(true)}>
+          <button type="button" className={pages.button} disabled={f.isSaving || readOnly} onClick={() => f.setIsAdding(true)}>
             <UiIcon name="plus" size={16} />
             {t('tileset_manager.add_button')}
           </button>
@@ -287,6 +295,7 @@ function GeoJsonLayers() {
   const { t } = useTranslation();
   const isPhone = useIsPhone();
   const { report, line } = useReport();
+  const readOnly = useReadOnly();
   const g = useGeoJsonLayers(report);
   const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
   const [styling, setStyling] = useState<string | null>(null);
@@ -311,6 +320,7 @@ function GeoJsonLayers() {
               <input
                 className={`${pages.keyInput} ${styles.nameInput}`}
                 aria-label={t('workspace.server.geojson_name')}
+                disabled={readOnly}
                 value={layer.name}
                 onChange={(e) => g.setLayers((prev) => prev.map((l) => (l.id === layer.id ? { ...l, name: e.target.value } : l)))}
                 onBlur={(e) => void g.updateLayer(layer.id, { name: e.target.value })}
@@ -321,16 +331,17 @@ function GeoJsonLayers() {
               <RowSwitch
                 label={`${t('workspace.server.geojson_public')}: ${layer.name}`}
                 checked={layer.publiclyVisible ?? false}
+                disabled={readOnly}
                 onChange={(v) => void g.updateLayer(layer.id, { publiclyVisible: v })}
               />
               {/* s13n5: colour, opacity and no popup live in the row's ⋯ (with Visible, so nothing is lost). */}
               <RowMenu
                 label={t('workspace.server.layer_actions', { name: layer.name })}
                 items={[
-                  { key: 'style', label: t('workspace.server.geojson_style'), icon: 'edit', onSelect: () => setStyling(layer.id) },
-                  { key: 'visible', label: t('workspace.server.geojson_visible'), icon: 'visibility', checked: layer.visible, onSelect: () => void g.updateLayer(layer.id, { visible: !layer.visible }) },
-                  { key: 'popup', label: t('workspace.server.geojson_no_popup'), icon: 'blocked', hint: t('workspace.server.geojson_no_popup_hint'), checked: layer.disablePopup ?? false, onSelect: () => void g.updateLayer(layer.id, { disablePopup: !(layer.disablePopup ?? false) }) },
-                  { key: 'delete', label: t('common.delete'), icon: 'delete', danger: true, onSelect: () => setDeleting({ id: layer.id, name: layer.name }) },
+                  { key: 'style', label: t('workspace.server.geojson_style'), icon: 'edit', disabled: readOnly, onSelect: () => setStyling(layer.id) },
+                  { key: 'visible', label: t('workspace.server.geojson_visible'), icon: 'visibility', checked: layer.visible, disabled: readOnly, onSelect: () => void g.updateLayer(layer.id, { visible: !layer.visible }) },
+                  { key: 'popup', label: t('workspace.server.geojson_no_popup'), icon: 'blocked', hint: t('workspace.server.geojson_no_popup_hint'), checked: layer.disablePopup ?? false, disabled: readOnly, onSelect: () => void g.updateLayer(layer.id, { disablePopup: !(layer.disablePopup ?? false) }) },
+                  { key: 'delete', label: t('common.delete'), icon: 'delete', danger: true, disabled: readOnly, onSelect: () => setDeleting({ id: layer.id, name: layer.name }) },
                 ]}
               />
             </div>
@@ -349,7 +360,7 @@ function GeoJsonLayers() {
             if (file) void g.handleUpload(file);
           }}
         />
-        <button type="button" className={pages.button} disabled={g.uploading} onClick={() => g.fileInputRef.current?.click()}>
+        <button type="button" className={pages.button} disabled={g.uploading || readOnly} onClick={() => g.fileInputRef.current?.click()}>
           <UiIcon name="upload" size={16} />
           {g.uploading ? t('workspace.server.uploading') : t('workspace.server.geojson_upload')}
         </button>
@@ -406,6 +417,7 @@ function Range({ label, value, onChange }: { label: string; value: number; onCha
 function MapStyles() {
   const { t } = useTranslation();
   const { report, line } = useReport();
+  const readOnly = useReadOnly();
   const m = useMapStyles(report);
   const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
   return (
@@ -422,6 +434,7 @@ function MapStyles() {
               <input
                 className={`${pages.keyInput} ${styles.nameInput}`}
                 aria-label={t('workspace.server.style_name')}
+                disabled={readOnly}
                 value={style.name}
                 onChange={(e) => m.setStyles((prev) => prev.map((s) => (s.id === style.id ? { ...s, name: e.target.value } : s)))}
                 onBlur={(e) => void m.updateStyle(style.id, { name: e.target.value })}
@@ -437,8 +450,8 @@ function MapStyles() {
             <RowMenu
               label={t('workspace.server.style_actions', { name: style.name })}
               items={[
-                ...(m.activeStyleId === style.id ? [] : [{ key: 'activate', label: t('map_style_manager.activate'), icon: 'check' as const, onSelect: () => void m.setActiveMapStyleId(style.id) }]),
-                { key: 'delete', label: t('common.delete'), icon: 'delete', danger: true, onSelect: () => setDeleting({ id: style.id, name: style.name }) },
+                ...(m.activeStyleId === style.id ? [] : [{ key: 'activate', label: t('map_style_manager.activate'), icon: 'check' as const, disabled: readOnly, onSelect: () => void m.setActiveMapStyleId(style.id) }]),
+                { key: 'delete', label: t('common.delete'), icon: 'delete', danger: true, disabled: readOnly, onSelect: () => setDeleting({ id: style.id, name: style.name }) },
               ]}
             />
           </div>
@@ -457,23 +470,23 @@ function MapStyles() {
             if (file) void m.handleUpload(file);
           }}
         />
-        <button type="button" className={pages.button} disabled={m.uploading} onClick={() => m.fileInputRef.current?.click()}>
+        <button type="button" className={pages.button} disabled={m.uploading || readOnly} onClick={() => m.fileInputRef.current?.click()}>
           <UiIcon name="upload" size={16} />
           {m.uploading ? t('map_style_manager.uploading') : t('map_style_manager.upload_button')}
         </button>
         <span className={styles.fieldLine}>
-          <input className={pages.keyInput} aria-label={t('map_style_manager.style_url_placeholder')} placeholder={t('map_style_manager.style_url_placeholder')} value={m.importUrl} onChange={(e) => m.setImportUrl(e.target.value)} />
-          <input className={pages.keyInput} aria-label={t('map_style_manager.name_placeholder')} placeholder={t('map_style_manager.name_placeholder')} value={m.importName} onChange={(e) => m.setImportName(e.target.value)} />
-          <button type="button" className={pages.button} disabled={m.fetchingUrl || !m.importUrl.trim()} onClick={() => void m.handleFetchUrl()}>
+          <input className={pages.keyInput} aria-label={t('map_style_manager.style_url_placeholder')} placeholder={t('map_style_manager.style_url_placeholder')} disabled={readOnly} value={m.importUrl} onChange={(e) => m.setImportUrl(e.target.value)} />
+          <input className={pages.keyInput} aria-label={t('map_style_manager.name_placeholder')} placeholder={t('map_style_manager.name_placeholder')} disabled={readOnly} value={m.importName} onChange={(e) => m.setImportName(e.target.value)} />
+          <button type="button" className={pages.button} disabled={readOnly || m.fetchingUrl || !m.importUrl.trim()} onClick={() => void m.handleFetchUrl()}>
             <UiIcon name="link" size={16} />
             {m.fetchingUrl ? t('map_style_manager.fetching') : t('map_style_manager.fetch_button')}
           </button>
         </span>
         <h3 className={styles.subTitle}>{t('map_style_manager.generate_title')}</h3>
         <span className={styles.fieldLine}>
-          <input className={pages.keyInput} aria-label={t('map_style_manager.tilejson_url_placeholder')} placeholder={t('map_style_manager.tilejson_url_placeholder')} value={m.tileJsonUrl} onChange={(e) => m.setTileJsonUrl(e.target.value)} />
-          <input className={pages.keyInput} aria-label={t('workspace.server.generated_name')} placeholder={t('map_style_manager.name_placeholder')} value={m.tileJsonName} onChange={(e) => m.setTileJsonName(e.target.value)} />
-          <button type="button" className={pages.button} disabled={m.generatingStyle || !m.tileJsonUrl.trim()} onClick={() => void m.handleGenerateFromTileserver()}>
+          <input className={pages.keyInput} aria-label={t('map_style_manager.tilejson_url_placeholder')} placeholder={t('map_style_manager.tilejson_url_placeholder')} disabled={readOnly} value={m.tileJsonUrl} onChange={(e) => m.setTileJsonUrl(e.target.value)} />
+          <input className={pages.keyInput} aria-label={t('workspace.server.generated_name')} placeholder={t('map_style_manager.name_placeholder')} disabled={readOnly} value={m.tileJsonName} onChange={(e) => m.setTileJsonName(e.target.value)} />
+          <button type="button" className={pages.button} disabled={readOnly || m.generatingStyle || !m.tileJsonUrl.trim()} onClick={() => void m.handleGenerateFromTileserver()}>
             {m.generatingStyle ? t('map_style_manager.generating') : t('map_style_manager.generate_button')}
           </button>
         </span>

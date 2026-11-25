@@ -297,7 +297,7 @@ function ModulesIndex({ base, modules }: { base: string; modules: CategoryDef[] 
             <span className={styles.foldAction}>{t(showHidden ? 'workspace.settings.hide' : 'workspace.settings.show')}</span>
           </button>
         ))}
-      {showHidden && <ul className={styles.list} data-columns={!isPhone || undefined} style={columns(hidden.length)}>{rows(hidden)}</ul>}
+      {showHidden && <ul className={styles.list} data-columns={!isPhone || undefined} style={columns(hidden.length)} aria-label={t('workspace.settings.modules_hidden_count', { count: hidden.length })}>{rows(hidden)}</ul>}
     </>
   );
 }

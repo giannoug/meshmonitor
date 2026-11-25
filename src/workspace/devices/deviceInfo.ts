@@ -38,8 +38,24 @@ export function hostOf(url: unknown): string {
  * `/dev/ttyACM0`, the broker's host, `port 1883`. Empty when the server
  * withheld it. A URL shows only its host and port (`hostOf`).
  */
+interface EndpointConfig {
+  host?: unknown;
+  port?: unknown;
+  transport?: unknown;
+  tcpHost?: unknown;
+  tcpPort?: unknown;
+  serialPort?: unknown;
+  brokerUrl?: unknown;
+  region?: unknown;
+  listener?: { port?: unknown };
+  upstream?: { url?: unknown };
+  mode?: unknown;
+  peers?: Array<{ host?: unknown; port?: unknown }>;
+  configDir?: unknown;
+}
+
 export function endpointOf(type: string, config: Record<string, unknown> | undefined, portLabel: (port: string) => string): string {
-  const c = (config ?? {}) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- #6365 today's untyped config blob
+  const c: EndpointConfig = config ?? {};
   const join = (host: unknown, port: unknown) => (host ? (port != null && port !== '' ? `${host}:${port}` : String(host)) : '');
   switch (type) {
     case 'meshtastic_tcp':

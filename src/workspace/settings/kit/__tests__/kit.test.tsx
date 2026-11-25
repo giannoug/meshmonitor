@@ -192,6 +192,18 @@ describe('controls', () => {
 });
 
 describe('AdvancedCard', () => {
+  it('outside a category writes no pref (it would be saved under a key with no category)', async () => {
+    const p = prefsFixture({});
+    render(<AdvancedCard><p>Deep rows</p></AdvancedCard>, { fixtures: p.fixtures });
+    const head = await screen.findByRole('button', { name: 'Advanced' });
+    // The auth status lands after the first paint; a click before it would write nothing for the wrong reason.
+    await act(async () => { await new Promise((r) => setTimeout(r, 100)); });
+    await act(async () => { fireEvent.click(head); });
+    expect(screen.getByText('Deep rows')).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 100));
+    expect(p.puts).toEqual([]);
+  });
+
   it('starts closed, and opening it saves workspace.settings.advanced.<category>', async () => {
     const p = prefsFixture({});
     render(inCategory(<AdvancedCard><p>Deep rows</p></AdvancedCard>), { fixtures: p.fixtures });

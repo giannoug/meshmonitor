@@ -9,6 +9,7 @@
  * local node only. Every confirm transmits, so Enter never confirms (BH).
  */
 import { useState, type ReactNode } from 'react';
+import type { QueryClient } from '@tanstack/react-query';
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
@@ -90,6 +91,18 @@ describe('12-10-danger-confirm', () => {
 });
 
 describe('the danger zone', () => {
+  it('adds no polling observer of its own: the page reads the shell\'s poll from the cache', async () => {
+    const observers = (c: QueryClient) => c.getQueryCache().findAll({ queryKey: ['poll'] }).reduce((n, q) => n + q.getObserversCount(), 0);
+    const shell = renderSettings(`${g2}/settings/node-display`);
+    await screen.findByRole('heading', { level: 1, name: 'Node Display' }, { timeout: 5000 });
+    const shellOnly = observers(shell.queryClient);
+    shell.unmount();
+    const danger = renderSettings(`${g2}/settings/maintenance/danger`);
+    await open('Reboot Device');
+    expect(shellOnly).toBeGreaterThan(0);
+    expect(observers(danger.queryClient)).toBe(shellOnly);
+  });
+
   it('Reboot asks plainly with today\'s words, then sends today\'s reboot', async () => {
     renderSettings(`${g2}/settings/maintenance/danger`, { fixtures: { 'POST /api/device/reboot': () => ({ success: true }) } });
     const sheet = await open('Reboot Device');

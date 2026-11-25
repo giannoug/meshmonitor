@@ -93,6 +93,17 @@ describe('the list\'s search field', () => {
     expect(within(list).getByRole('button', { name: 'Search everywhere' })).toBeInTheDocument();
   });
 
+  it('the query clears after navigating away by another route (rail, link, back)', async () => {
+    renderSettings(`${g2}/settings/node-display`);
+    await screen.findByRole('heading', { level: 1, name: 'Node Display' }, { timeout: 5000 });
+    const field = screen.getByRole('searchbox', { name: 'Search settings' });
+    fireEvent.change(field, { target: { value: 'mqtt' } });
+    expect(field).toHaveValue('mqtt');
+    goTo(`${g2}/settings/telemetry`);
+    await screen.findByRole('heading', { level: 1, name: 'Telemetry' });
+    expect(screen.getByRole('searchbox', { name: 'Search settings' })).toHaveValue('');
+  });
+
   it('following a filtered row clears the field', async () => {
     renderSettings(`${g2}/settings/node-display`);
     await screen.findByRole('heading', { level: 1, name: 'Node Display' }, { timeout: 5000 });

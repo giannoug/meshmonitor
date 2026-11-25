@@ -8,7 +8,7 @@
   align-items: flex-start;
   padding: 96px 24px 24px;
   box-sizing: border-box;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font: inherit;
   color: var(--color-text);
 }
 

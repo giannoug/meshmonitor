@@ -212,8 +212,40 @@ describe('13-05 / 13-22 map & tiles', () => {
     expect(screen.queryByLabelText('Carto Basemap API Key')).toBeNull();
   });
 
-  it('a settings viewer without write gets no access', async () => {
+  it('a settings:read viewer sees the tileset and GeoJSON lists, with every edit control disabled', async () => {
     renderServer(PATH, { permissions: grants({ read: true }) });
+    expect(await screen.findByText('View only')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('Athens dark (vector)')).toBeDisabled();
+    expect(await screen.findByDisplayValue('Attica coverage')).toBeDisabled();
+    expect(screen.queryByText('Keys and defaults')).toBeNull();
+    // The tile servers: listed, not editable.
+    expect(await screen.findByRole('button', { name: 'Edit Athens topo' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Delete Athens topo' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add Custom Tile Server' })).toBeDisabled();
+    // The GeoJSON layers.
+    expect(screen.getByRole('switch', { name: 'Public: Hiking trails' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'More for Attica coverage' }));
+    for (const item of screen.getAllByRole('menuitem')) expect(item).toBeDisabled();
+    for (const item of screen.getAllByRole('menuitemcheckbox')) expect(item).toBeDisabled();
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+    expect(screen.getByRole('button', { name: /Upload Overlay/ })).toBeDisabled();
+    // The map styles.
+    expect(screen.getByRole('button', { name: /Upload Style/i })).toBeDisabled();
+    expect(screen.getByLabelText('Style URL', { exact: false })).toBeDisabled();
+  });
+
+  it('the {z}/{x}/{y} error is linked to the URL field by aria-describedby', async () => {
+    renderServer(PATH);
+    fireEvent.click(await screen.findByRole('button', { name: 'Add Custom Tile Server' }));
+    const url = screen.getByRole('textbox', { name: /^Tile URL/ });
+    fireEvent.change(url, { target: { value: 'https://tiles.example.com/map.png' } });
+    const message = await screen.findByText('URL must contain {z}, {x}, and {y} placeholders');
+    expect(url).toHaveAttribute('aria-describedby', message.id);
+    expect(message.id).not.toBe('');
+  });
+
+  it('a user without settings access gets none', async () => {
+    renderServer(PATH, { permissions: grants({}) });
     expect(await screen.findByText("You don't have permission to do this")).toBeInTheDocument();
   });
 });

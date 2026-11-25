@@ -2,10 +2,18 @@
  * @vitest-environment jsdom
  *
  * Boards 13-10 (desktop) and 13-26 (phone), Task 6.5: Server › Background
- * jobs. settings:write opens it (s13n2); the settings it saves are install-wide
- * keys the server keeps for admins, so only an admin changes them. Each row
- * saves as you go through today's `POST /api/settings`, and no save starts a
- * run (the schedulers keep their last run in the database).
+ * jobs. settings:write opens it (s13n2); a viewer with settings:read only is
+ * refused. These tests assert:
+ * - the board and its Sends line, and that each row saves its own key through
+ *   `POST /api/settings` as you go (push toggle, cron, position estimation,
+ *   mesh issues, coverage, solar);
+ * - that each status is read once on open, with no poll while nothing runs;
+ * - that a writer who is not an admin sees the rows view only and the admin
+ *   runs off, and that the keys a writer can change are held to the server's
+ *   own key lists;
+ * - that Solar is a page of its own on phone.
+ * Whether a save can start a run is not asserted here, apart from Recalculate
+ * now and Fetch Estimates Now running once when asked.
  */
 import { describe, it, expect } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';

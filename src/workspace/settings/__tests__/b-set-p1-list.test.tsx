@@ -57,6 +57,12 @@ describe('b-set-p1-list', () => {
     ]);
   });
 
+  it('the phone list page is the page\'s main landmark', async () => {
+    renderSettings(`${g2}/settings`, { phone: true });
+    const nav = await list();
+    expect(within(screen.getByRole('main')).getByRole('navigation', { name: 'Settings' })).toBe(nav);
+  });
+
   it('Back leads to the device Home', async () => {
     renderSettings(`${g2}/settings`, { phone: true });
     await list();

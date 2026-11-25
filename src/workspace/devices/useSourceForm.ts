@@ -531,26 +531,43 @@ function refreshSources(queryClient: QueryClient) {
 /**
  * Today's Connect (DashboardPage `onConnectSource`, issue #2773), moved
  * verbatim: POST `/connect`, then re-poll the source's status every 1.5 s for
- * at most 20 s, stopping as soon as it reports connected. `signal` stops the
- * loop early (the Workspace flow passes one and aborts it on unmount).
+ * at most 20 s, stopping as soon as it reports connected. `signal` ends THIS
+ * caller's wait early (the Workspace flow passes one and aborts it on unmount).
+ * The loop is shared: it stops early only when every caller has left, so the
+ * surface that started it leaving does not end the wait for one that joined.
  *
  * One connect per source at a time (Task 6.7): a press while one is running,
  * from any surface (Server › Devices' row, the Connection card), joins it
  * instead of sending a second POST. `useConnectInFlight` reads that state.
  */
 export function connectSourceAndWait(queryClient: QueryClient, id: string, signal?: AbortSignal): Promise<void> {
-  const running = connectsInFlight.get(id);
-  if (running) return running;
-  const connect = connectOnce(queryClient, id, signal).finally(() => {
-    connectsInFlight.delete(id);
+  let run = connectsInFlight.get(id);
+  if (!run) {
+    const stop = new AbortController();
+    const done = connectOnce(queryClient, id, stop.signal).finally(() => {
+      connectsInFlight.delete(id);
+      connectListeners.forEach((l) => l());
+    });
+    run = { done, stop, waiting: 0 };
+    connectsInFlight.set(id, run);
     connectListeners.forEach((l) => l());
+  }
+  const mine = run;
+  mine.waiting++;
+  if (!signal) return mine.done;
+  // Each caller leaves on its own signal; the last one out stops the shared loop.
+  const left = new Promise<void>((resolve) => {
+    const leave = () => {
+      if (--mine.waiting === 0) mine.stop.abort();
+      resolve();
+    };
+    if (signal.aborted) leave();
+    else signal.addEventListener('abort', leave, { once: true });
   });
-  connectsInFlight.set(id, connect);
-  connectListeners.forEach((l) => l());
-  return connect;
+  return Promise.race([mine.done, left]);
 }
 
-const connectsInFlight = new Map<string, Promise<void>>();
+const connectsInFlight = new Map<string, { done: Promise<void>; stop: AbortController; waiting: number }>();
 const connectListeners = new Set<() => void>();
 const subscribeConnects = (listener: () => void) => {
   connectListeners.add(listener);

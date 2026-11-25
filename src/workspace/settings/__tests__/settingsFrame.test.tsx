@@ -82,8 +82,11 @@ describe('the shared device configuration (Ruling DG)', () => {
   it('loads once per device, however many categories are opened', async () => {
     renderSettings(`${g2}/settings/identity`);
     await screen.findByRole('heading', { level: 1, name: 'Node Identity' }, { timeout: 5000 });
-    for (const path of ['lora', 'modules', 'modules/mqtt', 'device', 'node-display']) goTo(`${g2}/settings/${path}`);
-    goTo(`${g2}/settings/device/position`);
+    // Each hop is waited for, so a category that would load the config on mount has mounted before the count is read.
+    for (const path of ['lora', 'modules', 'modules/mqtt', 'device', 'node-display', 'device/position']) {
+      goTo(`${g2}/settings/${path}`);
+      await waitFor(() => expect(realUrl()).toBe(`${g2}/settings/${path}`));
+    }
     await screen.findByRole('heading', { level: 1, name: 'Position' });
     expect(configLoads()).toBe(1);
   });

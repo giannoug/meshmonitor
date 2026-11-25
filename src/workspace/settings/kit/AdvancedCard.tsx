@@ -24,8 +24,8 @@ export default function AdvancedCard({ children, count, label }: { children: Rea
   const open = local ?? saved;
   const toggle = () => {
     setLocal(!open);
-    // Anonymous viewers have no preferences to write (the server answers 403).
-    if (authStatus?.authenticated) void save(!open).catch(() => {});
+    // Anonymous viewers have no preferences to write (the server answers 403); no category, no key.
+    if (authStatus?.authenticated && categoryId) void save(!open).catch(() => {});
   };
   return (
     <section className={styles.group}>
