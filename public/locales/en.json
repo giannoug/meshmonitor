@@ -10645,7 +10645,6 @@
   "workspace.automations.test.long_name": "Long name",
   "workspace.automations.test.short_name": "Short name",
   "workspace.automations.test.hw_model": "HW model (#)",
-  "workspace.automations.test.shortname": "shortName",
   "workspace.automations.test.fix_first": "Fix the workflow before testing.",
   "workspace.automations.test.failed": "Test failed",
   "workspace.automations.var.create_failed": "Create failed",

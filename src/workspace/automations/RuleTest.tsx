@@ -56,7 +56,7 @@ const factFields = (t: TFunction): F[] => [
   ['batteryLevel', t('workspace.automations.test.battery')], ['voltage', t('nodes.voltage')], ['hopsAway', t('workspace.automations.test.hops_away')], ['role', t('workspace.automations.test.role')], ['channelUtilization', t('workspace.automations.test.channel_util')],
   ['airUtilTx', t('workspace.automations.test.air_util_tx')], ['snr', t('workspace.automations.test.snr_node')], ['altitude', t('workspace.automations.test.altitude')], ['longName', t('workspace.automations.test.long_name')], ['shortName', t('workspace.automations.test.short_name')],
   ['hwModel', t('workspace.automations.test.hw_model')], ['latitude', t('position_config.latitude')], ['longitude', t('position_config.longitude')],
-].map(([key, label]) => ({ key, label, type: ['longName', t('workspace.automations.test.shortname')].includes(key) ? undefined : 'number' }) as F);
+].map(([key, label]) => ({ key, label, type: ['longName', 'shortName'].includes(key) ? undefined : 'number' }) as F);
 
 export interface RuleTestProps {
   /** The draft compiled to a graph, or why it cannot be. */
