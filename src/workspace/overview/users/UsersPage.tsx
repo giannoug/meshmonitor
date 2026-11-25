@@ -29,12 +29,11 @@ import StateView from '../../patterns/StateView';
 import ManageUser from './ManageUser';
 import PermissionMatrix from './PermissionMatrix';
 import PhonePermissions from './PhonePermissions';
-import { usePermissionMatrix } from './usePermissionMatrix';
+import { forbidden, usePermissionMatrix } from './usePermissionMatrix';
 import styles from './UsersPage.module.css';
 
 type Layer = 'create' | 'password' | 'passkeys' | 'admin' | 'deactivate' | 'delete';
 
-const forbidden = (err: unknown) => !!err && typeof err === 'object' && 'status' in err && err.status === 403;
 const displayName = (u: AdminUser) => u.displayName || u.username;
 
 function initials(name: string): string {

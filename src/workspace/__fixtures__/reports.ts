@@ -426,3 +426,11 @@ export const enrichmentAnalysis: EnrichmentAnalysis = {
   ],
   summary: { nodeCount: 4, targetCount: 4, fieldCount: 9 },
 };
+
+/** Marousi Mobile as Station G2 and Athens MQTT heard it: the copy preview's donors (6-07), the row's own donor second. */
+const marousi = { nodeNum: MAR, nodeId: '!a1b2c305', longName: 'Marousi Mobile', shortName: 'MAR2', hwModel: 43, role: 0,
+  macaddr: null, publicKey: null, hasPKC: false, firmwareVersion: '2.7.15', updatedAt: NOW_MS - 360_000, lastHeard: Math.floor(NOW_MS / 1000) - 360 };
+export const enrichmentCopyCandidates = [
+  { sourceId: SOURCE_IDS.mqtt, sourceName: 'Athens MQTT', sourceType: 'mqtt_broker', node: { ...marousi, longName: 'Marousi', shortName: 'M' }, fieldsFilled: 5, totalFields: 8 },
+  { sourceId: SOURCE_IDS.g2, sourceName: 'Station G2', sourceType: 'meshtastic_tcp', node: marousi, fieldsFilled: 7, totalFields: 8 },
+];

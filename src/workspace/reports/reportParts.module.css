@@ -189,8 +189,9 @@
   min-height: 44px;
 }
 
-.targets button,
-.targets label {
+/* :where() keeps this at the parts' own specificity, so a Classic `display: none` still wins (a hidden control stays hidden). */
+:where(.targets) > button,
+:where(.targets) > label {
   display: inline-flex;
   align-items: center;
 }

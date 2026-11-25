@@ -28,6 +28,11 @@ import {
   type PermissionSource,
 } from '../../../components/users/userPermissionModel';
 
+/** An `ApiService` error the server answered with 403. */
+export const forbidden = (err: unknown) => !!err && typeof err === 'object' && 'status' in err && err.status === 403;
+
+const blankChannelDbPermission = (id: number): ChannelDatabasePermission => ({ channelDatabaseId: id, canViewOnMap: false, canRead: false, canWrite: false });
+
 export type Level = 'none' | 'read' | 'write';
 type Grant = NonNullable<PermissionSet[ResourceType]>;
 
@@ -119,8 +124,7 @@ export function usePermissionMatrix(user: AdminUser, sources: PermissionSource[]
       if (scope) setDevices((d) => d && { ...d, [scope]: { ...d[scope], perms: nextDevice } });
     } catch (err) {
       logger.error('Failed to update permissions:', err);
-      const forbidden = !!err && typeof err === 'object' && 'status' in err && err.status === 403;
-      showToast(t(forbidden ? 'users.insufficient_permissions_update' : 'users.failed_update_permissions'), 'error');
+      showToast(t(forbidden(err) ? 'users.insufficient_permissions_update' : 'users.failed_update_permissions'), 'error');
     } finally {
       inFlight.current = false;
       setSaving(false);
@@ -143,11 +147,10 @@ export function usePermissionMatrix(user: AdminUser, sources: PermissionSource[]
       save(scope, { [resource]: withLevel(globals[resource], level) }),
     channelDb: {
       entries,
-      get: (id: number): ChannelDatabasePermission =>
-        channelDb.find((p) => p.channelDatabaseId === id) ?? { channelDatabaseId: id, canViewOnMap: false, canRead: false, canWrite: false },
+      get: (id: number): ChannelDatabasePermission => channelDb.find((p) => p.channelDatabaseId === id) ?? blankChannelDbPermission(id),
       toggle: (id: number, field: 'canViewOnMap' | 'canRead' | 'canWrite') =>
         setChannelDb((prev) => {
-          const existing = prev.find((p) => p.channelDatabaseId === id) ?? { channelDatabaseId: id, canViewOnMap: false, canRead: false, canWrite: false };
+          const existing = prev.find((p) => p.channelDatabaseId === id) ?? blankChannelDbPermission(id);
           const next = { channelDatabaseId: id, ...toggledChannelDbPermission(existing, field) };
           return prev.some((p) => p.channelDatabaseId === id) ? prev.map((p) => (p.channelDatabaseId === id ? next : p)) : [...prev, next];
         }),

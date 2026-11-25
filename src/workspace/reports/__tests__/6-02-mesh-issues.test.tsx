@@ -95,4 +95,38 @@ describe('6-02-mesh-issues', () => {
     expect(screen.queryByRole('button', { name: 'Run analysis now' })).toBeNull();
     expect(within(cluster).queryByRole('button', { name: 'Dismiss' })).toBeNull();
   });
+
+  it('changing a filter keeps the Source chips while /summary reloads', async () => {
+    renderReports(ROUTE);
+    const closed = await screen.findByRole('checkbox', { name: 'Show closed' }, { timeout: 5000 });
+    const chip = () => screen.getByRole('button', { name: 'Athens MQTT', pressed: false });
+    expect(chip()).toBeInTheDocument();
+    // The reload with the new filter never answers, so the page stays in its loading state.
+    const real = globalThis.fetch;
+    const summary = vi.fn();
+    globalThis.fetch = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).includes('/mesh-issues/summary')) {
+        summary();
+        return new Promise<Response>(() => {});
+      }
+      return real(input, init);
+    }) as typeof fetch;
+    fireEvent.click(closed);
+    await waitFor(() => expect(summary).toHaveBeenCalled());
+    expect(screen.getByText('Loading mesh issues…')).toBeInTheDocument();
+    expect(chip()).toBeInTheDocument();
+  });
+
+  it('Dismiss all opens the confirm and posts nothing before Confirm', async () => {
+    const bulk = vi.fn(() => ({ success: true, data: { affected: 2 } }));
+    renderReports(ROUTE, { meshIssuesView: BOARD_VIEW, fixtures: { 'POST /api/analysis/mesh-issues/bulk/dismiss': bulk } });
+    const cluster = await section('B1 Router cluster');
+    fireEvent.click(await within(cluster).findByRole('button', { name: /^Bulk actions for/ }));
+    fireEvent.click(within(cluster).getByRole('menuitem', { name: /^Dismiss all/ }));
+    const confirm = await screen.findByTestId('bulk-confirm-go');
+    await waitFor(() => expect(confirm).toBeEnabled());
+    expect(bulk).not.toHaveBeenCalled();
+    fireEvent.click(confirm);
+    await waitFor(() => expect(bulk).toHaveBeenCalledTimes(1));
+  });
 });

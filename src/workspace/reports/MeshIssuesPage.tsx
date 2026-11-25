@@ -9,7 +9,7 @@
  * (MeshIssuesPhoneSections, 6-09). Run is a server-side analysis of stored data; nothing here
  * sends on the mesh.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon } from '../../components/icons';
 import { useMeshIssuesReport } from '../../components/Analysis/meshIssues/useMeshIssuesReport';
@@ -47,8 +47,12 @@ export default function MeshIssuesPage() {
     </>
   );
 
+  // A filter change reloads /summary with no data for a moment; the Source chips keep the last names meanwhile.
+  const sourceNames = useRef<Record<string, string>>({});
+  if (m.summary && Object.keys(m.summary.sourceNames).length > 0) sourceNames.current = m.summary.sourceNames;
+
   const filterBar = (
-    <FilterBar filters={m.filters} sourceNames={m.summary?.sourceNames ?? {}} onChange={m.handleFiltersChange} />
+    <FilterBar filters={m.filters} sourceNames={sourceNames.current} onChange={m.handleFiltersChange} />
   );
 
   return (
@@ -82,7 +86,6 @@ export default function MeshIssuesPage() {
       )}
 
       {m.summary && !m.summaryQuery.error && (
-        <>
           <SummaryTiles
             byType={m.summary.byType}
             total={m.total}
@@ -92,9 +95,13 @@ export default function MeshIssuesPage() {
             disabledRules={m.disabledRules}
             onSelect={m.handleTileSelect}
           />
+      )}
 
-          {!isPhone && filterBar}
+      {/* Its own slot, so the bar (and a search being typed) survives a reload of /summary. */}
+      {!isPhone && !m.summaryQuery.error && (m.summary || Object.keys(sourceNames.current).length > 0) && filterBar}
 
+      {m.summary && !m.summaryQuery.error && (
+        <>
           <div className={styles.toolbar}>
             {m.total > 0 && (
               <div className={styles.segments} role="group" aria-label={t('workspace.reports.view')}>

@@ -11,6 +11,7 @@ import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
+import { enrichmentCopyCandidates } from '../../__fixtures__/reports';
 import { renderReports, reply } from './renderReports';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
@@ -108,7 +109,12 @@ describe('6-07-nodeinfo-enrichment', () => {
 
   it('the copy preview is a confirm sheet that Enter does not submit (it can transmit)', async () => {
     const copy = vi.fn((_url: URL, _init?: RequestInit) => ({ success: true, data: { copiedFields: ['hwModel'], pushedToDevice: false } }));
-    renderReports(ROUTE, { fixtures: { 'POST /api/nodes/:nodeNum/copy-nodeinfo': copy } });
+    renderReports(ROUTE, {
+      fixtures: {
+        'POST /api/nodes/:nodeNum/copy-nodeinfo': copy,
+        'GET /api/nodes/:nodeNum/copy-candidates': () => ({ success: true, data: { candidates: enrichmentCopyCandidates, target: null } }),
+      },
+    });
     await screen.findByText('Marousi Mobile');
     fireEvent.click(screen.getByText('Marousi Mobile'));
     const sheet = await screen.findByRole('dialog', { name: 'Copy NodeInfo' });
@@ -121,7 +127,9 @@ describe('6-07-nodeinfo-enrichment', () => {
     await waitFor(() => expect(copy).toHaveBeenCalledTimes(1));
     expect(String(copy.mock.calls[0][0])).toContain(`/api/nodes/${0xa1b2c305}/copy-nodeinfo`);
     expect(JSON.parse(String(copy.mock.calls[0][1]?.body))).toMatchObject({
-      fromSourceId: 'src-mqtt', toSourceId: 'src-rak', pushToNodeDb: false,
+      fromSourceId: 'src-g2', toSourceId: 'src-rak', pushToNodeDb: false,
     });
+    // The row's own donor and fields are preselected, not the first candidate's.
+    expect([...JSON.parse(String(copy.mock.calls[0][1]?.body)).fields].sort()).toEqual(['hwModel', 'longName', 'shortName']);
   });
 });

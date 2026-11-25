@@ -39,6 +39,12 @@ import { useCachedSourceStatus, type DashboardSource } from '../../hooks/useDash
 import { useDashboardFilters } from '../../components/Dashboard/hooks/useDashboardFilters';
 import type { DeviceInfo } from '../../types/device';
 import { getEffectiveHops } from '../../utils/nodeHops';
+import { useNodeQuickAgeFilter } from '../../hooks/useNodeQuickAgeFilter';
+import { meshcoreIgnoredNodesQueryKey, type MeshCoreIgnoredNode } from '../../hooks/useMeshCoreFilters';
+import { nodeDisplaySettingsQueryKey, parseNodeDisplaySettings } from '../../hooks/useNodeDisplaySettings';
+import { sourcePollQueryKey } from '../../hooks/pollQueryKey';
+import { useCachedQueryData } from './useCachedQueryData';
+import { meshcoreTileNodes } from './meshcoreTileNodes';
 import { FiltersButton, FiltersSheet } from './BoardFilters';
 import { useSolarEstimatesLatest } from '../../hooks/useTelemetry';
 import { appBasename } from '../../init';
@@ -161,19 +167,27 @@ function Board({ sourceId, deviceName, dataSource, currentNodeId, contained, isP
   const tiles = board.tiles ?? [...DEFAULT_TILES];
   const items = useMemo(() => boardItems(board.widgets, favorites, board.order), [board.widgets, favorites, board.order]);
   const localNum = status?.nodeNum ?? null;
-  const health = useMemo(
-    () =>
-      healthValues({
-        nodes: [...nodes.values()] as HealthNode[],
-        localId,
-        nodeCount: status?.nodeCount,
-        // Nodes' own hop count (NodesPage hopsOf): the device itself is direct. No traceroutes are read here.
-        hopsOf: (n) =>
-          dataSource.kind !== 'meshtastic' ? n.hopsAway : n.user?.id === localId ? 0 : getEffectiveHops(n as DeviceInfo, nodeHopsCalculation, undefined, localNum),
-        reportsFavorites: dataSource.kind === 'meshtastic',
-      }),
-    [nodes, localId, localNum, status?.nodeCount, dataSource.kind, nodeHopsCalculation],
-  );
+  // What the Nodes view the tiles open has already read, taken from the cache: the tiles add no request or timer.
+  // Anything not cached yet leaves the tile's count as it was.
+  const isMeshCore = dataSource.kind === 'meshcore';
+  const [quickAgeHours] = useNodeQuickAgeFilter();
+  const ignored = useCachedQueryData<MeshCoreIgnoredNode[]>(meshcoreIgnoredNodesQueryKey(sourceId));
+  const displayRaw = useCachedQueryData<Record<string, string>>(nodeDisplaySettingsQueryKey(sourceId));
+  const traceroutes = useCachedQueryData<{ traceroutes?: unknown }>(sourcePollQueryKey(sourceId))?.traceroutes as Parameters<typeof getEffectiveHops>[2];
+  const health = useMemo(() => {
+    const all = [...nodes.values()] as HealthNode[];
+    return healthValues({
+      nodes: isMeshCore
+        ? meshcoreTileNodes(all, { localId, ignoredKeys: ignored?.map((e) => e.publicKey), quickAgeHours, display: displayRaw && parseNodeDisplaySettings(displayRaw) })
+        : all,
+      localId,
+      nodeCount: status?.nodeCount,
+      // Nodes' own hop count (NodesPage hopsOf): the device itself is direct. Traceroutes only count in that hop mode.
+      hopsOf: (n) =>
+        dataSource.kind !== 'meshtastic' ? n.hopsAway : n.user?.id === localId ? 0 : getEffectiveHops(n as DeviceInfo, nodeHopsCalculation, nodeHopsCalculation === 'traceroute' ? traceroutes : undefined, localNum),
+      reportsFavorites: dataSource.kind === 'meshtastic',
+    });
+  }, [nodes, localId, localNum, status?.nodeCount, dataSource.kind, isMeshCore, nodeHopsCalculation, traceroutes, ignored, displayRaw, quickAgeHours]);
   const visibleCharts = useMemo(() => new Set(filters.filteredAndSortedFavorites.map(chartKey)), [filters.filteredAndSortedFavorites]);
   const shownItems = useMemo(() => items.filter((i) => i.kind === 'widget' || visibleCharts.has(i.key)), [items, visibleCharts]);
 
