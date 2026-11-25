@@ -382,9 +382,11 @@
   font-size: 11px;
 }
 
+/* Longer words in other locales wrap instead of pushing the table past its column; English fits unwrapped. */
 .feedTable th,
 .feedTable td {
   padding-inline: 10px;
+  white-space: normal;
 }
 
 .table tr[data-selected] td {

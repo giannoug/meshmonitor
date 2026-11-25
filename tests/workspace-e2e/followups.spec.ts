@@ -9,8 +9,8 @@ import { routeFixtures } from './fixtureRoutes';
 
 const DESKTOP = { width: 1280, height: 800 };
 
-/** Opens a board as boards.spec.ts does, at the given viewport. */
-async function open(page: Page, id: string, viewport: { width: number; height: number }): Promise<void> {
+/** Opens a board as boards.spec.ts does, at the given viewport. `setup: false` skips the board's (English-text) setup. */
+async function open(page: Page, id: string, viewport: { width: number; height: number }, { setup = true } = {}): Promise<void> {
   const board = BOARDS.find((b) => b.id === id);
   if (!board) throw new Error(`no board ${id}`);
   await page.setViewportSize(viewport);
@@ -18,7 +18,7 @@ async function open(page: Page, id: string, viewport: { width: number; height: n
   await board.init?.(page);
   await page.goto(board.path);
   await page.waitForLoadState('networkidle');
-  await board.setup?.(page);
+  if (setup) await board.setup?.(page);
 }
 
 /** The table's scroll box: its parent's visible and full widths. */
@@ -34,8 +34,10 @@ test('7-01 receptions table fits its panel', async ({ page }) => {
   expect(scroll).toBeLessThanOrEqual(client);
 });
 
-test('8-15 observers and nodes tables fit their column', async ({ page }) => {
-  await open(page, '8-15-mqtt-region-feed', DESKTOP);
+for (const language of ['en', 'pl', 'es']) test(`8-15 observers and nodes tables fit their column (${language})`, async ({ page }) => {
+  // i18next reads the language from localStorage first (src/config/i18n.ts).
+  await page.addInitScript((l) => localStorage.setItem('language', l), language);
+  await open(page, '8-15-mqtt-region-feed', DESKTOP, { setup: language === 'en' });
   await page.getByTestId('feed-observer').first().waitFor();
   // Observers, then the nodes from adverts: the overview's only two tables.
   await expect(page.locator('table')).toHaveCount(2);
@@ -61,16 +63,34 @@ test('phone switcher shows one focus ring, on the square', async ({ page }) => {
   expect(rings).toEqual({ focused: true, button: 'none', square: 'solid' });
 });
 
+/** The Activity page's own header (the shell's switcher header is hidden there), and its device button. */
+function activityHeader(page: Page) {
+  const header = page.locator('header', { has: page.getByRole('heading', { name: 'Activity', level: 1 }) });
+  return { header, button: header.getByRole('button', { name: /Station G2/ }) };
+}
+
 test('Activity device button is a 44 px target', async ({ page }) => {
   await open(page, 'c-home-e4-activity', PHONE);
-  const button = page.locator('header button[aria-haspopup=dialog]').first();
+  const { button } = activityHeader(page);
   const box = (await button.boundingBox())!;
-  const hits = await button.evaluate((el, b) => {
-    const x = b.x + b.width / 2;
-    const y = b.y + b.height / 2;
-    return [y - 21, y + 21].map((py) => document.elementFromPoint(x, py)?.closest('button') === el);
+  // How many 1 px rows down the button's centre column hit it.
+  const tall = await button.evaluate((el, b) => {
+    let n = 0;
+    for (let y = Math.floor(b.y) - 40; y <= b.y + b.height + 40; y++) {
+      if (document.elementFromPoint(b.x + b.width / 2, y + 0.5)?.closest('button') === el) n++;
+    }
+    return n;
   }, box);
-  expect(hits).toEqual([true, true]);
+  expect(tall).toBeGreaterThanOrEqual(44);
+});
+
+test('the 44 px target stays inside the Activity header', async ({ page }) => {
+  await open(page, 'c-home-e4-activity', PHONE);
+  const { header, button } = activityHeader(page);
+  const b = (await button.boundingBox())!;
+  const h = (await header.boundingBox())!;
+  const below = await button.evaluate((el, p) => document.elementFromPoint(p.x, p.y)?.closest('button') === el, { x: b.x + b.width / 2, y: h.y + h.height + 1 });
+  expect(below).toBe(false);
 });
 
 // F3 in a real browser: jsdom treats :focus-visible as :focus, so only Chromium tells a keyboard delete from a mouse one.

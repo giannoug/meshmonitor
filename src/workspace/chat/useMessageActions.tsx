@@ -19,6 +19,7 @@ import type { DeviceInfo } from '../../types/device';
 import type { MeshMessage } from '../../types/message';
 import type { MessageDirection } from '../../utils/deliveryDiagnostics/types';
 import ConfirmSheet from '../patterns/ConfirmSheet';
+import { focusAfterDelete, rememberDeleteFocus, type DeleteFocus } from './deleteFocus';
 import EmojiPickerSheet from './EmojiPickerSheet';
 import MessageDetailsPanel from './MessageDetailsPanel';
 import type { MessageActionKind } from './messageActions';
@@ -37,9 +38,6 @@ export interface UseMessageActionsOptions {
   dateFormat: DateFormat;
 }
 
-/** The desktop rows that are keyboard stops (MessageRowD), in thread order. Phone rows aren't. */
-const keyRows = () => Array.from(document.querySelectorAll<HTMLElement>('[data-row-target][data-message-id]'));
-
 export function useMessageActions(opts: UseMessageActionsOptions) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -57,14 +55,13 @@ export function useMessageActions(opts: UseMessageActionsOptions) {
     if (el?.isConnected) el.focus();
   }, []);
   // A keyboard delete removes the row and its ⋯ opener, so focus would fall to <body>: hand it to a neighbour.
-  const afterDelete = useRef<{ id: string; neighbour: string } | null>(null);
+  // After the confirm unmounts, so this runs after the sheet's own focus restore.
+  const afterDelete = useRef<DeleteFocus | null>(null);
   useEffect(() => {
     if (toDelete) return;
     const pending = afterDelete.current;
     afterDelete.current = null;
-    // Cancelled, or the delete failed: the row is still there and the sheet already gave focus back.
-    if (!pending || keyRows().some((r) => r.dataset.messageId === pending.id)) return;
-    keyRows().find((r) => r.dataset.messageId === pending.neighbour)?.focus();
+    if (pending) focusAfterDelete(pending);
   }, [toDelete]);
   // The latest options behind the stable `onAction`.
   const latest = useRef(opts);
@@ -106,10 +103,7 @@ export function useMessageActions(opts: UseMessageActionsOptions) {
         case 'delete': {
           // Keyboard only: focusing a row after a mouse delete would show its action bar and signal line.
           const keyboard = document.activeElement instanceof HTMLElement && document.activeElement.matches(':focus-visible');
-          const rows = keyboard ? keyRows() : [];
-          const i = rows.findIndex((r) => r.dataset.messageId === msg.id);
-          const neighbour = i < 0 ? undefined : (rows[i + 1] ?? rows[i - 1])?.dataset.messageId;
-          afterDelete.current = neighbour ? { id: msg.id, neighbour } : null;
+          afterDelete.current = keyboard ? rememberDeleteFocus(msg.id) : null;
           setToDelete(msg);
           break;
         }

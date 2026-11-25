@@ -21,11 +21,12 @@
   cursor: pointer;
 }
 
-/* A 44 px phone target in the compact header, without taking layout height (a margin would). */
+/* A 44 px phone target in the compact header, without taking layout height (a margin would). More above than
+   below: the 17 px button sits low in the 64 px header, and the target must not reach the list under it. */
 .device::before {
   content: '';
   position: absolute;
-  inset: calc((100% - 44px) / 2) 0;
+  inset: -16px 0 -11px;
 }
 
 .deviceName {
