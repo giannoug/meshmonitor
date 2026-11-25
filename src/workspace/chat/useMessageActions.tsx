@@ -104,7 +104,9 @@ export function useMessageActions(opts: UseMessageActionsOptions) {
           })();
           break;
         case 'delete': {
-          const rows = keyRows();
+          // Keyboard only: focusing a row after a mouse delete would show its action bar and signal line.
+          const keyboard = document.activeElement instanceof HTMLElement && document.activeElement.matches(':focus-visible');
+          const rows = keyboard ? keyRows() : [];
           const i = rows.findIndex((r) => r.dataset.messageId === msg.id);
           const neighbour = i < 0 ? undefined : (rows[i + 1] ?? rows[i - 1])?.dataset.messageId;
           afterDelete.current = neighbour ? { id: msg.id, neighbour } : null;

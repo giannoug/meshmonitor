@@ -72,3 +72,53 @@ test('Activity device button is a 44 px target', async ({ page }) => {
   }, box);
   expect(hits).toEqual([true, true]);
 });
+
+// F3 in a real browser: jsdom treats :focus-visible as :focus, so only Chromium tells a keyboard delete from a mouse one.
+const CHANNEL = '/source/src-g2/channel/0';
+const DELETED = { 'DELETE /api/messages/:id': () => ({ message: 'Message deleted successfully' }) };
+
+async function openChannel(page: Page): Promise<void> {
+  await page.setViewportSize(DESKTOP);
+  await routeFixtures(page, DELETED);
+  await page.goto(CHANNEL);
+  await page.locator('[data-row-target]').first().waitFor();
+}
+
+const focusedRowId = (page: Page) => page.evaluate(() => document.activeElement?.closest('[data-message-id]')?.getAttribute('data-message-id') ?? null);
+
+test('a keyboard delete hands focus to the next message', async ({ page }) => {
+  await openChannel(page);
+  const rows = page.locator('[data-row-target]');
+  const ids = await rows.evaluateAll((els) => els.map((e) => e.getAttribute('data-message-id')));
+  const row = rows.nth(0);
+  await row.focus();
+  await page.keyboard.press('ArrowRight');
+  const more = row.getByRole('button', { name: 'More actions' });
+  const isFocused = (l: typeof more) => l.evaluate((el) => el === document.activeElement);
+  for (let i = 0; i < 8 && !(await isFocused(more)); i++) await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  // The ⋯ menu keeps focus on ⋯; its items follow it in Tab order.
+  const del = row.getByRole('button', { name: /^Delete/ });
+  await expect(del).toBeEnabled();
+  for (let i = 0; i < 8 && !(await isFocused(del)); i++) await page.keyboard.press('Tab');
+  await page.keyboard.press('Enter');
+  const confirm = page.getByRole('dialog', { name: 'Delete this message' }).getByRole('button', { name: 'Delete' });
+  await expect(confirm).toBeEnabled();
+  await confirm.press('Enter');
+  await expect.poll(() => focusedRowId(page)).toBe(ids[1]);
+});
+
+test('a mouse delete moves no focus onto another message', async ({ page }) => {
+  await openChannel(page);
+  const row = page.locator('[data-row-target]').first();
+  await row.hover();
+  await row.getByRole('button', { name: 'More actions' }).click();
+  const del = row.getByRole('button', { name: /^Delete/ });
+  await expect(del).toBeEnabled();
+  await del.click();
+  const confirm = page.getByRole('dialog', { name: 'Delete this message' }).getByRole('button', { name: 'Delete' });
+  await expect(confirm).toBeEnabled();
+  await confirm.click();
+  await expect(page.getByRole('dialog', { name: 'Delete this message' })).toHaveCount(0);
+  expect(await focusedRowId(page)).toBeNull();
+});
