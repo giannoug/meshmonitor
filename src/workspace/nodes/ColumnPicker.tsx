@@ -52,7 +52,7 @@ export default function ColumnPicker({ columns, onChange, options = NODE_COLUMNS
     save(list, new Set(columns));
   };
   const onKeyDown = (id: string) => (e: KeyboardEvent) => {
-    if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    if (!columns.includes(id) || !e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
     e.preventDefault();
     move(id, order.indexOf(id) + (e.key === 'ArrowUp' ? -1 : 1));
   };
@@ -72,7 +72,7 @@ export default function ColumnPicker({ columns, onChange, options = NODE_COLUMNS
             {order.map((id) => (
               <li
                 key={id}
-                draggable
+                draggable={columns.includes(id)}
                 data-dragging={dragging === id || undefined}
                 onDragStart={(e) => {
                   setDragging(id);

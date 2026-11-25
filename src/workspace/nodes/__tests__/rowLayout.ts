@@ -6,9 +6,12 @@
 import { afterEach, beforeEach, vi } from 'vitest';
 
 export function withRowLayout(): void {
+  const spies: Array<{ mockRestore(): void }> = [];
   beforeEach(() => {
-    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(600);
-    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(57);
+    spies.push(
+      vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(600),
+      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(57),
+    );
   });
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => spies.splice(0).forEach((s) => s.mockRestore()));
 }

@@ -7,13 +7,14 @@
  * preference `workspace.nodes.columns`.
  */
 import type { ReactNode } from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { expectBoard } from '../../test/boardChecks';
 import { SOURCE_IDS } from '../../__fixtures__/athens';
 import { prefsFixture } from '../../__fixtures__/prefsFixture';
 import { renderChat } from '../../chat/__tests__/renderChat';
 import { withRowLayout } from './rowLayout';
+import { sourcePollQueryKey } from '../../../hooks/pollQueryKey';
 
 vi.mock('../../../contexts/WebSocketContext', async (orig) => ({
   ...(await orig<object>()),
@@ -91,6 +92,42 @@ describe('f3-nodes', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Online/ }));
     await waitFor(async () => expect(within(await table()).queryByText('Penteli Hiker')).toBeNull());
     expect(within(await table()).getByText('Kifisia Rooftop')).toBeInTheDocument();
+  });
+
+  it('Alt+Arrow on a hidden column does nothing, and its grip is disabled', async () => {
+    const prefs = prefsFixture();
+    renderChat(route, { fixtures: prefs.fixtures });
+    await within(await table()).findByText('Kifisia Rooftop');
+    fireEvent.click(screen.getByRole('button', { name: /Columns/ }));
+    const firmware = screen.getByRole('checkbox', { name: 'Firmware' });
+    expect(firmware).not.toBeChecked();
+    fireEvent.keyDown(firmware, { key: 'ArrowUp', altKey: true });
+    expect(prefs.puts).toEqual([]);
+    expect(firmware.closest('li')).toHaveAttribute('draggable', 'false');
+    expect(screen.getByRole('checkbox', { name: 'Hops' }).closest('li')).toHaveAttribute('draggable', 'true');
+  });
+
+  it('role 0 shows no role on the desktop table, as on the phone list', async () => {
+    renderChat(route);
+    const row = (await within(await table()).findByText('Glyfada Beach')).closest('tr')!;
+    expect(within(row).queryByText('Client')).toBeNull();
+    const router = (await within(await table()).findByText('Hymettus Relay')).closest('tr')!;
+    expect(within(router).getByText('Router')).toBeInTheDocument();
+  });
+
+  describe('online count', () => {
+    afterEach(() => vi.useRealTimers());
+    it('updates when a poll returns the same nodes later', async () => {
+      const { queryClient } = renderChat(route);
+      await within(await table()).findByText('Kifisia Rooftop');
+      const subtitle = () => screen.getByText(/ online · /).textContent;
+      expect(subtitle()).not.toMatch(/^0 online/);
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(Date.now() + 3 * 3600_000);
+      // A poll that returns equal data: TanStack keeps the old reference but stamps dataUpdatedAt.
+      queryClient.setQueryData(sourcePollQueryKey(SOURCE_IDS.g2), (d: unknown) => structuredClone(d));
+      await waitFor(() => expect(subtitle()).toMatch(/^0 online/));
+    });
   });
 
   it('Add node from URL needs nodes:write, with today\'s reason', async () => {

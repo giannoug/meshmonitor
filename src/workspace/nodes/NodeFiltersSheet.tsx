@@ -31,6 +31,8 @@ export interface NodeFiltersSheetProps {
   features?: Partial<Record<NodeFilterFeature, boolean>>;
   /** The Device role choices; default the Meshtastic roles. */
   roleOptions?: ReadonlyArray<NodeFilterRoleOption>;
+  /** Opened from the map: the note about the map's More filters would point at itself. */
+  fromMap?: boolean;
 }
 
 const ROLES = Object.entries(ROLE_NAMES).map(([value, label]) => ({ value: Number(value), label }));
@@ -132,7 +134,7 @@ export default function NodeFiltersSheet(p: NodeFiltersSheetProps) {
       }
       footer={
         <div className={styles.footer} data-phone={isPhone || undefined}>
-          {!isPhone && <p className={styles.note}>{t('workspace.nodes.filters_note')}</p>}
+          {!isPhone && !p.fromMap && <p className={styles.note}>{t('workspace.nodes.filters_note')}</p>}
           <button
             type="button"
             className={styles.secondary}

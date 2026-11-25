@@ -336,7 +336,7 @@
   border: 0;
 }
 
-.table tr:hover td {
+.table tr:not([aria-hidden]):hover td {
   background: var(--color-surface-hover);
 }
 

@@ -480,6 +480,7 @@ function DeviceMap({ sourceId, source, focusNodeId, onFocusHandled }: DeviceMapP
         </div>
       )}
       <NodeFiltersSheet
+        fromMap
         open={showNodeFilterPopup}
         nodeFilters={nodeFilters}
         securityFilter={securityFilter}

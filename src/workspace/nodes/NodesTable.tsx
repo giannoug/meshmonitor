@@ -82,7 +82,7 @@ export default function NodesTable({ sourceId, nodes, columns, ctx, sortField, s
           {items.map(({ index, key }) => {
             const node = nodes[index];
             const nodeId = nodeIdOf(node);
-            const role = node.user?.role != null ? getDeviceRoleName(node.user.role) : null;
+            const role = node.user?.role != null && String(node.user.role) !== '0' ? getDeviceRoleName(node.user.role) : null;
             return (
               <tr key={key} data-index={index} ref={rows.measureElement} aria-rowindex={index + 2} data-stale={!node.lastHeard || undefined}>
                 <td className={styles.star}>

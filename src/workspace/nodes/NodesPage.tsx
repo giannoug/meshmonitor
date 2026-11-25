@@ -9,7 +9,7 @@
  * Desktop shows NodesTable, phone NodesList. Nothing here transmits or runs
  * a timer: Add node from URL writes a row on the server only.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
@@ -90,6 +90,12 @@ function Nodes({ sourceId, deviceName }: { sourceId: string; deviceName: string 
   const settings = useSettings();
   const { currentNodeId } = useData();
   const { nodes, isLoading } = useNodes();
+  // Each poll stamps this even when it returns the same nodes, so "now" below moves on. Read from the cache,
+  // not through useQuery: a second observer's skipToken would be the options a manual refetch runs.
+  const dataUpdatedAt = useSyncExternalStore(
+    (cb) => queryClient.getQueryCache().subscribe(cb),
+    () => queryClient.getQueryState(sourcePollQueryKey(sourceId))?.dataUpdatedAt ?? 0,
+  );
   const { channels } = useChannels();
   const ui = useUI();
   const [nodeFilters, setNodeFilters] = usePersistedNodeFilters('nodeFilters');
@@ -145,10 +151,12 @@ function Nodes({ sourceId, deviceName }: { sourceId: string; deviceName: string 
       'low-battery': listed.filter(isLowBattery),
       'new-today': listed.filter((n) => isNewToday(n, now)),
     } satisfies Record<Scope, DeviceInfo[]>;
-  }, [listed, hopsOf]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 dataUpdatedAt only re-reads Date.now() each poll
+  }, [listed, hopsOf, dataUpdatedAt]);
   const shown = scoped[scope];
   const countOf = (s: Scope) => scoped[s].length;
-  const onlineTotal = useMemo(() => nodes.filter((n) => isHeardRecently(n.lastHeard)).length, [nodes]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- #6365 dataUpdatedAt only re-reads Date.now() each poll
+  const onlineTotal = useMemo(() => nodes.filter((n) => isHeardRecently(n.lastHeard)).length, [nodes, dataUpdatedAt]);
 
   const home = useMemo(() => nodes.find((n) => n.user?.id === currentNodeId), [nodes, currentNodeId]);
   const ctx = useMemo<CellContext>(

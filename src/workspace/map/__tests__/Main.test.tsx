@@ -70,6 +70,7 @@ describe('Main', () => {
     renderChat(route);
     fireEvent.click(await screen.findByRole('button', { name: /More filters/ }));
     expect(await screen.findByText('Filter Mode')).toBeInTheDocument();
+    expect(screen.queryByText(/opens the same panel/)).toBeNull();
   });
 
   it('Center on Map in a DM header opens the device map on that node (Ruling AJ closed)', async () => {

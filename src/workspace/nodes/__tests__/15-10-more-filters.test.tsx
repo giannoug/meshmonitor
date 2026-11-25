@@ -61,10 +61,10 @@ describe('15-10-more-filters', () => {
     expect(JSON.parse(localStorage.getItem('nodeFilters') ?? '{}').deviceRoles).toHaveLength(12);
   });
 
-  it("the map's More filters opens the same panel", async () => {
+  it("the map's More filters opens the same panel, without the note that points at itself", async () => {
     renderChat(`${g2}/map`);
     fireEvent.click(await screen.findByRole('button', { name: /More filters/ }, { timeout: 5000 }));
     const sheet = await screen.findByRole('dialog', { name: /More filters/ });
-    expect(within(sheet).getByText("The map's More filters opens the same panel. Sends nothing on the mesh.")).toBeInTheDocument();
+    expect(within(sheet).queryByText("The map's More filters opens the same panel. Sends nothing on the mesh.")).toBeNull();
   });
 });
